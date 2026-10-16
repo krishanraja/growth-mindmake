@@ -1,0 +1,350 @@
+{
+  "schema_version": 1,
+  "pipeline_id": "mindmake-growth-v1",
+  "inventory": {
+    "roots": [
+      "src",
+      "contracts"
+    ],
+    "extensions": [
+      ".mjs",
+      ".ts"
+    ],
+    "exclude": []
+  },
+  "external_inputs": [
+    "raw_snapshot",
+    "policy",
+    "run_clock"
+  ],
+  "terminal_outputs": [
+    "durable_receipt"
+  ],
+  "stages": [
+    {
+      "id": "capture",
+      "owner": "growth-engine",
+      "owned_paths": [
+        "src/capture.mjs"
+      ],
+      "inputs": [
+        "raw_snapshot"
+      ],
+      "outputs": [
+        "observed_snapshot"
+      ],
+      "consumed_guards": [
+        "wire",
+        "transport"
+      ],
+      "side_effects": [
+        "private source reads only"
+      ],
+      "retry": {
+        "mode": "manual",
+        "total_attempt_cap": 1,
+        "checkpoint": "Control Center source snapshot revision; no local source state",
+        "recovery_entrypoint": "capture-recovery"
+      },
+      "completion": {
+        "source": "authoritative_output",
+        "evidence": "Parsed complete bounded source context; tests/cli.test.mjs"
+      }
+    },
+    {
+      "id": "analyse",
+      "owner": "growth-engine",
+      "owned_paths": [
+        "src/stages/qualify.mjs"
+      ],
+      "inputs": [
+        "observed_snapshot",
+        "policy"
+      ],
+      "outputs": [
+        "candidates"
+      ],
+      "consumed_guards": [
+        "safety"
+      ],
+      "side_effects": [
+        "none"
+      ],
+      "retry": {
+        "mode": "idempotent",
+        "total_attempt_cap": 1,
+        "checkpoint": "Semantic source revision in the durable batch journal",
+        "recovery_entrypoint": "analyse-recovery"
+      },
+      "completion": {
+        "source": "independent_rederivation",
+        "evidence": "tests/planning.test.mjs verifies current sources, holds, caps and route"
+      }
+    },
+    {
+      "id": "draft",
+      "owner": "growth-engine",
+      "owned_paths": [
+        "src/stages/draft.mjs"
+      ],
+      "inputs": [
+        "candidates"
+      ],
+      "outputs": [
+        "prepared_recommendations"
+      ],
+      "consumed_guards": [
+        "safety"
+      ],
+      "side_effects": [
+        "none"
+      ],
+      "retry": {
+        "mode": "idempotent",
+        "total_attempt_cap": 1,
+        "checkpoint": "Recommendation content hash in the durable batch journal",
+        "recovery_entrypoint": "draft-recovery"
+      },
+      "completion": {
+        "source": "authoritative_output",
+        "evidence": "Message and aid preserve evidence lineage; tests/planning.test.mjs"
+      }
+    },
+    {
+      "id": "measure",
+      "owner": "growth-engine",
+      "owned_paths": [
+        "src/stages/scorecard.mjs"
+      ],
+      "inputs": [
+        "observed_snapshot",
+        "run_clock"
+      ],
+      "outputs": [
+        "scorecard"
+      ],
+      "consumed_guards": [
+        "safety"
+      ],
+      "side_effects": [
+        "none"
+      ],
+      "retry": {
+        "mode": "idempotent",
+        "total_attempt_cap": 1,
+        "checkpoint": "Scorecard report in the durable batch journal",
+        "recovery_entrypoint": "measure-recovery"
+      },
+      "completion": {
+        "source": "independent_rederivation",
+        "evidence": "tests/scorecard.test.mjs verifies held human qualifications and London windows"
+      }
+    },
+    {
+      "id": "plan",
+      "owner": "growth-engine",
+      "owned_paths": [
+        "src/orchestrator.mjs",
+        "src/cli.mjs"
+      ],
+      "inputs": [
+        "observed_snapshot",
+        "candidates",
+        "prepared_recommendations",
+        "scorecard",
+        "policy"
+      ],
+      "outputs": [
+        "growth_batch"
+      ],
+      "consumed_guards": [
+        "wire",
+        "safety"
+      ],
+      "side_effects": [
+        "optional explicitly requested private runtime artifact"
+      ],
+      "retry": {
+        "mode": "idempotent",
+        "total_attempt_cap": 1,
+        "checkpoint": "Semantic run id and source seal in Control Center journal",
+        "recovery_entrypoint": "resume"
+      },
+      "completion": {
+        "source": "authoritative_output",
+        "evidence": "Strict parsed batch and safe CLI summary; tests/planning.test.mjs and tests/cli.test.mjs"
+      }
+    },
+    {
+      "id": "publish",
+      "owner": "growth-engine",
+      "owned_paths": [
+        "src/publish.mjs"
+      ],
+      "inputs": [
+        "growth_batch"
+      ],
+      "outputs": [
+        "durable_receipt"
+      ],
+      "consumed_guards": [
+        "wire",
+        "transport"
+      ],
+      "side_effects": [
+        "atomic private draft ingestion and report; no external messages"
+      ],
+      "retry": {
+        "mode": "manual",
+        "total_attempt_cap": 1,
+        "checkpoint": "Authoritative atomic Control Center batch journal",
+        "recovery_entrypoint": "publish-recovery"
+      },
+      "completion": {
+        "source": "destination_readback",
+        "evidence": "tests/adapter.test.mjs checks independent GET receipt, all item accounting and lost response recovery"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "capture",
+      "to": "analyse",
+      "artifact": "observed_snapshot"
+    },
+    {
+      "from": "capture",
+      "to": "measure",
+      "artifact": "observed_snapshot"
+    },
+    {
+      "from": "capture",
+      "to": "plan",
+      "artifact": "observed_snapshot"
+    },
+    {
+      "from": "analyse",
+      "to": "draft",
+      "artifact": "candidates"
+    },
+    {
+      "from": "analyse",
+      "to": "plan",
+      "artifact": "candidates"
+    },
+    {
+      "from": "draft",
+      "to": "plan",
+      "artifact": "prepared_recommendations"
+    },
+    {
+      "from": "measure",
+      "to": "plan",
+      "artifact": "scorecard"
+    },
+    {
+      "from": "plan",
+      "to": "publish",
+      "artifact": "growth_batch"
+    }
+  ],
+  "guards": [
+    {
+      "id": "wire",
+      "owner": "contract",
+      "owned_paths": [
+        "contracts/growth.ts"
+      ],
+      "required_for": [
+        "capture",
+        "plan",
+        "publish"
+      ],
+      "enforced_by": [
+        "tests/contract.test.mjs"
+      ]
+    },
+    {
+      "id": "safety",
+      "owner": "growth-policy",
+      "owned_paths": [
+        "src/guards.mjs"
+      ],
+      "required_for": [
+        "analyse",
+        "draft",
+        "measure",
+        "plan"
+      ],
+      "enforced_by": [
+        "tests/planning.test.mjs",
+        "tests/scorecard.test.mjs"
+      ]
+    },
+    {
+      "id": "transport",
+      "owner": "integration",
+      "owned_paths": [
+        "src/control-center.mjs"
+      ],
+      "required_for": [
+        "capture",
+        "publish"
+      ],
+      "enforced_by": [
+        "tests/adapter.test.mjs"
+      ]
+    }
+  ],
+  "entrypoints": [
+    {
+      "id": "cli",
+      "stage": "plan",
+      "path": "src/cli.mjs",
+      "kind": "primary"
+    },
+    {
+      "id": "resume",
+      "stage": "plan",
+      "path": "src/cli.mjs",
+      "kind": "recovery"
+    },
+    {
+      "id": "source-api",
+      "stage": "capture",
+      "path": "src/capture.mjs",
+      "kind": "primary"
+    },
+    {
+      "id": "capture-recovery",
+      "stage": "capture",
+      "path": "src/capture.mjs",
+      "kind": "recovery"
+    },
+    {
+      "id": "analyse-recovery",
+      "stage": "analyse",
+      "path": "src/stages/qualify.mjs",
+      "kind": "recovery"
+    },
+    {
+      "id": "draft-recovery",
+      "stage": "draft",
+      "path": "src/stages/draft.mjs",
+      "kind": "recovery"
+    },
+    {
+      "id": "measure-recovery",
+      "stage": "measure",
+      "path": "src/stages/scorecard.mjs",
+      "kind": "recovery"
+    },
+    {
+      "id": "publish-recovery",
+      "stage": "publish",
+      "path": "src/publish.mjs",
+      "kind": "recovery"
+    }
+  ],
+  "learnings": []
+}

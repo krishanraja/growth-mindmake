@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "venture": "mindmake",
+  "targets": { "qualified_conversations_per_week": 5, "paid_proofs_first_30_days": 1 },
+  "limits": { "recommendations_per_run": 5, "contacts_per_snapshot": 100, "evidence_max_age_days": 90, "trigger_max_age_days": 30, "snapshot_max_age_hours": 24, "canon_max_age_days": 30, "cooldown_days": 14, "max_follow_ups": 1 },
+  "motions": ["warm", "intro", "cold", "follow_up"],
+  "voice": "mixed",
+  "send_authority": "none",
+  "spend_authority": "none"
+}

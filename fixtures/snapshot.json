@@ -1,0 +1,181 @@
+{
+  "version": 1,
+  "generated_at": "2026-10-16T17:00:00Z",
+  "source_revision": "synthetic-fixture-v1",
+  "complete": true,
+  "canon": {
+    "revision": "mindmake:00:e3c459d75e68365a5188fc745b60841156e33538:01:d2a61cdbf4e6bbf78e8ce3c8f2378380a095bb62",
+    "approved_at": "2026-10-16T12:54:28Z",
+    "brief_url": "https://mindmake.co/?start=1",
+    "publication_url": "https://makeyourmindup.ai",
+    "brain_description": "Your taste, standards and judgement, running as a system you own.",
+    "revenue_description": "Your pricing, positioning and team rebuilt for AI, then tested with real buyers."
+  },
+  "icp": {
+    "defined": true,
+    "definition": "Decision-making leaders in a relevant business with a live AI decision.",
+    "buyer_titles": [
+      "Founder",
+      "Principal",
+      "Director"
+    ],
+    "industries": [
+      "software",
+      "advisory"
+    ],
+    "exclusions": [
+      "student"
+    ]
+  },
+  "contacts": [
+    {
+      "id": "10000000-0000-4000-8000-000000000001",
+      "full_name": "Alex Example",
+      "title": "Founder",
+      "company": "Example Studio",
+      "relationship": "warm",
+      "suppressed": false,
+      "closed": false,
+      "consent_status": "allowed",
+      "offer_fit": "brain",
+      "why_fit": "Illustrative fit: the leader owns a live AI decision. Confirm the need in conversation.",
+      "decision_authority": "unknown",
+      "evidence": [
+        {
+          "id": "person-0",
+          "kind": "person",
+          "visibility": "public",
+          "fact": "Alex Example is the founder at Example Studio.",
+          "url": "https://example.test/research/0/person",
+          "observed_at": "2026-10-15T09:00:00Z"
+        },
+        {
+          "id": "company-0",
+          "kind": "company",
+          "visibility": "public",
+          "fact": "Example Studio has described an AI product change.",
+          "url": "https://example.test/research/0/company",
+          "observed_at": "2026-10-15T09:00:00Z"
+        }
+      ],
+      "buying_moment": {
+        "id": "trigger-0",
+        "kind": "trigger",
+        "visibility": "public",
+        "fact": "The leader is reviewing how AI can support recurring decisions.",
+        "url": "https://example.test/research/0/trigger",
+        "observed_at": "2026-10-15T09:00:00Z"
+      }
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000002",
+      "full_name": "Sam Sample",
+      "title": "Principal",
+      "company": "Sample Practice",
+      "relationship": "cold",
+      "suppressed": false,
+      "closed": false,
+      "consent_status": "unknown",
+      "offer_fit": "revenue_engine",
+      "why_fit": "Illustrative fit: the leader owns a live AI decision. Confirm the need in conversation.",
+      "decision_authority": "unknown",
+      "evidence": [
+        {
+          "id": "person-1",
+          "kind": "person",
+          "visibility": "public",
+          "fact": "Sam Sample is the principal at Sample Practice.",
+          "url": "https://example.test/research/1/person",
+          "observed_at": "2026-10-15T09:00:00Z"
+        },
+        {
+          "id": "company-1",
+          "kind": "company",
+          "visibility": "public",
+          "fact": "Sample Practice has described an AI product change.",
+          "url": "https://example.test/research/1/company",
+          "observed_at": "2026-10-15T09:00:00Z"
+        }
+      ],
+      "buying_moment": {
+        "id": "trigger-1",
+        "kind": "trigger",
+        "visibility": "public",
+        "fact": "The company is reviewing pricing for its AI product.",
+        "url": "https://example.test/research/1/trigger",
+        "observed_at": "2026-10-15T09:00:00Z"
+      }
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000003",
+      "full_name": "Jo Synthetic",
+      "title": "Director",
+      "company": "Synthetic Works",
+      "relationship": "warm",
+      "suppressed": true,
+      "closed": false,
+      "consent_status": "allowed",
+      "offer_fit": "brain",
+      "why_fit": "Illustrative fit: the leader owns a live AI decision. Confirm the need in conversation.",
+      "decision_authority": "unknown",
+      "evidence": [
+        {
+          "id": "person-2",
+          "kind": "person",
+          "visibility": "public",
+          "fact": "Jo Synthetic is the director at Synthetic Works.",
+          "url": "https://example.test/research/2/person",
+          "observed_at": "2026-10-15T09:00:00Z"
+        },
+        {
+          "id": "company-2",
+          "kind": "company",
+          "visibility": "public",
+          "fact": "Synthetic Works has described an AI product change.",
+          "url": "https://example.test/research/2/company",
+          "observed_at": "2026-10-15T09:00:00Z"
+        }
+      ],
+      "buying_moment": {
+        "id": "trigger-2",
+        "kind": "trigger",
+        "visibility": "public",
+        "fact": "The leader is reviewing how AI can support recurring decisions.",
+        "url": "https://example.test/research/2/trigger",
+        "observed_at": "2026-10-15T09:00:00Z"
+      }
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000004",
+      "full_name": "Pat Fixture",
+      "title": "Founder",
+      "company": "Fixture Company",
+      "relationship": "cold",
+      "suppressed": false,
+      "closed": false,
+      "consent_status": "unknown",
+      "offer_fit": "brain",
+      "why_fit": "Illustrative fit: the leader owns a live AI decision. Confirm the need in conversation.",
+      "decision_authority": "unknown",
+      "evidence": [
+        {
+          "id": "person-3",
+          "kind": "person",
+          "visibility": "public",
+          "fact": "Pat Fixture is the founder at Fixture Company.",
+          "url": "https://example.test/research/3/person",
+          "observed_at": "2026-10-15T09:00:00Z"
+        },
+        {
+          "id": "company-3",
+          "kind": "company",
+          "visibility": "public",
+          "fact": "Fixture Company has described an AI product change.",
+          "url": "https://example.test/research/3/company",
+          "observed_at": "2026-10-15T09:00:00Z"
+        }
+      ]
+    }
+  ],
+  "deals": []
+}

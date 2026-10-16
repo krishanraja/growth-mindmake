@@ -1,0 +1,38 @@
+name: Run bounded growth plan
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Persist private drafts into the reviewed Control Center adapter
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: mindmake-growth-operation
+  cancel-in-progress: false
+jobs:
+  plan:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: growth-runtime
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Dry plan
+        if: ${{ !inputs.commit }}
+        run: node src/cli.mjs daily --summary
+        env:
+          CONTROL_CENTER_URL: ${{ secrets.CONTROL_CENTER_URL }}
+          MINDMAKE_GROWTH_TOKEN: ${{ secrets.MINDMAKE_GROWTH_TOKEN }}
+          GROWTH_LAUNCH_DATE: ${{ vars.GROWTH_LAUNCH_DATE }}
+      - name: Persist reviewed draft batch
+        if: ${{ inputs.commit }}
+        run: node src/cli.mjs daily --commit --summary
+        env:
+          CONTROL_CENTER_URL: ${{ secrets.CONTROL_CENTER_URL }}
+          MINDMAKE_GROWTH_TOKEN: ${{ secrets.MINDMAKE_GROWTH_TOKEN }}
+          GROWTH_LAUNCH_DATE: ${{ vars.GROWTH_LAUNCH_DATE }}
