@@ -2,9 +2,9 @@
 
 ## Before activation
 
-1. Review and merge the tested companion Control Center change. This is a code review step, not proof that its database migration is applied.
-2. Apply the reviewed additive migration in the intended environment, then verify the journal/RPC, least privilege, private rows and the existing deal lifecycle. Keep a known-good deployment ready. Do not delete existing contacts or deals.
-3. Inject the dedicated service credential into both sides through their managed secret surfaces. Set the service origin without credentials, a path, query or fragment. Do not paste values into chat or a repository.
+1. Review the tested companion Control Center change and identify the current production revision and restore artifact. Merging its main branch deploys automatically, so hold that promotion until the additive schema is ready.
+2. With migration approval, apply the reviewed additive migration in the intended environment, then verify the journal/RPC, least privilege, private rows and the existing deal lifecycle. The previous app remains compatible with the added columns. Do not delete existing contacts or deals.
+3. Promote the reviewed app change after schema readback and inject the dedicated service credential into both sides through their managed secret surfaces. Set the service origin without credentials, a path, query or fragment. Do not paste values into chat or a repository.
 4. Run `npm run doctor`, then a dry `npm run daily`. Confirm current canon, buyer definition, bounded source coverage and real evidence. No writes are needed for doctor.
 5. With activation authority, run one `npm run daily -- --commit`. Read back its journal receipt and the exact existing deal/action queue. Confirm every draft can be inspected and no external message was sent.
 6. Record `GROWTH_LAUNCH_DATE` as the actual activation date. A cadence begins only after this canary succeeds and the scheduler is explicitly activated.
