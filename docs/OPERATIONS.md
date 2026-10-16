@@ -27,7 +27,7 @@ This path is ignored by Git. Do not upload it, include it in a PR or save it in 
 
 ## Record outcomes
 
-Use the existing Advisory lifecycle to record replies, calls taken, proofs booked and proofs paid. Do not count a verbal intention to pay as paid. Human qualification is a separate authenticated update on the existing deal API. Its `qualification` object records the five rubric booleans, `confirmed_by: "krish"` and the real confirmation timestamp. The server derives `qualified_at` only after a held call; an engine bearer cannot write it. No new dashboard is needed, but the current qualification recording surface is the authenticated API, not a newly added visual form.
+Use the existing Advisory lifecycle to record replies, calls taken, proofs booked and proofs paid. Do not count a verbal intention to pay as paid. After a held call, the existing deal card shows the five qualification criteria. Press **Count this conversation** only when you confirmed all five. The card records your explicit confirmation through its authenticated update route and shows the saved outcome. The server derives `qualified_at` only after a held call; an engine bearer cannot write it.
 
 Count each person once per London week. Review held calls with missing qualification rather than treating them as wins or losses. Use measured response/conversation/paid ratios only after there is a denominator; no assumed conversion rate governs the initial cap.
 
