@@ -11,6 +11,8 @@
 
 The manual Actions workflow is a deployment-neutral runner. It defaults to dry run, uploads no private artifacts and prints only counts. No scheduled trigger is enabled by this repository. The existing OS scheduler may invoke `npm run daily -- --commit` once its activation is approved; do not add a second orchestration system.
 
+Actions injects the existing repository secret `GROWTH_ENGINE_TOKEN` into the client's `MINDMAKE_GROWTH_TOKEN` variable. It uses the canonical Control Center origin unless the non-secret `CONTROL_CENTER_URL` repository variable selects a reviewed environment. Secret availability, the adapter's server-side binding and its deployment are separate checks; an empty local environment does not establish missing managed access.
+
 ## Daily
 
 Run the dry plan, inspect holds/research needs and then commit the prepared draft batch when in scope. Control Center contains the private draft, why-now evidence and decision aid. Its existing action queue remains the place for human decisions. Before sending, check the exact person, channel, current facts, contact permission and wording. A draft approval is not evidence that a message was sent.

@@ -26,13 +26,13 @@ jobs:
         if: ${{ !inputs.commit }}
         run: node src/cli.mjs daily --summary
         env:
-          CONTROL_CENTER_URL: ${{ secrets.CONTROL_CENTER_URL }}
-          MINDMAKE_GROWTH_TOKEN: ${{ secrets.MINDMAKE_GROWTH_TOKEN }}
+          CONTROL_CENTER_URL: ${{ vars.CONTROL_CENTER_URL || 'https://controlcenter.krishraja.com' }}
+          MINDMAKE_GROWTH_TOKEN: ${{ secrets.GROWTH_ENGINE_TOKEN }}
           GROWTH_LAUNCH_DATE: ${{ vars.GROWTH_LAUNCH_DATE }}
       - name: Persist reviewed draft batch
         if: ${{ inputs.commit }}
         run: node src/cli.mjs daily --commit --summary
         env:
-          CONTROL_CENTER_URL: ${{ secrets.CONTROL_CENTER_URL }}
-          MINDMAKE_GROWTH_TOKEN: ${{ secrets.MINDMAKE_GROWTH_TOKEN }}
+          CONTROL_CENTER_URL: ${{ vars.CONTROL_CENTER_URL || 'https://controlcenter.krishraja.com' }}
+          MINDMAKE_GROWTH_TOKEN: ${{ secrets.GROWTH_ENGINE_TOKEN }}
           GROWTH_LAUNCH_DATE: ${{ vars.GROWTH_LAUNCH_DATE }}
