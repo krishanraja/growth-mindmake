@@ -17,7 +17,7 @@ npm run demo -- --summary
 
 The demonstration uses invented people and businesses. It prepares two drafts, holds the suppressed contact and the contact without a buying moment, and records zero qualified conversations. Omit `--summary` to inspect the synthetic drafts and decision aids.
 
-For the connected engine, apply and verify the companion Control Center adapter's reviewed additive migration before promoting the app change. Inject the service origin and a dedicated engine credential through the existing managed runtime. `.env.example` documents the variable interface; the application does not load a local `.env` automatically.
+For the connected engine, apply and verify the companion Control Center adapter's reviewed additive migration before promoting the app change. Inject the service origin and the existing managed growth credential through the runtime. `.env.example` documents the variable interface; the application does not load a local `.env` automatically.
 
 ```sh
 npm run doctor
