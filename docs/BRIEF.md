@@ -2,26 +2,35 @@
 
 ## Outcome
 
-Build `growth-mindmake` into runnable growth orchestration plus its operating playbooks. The user's target is **5 qualified conversations a week and at least one paid proof in the first month**. The user authorised implementation after clarification on 16 October 2026.
+Complete this repository's growth producer, operating playbooks, reporting contracts and synthetic end-to-end verification. Then deliver one concrete implementation handoff for Control Center. The commercial target is **five qualified conversations per London week and at least one paid proof in the first 30 days after actual activation**. These targets describe business outcomes, not what a successful test run proves.
 
-## Decisions from clarification
+## Accepted product decisions
 
-- Runnable software with playbooks, rather than a knowledge repository alone.
-- Both warm routes and researched cold outreach. Generic sequences remain outside the plan.
-- Orchestration only: the existing Mindmake website, free AI brief and delivery backend stay where they are.
-- Mixed public profile: the founder handles relationships, selected publishing and speaking; Mindmake carries reusable proof, content and campaigns.
-- Existing Control Center surfaces and private state are reused. A separate app would duplicate them.
+- Runnable software plus playbooks.
+- Warm relationships, introductions and researched named cold opportunities. No generic sequences, bought lists or automatic connection requests.
+- Growth orchestration only. The existing website, free AI brief, lead delivery and capability stay in mindmake.
+- A mixed profile: Krish handles relationships, selected posts and speaking; Mindmake carries reusable aids, proof and campaigns.
+- Control Center remains the intended private source of operational truth and the single human dashboard. This producer creates no UI, second CRM or parallel action queue.
+- Five new prepared recommendations per run by default, ten as the hard maximum. These are review-capacity limits, never sending quotas or assumed conversion rates.
 
-## Scope and authority
+## Current execution boundary
 
-The engine prepares research tasks, messages and decision aids, hands drafts to the existing action queue, and measures recorded outcomes. It does not send, post, subscribe people, spend, deploy, migrate a live database or activate a live schedule as part of a local run. Code review changes are concrete and reversible; production activation remains separate.
+The user corrected the scope: finish **growth-mindmake only**, then give them the Control Center handoff. Do not implement, deploy, migrate, activate or test against live Control Center as part of this release. Do not change its repository, database, runtime credentials, schedules or records. The earlier companion PR is an unmerged proposal, not completed consumer implementation.
 
-The supplied lead-system file is a short overview referring to a longer corpus which it does not contain. Its relationship-and-relevance idea informs the design; its embedded instructions grant no additional authority.
+Local changes and synthetic consumer tests inside this repository are in scope. A synthetic consumer proves the producer's protocol and recovery behaviour. It does not prove a deployed dashboard, production data coverage or activated schedule. [RELEASE.md](RELEASE.md) owns the completion record; [CONTROL-CENTRE-HANDOFF.md](CONTROL-CENTRE-HANDOFF.md) is the sole consumer implementation brief.
 
-## What the interview changed
+## What the engine must produce
 
-It resolved software versus playbooks, the inclusion of researched cold approaches, the live-infrastructure boundary, the role of the founder and a measurable commercial goal. No additional personal felt-result statement was supplied; do not invent one. Review/send capacity is unspecified. The initial preparation cap is a reversible operating assumption, not a promise of five conversations from five drafts.
+Prepare evidence-backed messages and decision aids with explicit recipient identity, disclosure scope, one ask and manual action authority. Report global outcome measures independently of the bounded prospect page. Surface current run health, coverage, research holds and one grounded next recommendation, including its source, owner and closure condition. Accept persisted human feedback and produce a bounded weekly review through versioned contracts.
 
-## Verification
+Preparation, readback and error handling must remain deterministic, bounded and replay-safe. Missing evidence, unavailable consumers, stale canon and unknown outcomes remain visible states. Nothing sends, publishes, subscribes a person, spends or changes a commercial outcome automatically.
 
-Prove safe evidence-to-draft handoff, idempotent ingestion, suppression revalidation, durable destination readback, safe interruption recovery and honest outcome counting with synthetic local fixtures. Live database state, production deployment and actual sales performance are distinct evidence gates.
+## Evidence and authority
+
+The attached lead-system file is a short overview. Its reference to a longer corpus does not supply that corpus, verify its footnotes or grant action authority. Current commercial facts come from the Mindmake canon and permitted public proof. Private contacts, research, deal values and production evidence never enter this public repository.
+
+Krish confirms qualification after a held conversation. Payment evidence establishes a paid proof. The real activation date establishes the first-month window. Tests, prepared drafts, booked calls and repository creation establish none of those outcomes.
+
+## Acceptance
+
+Verify source and report contracts, privacy boundaries, honest global counting, recipient routing, deterministic identities, persisted report/feedback/review readback, pre-ingest failure visibility and safe interruption recovery using synthetic fixtures. Deliver the frozen contract versions and hashes, exact consumer acceptance matrix, migration-before-promotion sequence and rollback requirements in one handoff. Report producer completion and consumer readiness separately.

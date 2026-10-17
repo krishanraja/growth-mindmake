@@ -15,10 +15,14 @@
   "external_inputs": [
     "raw_snapshot",
     "policy",
-    "run_clock"
+    "run_clock",
+    "global_review_context",
+    "consumer_capabilities",
+    "operation_command"
   ],
   "terminal_outputs": [
-    "durable_receipt"
+    "durable_receipt",
+    "operational_receipt"
   ],
   "stages": [
     {
@@ -152,7 +156,8 @@
         "candidates",
         "prepared_recommendations",
         "scorecard",
-        "policy"
+        "policy",
+        "dashboard_report"
       ],
       "outputs": [
         "growth_batch"
@@ -204,6 +209,110 @@
         "source": "destination_readback",
         "evidence": "tests/adapter.test.mjs checks independent GET receipt, all item accounting and lost response recovery"
       }
+    },
+    {
+      "id": "report",
+      "owner": "growth-engine",
+      "owned_paths": [
+        "src/stages/report.mjs"
+      ],
+      "inputs": [
+        "observed_snapshot",
+        "candidates",
+        "prepared_recommendations",
+        "scorecard",
+        "policy",
+        "run_clock"
+      ],
+      "outputs": [
+        "dashboard_report"
+      ],
+      "consumed_guards": [
+        "wire",
+        "safety",
+        "reporting"
+      ],
+      "side_effects": [
+        "none"
+      ],
+      "retry": {
+        "mode": "manual",
+        "total_attempt_cap": 1,
+        "checkpoint": "Authoritative consumer journal or semantic source identity; no automatic write retries",
+        "recovery_entrypoint": "report-recovery"
+      },
+      "completion": {
+        "source": "destination_readback",
+        "evidence": "tests/reporting.test.mjs verifies actual producer report and one grounded improvement"
+      }
+    },
+    {
+      "id": "weekly_review",
+      "owner": "growth-engine",
+      "owned_paths": [
+        "src/weekly-review.mjs"
+      ],
+      "inputs": [
+        "global_review_context",
+        "policy",
+        "run_clock"
+      ],
+      "outputs": [
+        "weekly_review"
+      ],
+      "consumed_guards": [
+        "operations",
+        "reporting",
+        "safety"
+      ],
+      "side_effects": [
+        "none"
+      ],
+      "retry": {
+        "mode": "manual",
+        "total_attempt_cap": 1,
+        "checkpoint": "Authoritative consumer journal or semantic source identity; no automatic write retries",
+        "recovery_entrypoint": "weekly_review-recovery"
+      },
+      "completion": {
+        "source": "destination_readback",
+        "evidence": "tests/operations-contract.test.mjs and tests/http-contract.test.mjs verify global context, feedback and readback"
+      }
+    },
+    {
+      "id": "operate",
+      "owner": "growth-engine",
+      "owned_paths": [
+        "src/runtime.mjs"
+      ],
+      "inputs": [
+        "growth_batch",
+        "weekly_review",
+        "consumer_capabilities",
+        "operation_command",
+        "policy",
+        "run_clock"
+      ],
+      "outputs": [
+        "operational_receipt"
+      ],
+      "consumed_guards": [
+        "operations",
+        "transport"
+      ],
+      "side_effects": [
+        "Private attempt and review journal writes only after readiness; no messages or spend"
+      ],
+      "retry": {
+        "mode": "manual",
+        "total_attempt_cap": 1,
+        "checkpoint": "Authoritative consumer journal or semantic source identity; no automatic write retries",
+        "recovery_entrypoint": "operate-recovery"
+      },
+      "completion": {
+        "source": "destination_readback",
+        "evidence": "tests/http-contract.test.mjs verifies attempt transitions, consumed reports, feedback and weekly review persistence"
+      }
     }
   ],
   "edges": [
@@ -246,6 +355,41 @@
       "from": "plan",
       "to": "publish",
       "artifact": "growth_batch"
+    },
+    {
+      "from": "capture",
+      "to": "report",
+      "artifact": "observed_snapshot"
+    },
+    {
+      "from": "analyse",
+      "to": "report",
+      "artifact": "candidates"
+    },
+    {
+      "from": "draft",
+      "to": "report",
+      "artifact": "prepared_recommendations"
+    },
+    {
+      "from": "measure",
+      "to": "report",
+      "artifact": "scorecard"
+    },
+    {
+      "from": "report",
+      "to": "plan",
+      "artifact": "dashboard_report"
+    },
+    {
+      "from": "plan",
+      "to": "operate",
+      "artifact": "growth_batch"
+    },
+    {
+      "from": "weekly_review",
+      "to": "operate",
+      "artifact": "weekly_review"
     }
   ],
   "guards": [
@@ -258,7 +402,8 @@
       "required_for": [
         "capture",
         "plan",
-        "publish"
+        "publish",
+        "report"
       ],
       "enforced_by": [
         "tests/contract.test.mjs"
@@ -274,7 +419,9 @@
         "analyse",
         "draft",
         "measure",
-        "plan"
+        "plan",
+        "report",
+        "weekly_review"
       ],
       "enforced_by": [
         "tests/planning.test.mjs",
@@ -289,10 +436,40 @@
       ],
       "required_for": [
         "capture",
-        "publish"
+        "publish",
+        "operate"
       ],
       "enforced_by": [
         "tests/adapter.test.mjs"
+      ]
+    },
+    {
+      "id": "reporting",
+      "owner": "reporting-contract",
+      "owned_paths": [
+        "contracts/reporting.ts"
+      ],
+      "required_for": [
+        "report",
+        "weekly_review"
+      ],
+      "enforced_by": [
+        "tests/reporting.test.mjs"
+      ]
+    },
+    {
+      "id": "operations",
+      "owner": "operations-contract",
+      "owned_paths": [
+        "contracts/operations.ts"
+      ],
+      "required_for": [
+        "weekly_review",
+        "operate"
+      ],
+      "enforced_by": [
+        "tests/operations-contract.test.mjs",
+        "tests/http-contract.test.mjs"
       ]
     }
   ],
@@ -344,6 +521,30 @@
       "stage": "publish",
       "path": "src/publish.mjs",
       "kind": "recovery"
+    },
+    {
+      "id": "report-recovery",
+      "stage": "report",
+      "path": "src/stages/report.mjs",
+      "kind": "recovery"
+    },
+    {
+      "id": "weekly_review-recovery",
+      "stage": "weekly_review",
+      "path": "src/weekly-review.mjs",
+      "kind": "recovery"
+    },
+    {
+      "id": "operate-recovery",
+      "stage": "operate",
+      "path": "src/runtime.mjs",
+      "kind": "recovery"
+    },
+    {
+      "id": "weekly-review",
+      "stage": "weekly_review",
+      "path": "src/weekly-review.mjs",
+      "kind": "primary"
     }
   ],
   "learnings": []

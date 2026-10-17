@@ -1,4 +1,5 @@
-/** Canonical wire contract. Vendor byte-for-byte into the service adapter. */
+/** Canonical wire contract. Vendor byte-for-byte with reporting.ts into the consumer. */
+import { parseReport } from './reporting.ts';
 export type Evidence = { id: string; kind: 'person'|'company'|'trigger'|'relationship'|'new_value'; visibility: 'public'|'private'; fact: string; url: string; observed_at: string };
 export type Qualification = { decision_authority: boolean; owned_problem: boolean; active_need: boolean; offer_fit: boolean; next_step_agreed: boolean; confirmed_by: 'krish'; confirmed_at: string };
 export type Contact = { id: string; full_name: string; title: string; company: string; relationship: 'warm'|'known'|'cold'; suppressed: boolean; closed: boolean; consent_status: 'allowed'|'unknown'|'blocked'; evidence: Evidence[]; offer_fit: 'brain'|'revenue_engine'|'unknown'; why_fit: string; decision_authority: 'confirmed'|'unknown'; buying_moment?: Evidence; last_touch_at?: string; connector?: { contact_id: string; full_name: string; both_opted_in: boolean } };
@@ -80,7 +81,7 @@ export function parseBatch(value: unknown): Batch {
   if (Object.keys(b).some(k => !allowed.includes(k))) throw new Error('batch: unknown field');
   if (b.version !== 1) throw new Error('batch: unsupported version');
   for (const k of ['run_id','canon_revision','snapshot_revision']) text(b[k], `batch.${k}`, 200);
-  date(b.generated_at, 'batch.generated_at'); object(b.report, 'batch.report');
+  date(b.generated_at, 'batch.generated_at'); const report = object(b.report, 'batch.report'); if (report.dashboard !== undefined) parseReport(report.dashboard);
   const recommendations = list(b.recommendations, 'recommendations', 10);
   recommendations.forEach(value => {
     const r = object(value, 'recommendation'); keys(r, ['recommendation_id','contact_id','recipient_contact_id','mode','why_fit','why_now','ask_kind','draft','decision_aid','evidence'], 'recommendation'); for (const k of ['recommendation_id','contact_id','recipient_contact_id','why_fit','why_now']) text(r[k], `recommendation.${k}`);
@@ -104,5 +105,7 @@ export function semanticBatch(batch: Batch): Record<string, unknown> {
   if (!rest.report.scorecard || typeof rest.report.scorecard !== 'object' || Array.isArray(rest.report.scorecard)) return rest;
   const scorecard = object(rest.report.scorecard, 'report.scorecard');
   const { as_of, ...measures } = scorecard;
-  return { ...rest, report: { ...rest.report, scorecard: measures } };
+  if (!rest.report.dashboard) return { ...rest, report: { ...rest.report, scorecard: measures } };
+  const { generated_at: reportClock, ...dashboard } = object(rest.report.dashboard, 'report.dashboard');
+  return { ...rest, report: { ...rest.report, scorecard: measures, dashboard } };
 }

@@ -1,9 +1,18 @@
-name: Run bounded growth plan
+name: Run bounded growth producer
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: Producer operation; consumer support remains a separate rollout
+        type: choice
+        options:
+          - daily
+          - readiness
+          - weekly-review
+        default: daily
+        required: true
       commit:
-        description: Persist private drafts into the reviewed Control Center adapter
+        description: Persist artifacts only after the separate consumer rollout is ready
         type: boolean
         default: false
 permissions:
@@ -17,22 +26,32 @@ jobs:
     runs-on: ubuntu-latest
     environment: growth-runtime
     timeout-minutes: 3
+    env:
+      CONTROL_CENTER_URL: ${{ vars.CONTROL_CENTER_URL || 'https://controlcenter.krishraja.com' }}
+      MINDMAKE_GROWTH_TOKEN: ${{ secrets.GROWTH_ENGINE_TOKEN }}
+      GROWTH_LAUNCH_DATE: ${{ vars.GROWTH_LAUNCH_DATE }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Dry plan
-        if: ${{ !inputs.commit }}
+      - name: Reject a write-enabled readiness request
+        if: ${{ inputs.mode == 'readiness' && inputs.commit }}
+        run: |
+          echo 'Readiness is read-only. Leave commit disabled.' >&2
+          exit 1
+      - name: Read-only consumer readiness
+        if: ${{ inputs.mode == 'readiness' && !inputs.commit }}
+        run: node src/cli.mjs readiness
+      - name: Dry daily plan
+        if: ${{ inputs.mode == 'daily' && !inputs.commit }}
         run: node src/cli.mjs daily --summary
-        env:
-          CONTROL_CENTER_URL: ${{ vars.CONTROL_CENTER_URL || 'https://controlcenter.krishraja.com' }}
-          MINDMAKE_GROWTH_TOKEN: ${{ secrets.GROWTH_ENGINE_TOKEN }}
-          GROWTH_LAUNCH_DATE: ${{ vars.GROWTH_LAUNCH_DATE }}
-      - name: Persist reviewed draft batch
-        if: ${{ inputs.commit }}
+      - name: Persist daily producer artifacts
+        if: ${{ inputs.mode == 'daily' && inputs.commit }}
         run: node src/cli.mjs daily --commit --summary
-        env:
-          CONTROL_CENTER_URL: ${{ vars.CONTROL_CENTER_URL || 'https://controlcenter.krishraja.com' }}
-          MINDMAKE_GROWTH_TOKEN: ${{ secrets.GROWTH_ENGINE_TOKEN }}
-          GROWTH_LAUNCH_DATE: ${{ vars.GROWTH_LAUNCH_DATE }}
+      - name: Dry weekly review
+        if: ${{ inputs.mode == 'weekly-review' && !inputs.commit }}
+        run: node src/cli.mjs weekly-review --summary
+      - name: Persist weekly review
+        if: ${{ inputs.mode == 'weekly-review' && inputs.commit }}
+        run: node src/cli.mjs weekly-review --commit --summary

@@ -1,56 +1,68 @@
-# Operate the engine
+# Operate the producer
 
-## Before activation
+The current release finishes growth-mindmake and delivers its consumer handoff. Do not implement, migrate, deploy, activate or write live Control Center from this task. [RELEASE.md](RELEASE.md) owns completion status; [CONTROL-CENTRE-HANDOFF.md](CONTROL-CENTRE-HANDOFF.md) owns downstream work.
 
-1. Review the tested companion Control Center change and identify the current production revision and restore artifact. Merging its main branch deploys automatically, so hold that promotion until the additive schema is ready.
-2. With migration approval, apply the reviewed additive migration in the intended environment, then verify the journal/RPC, least privilege, private rows and the existing deal lifecycle. The previous app remains compatible with the added columns. Do not delete existing contacts or deals.
-3. Promote the reviewed app change after schema readback and verify both sides use the existing managed growth credential. Set the service origin without credentials, a path, query or fragment. Do not paste values into chat or a repository.
-4. Run `npm run doctor`, then a dry `npm run daily`. Confirm current canon, buyer definition, bounded source coverage and real evidence. No writes are needed for doctor.
-5. With activation authority, run one `npm run daily -- --commit`. Read back its journal receipt and the exact existing deal/action queue. Confirm every draft can be inspected and no external message was sent.
-6. Record `GROWTH_LAUNCH_DATE` as the actual activation date. A cadence begins only after this canary succeeds and the scheduler is explicitly activated.
+## Local verification
 
-The manual Actions workflow is a deployment-neutral runner. It defaults to dry run, uploads no private artifacts and prints only counts. No scheduled trigger is enabled by this repository. The existing OS scheduler may invoke `npm run daily -- --commit` once its activation is approved; do not add a second orchestration system.
-
-Actions injects the existing repository secret `GROWTH_ENGINE_TOKEN` into the client's `MINDMAKE_GROWTH_TOKEN` variable. It uses the canonical Control Center origin unless the non-secret `CONTROL_CENTER_URL` repository variable selects a reviewed environment. Secret availability, the adapter's server-side binding and its deployment are separate checks; an empty local environment does not establish missing managed access.
-
-## Daily
-
-Run the dry plan, inspect holds/research needs and then commit the prepared draft batch when in scope. Control Center contains the private draft, why-now evidence and decision aid. Its existing action queue remains the place for human decisions. Before sending, check the exact person, channel, current facts, contact permission and wording. A draft approval is not evidence that a message was sent.
-
-The default source page is bounded. If the receipt reports more contacts, use `npm run daily -- --cursor CURSOR` for the next page. Use the actual opaque cursor from a private snapshot or saved plan; logs intentionally do not print people or cursor values. Each commit consumes the service's daily cap. Do not loop through pages without a declared item budget.
-
-For a private inspectable artifact:
+Use Node 24 or later from this repository:
 
 ```sh
-node src/cli.mjs daily --output runtime/private-plan.json
+npm ci
+npm run contracts
+npm run check
+npm test
+npm run conveyor
+npm run demo -- --summary
+npm run demo:review
 ```
 
-This path is ignored by Git. Do not upload it, include it in a PR or save it in a public CI artifact. The public demo is safe because every record is synthetic.
+The demos use fixed synthetic fixtures and clocks. They prove reproducible daily preparation and weekly review, not current production state. The test harness owns its synthetic consumer and records no live person or commercial outcome. Keep fixture evidence separate from private operational evidence. The contracts command independently compares all three source files with the frozen manifest; do not renew a digest to conceal a mismatch.
 
-## Record outcomes
+## Private artifacts and managed access
 
-Use the existing Advisory lifecycle to record replies, calls taken, proofs booked and proofs paid. Do not count a verbal intention to pay as paid. After a held call, the existing deal card shows the five qualification criteria. Press **Count this conversation** only when you confirmed all five. The card records your explicit confirmation through its authenticated update route and shows the saved outcome. The server derives `qualified_at` only after a held call; an engine bearer cannot write it.
+.env.example documents symbolic variable names. The application does not load a local .env automatically. Never paste credential values into a command, prompt, report or repository. The manual Actions runner uses the existing repository growth secret through its configured runtime interface; a managed binding is not proof that a consumer implements this release's contracts.
 
-Count each person once per London week. Review held calls with missing qualification rather than treating them as wins or losses. Use measured response/conversation/paid ratios only after there is a denominator; no assumed conversion rate governs the initial cap.
+Optional private plan output may be written only under ignored runtime/. Ignoring a file does not make it safe to upload, include in a pull request or publish as a CI artifact. Live terminal output and raw reports require the same privacy discipline. CI should print counts and opaque identities only.
 
-## Recover without duplicates
+## Readiness and execution
 
-The command prints an opaque `run_id` before it attempts ingestion. If it loses the response, run:
+Readiness is a read-only capability check. It checks the consumer's advertised features, exact contract digests and activation state. Doctor additionally reads and validates the bounded snapshot, buyer definition and current canon. A dry weekly review separately requires complete, current global review context. None creates a draft, attempt, feedback record, schedule or activation date. A successful authenticated read establishes only the capability actually checked.
 
-```sh
-node src/cli.mjs resume --run-id RUN_ID
-```
+| Command | Producer behaviour |
+| --- | --- |
+| `npm run readiness` | Read capabilities and compare contract digests/features; no writes. Incompatible advertised support returns a non-ready result. |
+| `npm run doctor` | Validate the source snapshot and read-only capabilities; no writes. |
+| `npm run daily` | Prepare a dry plan from the bounded source page; selected-page outcome counts remain provisional. |
+| `npm run weekly-review -- --summary` | Read complete global review context and prepare a dry review; no writes. |
+| `npm run daily -- --commit` | After separate consumer readiness and canonical activation, journal an attempt and persist a daily batch with independent readback. |
+| `npm run weekly-review -- --commit --summary` | Under the same gates, journal an attempt and persist/read back one weekly review. |
 
-A durable receipt resolves what happened. An absent or unreachable receipt remains unknown. Do not retry blindly or claim delivery. Once the service state is established, a repeat of the same semantic batch is idempotent; changed source facts create a new run and are rechecked against existing deals and daily limits. There are no automatic write retries.
+The last two commands describe future consumer execution. Do not run them against live Control Center as part of this producer-only task. A readiness success does not activate anything. A daily selected-page measure must never be presented as the global commercial scorecard.
 
-An explicitly held follow-up is not a delivered follow-up. Manage it through the existing conversation and preserve its history; never reset a sent deal merely to make a new draft appear.
+Daily and weekly execution remain explicit manual modes. Dry run is the default. A write-enabled mode belongs only to a separately authorised consumer rollout after the handoff is implemented. Unsupported endpoints remain consumer-pending; do not switch credentials, invent a source or silently omit the missing behaviour.
+
+The manual Actions workflow exposes daily, readiness and weekly-review modes. Its default daily mode is dry, and readiness refuses the commit option. It uses the existing managed growth secret, publishes no private artifact and enables no scheduled trigger. Defining this workflow does not establish a configured consumer or active cadence.
+
+## Outcome records
+
+The consumer must supply global Mindmake outcome coverage independently of a bounded prospect page. A held call without the five human-confirmed conditions remains pending qualification. A booking, prepared draft or friendly reply never qualifies. A proposal or invoice without confirmed payment never becomes a paid proof.
+
+GROWTH_LAUNCH_DATE is an optional legacy date hint in YYYY-MM-DD form. Write-enabled execution uses the consumer's canonical activation state and requires that state to be active with the actual activation date. If the hint is supplied it must match; it cannot activate the engine or override the consumer. The first-month window covers 30 London calendar dates including actual activation day. Leave the hint absent before activation. Repository creation, a demo fixture and a workflow dispatch cannot establish activation.
+
+## Recovery and visibility
+
+A producer failure before draft ingestion must remain visible through its attempt protocol once the consumer implements it. Show the stage, safe reason, coverage limitation, last success and next recovery action. Do not expose private evidence or credentials in heartbeat summaries. An unknown network outcome remains unknown until its authoritative record can be read.
+
+No write retries happen blindly. Use the durable attempt/run/review identity supplied by the actual run to inspect the consumer receipt before another mutation. A synthetic or private artifact proves preparation; a persisted receipt proves the corresponding private write. Neither proves sending, qualification, payment or business success.
+
+Recovery reads use `node src/cli.mjs resume --run-id RUN_ID`, `node src/cli.mjs attempt --attempt-id ATTEMPT_ID` and `node src/cli.mjs review-resume --review-id REVIEW_ID`. Replace each symbolic ID with the opaque identity actually reported by that operation. These commands read existing records and never repeat the original write. Missing or unreachable readback remains unknown.
+
+Feedback and weekly reviews must persist with stable source references and independent readback. A repeated run must preserve the prior human decision. Do not reset an existing deal, overwrite a human draft or mark a skipped item as completed to make a new artifact appear.
 
 ## Refresh commercial truth
 
-Re-read the current `mindmake` North Star, commercial canon and permitted proof. Compare exact blob revisions with `APPROVED_CANON` in `contracts/growth.ts`. Resolve changed offers, links and restrictions against the live surface and owner before changing proposed copy. Update the reviewed source references and approval timestamp honestly, vendor the same contract bytes into the adapter, rerun contract parity and behavioral tests, then deploy through normal review. A new timestamp without a source review is not freshness.
+Read current mindmake North Star, canon and proof permissions. Compare the source revisions with APPROVED_CANON in contracts/growth.ts. Resolve changed offers, links and restrictions before changing copy. Update reviewed content, source references and review timestamp together only after the review; then rerun contract parity and behavioural checks. The producer holds after 30 days without that review.
 
-The engine holds after 30 days without that review. It never retrieves prices or customer outcomes from an old prompt. Proof, CTRL pilot invitations and publication content remain under their existing owners.
+## Consumer rollout
 
-## Stop and rollback
-
-Stop the approved runner at its scheduler; no outbound side effect has to be reversed because it never sends. Restore the prior application revision if an adapter regression appears, then re-read the journal and existing deal state. The additive migration is retained unless its exact reversal has been separately reviewed and approved. Never purge records as routine cleanup. Diagnose missing evidence, stale canon and incomplete snapshots at their owning stage.
+The downstream owner follows the single handoff: prepare rollback, apply and read back additive schema before app promotion, verify least privilege and contract identity, exercise the acceptance matrix, and only then propose deployment and activation under their own authority. That work remains outside this task. Never purge historical contacts, evidence, feedback or run records as cleanup.

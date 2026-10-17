@@ -95,6 +95,19 @@ test('blank recommendation and deal identities are not durable receipt evidence'
   assert.throws(() => validateReceipt(invalid, batch.run_id), /Duplicate/);
 });
 
+test('read-only resume rejects an incomplete receipt instead of claiming an unaccounted run is durable', async () => {
+  const batch = plan(snapshot(), POLICY, { at: AT });
+  for (const invalid of [
+    receipt(batch, { report: undefined }),
+    receipt(batch, { report: {} }),
+    receipt(batch, { created: [], held: [] }),
+    receipt(batch, { report: { prepared: 0 } })
+  ]) {
+    const remote = client(ORIGIN, CREDENTIAL, { fetcher: async () => response(invalid) });
+    await assert.rejects(remote.receipt(batch.run_id), /consumed run report/);
+  }
+});
+
 test('success requires the consumed run report to survive authoritative readback without semantic changes', async () => {
   const batch = plan(snapshot(), POLICY, { at: AT });
   for (const change of [

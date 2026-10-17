@@ -20,6 +20,7 @@ export function scorecard(snapshot, policy, at, launchDate) {
     firstMonth = { starts: launchDate, ends: lastDay, paid_proofs: paid, target: policy.targets.paid_proofs_first_30_days, gap: Math.max(0, policy.targets.paid_proofs_first_30_days - paid) };
   }
   return {
+    measurement_scope: 'snapshot_deals', global_authoritative: false,
     timezone: 'Europe/London', week_starts: weekStart, as_of: at,
     qualified_conversations: count, target: policy.targets.qualified_conversations_per_week,
     gap: Math.max(0, policy.targets.qualified_conversations_per_week - count),

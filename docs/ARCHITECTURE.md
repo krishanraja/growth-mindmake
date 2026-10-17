@@ -1,35 +1,114 @@
 # Architecture
 
+This repository implements the growth producer and its client protocol. The
+Control Center consumer is a separate handoff: the requirements below are not
+claims that its database, endpoints or dashboard have been implemented or
+activated. Local synthetic service tests prove producer behavior only.
+
 ```text
-Existing people, company evidence and deals (private Control Center)
-    -> authenticated bounded snapshot
-    -> reviewed canon + live buyer definition + evidence guards
+Consumer-provided bounded context
+    -> current canon, buyer definition and evidence guards
     -> relevant prospect and route
-    -> message + decision aid + measured scorecard
-    -> atomic idempotent ingestion
-    -> existing Advisory deal and Home action queue
-    -> Krish reviews and sends manually
-    -> existing outcome record -> next scorecard
+    -> proposed message and decision aid
+    -> page-scoped report and one grounded improvement
+    -> authenticated consumer handoff and independent readback
+
+Consumer-provided complete review context and feedback
+    -> global weekly review
+    -> persisted review and independent readback
 ```
 
-The engine is stateless between runs. Control Center owns the durable run journal, attempt/idempotency boundary, daily ingestion cap, private evidence, contact suppression and conversation lifecycle. The engine does not keep a local CRM or retry counter. A run's identity covers semantic snapshot content, policy, run day and prepared artifacts; its delivery timestamp is not a new identity.
+## Implemented producer
 
-The bridge uses the existing managed `GROWTH_ENGINE_TOKEN` server credential, accepts only its one versioned contract, and rechecks contact state and evidence before accepting a recommendation. Actions maps that secret into the client's `MINDMAKE_GROWTH_TOKEN` interface. A bearer never qualifies a conversation, changes payment outcomes or sends a message. Human qualification uses the existing authenticated deal API and requires an actual held-conversation timestamp. Existing qualified data is read into the scorecard.
+The producer is stateless between runs. It keeps no CRM, approval interface,
+durable attempt ledger or outcome database. Semantic source content, policy,
+London operating day and prepared artifacts determine a daily run's identity;
+delivery timestamps do not create a new identity. A weekly review includes
+the complete review context and recorded feedback in its identity.
 
-Evidence carries disclosure scope. The runtime never copies private research or credential-bearing source links into outward artifacts. An introduction request names both prospect and actual recipient, binds the connector's name to its canonical person record and reserves that recipient once per batch. The connected adapter holds introduction requests until the existing records can prove the connector relationship; a caller-supplied name never creates that permission.
+The client uses one configured server bearer. GitHub Actions maps the existing
+`GROWTH_ENGINE_TOKEN` secret into the client interface
+`MINDMAKE_GROWTH_TOKEN`. Requests use credential-free HTTPS origins, reject
+redirects and omit private response bodies from diagnostics. No method grants
+sending, publication, spending, payment or human-qualification authority.
 
-The companion adapter reserves and ingests each batch atomically. The client does not retry writes. After a lost response, `resume` reads the durable receipt; it does not repeat the side effect. The final receipt must account for every recommendation as created or explicitly held. A green HTTP response without that proof fails.
+Evidence has public or private scope. Prepared outward artifacts use public,
+dated evidence only. The report contains bounded opaque source identities
+and counts rather than names, contact addresses or private research facts.
+An introduction proposal identifies the prospect and actual recipient
+separately; a name alone never establishes identity or permission.
 
-The original scorecard and research report are stored in the same journal transaction and returned on readback. Observation-only timestamps do not make a retry conflict, while changed facts or measures do. The batch's `snapshot_revision` is the authoritative service source revision; a separate semantic seal contributes to the run identity. The London operating day prevents a Sunday UTC run from colliding with the new Monday week.
+The optional `report.dashboard` describes only the selected contact page.
+Its provisional outcome totals must never be presented as global progress.
+The producer emits at most one improvement, with accountable ownership and
+a required matching persisted completion event. A declining count or an item
+disappearing from another page is not completion proof.
 
-## Integration contract
+Improvement destinations are semantic IDs: `growth`, `advisory` and
+`waiting_list`. They are not URLs. The consumer must map them through its
+existing route helpers and action surfaces.
 
-`contracts/growth.ts` is the wire owner. It contains the reviewed public commercial descriptions and exact source blob revisions. Control Center vendors the file without modification. Its contract parity test must compare the exact source bytes or recorded digest. Changes to either side require coordinated validation, not independent shape guessing.
+## Canonical protocol directory
 
-GET returns a raw version-1 snapshot. The optional cursor names the next bounded contact page. `complete` means all reads for that selected page and the complete deal reporting window succeeded; a failed or truncated read cannot become an empty success. POST accepts a draft batch. GET with `run_id` returns its durable receipt. All service calls use HTTPS, reject redirects and omit private response bodies from diagnostics.
+The consumer must vendor these three files together, unchanged, preserving
+their directory layout and relative imports:
 
-## Dependencies and runtime
+- `contracts/growth.ts`: bounded snapshots, reviewed commercial descriptions,
+  prepared batches and semantic identities.
+- `contracts/reporting.ts`: provisional dashboard reports and grounded
+  improvements with strict ownership and closure references.
+- `contracts/operations.ts`: capabilities, attempts, complete review context,
+  weekly review and feedback shapes. It imports `./reporting.ts`.
 
-Node 24 provides the runtime, test runner, fetch and erasable TypeScript contract loading. There are no runtime packages or direct model-provider calls. Existing collection agents supply evidence; versioned prompts support bounded human/agent research and review when context is missing. Missing context is a research hold, never an invented opportunity.
+The readiness handshake compares the exact SHA256 bytes of all three files
+and requires every named capability. Unsupported consumer endpoints report
+pending integration; refused authentication remains a failure. Live commits
+also require the consumer's canonical activation date.
 
-The stage manifest covers runtime modules; scripts are development/CI tooling. The vendored conformance checker and its schema originate in the canonical build skill. It verifies declared ownership and edges; behavioral tests independently verify the domain and transport.
+## Consumer requirements, pending handoff
+
+The consumer must implement the existing lifecycle boundary without a second
+contact database, CRM or action queue. It must re-read suppression, relevant
+evidence, buyer criteria, cooldowns and permission uncertainty at ingestion,
+and either create an existing lifecycle record or explicitly hold each
+recommendation. Introduction and follow-up support must be proven or held.
+
+It must atomically reserve a semantic run, enforce the daily cap, ingest its
+records and persist the entire consumed report. A receipt must account for
+every prepared recommendation as created or held. The client compares the
+write receipt with independent readback. It never retries the original
+mutation after an ambiguous response; `resume` reads its durable receipt.
+
+The proposed daily protocol uses `/api/growth/mindmake`: bounded snapshot
+reads, batch ingestion and run receipt reads. The proposed operations
+protocol uses `/api/growth/mindmake/operations` for capabilities, durable
+attempts, complete review context and persisted weekly reviews. These paths
+are handoff requirements, not deployment assertions.
+
+The consumer must persist start and terminal attempt states, distinguish
+failure, ambiguity, staleness and no run, and keep private reports behind its
+human-authenticated reporting boundary. Browser-readable fleet heartbeats
+must contain only safe aggregates. Reports and recommendations must be
+visible through existing Control Center surfaces, with one action list and
+durable human feedback.
+
+Authoritative progress must be derived from the complete lifecycle, not a
+contact page: five distinct human-qualified conversations per London week,
+and one paid proof in the first 30 London calendar days beginning at the
+actual activation date. Qualification requires a completed conversation and
+the five human-confirmed criteria. Inactive and expired first-month windows
+must be stated honestly. Gmail and LinkedIn completion need their own
+observable evidence; a missing email cannot become a fabricated mail close.
+
+## Dependencies and verification
+
+Node 24 supplies fetch, the test runner and erasable TypeScript loading.
+There are no runtime packages or direct model-provider calls. Collection
+agents supply evidence; missing or stale evidence produces a research hold.
+
+The stage manifest declares producer ownership and executable handoffs.
+Its conformance checker verifies the declared topology; independent tests
+exercise domain rules, strict parsers, authenticated transport, idempotency,
+lost-response recovery and final synthetic destination readback. Production
+consumer compatibility, human visibility and activation require separate
+verification after that handoff is implemented.

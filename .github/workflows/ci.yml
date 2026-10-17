@@ -20,6 +20,8 @@ jobs:
           node-version: '24'
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run check
+      - run: npm run contracts
       - run: npm test
       - run: npm run conveyor
       - run: npm run demo -- --summary
+      - run: npm run demo:review

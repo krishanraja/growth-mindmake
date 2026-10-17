@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "producer_version": "1.1.0",
+  "contracts": {
+    "growth": {
+      "version": 1,
+      "file": "growth.ts",
+      "sha256": "da672a11d66502a50adf3b5de8b93bb406f244163dd4542bd0269e9b2e5ef16b"
+    },
+    "reporting": {
+      "version": 1,
+      "file": "reporting.ts",
+      "sha256": "8d608a5659ef3560329fddd53d5b85b153df05e670b56d65318f37906851fd78"
+    },
+    "operations": {
+      "version": 1,
+      "file": "operations.ts",
+      "sha256": "30b4304bf4a9b77a23a577cc5767841fe671d9f8005a85dd6dc15f294482eec0"
+    }
+  }
+}

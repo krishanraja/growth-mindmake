@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 import { plan } from '../src/orchestrator.mjs';
 import { AT, POLICY, snapshot } from './helpers.mjs';
+import { capabilities } from './support/operations-fixtures.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const runtime = join(root, 'runtime');
@@ -90,22 +91,32 @@ test('a private-data parse error reports failure without echoing the offending p
 
 test('a lost handoff response exposes only the run ID needed for read-only recovery', async () => {
   const preload = join(privateDirectory, 'lost-handoff.mjs');
+  const ready = await capabilities({ activation: { state: 'active', launch_date: '2026-10-16' } });
+  const saved = plan(input, POLICY, { at: AT, launchDate: '2026-10-16' });
+  const created = saved.recommendations.map((r, i) => ({ recommendation_id: r.recommendation_id, deal_id: `20000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}` }));
   await writeFile(preload, `
 const OriginalDate = Date;
 globalThis.Date = class extends OriginalDate {
   constructor(...args) { super(...(args.length ? args : [${JSON.stringify(AT)}])); }
   static now() { return OriginalDate.parse(${JSON.stringify(AT)}); }
 };
+const attempts = new Map();
 globalThis.fetch = async (url, options) => {
-  if (options.method === 'POST') throw new Error('PRIVATE_SYNTHETIC_LOST_RESPONSE');
-  if (url.searchParams.has('run_id')) return Response.json({ ok: true, run_id: url.searchParams.get('run_id'), created: [], held: [], report: ${JSON.stringify(plan(input, POLICY, { at: AT }).report)} });
+  if (url.searchParams.get('capabilities') === '1') return Response.json(${JSON.stringify(ready)});
+  if (options.method === 'POST') {
+    const body = JSON.parse(options.body);
+    if (body.kind === 'attempt') { attempts.set(body.attempt.attempt_id, body.attempt); return Response.json({ ok: true, attempt: body.attempt }); }
+    throw new Error('PRIVATE_SYNTHETIC_LOST_RESPONSE');
+  }
+  if (url.searchParams.has('attempt_id')) return Response.json({ ok: true, attempt: attempts.get(url.searchParams.get('attempt_id')) });
+  if (url.searchParams.has('run_id')) return Response.json({ ok: true, run_id: url.searchParams.get('run_id'), created: ${JSON.stringify(created)}, held: [], report: ${JSON.stringify(saved.report)} });
   return Response.json(${JSON.stringify(input)});
 };\n`);
   const uncertain = run(['daily', '--commit'], { mocked: true, preload });
   assert.equal(uncertain.status, 1);
   assertPrivate(uncertain);
   assert.match(uncertain.stderr, /No completion claimed/);
-  const recovery = uncertain.stderr.split(/\r?\n/).find(line => line.startsWith('{'));
+  const recovery = uncertain.stderr.split(/\r?\n/).find(line => line.startsWith('{') && JSON.parse(line).state === 'handoff_pending');
   const diagnostic = JSON.parse(recovery);
   assert.match(diagnostic.run_id, /^gm-[a-f0-9]{40}$/);
   assert.equal(diagnostic.state, 'handoff_pending');
