@@ -33,5 +33,18 @@
     "failed": 0,
     "unknown": 0
   },
-  "feedback": []
+  "feedback": [],
+  "commercial": {
+    "origins": [],
+    "promises": {
+      "due": 0,
+      "overdue": 0
+    },
+    "proposals": {
+      "awaiting_decision": 0,
+      "declined": 0
+    },
+    "founder_minutes": null,
+    "experiment": null
+  }
 }

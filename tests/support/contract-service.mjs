@@ -3,13 +3,15 @@ import { once } from 'node:events';
 import { parseBatch, semanticBatch } from '../../contracts/growth.ts';
 import { seal } from '../../src/guards.mjs';
 import { parseAttempt, parseReviewContext, parseWeeklyReview } from '../../contracts/operations.ts';
+import { parseWorkBatch, semanticWorkBatch, parseEngineContext } from '../../contracts/engine.ts';
 
 /** Synthetic HTTP service for the published wire contract, never production storage. */
-export async function startContractService({ sourceSnapshot, token = 'synthetic-contract-service', extension, capabilities, reviewContext } = {}) {
+export async function startContractService({ sourceSnapshot, engineContext, token = 'synthetic-contract-service', extension, capabilities, reviewContext } = {}) {
   const runs = new Map();
   const recommendations = new Map();
   const attempts = new Map();
   const reviews = new Map();
+  const workRuns = new Map(), workItems = new Map();
   const context = reviewContext && structuredClone(reviewContext);
   const requests = [];
   const faults = [];
@@ -38,6 +40,18 @@ export async function startContractService({ sourceSnapshot, token = 'synthetic-
       if (extension) {
         const result = await extension({ method: req.method, url, body, runs, recommendations });
         if (result) { reply(result.status ?? 200, result.body); return; }
+      }
+      if (url.pathname === '/api/growth/mindmake/work') {
+        if (req.method === 'GET' && url.searchParams.get('context') === '1') { reply(200,parseEngineContext(engineContext));return; }
+        if (req.method === 'GET') { const r=workRuns.get(url.searchParams.get('run_id'));reply(r?200:404,r?{...r.receipt,replayed:true}:{ok:false,error:'work_not_found'});return; }
+        if(req.method!=='POST'){reply(405,{ok:false});return;}
+        const batch=parseWorkBatch(body),hash=seal(semanticWorkBatch(batch)),prior=workRuns.get(batch.run_id);
+        if(prior){reply(prior.hash===hash?200:409,prior.hash===hash?{...prior.receipt,replayed:true}:{ok:false,error:'work_conflict'});return;}
+        const created=[],held=[];
+        for(const item of batch.items){if(workItems.has(item.item_id)){held.push({item_id:item.item_id,reason:'existing_work_item'});continue;}const record_id=`private-work-${workItems.size+1}`;workItems.set(item.item_id,{item:structuredClone(item),record_id});created.push({item_id:item.item_id,record_id});mutations++;}
+        const receipt={ok:true,batch:structuredClone(batch),created,held,replayed:false};workRuns.set(batch.run_id,{hash,receipt});
+        if(fault?.kind==='drop_after_commit'&&(!fault.method||req.method===fault.method)&&(!fault.path||fault.path===url.pathname)){req.socket.destroy();return;}
+        reply(200,receipt);return;
       }
       if (url.pathname === '/api/growth/mindmake/operations') {
         if (req.method === 'GET') {
@@ -97,7 +111,7 @@ export async function startContractService({ sourceSnapshot, token = 'synthetic-
   await once(server, 'listening');
   const localOrigin = `http://127.0.0.1:${server.address().port}`;
   return {
-    origin: 'https://service.example.test', localOrigin, token, runs, recommendations, requests, attempts, reviews,
+    origin: 'https://service.example.test', localOrigin, token, runs, recommendations, requests, attempts, reviews, workRuns, workItems,
     get mutations() { return mutations; },
     fault(kind, method, path) { faults.push({ kind, method, path }); },
     recordHumanFeedback(feedback) {

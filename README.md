@@ -1,6 +1,6 @@
 # Mindmake growth engine
 
-An evidence-led growth producer with operating playbooks, outcome reporting and review contracts. The commercial target is **five qualified conversations per London week and at least one paid proof in the first 30 days after actual activation**. These are targets, not results claimed by the software.
+An executable growth producer for relationships, introductions, researched named outreach, inbound, qualification, paid proof preparation, trust assets and speaking, with operating playbooks and outcome reporting. The commercial target is **five qualified conversations per London week and at least one paid proof in the first 30 days after actual activation**. These are targets, not results claimed by the software.
 
 This release completes **growth-mindmake only**, then delivers [one Control Center implementation handoff](docs/CONTROL-CENTRE-HANDOFF.md). [The release record](docs/RELEASE.md) separates producer verification from consumer implementation, deployment and activation. No actual Control Center work is part of this task. Earlier companion code is an unmerged proposal.
 
@@ -18,11 +18,16 @@ npm test
 npm run conveyor
 npm run demo -- --summary
 npm run demo:review
+npm run demo:engine
 ```
 
-The demonstrations use invented people and businesses. The daily plan exercises evidence-backed preparation and provisional page reporting; the weekly review uses a synthetic global context and recorded feedback. Omit --summary from the daily demo to inspect its drafts and decision aids. Tests use a synthetic consumer to verify protocol, persistence, replay and failure behaviour. They do not establish a deployed dashboard or live account access. [The frozen manifest](contracts/manifest.json) identifies the version-1 interfaces for producer 1.1.0.
+The demonstrations use invented people and businesses. The complete engine fixture contains eleven jobs across ten work types and all seven campaigns. Tests run each through HTTP capture, preparation, persistence and independent readback. The weekly review uses synthetic global outcomes and recorded feedback. Omit --summary from a fixture command to inspect its full artifacts. These tests do not establish a deployed dashboard or live account access. [The frozen manifest](contracts/manifest.json) identifies the seven interfaces for producer 2.0.0.
 
 ## What the producer owns
+
+`npm run engine` is the complete cycle, dry by default. It executes the campaign registry using explicitly selected, revisioned private jobs. It prepares warm and named cold notes with concrete comparisons; separate introduction opt-in requests; actual inbound responses; five-criterion qualification reviews; bounded proof scopes; paid delivery handoffs; selected founder or practice drafts; host pitches; reusable aids; and research tasks or proposed private enrichments. One shared capacity applies across all work. [Full scope and acceptance](docs/FULL-SCOPE.md) records each executable responsibility and its boundary.
+
+The older `daily` command remains the bounded outbound compatibility interface. Use `engine` for the full portfolio. Research intake does not fetch source pages or discover prospects automatically. A source-owning operator supplies dated excerpts; research never creates outreach authority. Delivery remains in mindmake and editorial release remains with the publication owner.
 
 It validates current commercial facts, private source coverage and public evidence; prepares bounded named recommendations, individual drafts and portable decision aids; and reports holds rather than invent opportunities. Warm routes and researched named cold work are both in scope. Agents prepare and Krish manually acts on exact approved wording and channel.
 

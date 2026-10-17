@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FEATURES, parseAttempt, parseCapabilities, parseReviewContext } from '../contracts/operations.ts';
+import { CONTRACT_NAMES, FEATURES, parseAttempt, parseCapabilities, parseReviewContext } from '../contracts/operations.ts';
 import { copy } from './helpers.mjs';
 import { attempt, reviewContext } from './support/operations-fixtures.mjs';
 
 function capability() {
-  return { version: 1, source_revision: 'synthetic-revision-1', contracts: { growth: 'a'.repeat(64), reporting: 'b'.repeat(64), operations: 'c'.repeat(64) },
+  return { version: 1, source_revision: 'synthetic-revision-1', contracts: Object.fromEntries(CONTRACT_NAMES.map(n=>[n,'a'.repeat(64)])),
     features: Object.fromEntries(FEATURES.map(f => [f, true])), activation: { state: 'inactive', launch_date: null } };
 }
 

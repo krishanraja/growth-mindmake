@@ -19,10 +19,14 @@ Run from the repository with Node 24 or newer. The runtime uses the approved man
 | `npm run demo` | Plans from the checked-in synthetic snapshot at its fixed fixture time; it demonstrates behaviour rather than current production state |
 | `npm run doctor` | Reads the live private snapshot and validates the contract, canon and buyer definition; writes zero records |
 | `npm run daily` | Reads live state and prepares a dry-run summary; commits nothing |
+| `npm run engine -- --summary` | Complete selected-job cycle across all seven campaigns, research and commercial lifecycle; dry by default |
+| `npm run demo:engine` | Fixed synthetic fixture covering all ten work types; no live calls or outcomes |
 | `npm run daily -- --commit` | Writes a private draft batch to the approved Control Center adapter, then verifies its durable receipt; sends and publishes nothing |
 | `npm run scorecard` | Reads private source state and reports the current week and, when configured, the first-month outcome |
 
 Before first-month reporting, set `GROWTH_LAUNCH_DATE` to the actual activation date outside Git, or pass the actual `YYYY-MM-DD` date through `--launch-date` after the npm argument separator. Do not set it to the demo date merely to produce a scorecard. Keep live output and reports out of public CI logs. The `--output` option accepts a private output only inside the ignored `runtime/` directory; treat those files as sensitive despite Git ignoring them.
+
+Use `engine` for the complete portfolio; `daily` is the earlier outbound-only interface. After the separate consumer rollout and real activation, `npm run engine -- --commit --summary` journals and persists the full private WorkBatch, then independently reads it back. Recover using `node src/cli.mjs work-resume --run-id RUN_ID`. Do not execute those writes against Control Center from this producer-only task. The consumer must supply actual, revisioned requests, proof records and source evidence rather than convert enrichment into prospect jobs automatically.
 
 If a committed run is interrupted, inspect its durable receipt using the CLI `resume` command and the actual `--run-id` from the prior summary. Do not assume an interrupted write failed or replay it blindly. A receipt proves private draft persistence, not a message sent or a business result.
 

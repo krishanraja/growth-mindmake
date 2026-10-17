@@ -25,3 +25,4 @@ jobs:
       - run: npm run conveyor
       - run: npm run demo -- --summary
       - run: npm run demo:review
+      - run: npm run demo:engine

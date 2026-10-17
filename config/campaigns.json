@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "purpose": "An independent public-safe campaign registry for operator briefs and artifact review. It is not a recipient list or a sending configuration.",
+  "purpose": "Executable campaign routing, artifact types, evidence safeguards and shared preparation limits. Explicit private jobs select work; this is not a recipient list or sending configuration.",
   "defaults": {
     "senderAction": "krish_manual_only",
     "artifactState": "draft_only",
@@ -20,11 +20,31 @@
       "name": "One useful thought for a real relationship",
       "audience": "An existing contact with evidenced relationship context and a relevant decision",
       "buyingMoment": "An actual exchange, request or verified change makes one contribution useful",
-      "evidenceRequired": ["authorised_relationship", "relevant_decision", "current_canon", "suppression_check", "contact_eligibility_review"],
-      "artifactTypes": ["warm_thought", "decision_aid", "outreach_draft"],
-      "cta": {"allowedKinds": ["permission_to_share_aid", "free_ai_brief", "agreed_reply"], "maxPerArtifact": 1},
+      "evidenceRequired": [
+        "authorised_relationship",
+        "relevant_decision",
+        "current_canon",
+        "suppression_check",
+        "contact_eligibility_review"
+      ],
+      "artifactTypes": [
+        "outreach_draft"
+      ],
+      "cta": {
+        "allowedKinds": [
+          "permission_to_share_aid",
+          "free_ai_brief",
+          "agreed_reply"
+        ],
+        "maxPerArtifact": 1
+      },
       "playbook": "docs/playbooks/01-network-and-introductions.md",
-      "stopConditions": ["objection", "suppression", "unsupported_familiarity", "no_useful_contribution"]
+      "stopConditions": [
+        "objection",
+        "suppression",
+        "unsupported_familiarity",
+        "no_useful_contribution"
+      ]
     },
     {
       "id": "double-opt-in-introduction",
@@ -32,12 +52,34 @@
       "name": "An introduction that protects both people",
       "audience": "A real connector and one proposed recipient with a specific fit",
       "buyingMoment": "A connector can recognise a relevant person or decision",
-      "evidenceRequired": ["authorised_connector_relationship", "specific_fit", "separate_opt_in_states", "suppression_check", "contact_eligibility_review"],
-      "artifactTypes": ["warm_thought", "outreach_draft"],
-      "cta": {"allowedKinds": ["connector_permission", "recipient_permission", "agreed_introduction"], "maxPerArtifact": 1},
+      "evidenceRequired": [
+        "authorised_connector_relationship",
+        "specific_fit",
+        "separate_opt_in_states",
+        "suppression_check",
+        "contact_eligibility_review"
+      ],
+      "artifactTypes": [
+        "introduction_connector_permission",
+        "introduction_recipient_permission",
+        "introduction_connection"
+      ],
+      "cta": {
+        "allowedKinds": [
+          "connector_permission",
+          "recipient_permission",
+          "agreed_introduction"
+        ],
+        "maxPerArtifact": 1
+      },
       "bothOptInsRequiredBeforeConnecting": true,
       "playbook": "docs/playbooks/01-network-and-introductions.md",
-      "stopConditions": ["either_party_declines", "attempt_to_connect_before_both_opt_ins", "private_context_not_cleared", "suppression"]
+      "stopConditions": [
+        "either_party_declines",
+        "attempt_to_connect_before_both_opt_ins",
+        "private_context_not_cleared",
+        "suppression"
+      ]
     },
     {
       "id": "named-cold-decision",
@@ -45,13 +87,36 @@
       "name": "A researched note about one commercial choice",
       "audience": "One separately selected named prospect whose role may own the decision",
       "buyingMoment": "Current primary evidence supports a bounded outside-in decision hypothesis",
-      "evidenceRequired": ["explicit_named_prospect_brief", "current_primary_source", "alternative_explanation", "useful_contribution", "suppression_check", "contact_eligibility_review"],
-      "artifactTypes": ["research_moment", "decision_aid", "outreach_draft"],
-      "cta": {"allowedKinds": ["permission_to_share_aid", "free_ai_brief"], "maxPerArtifact": 1},
+      "evidenceRequired": [
+        "explicit_named_prospect_brief",
+        "current_primary_source",
+        "alternative_explanation",
+        "useful_contribution",
+        "suppression_check",
+        "contact_eligibility_review"
+      ],
+      "artifactTypes": [
+        "outreach_draft",
+        "research_task",
+        "research_enrichment"
+      ],
+      "cta": {
+        "allowedKinds": [
+          "permission_to_share_aid",
+          "free_ai_brief"
+        ],
+        "maxPerArtifact": 1
+      },
       "maxLinksPerColdFirstMessage": 1,
       "outsideInFramingRequired": true,
       "playbook": "docs/playbooks/03-named-prospect-outreach.md",
-      "stopConditions": ["research_only_without_action_brief", "stale_trigger", "unknown_contact_eligibility", "no_useful_contribution", "suppression"]
+      "stopConditions": [
+        "research_only_without_action_brief",
+        "stale_trigger",
+        "unknown_contact_eligibility",
+        "no_useful_contribution",
+        "suppression"
+      ]
     },
     {
       "id": "inbound-next-decision",
@@ -59,12 +124,35 @@
       "name": "A human response to an actual request",
       "audience": "A person who requested help or entered a substantive conversation",
       "buyingMoment": "An actual reply, request or private fit digest identifies a next decision",
-      "evidenceRequired": ["actual_request", "delivery_state", "current_canon", "suppression_check", "contact_eligibility_review"],
-      "artifactTypes": ["outreach_draft", "qualification_review"],
-      "cta": {"allowedKinds": ["agreed_reply", "consultation_next_step", "proof_scope_decision"], "maxPerArtifact": 1},
+      "evidenceRequired": [
+        "actual_request",
+        "delivery_state",
+        "current_canon",
+        "suppression_check",
+        "contact_eligibility_review"
+      ],
+      "artifactTypes": [
+        "inbound_service_review",
+        "inbound_reply",
+        "qualification_review",
+        "proof_scope_review",
+        "paid_proof_delivery_handoff"
+      ],
+      "cta": {
+        "allowedKinds": [
+          "agreed_reply",
+          "consultation_next_step",
+          "proof_scope_decision"
+        ],
+        "maxPerArtifact": 1
+      },
       "duplicatesLeadDeliverySequence": false,
       "playbook": "docs/playbooks/06-inbound-qualification-and-proof.md",
-      "stopConditions": ["no_requested_or_useful_next_step", "duplicate_service_email", "suppression"]
+      "stopConditions": [
+        "no_requested_or_useful_next_step",
+        "duplicate_service_email",
+        "suppression"
+      ]
     },
     {
       "id": "selected-founder-trust",
@@ -72,11 +160,31 @@
       "name": "A selected lesson that earns attention",
       "audience": "Leaders who can use a sourced operating lesson or decision rule",
       "buyingMoment": "A cleared artifact or supported external argument helps a live choice",
-      "evidenceRequired": ["source_artifact_or_labelled_commentary", "claim_evidence", "rights_review", "actual_account_and_surface_status", "current_canon"],
-      "artifactTypes": ["trust_asset", "decision_aid"],
-      "cta": {"allowedKinds": ["none", "free_ai_brief", "free_publication"], "maxPerArtifact": 1},
+      "evidenceRequired": [
+        "source_artifact_or_labelled_commentary",
+        "claim_evidence",
+        "rights_review",
+        "actual_account_and_surface_status",
+        "current_canon"
+      ],
+      "artifactTypes": [
+        "trust_asset"
+      ],
+      "cta": {
+        "allowedKinds": [
+          "none",
+          "free_ai_brief",
+          "free_publication"
+        ],
+        "maxPerArtifact": 1
+      },
       "playbook": "docs/playbooks/05-trust-and-speaking.md",
-      "stopConditions": ["invented_first_person_claim", "uncleared_client_context", "unverified_surface", "unsupported_outcome"]
+      "stopConditions": [
+        "invented_first_person_claim",
+        "uncleared_client_context",
+        "unverified_surface",
+        "unsupported_outcome"
+      ]
     },
     {
       "id": "relevant-room",
@@ -84,11 +192,31 @@
       "name": "A specific argument for a relevant room",
       "audience": "A verified host and an audience facing a particular decision",
       "buyingMoment": "A current programme or host need fits a useful demonstrated argument",
-      "evidenceRequired": ["current_host_programme", "audience_fit", "submission_rules", "cleared_proof", "suppression_check", "contact_eligibility_review"],
-      "artifactTypes": ["trust_asset"],
-      "cta": {"allowedKinds": ["host_reply", "submission_decision"], "maxPerArtifact": 1},
+      "evidenceRequired": [
+        "current_host_programme",
+        "audience_fit",
+        "submission_rules",
+        "cleared_proof",
+        "suppression_check",
+        "contact_eligibility_review"
+      ],
+      "artifactTypes": [
+        "speaking_pitch"
+      ],
+      "cta": {
+        "allowedKinds": [
+          "host_reply",
+          "submission_decision"
+        ],
+        "maxPerArtifact": 1
+      },
       "playbook": "docs/playbooks/05-trust-and-speaking.md",
-      "stopConditions": ["expired_opportunity", "unsupported_credentials", "unapproved_fee_or_availability", "suppression"]
+      "stopConditions": [
+        "expired_opportunity",
+        "unsupported_credentials",
+        "unapproved_fee_or_availability",
+        "suppression"
+      ]
     },
     {
       "id": "practice-decision-aid",
@@ -96,11 +224,32 @@
       "name": "One reusable decision aid",
       "audience": "Leaders facing a recurring choice without requiring private context",
       "buyingMoment": "Repeated permitted questions reveal a useful comparison or reversible test",
-      "evidenceRequired": ["decision_question", "current_sources", "fair_alternative", "privacy_review", "proof_scope_if_used", "current_canon"],
-      "artifactTypes": ["decision_aid", "trust_asset"],
-      "cta": {"allowedKinds": ["none", "free_ai_brief", "free_publication"], "maxPerArtifact": 1},
+      "evidenceRequired": [
+        "decision_question",
+        "current_sources",
+        "fair_alternative",
+        "privacy_review",
+        "proof_scope_if_used",
+        "current_canon"
+      ],
+      "artifactTypes": [
+        "decision_aid"
+      ],
+      "cta": {
+        "allowedKinds": [
+          "none",
+          "free_ai_brief",
+          "free_publication"
+        ],
+        "maxPerArtifact": 1
+      },
       "playbook": "docs/playbooks/04-decision-aids.md",
-      "stopConditions": ["identifying_private_pattern", "unapproved_proof_placement", "unsupported_claim", "no_usable_test"]
+      "stopConditions": [
+        "identifying_private_pattern",
+        "unapproved_proof_placement",
+        "unsupported_claim",
+        "no_usable_test"
+      ]
     }
   ]
 }

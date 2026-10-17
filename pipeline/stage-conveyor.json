@@ -18,7 +18,8 @@
     "run_clock",
     "global_review_context",
     "consumer_capabilities",
-    "operation_command"
+    "operation_command",
+    "raw_engine_context"
   ],
   "terminal_outputs": [
     "durable_receipt",
@@ -291,14 +292,16 @@
         "consumer_capabilities",
         "operation_command",
         "policy",
-        "run_clock"
+        "run_clock",
+        "work_batch"
       ],
       "outputs": [
         "operational_receipt"
       ],
       "consumed_guards": [
         "operations",
-        "transport"
+        "transport",
+        "work"
       ],
       "side_effects": [
         "Private attempt and review journal writes only after readiness; no messages or spend"
@@ -312,6 +315,137 @@
       "completion": {
         "source": "destination_readback",
         "evidence": "tests/http-contract.test.mjs verifies attempt transitions, consumed reports, feedback and weekly review persistence"
+      }
+    },
+    {
+      "id": "motions",
+      "owner": "growth-engine",
+      "owned_paths": [
+        "src/stages/motions.mjs"
+      ],
+      "inputs": [
+        "raw_engine_context",
+        "policy",
+        "run_clock"
+      ],
+      "outputs": [
+        "motion_artifacts"
+      ],
+      "consumed_guards": [
+        "work",
+        "safety"
+      ],
+      "side_effects": [
+        "none"
+      ],
+      "retry": {
+        "mode": "idempotent",
+        "total_attempt_cap": 1,
+        "checkpoint": "Canonical selected source revision and semantic work identity; no local state",
+        "recovery_entrypoint": "motions-recovery"
+      },
+      "completion": {
+        "source": "independent_rederivation",
+        "evidence": "tests/engine.test.mjs and tests/engine-http.test.mjs verify actual artifacts, exact dispositions and persistence"
+      }
+    },
+    {
+      "id": "lifecycle",
+      "owner": "growth-engine",
+      "owned_paths": [
+        "src/stages/lifecycle.mjs"
+      ],
+      "inputs": [
+        "raw_engine_context",
+        "policy",
+        "run_clock"
+      ],
+      "outputs": [
+        "lifecycle_artifacts"
+      ],
+      "consumed_guards": [
+        "work",
+        "safety"
+      ],
+      "side_effects": [
+        "none"
+      ],
+      "retry": {
+        "mode": "idempotent",
+        "total_attempt_cap": 1,
+        "checkpoint": "Canonical selected source revision and semantic work identity; no local state",
+        "recovery_entrypoint": "lifecycle-recovery"
+      },
+      "completion": {
+        "source": "independent_rederivation",
+        "evidence": "tests/engine.test.mjs and tests/engine-http.test.mjs verify actual artifacts, exact dispositions and persistence"
+      }
+    },
+    {
+      "id": "research",
+      "owner": "growth-engine",
+      "owned_paths": [
+        "src/stages/research.mjs"
+      ],
+      "inputs": [
+        "raw_engine_context",
+        "policy",
+        "run_clock"
+      ],
+      "outputs": [
+        "research_artifacts"
+      ],
+      "consumed_guards": [
+        "work",
+        "safety"
+      ],
+      "side_effects": [
+        "none"
+      ],
+      "retry": {
+        "mode": "idempotent",
+        "total_attempt_cap": 1,
+        "checkpoint": "Canonical selected source revision and semantic work identity; no local state",
+        "recovery_entrypoint": "research-recovery"
+      },
+      "completion": {
+        "source": "independent_rederivation",
+        "evidence": "tests/engine.test.mjs and tests/engine-http.test.mjs verify actual artifacts, exact dispositions and persistence"
+      }
+    },
+    {
+      "id": "engine_plan",
+      "owner": "growth-engine",
+      "owned_paths": [
+        "src/engine.mjs"
+      ],
+      "inputs": [
+        "raw_engine_context",
+        "motion_artifacts",
+        "lifecycle_artifacts",
+        "research_artifacts",
+        "policy",
+        "run_clock"
+      ],
+      "outputs": [
+        "work_batch"
+      ],
+      "consumed_guards": [
+        "work",
+        "safety"
+      ],
+      "side_effects": [
+        "none"
+      ],
+      "retry": {
+        "mode": "idempotent",
+        "total_attempt_cap": 1,
+        "checkpoint": "Canonical selected source revision and semantic work identity; no local state",
+        "recovery_entrypoint": "engine_plan-recovery"
+      },
+      "completion": {
+        "source": "independent_rederivation",
+        "evidence": "tests/engine.test.mjs and tests/engine-http.test.mjs verify actual artifacts, exact dispositions and persistence"
       }
     }
   ],
@@ -390,6 +524,26 @@
       "from": "weekly_review",
       "to": "operate",
       "artifact": "weekly_review"
+    },
+    {
+      "from": "motions",
+      "to": "engine_plan",
+      "artifact": "motion_artifacts"
+    },
+    {
+      "from": "lifecycle",
+      "to": "engine_plan",
+      "artifact": "lifecycle_artifacts"
+    },
+    {
+      "from": "research",
+      "to": "engine_plan",
+      "artifact": "research_artifacts"
+    },
+    {
+      "from": "engine_plan",
+      "to": "operate",
+      "artifact": "work_batch"
     }
   ],
   "guards": [
@@ -421,7 +575,11 @@
         "measure",
         "plan",
         "report",
-        "weekly_review"
+        "weekly_review",
+        "motions",
+        "lifecycle",
+        "research",
+        "engine_plan"
       ],
       "enforced_by": [
         "tests/planning.test.mjs",
@@ -470,6 +628,30 @@
       "enforced_by": [
         "tests/operations-contract.test.mjs",
         "tests/http-contract.test.mjs"
+      ]
+    },
+    {
+      "id": "work",
+      "owner": "full-engine-contract",
+      "owned_paths": [
+        "contracts/engine.ts",
+        "contracts/motions.ts",
+        "contracts/lifecycle.ts",
+        "contracts/research.ts"
+      ],
+      "required_for": [
+        "motions",
+        "lifecycle",
+        "research",
+        "engine_plan",
+        "operate"
+      ],
+      "enforced_by": [
+        "tests/engine.test.mjs",
+        "tests/motions.test.mjs",
+        "tests/lifecycle.test.mjs",
+        "tests/research.test.mjs",
+        "tests/engine-http.test.mjs"
       ]
     }
   ],
@@ -544,6 +726,54 @@
       "id": "weekly-review",
       "stage": "weekly_review",
       "path": "src/weekly-review.mjs",
+      "kind": "primary"
+    },
+    {
+      "id": "motions-recovery",
+      "stage": "motions",
+      "path": "src/stages/motions.mjs",
+      "kind": "recovery"
+    },
+    {
+      "id": "lifecycle-recovery",
+      "stage": "lifecycle",
+      "path": "src/stages/lifecycle.mjs",
+      "kind": "recovery"
+    },
+    {
+      "id": "research-recovery",
+      "stage": "research",
+      "path": "src/stages/research.mjs",
+      "kind": "recovery"
+    },
+    {
+      "id": "engine_plan-recovery",
+      "stage": "engine_plan",
+      "path": "src/engine.mjs",
+      "kind": "recovery"
+    },
+    {
+      "id": "engine",
+      "stage": "engine_plan",
+      "path": "src/engine.mjs",
+      "kind": "primary"
+    },
+    {
+      "id": "motions-input",
+      "stage": "motions",
+      "path": "src/stages/motions.mjs",
+      "kind": "primary"
+    },
+    {
+      "id": "lifecycle-input",
+      "stage": "lifecycle",
+      "path": "src/stages/lifecycle.mjs",
+      "kind": "primary"
+    },
+    {
+      "id": "research-input",
+      "stage": "research",
+      "path": "src/stages/research.mjs",
       "kind": "primary"
     }
   ],

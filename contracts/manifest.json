@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "producer_version": "1.1.0",
+  "producer_version": "2.0.0",
   "contracts": {
     "growth": {
       "version": 1,
@@ -10,12 +10,32 @@
     "reporting": {
       "version": 1,
       "file": "reporting.ts",
-      "sha256": "8d608a5659ef3560329fddd53d5b85b153df05e670b56d65318f37906851fd78"
+      "sha256": "f04546ea070e0a8df91f2b87e86913075f5d24b25081659e55771b1b93b946f9"
     },
     "operations": {
       "version": 1,
       "file": "operations.ts",
-      "sha256": "30b4304bf4a9b77a23a577cc5767841fe671d9f8005a85dd6dc15f294482eec0"
+      "sha256": "5f3a1c032a45c262d3ead51f52232aaacdb6908c9954f411f9c31796687be265"
+    },
+    "engine": {
+      "version": 1,
+      "file": "engine.ts",
+      "sha256": "a37d415fa891b6e44da9da7c79980f89e2db3bbc64cae7917f155bd8e147bb42"
+    },
+    "motions": {
+      "version": 1,
+      "file": "motions.ts",
+      "sha256": "13844836910e0ab1cfdbf2481e2b07bcdeb3957459be7567277b6ded991a8550"
+    },
+    "lifecycle": {
+      "version": 1,
+      "file": "lifecycle.ts",
+      "sha256": "0328f8d6829810a42bb09a96dde91b85e5491f008875c386d1218f227ea1c5f6"
+    },
+    "research": {
+      "version": 1,
+      "file": "research.ts",
+      "sha256": "07279341c476c4d1941cf21db102237d3f8785e2c1146f5d07144ac80c5b462c"
     }
   }
 }

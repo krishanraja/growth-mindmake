@@ -18,6 +18,11 @@ Docs/RELEASE.md owns the producer completion record. Keep built, tested, publish
 - src/stages/scorecard.mjs: London-week and first-month outcome semantics. Global counts require complete outcome coverage independent of a prospect page.
 - src/control-center.mjs: bounded authenticated transport, receipt validation and authoritative readback. No blind write retries.
 - src/orchestrator.mjs: routing and semantic identities. Domain rules stay in their stages.
+- src/engine.mjs and contracts/engine.ts: complete selected-job cycle, shared capacity, campaign routing, private work identity and exact dispositions. `engine` is the full cycle; `daily` retains the earlier outbound interface.
+- src/stages/motions.mjs and contracts/motions.ts: evidence-scoped outreach, trust, speaking and reusable aids; reuse existing outbound eligibility.
+- src/stages/lifecycle.mjs and contracts/lifecycle.ts: introduction permissions, actual inbound requests, qualification preparation, bounded proof scope and paid delivery handoff. Preparation changes no outcome.
+- src/stages/research.mjs and contracts/research.ts: explicit research tasks and proposed private enrichment from supplied sources; no automatic prospect authority.
+- src/weekly-review.mjs: global commercial constraints, source-backed channel attribution, actual effort and observed experiments, with one persisted-feedback-aware recommendation.
 - docs/CONTROL-CENTRE-HANDOFF.md: the single downstream implementation brief, with contract identity, acceptance and rollout gates.
 
 pipeline/stage-conveyor.json declares executable ownership and handoffs. Keep it current when topology changes. Do not add a parallel state store, scheduler, contact database, approval interface or model provider.

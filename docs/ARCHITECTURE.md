@@ -48,9 +48,24 @@ Improvement destinations are semantic IDs: `growth`, `advisory` and
 `waiting_list`. They are not URLs. The consumer must map them through its
 existing route helpers and action surfaces.
 
+## Complete campaign cycle
+
+`src/engine.mjs` routes the executable registry and ten strict job kinds through
+the motions, lifecycle and research stages. It preserves one disposition for
+each of at most 100 selected inputs, one capacity across all campaigns, source
+lineage, exact recipient, pending approval and matching-event closure. It emits
+a private WorkBatch with selected-context coverage. It creates no global
+commercial result. The `engine` CLI and runtime persist it through the work
+transport with the existing attempt journal and independent full readback.
+
+The older orchestrator and `daily` command retain the outbound compatibility
+path. They hold existing replied, held and paid opportunities because those
+records belong to explicit lifecycle jobs in the complete engine. No separate
+state store or duplicate outbound eligibility implementation is introduced.
+
 ## Canonical protocol directory
 
-The consumer must vendor these three files together, unchanged, preserving
+The consumer must vendor these seven files together, unchanged, preserving
 their directory layout and relative imports:
 
 - `contracts/growth.ts`: bounded snapshots, reviewed commercial descriptions,
@@ -58,9 +73,15 @@ their directory layout and relative imports:
 - `contracts/reporting.ts`: provisional dashboard reports and grounded
   improvements with strict ownership and closure references.
 - `contracts/operations.ts`: capabilities, attempts, complete review context,
-  weekly review and feedback shapes. It imports `./reporting.ts`.
+  weekly commercial learning and feedback shapes. It imports `./reporting.ts`.
+- `contracts/engine.ts`: complete context, strict private work artifacts,
+  campaign routing, exact disposition counts and semantic work replay.
+- `contracts/motions.ts`: outreach, trust, speaking and reusable aid inputs.
+- `contracts/lifecycle.ts`: introductions, inbound, qualification, proof scope
+  and paid delivery handoff inputs.
+- `contracts/research.ts`: explicit questions and attributed source-ledger inputs.
 
-The readiness handshake compares the exact SHA256 bytes of all three files
+The readiness handshake compares the exact SHA256 bytes of all seven files
 and requires every named capability. Unsupported consumer endpoints report
 pending integration; refused authentication remains a failure. Live commits
 also require the consumer's canonical activation date.

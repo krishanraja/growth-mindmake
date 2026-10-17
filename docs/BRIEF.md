@@ -21,6 +21,8 @@ Local changes and synthetic consumer tests inside this repository are in scope. 
 
 ## What the engine must produce
 
+The original full scope includes all seven campaigns, buying-moment research intake, relationship-specific notes, separate introduction opt-ins, inbound requests and promises, conversation qualification preparation, bounded paid proof scopes and delivery handoffs, trust and speaking drafts, reusable practice aids and weekly commercial learning. These must be executable producer paths with inspectable artifacts, shared limits and end-to-end proof. A reporting subsystem or an initial outbound test does not satisfy that scope. [FULL-SCOPE.md](FULL-SCOPE.md) maps implementation to this accepted portfolio.
+
 Prepare evidence-backed messages and decision aids with explicit recipient identity, disclosure scope, one ask and manual action authority. Report global outcome measures independently of the bounded prospect page. Surface current run health, coverage, research holds and one grounded next recommendation, including its source, owner and closure condition. Accept persisted human feedback and produce a bounded weekly review through versioned contracts.
 
 Preparation, readback and error handling must remain deterministic, bounded and replay-safe. Missing evidence, unavailable consumers, stale canon and unknown outcomes remain visible states. Nothing sends, publishes, subscribes a person, spends or changes a commercial outcome automatically.

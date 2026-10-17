@@ -9,6 +9,7 @@ import { validateContext } from './guards.mjs';
 import { capture } from './capture.mjs';
 import { readiness, execute, RunFailure } from './runtime.mjs';
 import { weeklyReview } from './weekly-review.mjs';
+import { enginePlan } from './engine.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 async function main() {
@@ -22,16 +23,27 @@ async function main() {
     if (booleans.has(key)) options[key] = true;
     else { if (!args[i + 1] || args[i + 1].startsWith('--')) throw new Error('Option value missing'); options[key] = args[++i]; }
   }
-  const supported = { help: [], plan: ['snapshot','at','launch-date','output','summary'], daily: ['snapshot','at','launch-date','output','cursor','commit','summary'], doctor: ['snapshot','at','launch-date','cursor'], scorecard: ['snapshot','at','launch-date','cursor'], readiness: [], resume: ['run-id'], attempt: ['attempt-id'], 'review-resume': ['review-id'], 'weekly-review': ['context','at','output','commit','summary'] };
+  const supported = { help: [], engine: ['context','at','output','commit','summary'], 'work-resume': ['run-id'], plan: ['snapshot','at','launch-date','output','summary'], daily: ['snapshot','at','launch-date','output','cursor','commit','summary'], doctor: ['snapshot','at','launch-date','cursor'], scorecard: ['snapshot','at','launch-date','cursor'], readiness: [], resume: ['run-id'], attempt: ['attempt-id'], 'review-resume': ['review-id'], 'weekly-review': ['context','at','output','commit','summary'] };
   if (!supported[command] || Object.keys(options).some(key => !supported[command].includes(key))) throw new Error('Unsupported command or option');
   const policy = JSON.parse(await readFile(resolve(root, 'config/policy.json'), 'utf8'));
   const at = options.at ?? new Date().toISOString();
   const launchDate = options['launch-date'] ?? process.env.GROWTH_LAUNCH_DATE;
   const remote = () => client(process.env.CONTROL_CENTER_URL, process.env.MINDMAKE_GROWTH_TOKEN);
-  if (command === 'help') { console.log('plan --snapshot FILE [--at ISO] [--output runtime/PRIVATE_FILE]\ndaily [--commit] [--cursor ID] [--summary]\nweekly-review [--context FILE] [--commit] [--summary]\nreadiness\ndoctor\nresume --run-id ID\nattempt --attempt-id ID\nreview-resume --review-id ID\nscorecard --snapshot FILE [--launch-date YYYY-MM-DD]\nLive commands default to read only. Commits require reporting readiness and canonical activation. Nothing sends or publishes.'); return; }
-  if (options.commit && (!['daily','weekly-review'].includes(command) || options.snapshot || options.context)) throw new Error('Only a live daily or weekly review can commit');
+  if (command === 'help') { console.log('engine [--context FILE] [--commit] [--summary]\nwork-resume --run-id ID\nplan --snapshot FILE [--at ISO] [--output runtime/PRIVATE_FILE]\ndaily [--commit] [--cursor ID] [--summary]\nweekly-review [--context FILE] [--commit] [--summary]\nreadiness\ndoctor\nresume --run-id ID\nattempt --attempt-id ID\nreview-resume --review-id ID\nscorecard --snapshot FILE [--launch-date YYYY-MM-DD]\nEngine runs all campaign and lifecycle work. Daily retains the bounded outbound compatibility interface. Live commands default to read only. Commits require reporting readiness and canonical activation. Nothing sends or publishes.'); return; }
+  if (options.commit && (!['daily','engine','weekly-review'].includes(command) || options.snapshot || options.context)) throw new Error('Only a live producer operation can commit');
   if (options.commit && (options.at || options.output)) throw new Error('Live writes use the actual clock and no local export');
   if (command === 'readiness') { const result = await readiness(remote()); console.log(JSON.stringify(result)); if (!result.ready) process.exitCode = 2; return; }
+  if (command === 'work-resume') {
+    if (!options['run-id']) throw new Error('work-resume requires --run-id'); const r=await remote().workReceipt(options['run-id']);
+    console.log(JSON.stringify({run_id:r.batch.run_id,durable:true,created:r.created.length,held:r.held.length})); return;
+  }
+  if (command === 'engine') {
+    const registry=JSON.parse(await readFile(resolve(root,'config/campaigns.json'),'utf8'));
+    const result=options.commit?await execute(remote(),policy,{command,launchDate,observe:v=>console.error(JSON.stringify(v))}):null;
+    const batch=result?.artifact??enginePlan(options.context?JSON.parse(await readFile(resolve(options.context),'utf8')):await remote().engineContext(),policy,registry,{at});
+    if(options.output) await savePrivate(batch,options.output);
+    console.log(JSON.stringify(options.summary||!options.context?{run_id:batch.run_id,dry_run:!options.commit,durable:Boolean(result),examined:batch.jobs_examined,prepared:batch.items.length,held:batch.held.length,campaigns:batch.report.campaign_counts,scope:'selected_context',global_progress:'consumer_required'}:batch,null,options.summary?0:2));return;
+  }
   if (command === 'attempt') {
     if (!options['attempt-id']) throw new Error('attempt requires --attempt-id'); const a = await remote().attempt(options['attempt-id']);
     console.log(JSON.stringify({ attempt_id: a.attempt_id, status: a.status, phase: a.phase, run_id: a.run_id, error_code: a.error_code })); return;

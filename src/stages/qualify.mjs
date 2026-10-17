@@ -1,7 +1,7 @@
 import { fresh, ageDays } from '../guards.mjs';
 
 // Evidence makes a prospect relevant. Only a human can qualify a held conversation.
-export function analyse(snapshot, policy, at) {
+export function analyse(snapshot, policy, at, { warm_contexts = new Map() } = {}) {
   const eligible = [], held = [], research = [];
   const contacts = [...snapshot.contacts].sort((a, b) => a.id.localeCompare(b.id));
   for (const contact of contacts) {
@@ -13,8 +13,11 @@ export function analyse(snapshot, policy, at) {
     if (snapshot.icp.buyer_titles.length && !snapshot.icp.buyer_titles.some(t => t.trim() && contact.title.toLowerCase().includes(t.toLowerCase()))) { hold('buyer_role_does_not_match_current_definition'); continue; }
     const deals = snapshot.deals.filter(d => d.contact_id === contact.id);
     const live = contact.evidence.filter(e => e.visibility === 'public' && fresh(e, at, policy.limits.evidence_max_age_days));
-    const trigger = contact.buying_moment;
-    if (!trigger || trigger.visibility !== 'public' || trigger.kind !== 'trigger' || !fresh(trigger, at, policy.limits.trigger_max_age_days)) {
+    const relationship = warm_contexts.get(contact.id);
+    const publicTrigger = contact.buying_moment;
+    const permittedRelationship = contact.relationship === 'warm' && relationship?.permitted_to_reference === true && relationship.kind === 'relationship' && typeof relationship.fact === 'string' && relationship.fact.trim() && fresh(relationship, at, policy.limits.trigger_max_age_days);
+    const trigger = publicTrigger?.visibility === 'public' && publicTrigger.kind === 'trigger' && fresh(publicTrigger, at, policy.limits.trigger_max_age_days) ? publicTrigger : permittedRelationship ? relationship : null;
+    if (!trigger) {
       hold('no_current_buying_moment'); research.push({ contact_id: contact.id, need: 'A specific current decision, with its original source and date. Enrichment alone is not a reason to approach.' }); continue;
     }
     if (!live.some(e => e.kind === 'person') || !live.some(e => e.kind === 'company')) {
@@ -48,7 +51,7 @@ export function analyse(snapshot, policy, at) {
       mode = 'follow_up';
     } else if (contact.last_touch_at && ageDays(contact.last_touch_at, at) < policy.limits.cooldown_days) { hold('contact_cooldown'); continue; }
     if (!policy.motions.includes(mode)) { hold('motion_disabled'); continue; }
-    const required = [trigger, live.find(e => e.kind === 'person'), live.find(e => e.kind === 'company'), newValue].filter(Boolean);
+    const required = [trigger.visibility === 'public' ? trigger : null, live.find(e => e.kind === 'person'), live.find(e => e.kind === 'company'), newValue].filter(Boolean);
     const evidence = [...new Map([...required, ...live].map(e => [e.id, e])).values()].slice(0, 20);
     eligible.push({ contact, trigger, evidence, newValue, offer, why_fit: fit, mode, permission_review_required: contact.consent_status !== 'allowed' });
   }

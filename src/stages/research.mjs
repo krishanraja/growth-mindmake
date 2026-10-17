@@ -1,0 +1,16 @@
+import { parseResearchJob } from '../../contracts/research.ts';
+import { ageDays, clean } from '../guards.mjs';
+
+export function prepareResearch(value, snapshot, policy, at) {
+  const job=parseResearchJob(value),d=job.details;
+  const contact=job.contact_id===null?null:snapshot.contacts.find(c=>c.id===job.contact_id);
+  if(job.contact_id!==null&&(!contact||contact.suppressed||contact.closed||contact.consent_status==='blocked')) return {hold:'research_subject_unavailable_or_suppressed'};
+  if(d.sources.some(s=>ageDays(s.retrieved_at,at)<0||(s.event_at!==null&&ageDays(s.event_at,at)<0))) return {hold:'research_future_source'};
+  const stale=d.sources.some(s=>ageDays(s.retrieved_at,at)>policy.limits.evidence_max_age_days);
+  if(stale) return {hold:'research_sources_need_refresh'};
+  const sourced=d.sources.length>0;
+  const ledger=d.sources.map(s=>`${s.classification.toUpperCase()} | ${s.layer} | ${s.primary?'primary source':'secondary source'} | ${s.visibility}\n${clean(s.title)} | ${clean(s.publisher)}\nEvent: ${s.event_at??'unknown'}; retrieved: ${s.retrieved_at}\n${s.url}\nMinimal excerpt: ${clean(s.excerpt)}\nClaim: ${clean(s.claim)}\nLimit: ${clean(s.limitation)}`).join('\n\n');
+  const body=`COMPANY\n${clean(d.company)}\n\nRESEARCH QUESTION\n${clean(d.question)}\n\nWORKING HYPOTHESIS\n${clean(d.hypothesis)}\n\nORDINARY ALTERNATIVE\n${clean(d.alternative)}\n\nDECISION TO CLARIFY\n${clean(d.decision)}\nPotential owner role: ${clean(d.owner_role)}. This does not establish buying authority.\n\n${sourced?'SUPPLIED EVIDENCE LEDGER':'SOURCE COLLECTION TASK'}\n${sourced?ledger:'Inspect current first-party product, pricing, releases, filings or a relevant interview. Capture only the excerpt that answers the question, event date or its absence, retrieval time, source identity, claim and limitation. Separate what the company says from observable behaviour. Do not collect unrelated people.'}\n\nCONTRADICTIONS\n${d.contradictions.length?d.contradictions.map(clean).join('\n'):'None supplied. Absence here is not proof of agreement.'}\n\nNEXT RESEARCH QUESTION\n${clean(d.next_question)}\n\nDISPOSITION\n${d.contradictions.length?'Quarantine disputed claims for reconciliation. ':''}${sourced?'Proposed private enrichment for review; source excerpts have not been independently fetched by this planner.':'Research task only; no finding has been established.'} No outreach eligibility, personal permission or ranked prospect action is created. A separate explicit named action brief is required.`;
+  if(body.length>20000) return {hold:'research_artifact_budget_exceeded'};
+  return {artifact:{kind:sourced?'research_enrichment':'research_task',title:`${clean(d.company)}: ${sourced?'research review':'source collection'}`.slice(0,200),body,internal_notes:[sourced?'Supplied-source intake, not independent source verification.':'Source collection remains a human/operator task.',d.sources.filter(s=>s.primary).length<2?'Primary corroboration remains limited.':'Check independence before treating sources as corroboration.','Private intelligence only. Research never approves an approach.'],evidence_ids:d.sources.map(s=>s.id),recipient_contact_id:null,channel:'intel',destination:'company_intel',closure_event:'research_reviewed'}};
+}

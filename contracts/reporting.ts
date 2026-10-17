@@ -1,6 +1,6 @@
 /** Optional producer report. The consumer derives authoritative global outcomes. */
 export type ReportScope = 'selected_page' | 'global_review';
-export type ImprovementKind = 'research_freshness' | 'permissions_review' | 'review_prepared' | 'qualify_held' | 'paid_proof_next_step' | 'more_coverage';
+export type ImprovementKind = 'research_freshness' | 'permissions_review' | 'review_prepared' | 'qualify_held' | 'paid_proof_next_step' | 'more_coverage' | 'honour_promises' | 'review_proof_decisions';
 export type SourceCounts = { person: number; company: number; trigger: number; source_ids: string[] };
 export type ImprovementFacts = {
   scope: ReportScope; source_revision: string; examined: number; prepared: number;
@@ -15,7 +15,7 @@ export type Improvement = {
   destination: 'growth' | 'advisory' | 'waiting_list';
   evidence: { examined: number; affected: number; person: number; company: number; trigger: number; source_ids: string[] };
   close_condition: {
-    kind: 'public_research_recorded' | 'permission_review_recorded' | 'prepared_draft_decided' | 'conversation_qualification_recorded' | 'paid_proof_recorded' | 'coverage_expanded';
+    kind: 'public_research_recorded' | 'permission_review_recorded' | 'prepared_draft_decided' | 'conversation_qualification_recorded' | 'paid_proof_recorded' | 'coverage_expanded' | 'promise_fulfilment_recorded' | 'proof_decision_recorded';
     proof_required: 'matching_persisted_event';
     reference: { scope: ReportScope; source_revision: string; metric: string; baseline: number; target: number };
   };
@@ -79,7 +79,7 @@ export function parseImprovementFacts(value: unknown): ImprovementFacts {
 export function parseImprovement(value: unknown): Improvement {
   const r = object(value, 'improvement', ['id','kind','owner','title','reason','requires_human','destination','evidence','close_condition']);
   if (typeof r.id !== 'string' || !/^gmi-[a-f0-9]{32}$/.test(r.id)) throw new Error('improvement: invalid identity');
-  const kinds = ['research_freshness','permissions_review','review_prepared','qualify_held','paid_proof_next_step','more_coverage'];
+  const kinds = ['research_freshness','permissions_review','review_prepared','qualify_held','paid_proof_next_step','more_coverage','honour_promises','review_proof_decisions'];
   choice(r.kind, kinds, 'improvement.kind'); choice(r.owner, ['engine','krish','control-center'], 'improvement.owner');
   text(r.title, 'improvement.title', 200); text(r.reason, 'improvement.reason', 600); bool(r.requires_human, 'improvement.requires_human');
   choice(r.destination, ['growth','advisory','waiting_list'], 'improvement.destination');
@@ -88,17 +88,17 @@ export function parseImprovement(value: unknown): Improvement {
   sourceIds(e.source_ids, 'improvement.evidence.source_ids');
   const close = object(r.close_condition, 'improvement.close_condition', ['kind','proof_required','reference']);
   if (close.proof_required !== 'matching_persisted_event') throw new Error('improvement: completion needs persisted proof');
-  const matching = ['public_research_recorded','permission_review_recorded','prepared_draft_decided','conversation_qualification_recorded','paid_proof_recorded','coverage_expanded'];
+  const matching = ['public_research_recorded','permission_review_recorded','prepared_draft_decided','conversation_qualification_recorded','paid_proof_recorded','coverage_expanded','promise_fulfilment_recorded','proof_decision_recorded'];
   const index = kinds.indexOf(String(r.kind));
   if (close.kind !== matching[index]) throw new Error('improvement: mismatched close');
   const ref = object(close.reference, 'improvement.reference', ['scope','source_revision','metric','baseline','target']);
   choice(ref.scope, ['selected_page','global_review'], 'improvement.reference.scope'); identity(ref.source_revision, 'improvement.reference.source_revision');
-  choice(ref.metric, ['research_needed','permission_review_required','prepared','pending_human_qualification','paid_proof_gap','examined'], 'improvement.reference.metric');
+  choice(ref.metric, ['research_needed','permission_review_required','prepared','pending_human_qualification','paid_proof_gap','examined','overdue_promises','proposals_awaiting_decision'], 'improvement.reference.metric');
   count(ref.baseline, 'improvement.reference.baseline'); count(ref.target, 'improvement.reference.target');
-  const metrics = ['research_needed','permission_review_required','prepared','pending_human_qualification','paid_proof_gap','examined'];
-  const destinations = ['growth','advisory','waiting_list','advisory','advisory','growth'];
+  const metrics = ['research_needed','permission_review_required','prepared','pending_human_qualification','paid_proof_gap','examined','overdue_promises','proposals_awaiting_decision'];
+  const destinations = ['growth','advisory','waiting_list','advisory','advisory','growth','waiting_list','advisory'];
   if (ref.metric !== metrics[index] || r.destination !== destinations[index] || e.affected !== ref.baseline || ref.target !== (r.kind === 'more_coverage' ? Number(ref.baseline) + 1 : Number(ref.baseline) - 1)) throw new Error('improvement: inconsistent action reference');
-  const human = ['permissions_review','review_prepared','qualify_held','paid_proof_next_step'].includes(String(r.kind));
+  const human = ['permissions_review','review_prepared','qualify_held','paid_proof_next_step','honour_promises','review_proof_decisions'].includes(String(r.kind));
   if (r.requires_human !== human || (human ? r.owner !== 'krish' : r.owner === 'krish')) throw new Error('improvement: inconsistent ownership');
   return r as Improvement;
 }

@@ -1,6 +1,6 @@
 {
   "name": "growth-mindmake",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "description": "Evidence-led, draft-only growth orchestration for Mindmake",
@@ -12,12 +12,14 @@
     "check": "node scripts/check.mjs",
     "demo": "node src/cli.mjs plan --snapshot fixtures/snapshot.json --at 2026-10-16T18:00:00Z",
     "daily": "node src/cli.mjs daily",
+    "engine": "node src/cli.mjs engine",
     "doctor": "node src/cli.mjs doctor",
     "scorecard": "node src/cli.mjs scorecard",
     "conveyor": "node scripts/check-stage-conveyor.mjs --root . --manifest pipeline/stage-conveyor.json",
     "readiness": "node src/cli.mjs readiness",
     "weekly-review": "node src/cli.mjs weekly-review",
     "contracts": "node scripts/check-contracts.mjs",
-    "demo:review": "node src/cli.mjs weekly-review --context fixtures/review-context.json --at 2026-10-16T13:00:00Z --summary"
+    "demo:review": "node src/cli.mjs weekly-review --context fixtures/review-context.json --at 2026-10-16T13:00:00Z --summary",
+    "demo:engine": "node src/cli.mjs engine --context fixtures/engine-context.json --at 2026-10-16T18:00:00Z --summary"
   }
 }

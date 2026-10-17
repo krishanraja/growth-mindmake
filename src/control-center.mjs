@@ -2,6 +2,7 @@ import { parseBatch, parseSnapshot, semanticBatch } from '../contracts/growth.ts
 import { stable } from './guards.mjs';
 import { parseAttempt, parseCapabilities, parseReviewContext, parseWeeklyReview } from '../contracts/operations.ts';
 import { parseReport } from '../contracts/reporting.ts';
+import { parseEngineContext, parseWorkBatch, semanticWorkBatch } from '../contracts/engine.ts';
 
 export function client(base, token, { fetcher = fetch } = {}) {
   const origin = new URL(base);
@@ -16,8 +17,20 @@ export function client(base, token, { fetcher = fetch } = {}) {
     try { return JSON.parse(text); } catch { throw new Error('Control Center returned invalid JSON'); }
   }
   const operation = (method, query, body) => request(method, query, body, '/api/growth/mindmake/operations');
+  const work = (method, query, body) => request(method, query, body, '/api/growth/mindmake/work');
   const envelope = (value, field, parse) => { if (!value || value.ok !== true || !value[field]) throw new Error('Control Center operation was not acknowledged'); return parse(value[field]); };
   return {
+    async engineContext() { return parseEngineContext(await work('GET', '?context=1')); },
+    async workReceipt(id) { return validateWorkReceipt(await work('GET', `?run_id=${encodeURIComponent(id)}`), id); },
+    async commitWork(value) {
+      const batch = parseWorkBatch(value);
+      const written = validateWorkReceipt(await work('POST', '', batch), batch.run_id);
+      const observed = validateWorkReceipt(await work('GET', `?run_id=${encodeURIComponent(batch.run_id)}`), batch.run_id);
+      const expected = stable(semanticWorkBatch(batch));
+      if (expected !== stable(semanticWorkBatch(written.batch)) || expected !== stable(semanticWorkBatch(observed.batch))) throw new Error('Destination did not persist the complete work batch');
+      if (stable({created:written.created,held:written.held}) !== stable({created:observed.created,held:observed.held})) throw new Error('Destination work readback disagrees with write receipt');
+      return { ...observed, replayed: written.replayed };
+    },
     async capabilities() { return parseCapabilities(await operation('GET', '?capabilities=1')); },
     async attempt(id) { const a = envelope(await operation('GET', `?attempt_id=${encodeURIComponent(id)}`), 'attempt', parseAttempt); if (a.attempt_id !== id) throw new Error('Destination attempt identity mismatch'); return a; },
     async recordAttempt(value) {
@@ -52,6 +65,16 @@ export function client(base, token, { fetcher = fetch } = {}) {
       return { ...observed, replayed: written.replayed };
     }
   };
+}
+export function validateWorkReceipt(value, runId) {
+  if (!value || value.ok !== true || !Array.isArray(value.created) || !Array.isArray(value.held) || typeof value.replayed !== 'boolean') throw new Error('Destination did not acknowledge the work batch');
+  const batch = parseWorkBatch(value.batch);
+  if (batch.run_id !== runId) throw new Error('Destination work identity mismatch');
+  const ids=[],records=[];
+  for (const item of value.created) { if (!item || typeof item.item_id !== 'string' || typeof item.record_id !== 'string' || !item.record_id.trim()) throw new Error('Invalid created work receipt'); ids.push(item.item_id); records.push(item.record_id); }
+  for (const item of value.held) { if (!item || typeof item.item_id !== 'string' || typeof item.reason !== 'string' || !item.reason.trim()) throw new Error('Invalid held work receipt'); ids.push(item.item_id); }
+  if (new Set(ids).size !== ids.length || new Set(records).size !== records.length || stable(ids.sort()) !== stable(batch.items.map(i=>i.item_id).sort())) throw new Error('Destination did not account for every distinct work item');
+  return value;
 }
 export function validateReceipt(value, runId) {
   if (!value || value.ok !== true || value.run_id !== runId || !Array.isArray(value.created) || !Array.isArray(value.held)) throw new Error('Control Center did not return a durable run receipt');

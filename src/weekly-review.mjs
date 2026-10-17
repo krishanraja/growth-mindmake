@@ -1,6 +1,7 @@
-import { parseReviewContext, parseWeeklyReview } from '../contracts/operations.ts';
+import { parseReviewContext, parseWeeklyReview, commercialDiagnosis } from '../contracts/operations.ts';
 import { chooseImprovement } from './stages/report.mjs';
 import { ageDays, seal } from './guards.mjs';
+import { parseImprovement } from '../contracts/reporting.ts';
 
 export function weeklyReview(input, policy, at) {
   const context = parseReviewContext(input), age = ageDays(context.generated_at, at) * 24;
@@ -22,7 +23,13 @@ export function weeklyReview(input, policy, at) {
   semantic.coverage = { ...context.coverage, source_ids: [...context.coverage.source_ids].sort() };
   const context_seal = seal(semantic);
   const facts = { scope: 'global_review', source_revision: context.source_revision, ...context.metrics, paid_proofs: first_month_status === 'closed' ? null : context.metrics.paid_proofs, paid_proof_gap: first_month_status === 'closed' ? null : context.metrics.paid_proof_gap, has_more: context.coverage.has_more, context_complete: context.complete, evidence: { person: context.coverage.person, company: context.coverage.company, trigger: context.coverage.trigger, source_ids: context.coverage.source_ids } };
-  const recommendations = chooseImprovement(facts).filter(r => {
+  const c=context.commercial;
+  const commercial_diagnosis=commercialDiagnosis(c,context.metrics,today);
+  const promiseProposal=c.promises.overdue>0?{kind:'honour_promises',owner:'krish',title:'Honour an overdue promise before adding new outreach',reason:`${c.promises.overdue} recorded promises are overdue. Review the actual request, owner and agreed next step; only a matching fulfilment record closes it.`,requires_human:true,destination:'waiting_list',evidence:{examined:facts.examined,affected:c.promises.overdue,...facts.evidence},close_condition:{kind:'promise_fulfilment_recorded',proof_required:'matching_persisted_event',reference:{scope:'global_review',source_revision:context.source_revision,metric:'overdue_promises',baseline:c.promises.overdue,target:c.promises.overdue-1}}}:null;
+  const proofProposal=c.proposals.awaiting_decision>0?{kind:'review_proof_decisions',owner:'krish',title:'Review the next decision on an existing proof proposal',reason:`${c.proposals.awaiting_decision} proof proposals await an actual decision. Read the agreed next step and record the buyer decision before adding new acquisition work. A proposal decision is distinct from payment.`,requires_human:true,destination:'advisory',evidence:{examined:facts.examined,affected:c.proposals.awaiting_decision,...facts.evidence},close_condition:{kind:'proof_decision_recorded',proof_required:'matching_persisted_event',reference:{scope:'global_review',source_revision:context.source_revision,metric:'proposals_awaiting_decision',baseline:c.proposals.awaiting_decision,target:c.proposals.awaiting_decision-1}}}:null;
+  const priorityProposal=promiseProposal??proofProposal;
+  const candidates=priorityProposal?[parseImprovement({id:`gmi-${seal(priorityProposal).slice(0,32)}`,...priorityProposal})]:context.metrics.pending_human_qualification>0?chooseImprovement({...facts,research_needed:0,missing_current_buying_moment:0,missing_person_company_evidence:0,permission_review_required:0,prepared:0}):chooseImprovement(facts);
+  const recommendations = candidates.filter(r => {
     const prior = semantic.feedback.filter(f => f.recommendation_id === r.id).at(-1);
     if (!prior) return true;
     const priorDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date(prior.recorded_at));
@@ -30,5 +37,5 @@ export function weeklyReview(input, policy, at) {
     if (prior.decision === 'bumped' && new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date(prior.recorded_at)) === today) return false;
     return true;
   });
-  return parseWeeklyReview({ version: 1, review_id: `gmr-${seal({ context_seal, recommendations, first_month_status, policy: policy.targets }).slice(0,40)}`, generated_at: at, week_starts: context.week_starts, source_revision: context.source_revision, context_seal, coverage: 'global_review', activation: context.activation, first_month_status, metrics: context.metrics, targets: { qualified_conversations: 5, paid_proofs_first_30_days: 1 }, runs: context.runs, feedback_summary, recommendations, decision_rule: 'Use complete current global outcomes and recorded feedback. Refresh evidence first; one grounded improvement, with no assumed conversion rate. A decision is distinct from a verified outcome.' });
+  return parseWeeklyReview({ version: 1, review_id: `gmr-${seal({ context_seal, recommendations, first_month_status, policy: policy.targets }).slice(0,40)}`, generated_at: at, week_starts: context.week_starts, source_revision: context.source_revision, context_seal, coverage: 'global_review', activation: context.activation, first_month_status, metrics: context.metrics, targets: { qualified_conversations: 5, paid_proofs_first_30_days: 1 }, runs: context.runs, feedback_summary, recommendations, commercial:c,commercial_diagnosis,decision_rule: 'Use complete current global outcomes, attributed channels, promises, proposal decisions, observed effort and recorded feedback. Honour overdue promises first; one grounded improvement, with no assumed conversion rate. A decision or observed experimental metric does not prove causation or a commercial outcome.' });
 }

@@ -1,0 +1,962 @@
+{
+  "version": 1,
+  "generated_at": "2026-10-16T18:00:00Z",
+  "source_revision": "synthetic-engine-v1",
+  "complete": true,
+  "snapshot": {
+    "version": 1,
+    "generated_at": "2026-10-16T18:00:00Z",
+    "source_revision": "synthetic-engine-v1",
+    "complete": true,
+    "canon": {
+      "revision": "mindmake:00:e3c459d75e68365a5188fc745b60841156e33538:01:d2a61cdbf4e6bbf78e8ce3c8f2378380a095bb62",
+      "approved_at": "2026-10-16T12:54:28Z",
+      "brief_url": "https://mindmake.co/?start=1",
+      "publication_url": "https://makeyourmindup.ai",
+      "brain_description": "Your taste, standards and judgement, running as a system you own.",
+      "revenue_description": "Your pricing, positioning and team rebuilt for AI, then tested with real buyers."
+    },
+    "icp": {
+      "defined": true,
+      "definition": "Decision-making leaders in a relevant business with a live AI decision.",
+      "buyer_titles": [
+        "Founder",
+        "Principal",
+        "Director"
+      ],
+      "industries": [
+        "software",
+        "advisory"
+      ],
+      "exclusions": [
+        "student"
+      ]
+    },
+    "contacts": [
+      {
+        "id": "warm-a",
+        "full_name": "Synthetic warm-a",
+        "title": "Founder",
+        "company": "Example warm-a",
+        "relationship": "warm",
+        "suppressed": false,
+        "closed": false,
+        "consent_status": "allowed",
+        "evidence": [
+          {
+            "id": "person-warm-a",
+            "kind": "person",
+            "visibility": "public",
+            "fact": "Synthetic warm-a is the founder.",
+            "url": "https://example.test/evidence/person-warm-a",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "company-warm-a",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "Example warm-a is testing an AI product.",
+            "url": "https://example.test/evidence/company-warm-a",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "relationship-warm-a",
+            "kind": "relationship",
+            "visibility": "public",
+            "fact": "We discussed a limited pricing test for the new AI product.",
+            "url": "https://example.test/evidence/relationship-warm-a",
+            "observed_at": "2026-10-15T12:00:00Z"
+          }
+        ],
+        "offer_fit": "revenue_engine",
+        "why_fit": "A sourced pricing decision may benefit from a bounded buyer test.",
+        "decision_authority": "unknown",
+        "buying_moment": {
+          "id": "trigger-warm-a",
+          "kind": "trigger",
+          "visibility": "public",
+          "fact": "Example warm-a is reviewing pricing for its AI product.",
+          "url": "https://example.test/evidence/trigger-warm-a",
+          "observed_at": "2026-10-15T12:00:00Z"
+        }
+      },
+      {
+        "id": "cold-b",
+        "full_name": "Synthetic cold-b",
+        "title": "Founder",
+        "company": "Example cold-b",
+        "relationship": "cold",
+        "suppressed": false,
+        "closed": false,
+        "consent_status": "allowed",
+        "evidence": [
+          {
+            "id": "person-cold-b",
+            "kind": "person",
+            "visibility": "public",
+            "fact": "Synthetic cold-b is the founder.",
+            "url": "https://example.test/evidence/person-cold-b",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "company-cold-b",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "Example cold-b is testing an AI product.",
+            "url": "https://example.test/evidence/company-cold-b",
+            "observed_at": "2026-10-15T12:00:00Z"
+          }
+        ],
+        "offer_fit": "revenue_engine",
+        "why_fit": "A sourced pricing decision may benefit from a bounded buyer test.",
+        "decision_authority": "unknown",
+        "buying_moment": {
+          "id": "trigger-cold-b",
+          "kind": "trigger",
+          "visibility": "public",
+          "fact": "Example cold-b is reviewing pricing for its AI product.",
+          "url": "https://example.test/evidence/trigger-cold-b",
+          "observed_at": "2026-10-15T12:00:00Z"
+        }
+      },
+      {
+        "id": "connector-c",
+        "full_name": "Synthetic connector-c",
+        "title": "Founder",
+        "company": "Example connector-c",
+        "relationship": "warm",
+        "suppressed": false,
+        "closed": false,
+        "consent_status": "allowed",
+        "evidence": [
+          {
+            "id": "person-connector-c",
+            "kind": "person",
+            "visibility": "public",
+            "fact": "Synthetic connector-c is the founder.",
+            "url": "https://example.test/evidence/person-connector-c",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "company-connector-c",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "Example connector-c is testing an AI product.",
+            "url": "https://example.test/evidence/company-connector-c",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "consent-source-c",
+            "kind": "relationship",
+            "visibility": "private",
+            "fact": "Introduction prospect-d: connector-c granted permission to ask the prospect about an introduction.",
+            "url": "https://example.test/evidence/consent-source-c",
+            "observed_at": "2026-10-15T12:00:00Z"
+          }
+        ],
+        "offer_fit": "revenue_engine",
+        "why_fit": "A sourced pricing decision may benefit from a bounded buyer test.",
+        "decision_authority": "unknown",
+        "buying_moment": {
+          "id": "trigger-connector-c",
+          "kind": "trigger",
+          "visibility": "public",
+          "fact": "Example connector-c is reviewing pricing for its AI product.",
+          "url": "https://example.test/evidence/trigger-connector-c",
+          "observed_at": "2026-10-15T12:00:00Z"
+        }
+      },
+      {
+        "id": "prospect-d",
+        "full_name": "Synthetic prospect-d",
+        "title": "Founder",
+        "company": "Example prospect-d",
+        "relationship": "warm",
+        "suppressed": false,
+        "closed": false,
+        "consent_status": "allowed",
+        "evidence": [
+          {
+            "id": "person-prospect-d",
+            "kind": "person",
+            "visibility": "public",
+            "fact": "Synthetic prospect-d is the founder.",
+            "url": "https://example.test/evidence/person-prospect-d",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "company-prospect-d",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "Example prospect-d is testing an AI product.",
+            "url": "https://example.test/evidence/company-prospect-d",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "consent-source-d",
+            "kind": "relationship",
+            "visibility": "private",
+            "fact": "Introduction prospect-d: prospect-d granted permission for an introduction to connector-c.",
+            "url": "https://example.test/evidence/consent-source-d",
+            "observed_at": "2026-10-15T12:00:00Z"
+          }
+        ],
+        "offer_fit": "revenue_engine",
+        "why_fit": "A sourced pricing decision may benefit from a bounded buyer test.",
+        "decision_authority": "unknown",
+        "buying_moment": {
+          "id": "trigger-prospect-d",
+          "kind": "trigger",
+          "visibility": "public",
+          "fact": "Example prospect-d is reviewing pricing for its AI product.",
+          "url": "https://example.test/evidence/trigger-prospect-d",
+          "observed_at": "2026-10-15T12:00:00Z"
+        }
+      },
+      {
+        "id": "inbound-e",
+        "full_name": "Synthetic inbound-e",
+        "title": "Founder",
+        "company": "Example inbound-e",
+        "relationship": "warm",
+        "suppressed": false,
+        "closed": false,
+        "consent_status": "allowed",
+        "evidence": [
+          {
+            "id": "person-inbound-e",
+            "kind": "person",
+            "visibility": "public",
+            "fact": "Synthetic inbound-e is the founder.",
+            "url": "https://example.test/evidence/person-inbound-e",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "company-inbound-e",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "Example inbound-e is testing an AI product.",
+            "url": "https://example.test/evidence/company-inbound-e",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "request-source-e",
+            "kind": "relationship",
+            "visibility": "private",
+            "fact": "Request request-e: Please help compare two pricing assumptions for the AI product.",
+            "url": "https://example.test/evidence/request-source-e",
+            "observed_at": "2026-10-15T12:00:00Z"
+          }
+        ],
+        "offer_fit": "revenue_engine",
+        "why_fit": "A sourced pricing decision may benefit from a bounded buyer test.",
+        "decision_authority": "unknown",
+        "buying_moment": {
+          "id": "trigger-inbound-e",
+          "kind": "trigger",
+          "visibility": "public",
+          "fact": "Example inbound-e is reviewing pricing for its AI product.",
+          "url": "https://example.test/evidence/trigger-inbound-e",
+          "observed_at": "2026-10-15T12:00:00Z"
+        }
+      },
+      {
+        "id": "qualification-f",
+        "full_name": "Synthetic qualification-f",
+        "title": "Founder",
+        "company": "Example qualification-f",
+        "relationship": "warm",
+        "suppressed": false,
+        "closed": false,
+        "consent_status": "allowed",
+        "evidence": [
+          {
+            "id": "person-qualification-f",
+            "kind": "person",
+            "visibility": "public",
+            "fact": "Synthetic qualification-f is the founder.",
+            "url": "https://example.test/evidence/person-qualification-f",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "company-qualification-f",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "Example qualification-f is testing an AI product.",
+            "url": "https://example.test/evidence/company-qualification-f",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "call-source-f",
+            "kind": "relationship",
+            "visibility": "private",
+            "fact": "Conversation conversation-f: A substantive call was held with the leader on 15 October. The leader owns the pricing decision, active need and agreed next step.",
+            "url": "https://example.test/evidence/call-source-f",
+            "observed_at": "2026-10-15T12:00:00Z"
+          }
+        ],
+        "offer_fit": "revenue_engine",
+        "why_fit": "A sourced pricing decision may benefit from a bounded buyer test.",
+        "decision_authority": "unknown",
+        "buying_moment": {
+          "id": "trigger-qualification-f",
+          "kind": "trigger",
+          "visibility": "public",
+          "fact": "Example qualification-f is reviewing pricing for its AI product.",
+          "url": "https://example.test/evidence/trigger-qualification-f",
+          "observed_at": "2026-10-15T12:00:00Z"
+        }
+      },
+      {
+        "id": "proof-g",
+        "full_name": "Synthetic proof-g",
+        "title": "Founder",
+        "company": "Example proof-g",
+        "relationship": "warm",
+        "suppressed": false,
+        "closed": false,
+        "consent_status": "allowed",
+        "evidence": [
+          {
+            "id": "person-proof-g",
+            "kind": "person",
+            "visibility": "public",
+            "fact": "Synthetic proof-g is the founder.",
+            "url": "https://example.test/evidence/person-proof-g",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "company-proof-g",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "Example proof-g is testing an AI product.",
+            "url": "https://example.test/evidence/company-proof-g",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "proof-source-g",
+            "kind": "relationship",
+            "visibility": "private",
+            "fact": "Proof proof-g: owner proof-g agreed one pricing comparison and the next decision at 2026-10-20T12:00:00Z. Qualified deal qualified-deal-proof-g.",
+            "url": "https://example.test/evidence/proof-source-g",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "private-terms-proof-g",
+            "kind": "relationship",
+            "visibility": "private",
+            "fact": "Proof proof-g: commercial terms are recorded for private review.",
+            "url": "https://example.test/private/terms-proof-g",
+            "observed_at": "2026-10-15T12:00:00Z"
+          }
+        ],
+        "offer_fit": "revenue_engine",
+        "why_fit": "A sourced pricing decision may benefit from a bounded buyer test.",
+        "decision_authority": "unknown",
+        "buying_moment": {
+          "id": "trigger-proof-g",
+          "kind": "trigger",
+          "visibility": "public",
+          "fact": "Example proof-g is reviewing pricing for its AI product.",
+          "url": "https://example.test/evidence/trigger-proof-g",
+          "observed_at": "2026-10-15T12:00:00Z"
+        }
+      },
+      {
+        "id": "delivery-h",
+        "full_name": "Synthetic delivery-h",
+        "title": "Founder",
+        "company": "Example delivery-h",
+        "relationship": "warm",
+        "suppressed": false,
+        "closed": false,
+        "consent_status": "allowed",
+        "evidence": [
+          {
+            "id": "person-delivery-h",
+            "kind": "person",
+            "visibility": "public",
+            "fact": "Synthetic delivery-h is the founder.",
+            "url": "https://example.test/evidence/person-delivery-h",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "company-delivery-h",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "Example delivery-h is testing an AI product.",
+            "url": "https://example.test/evidence/company-delivery-h",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "scope-source-h",
+            "kind": "relationship",
+            "visibility": "private",
+            "fact": "Proof proof-h: accepted signed scope for a working pricing test.",
+            "url": "https://example.test/evidence/scope-source-h",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "payment-source-h",
+            "kind": "relationship",
+            "visibility": "private",
+            "fact": "Proof proof-h: payment verified and not refunded or revoked.",
+            "url": "https://example.test/evidence/payment-source-h",
+            "observed_at": "2026-10-15T12:00:00Z"
+          }
+        ],
+        "offer_fit": "revenue_engine",
+        "why_fit": "A sourced pricing decision may benefit from a bounded buyer test.",
+        "decision_authority": "unknown",
+        "buying_moment": {
+          "id": "trigger-delivery-h",
+          "kind": "trigger",
+          "visibility": "public",
+          "fact": "Example delivery-h is reviewing pricing for its AI product.",
+          "url": "https://example.test/evidence/trigger-delivery-h",
+          "observed_at": "2026-10-15T12:00:00Z"
+        }
+      },
+      {
+        "id": "host-i",
+        "full_name": "Synthetic host-i",
+        "title": "Founder",
+        "company": "Example host-i",
+        "relationship": "warm",
+        "suppressed": false,
+        "closed": false,
+        "consent_status": "allowed",
+        "evidence": [
+          {
+            "id": "person-host-i",
+            "kind": "person",
+            "visibility": "public",
+            "fact": "Synthetic host-i is the founder.",
+            "url": "https://example.test/evidence/person-host-i",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "company-host-i",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "Example host-i is testing an AI product.",
+            "url": "https://example.test/evidence/company-host-i",
+            "observed_at": "2026-10-15T12:00:00Z"
+          }
+        ],
+        "offer_fit": "revenue_engine",
+        "why_fit": "A sourced pricing decision may benefit from a bounded buyer test.",
+        "decision_authority": "unknown",
+        "buying_moment": {
+          "id": "trigger-host-i",
+          "kind": "trigger",
+          "visibility": "public",
+          "fact": "Example host-i is reviewing pricing for its AI product.",
+          "url": "https://example.test/evidence/trigger-host-i",
+          "observed_at": "2026-10-15T12:00:00Z"
+        }
+      }
+    ],
+    "deals": [
+      {
+        "id": "qualified-deal-proof-g",
+        "contact_id": "proof-g",
+        "state": "call_taken",
+        "call_taken_at": "2026-10-15T10:00:00Z",
+        "qualified_at": "2026-10-15T11:00:00Z",
+        "qualification": {
+          "decision_authority": true,
+          "owned_problem": true,
+          "active_need": true,
+          "offer_fit": true,
+          "next_step_agreed": true,
+          "confirmed_by": "krish",
+          "confirmed_at": "2026-10-15T11:00:00Z"
+        }
+      }
+    ]
+  },
+  "jobs": [
+    {
+      "id": "job-warm",
+      "kind": "outreach",
+      "contact_id": "warm-a",
+      "source_id": "relationship-warm-a",
+      "due_at": null,
+      "details": {
+        "mode": "warm",
+        "sender": "founder",
+        "channel": "linkedin",
+        "hypothesis": "A pricing test may clarify which assumption deserves attention.",
+        "alternative": "Existing pricing may already capture the changed value.",
+        "decision_aid": {
+          "question": "Which pricing assumption should be tested first?",
+          "options": [
+            {
+              "label": "Keep current pricing",
+              "benefit": "Preserves comparability",
+              "cost": "May miss changed willingness to pay"
+            },
+            {
+              "label": "Run a limited buyer test",
+              "benefit": "Tests demand before repricing",
+              "cost": "A small sample can mislead"
+            }
+          ],
+          "tradeoff": "Keep current pricing unless a limited test provides useful contrary evidence.",
+          "test": "Compare five buyer reactions to one changed assumption and review the evidence.",
+          "disconfirming": "No consistent difference supports keeping current pricing.",
+          "evidence_ids": [
+            "trigger-warm-a"
+          ]
+        },
+        "sources": [
+          {
+            "id": "person-warm-a",
+            "kind": "person",
+            "visibility": "public",
+            "fact": "Synthetic warm-a is the founder.",
+            "url": "https://example.test/evidence/person-warm-a",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "company-warm-a",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "Example warm-a is testing an AI product.",
+            "url": "https://example.test/evidence/company-warm-a",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "relationship-warm-a",
+            "kind": "relationship",
+            "visibility": "public",
+            "fact": "We discussed a limited pricing test for the new AI product.",
+            "url": "https://example.test/evidence/relationship-warm-a",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "trigger-warm-a",
+            "kind": "trigger",
+            "visibility": "public",
+            "fact": "Example warm-a is reviewing pricing for its AI product.",
+            "url": "https://example.test/evidence/trigger-warm-a",
+            "observed_at": "2026-10-15T12:00:00Z"
+          }
+        ],
+        "relationship_context": {
+          "summary": "We discussed a limited pricing test for the new AI product.",
+          "source_id": "relationship-warm-a",
+          "observed_at": "2026-10-15T12:00:00Z",
+          "permitted_to_reference": true
+        }
+      }
+    },
+    {
+      "id": "job-cold",
+      "kind": "outreach",
+      "contact_id": "cold-b",
+      "source_id": "trigger-cold-b",
+      "due_at": null,
+      "details": {
+        "mode": "named_cold",
+        "sender": "practice",
+        "channel": "email",
+        "hypothesis": "A limited buyer comparison may clarify the new pricing choice.",
+        "alternative": "The change may only simplify packaging rather than alter willingness to pay.",
+        "decision_aid": {
+          "question": "Which pricing assumption should be tested first?",
+          "options": [
+            {
+              "label": "Keep current pricing",
+              "benefit": "Preserves comparability",
+              "cost": "May miss changed willingness to pay"
+            },
+            {
+              "label": "Run a limited buyer test",
+              "benefit": "Tests demand before repricing",
+              "cost": "A small sample can mislead"
+            }
+          ],
+          "tradeoff": "Keep current pricing unless a limited test provides useful contrary evidence.",
+          "test": "Compare five buyer reactions to one changed assumption and review the evidence.",
+          "disconfirming": "No consistent difference supports keeping current pricing.",
+          "evidence_ids": [
+            "trigger-cold-b"
+          ]
+        },
+        "sources": [
+          {
+            "id": "person-cold-b",
+            "kind": "person",
+            "visibility": "public",
+            "fact": "Synthetic cold-b is the founder.",
+            "url": "https://example.test/evidence/person-cold-b",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "company-cold-b",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "Example cold-b is testing an AI product.",
+            "url": "https://example.test/evidence/company-cold-b",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "trigger-cold-b",
+            "kind": "trigger",
+            "visibility": "public",
+            "fact": "Example cold-b is reviewing pricing for its AI product.",
+            "url": "https://example.test/evidence/trigger-cold-b",
+            "observed_at": "2026-10-15T12:00:00Z"
+          }
+        ],
+        "relationship_context": null
+      }
+    },
+    {
+      "id": "job-introduction",
+      "kind": "introduction",
+      "contact_id": "prospect-d",
+      "source_id": "trigger-prospect-d",
+      "due_at": null,
+      "details": {
+        "connector_contact_id": "connector-c",
+        "context": "Example prospect-d is reviewing pricing for its AI product.",
+        "channel": "email",
+        "connector_opt_in": {
+          "status": "granted",
+          "source_id": "consent-source-c",
+          "confirmed_at": "2026-10-15T12:00:00Z"
+        },
+        "recipient_opt_in": {
+          "status": "pending",
+          "source_id": null,
+          "confirmed_at": null
+        }
+      }
+    },
+    {
+      "id": "job-inbound",
+      "kind": "inbound",
+      "contact_id": "inbound-e",
+      "source_id": "request-source-e",
+      "due_at": "2026-10-16T17:00:00Z",
+      "details": {
+        "request_id": "request-e",
+        "request_kind": "commercial",
+        "received_at": "2026-10-15T12:00:00Z",
+        "request_status": "new",
+        "service_status": "not_applicable",
+        "response_status": "not_prepared",
+        "request_summary": "Please help compare two pricing assumptions for the AI product.",
+        "channel": "email",
+        "offer": "revenue_engine"
+      }
+    },
+    {
+      "id": "job-qualification",
+      "kind": "qualification",
+      "contact_id": "qualification-f",
+      "source_id": "call-source-f",
+      "due_at": null,
+      "details": {
+        "conversation_id": "conversation-f",
+        "held_at": "2026-10-15T12:00:00Z",
+        "held_source_id": "call-source-f",
+        "checks": {
+          "decision_authority": {
+            "answer": "yes",
+            "evidence_ids": [
+              "call-source-f"
+            ]
+          },
+          "owned_problem": {
+            "answer": "yes",
+            "evidence_ids": [
+              "call-source-f"
+            ]
+          },
+          "active_need": {
+            "answer": "yes",
+            "evidence_ids": [
+              "call-source-f"
+            ]
+          },
+          "offer_fit": {
+            "answer": "yes",
+            "evidence_ids": [
+              "call-source-f"
+            ]
+          },
+          "next_step_agreed": {
+            "answer": "yes",
+            "evidence_ids": [
+              "call-source-f"
+            ]
+          }
+        },
+        "human_confirmation": {
+          "confirmed_by": null,
+          "confirmed_at": null
+        }
+      }
+    },
+    {
+      "id": "job-proof",
+      "kind": "proof_scope",
+      "contact_id": "proof-g",
+      "source_id": "proof-source-g",
+      "due_at": null,
+      "details": {
+        "proof_id": "proof-g",
+        "decision": "Which pricing assumption should be tested first?",
+        "first_version": "A working buyer comparison on one real pricing choice.",
+        "exclusions": [
+          "Production rollout",
+          "Training and certification"
+        ],
+        "owner_contact_id": "proof-g",
+        "inputs": [
+          "One current pricing example",
+          "Access to a small agreed buyer comparison"
+        ],
+        "acceptance_criteria": [
+          "The leader can compare evidence for the two assumptions."
+        ],
+        "judge_contact_id": "proof-g",
+        "client_retained_control": true,
+        "commercial_terms_ref": "private-terms-proof-g",
+        "agreed_next_step": {
+          "owner_contact_id": "proof-g",
+          "due_at": "2026-10-20T12:00:00Z",
+          "source_id": "proof-source-g"
+        },
+        "qualified_deal_id": "qualified-deal-proof-g"
+      }
+    },
+    {
+      "id": "job-delivery",
+      "kind": "delivery",
+      "contact_id": "delivery-h",
+      "source_id": "scope-source-h",
+      "due_at": null,
+      "details": {
+        "proof_id": "proof-h",
+        "scope": {
+          "proof_id": "proof-h",
+          "status": "accepted",
+          "signed_at": "2026-10-15T12:00:00Z",
+          "source_id": "scope-source-h"
+        },
+        "payment": {
+          "proof_id": "proof-h",
+          "status": "verified",
+          "verified_at": "2026-10-15T12:00:00Z",
+          "source_id": "payment-source-h"
+        },
+        "delivery_status": "not_started",
+        "owner_contact_id": "delivery-h"
+      }
+    },
+    {
+      "id": "job-trust",
+      "kind": "trust",
+      "contact_id": null,
+      "source_id": "trust-source",
+      "due_at": null,
+      "details": {
+        "format": "commentary",
+        "surface": {
+          "account_id": "synthetic-account",
+          "surface": "linkedin",
+          "source_id": "trust-source",
+          "verified_at": "2026-10-15T12:00:00Z"
+        },
+        "rights": {
+          "cleared": true,
+          "source_id": "trust-source",
+          "cleared_at": "2026-10-15T12:00:00Z",
+          "placement": "commentary"
+        },
+        "claims": [
+          {
+            "text": "A small buyer comparison can test one pricing assumption.",
+            "source_id": "trust-source",
+            "first_person": false,
+            "owned": false
+          }
+        ],
+        "decision_aid": {
+          "question": "Which pricing assumption should be tested first?",
+          "options": [
+            {
+              "label": "Keep current pricing",
+              "benefit": "Preserves comparability",
+              "cost": "May miss changed willingness to pay"
+            },
+            {
+              "label": "Run a limited buyer test",
+              "benefit": "Tests demand before repricing",
+              "cost": "A small sample can mislead"
+            }
+          ],
+          "tradeoff": "Keep current pricing unless a limited test provides useful contrary evidence.",
+          "test": "Compare five buyer reactions to one changed assumption and review the evidence.",
+          "disconfirming": "No consistent difference supports keeping current pricing.",
+          "evidence_ids": [
+            "trust-source"
+          ]
+        },
+        "sources": [
+          {
+            "id": "trust-source",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "A small buyer comparison can test one pricing assumption.",
+            "url": "https://example.test/evidence/trust-source",
+            "observed_at": "2026-10-15T12:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "job-speaking",
+      "kind": "speaking",
+      "contact_id": "host-i",
+      "source_id": "programme-source",
+      "due_at": null,
+      "details": {
+        "host": "Example Forum host",
+        "programme": "Example Forum AI decisions",
+        "first_party_origin": "https://example.test",
+        "programme_source_id": "programme-source",
+        "rules_source_id": "rules-source",
+        "audience_source_id": "audience-source",
+        "event_at": "2026-11-20T12:00:00Z",
+        "deadline_at": "2026-11-10T12:00:00Z",
+        "submission": {
+          "channel": "email",
+          "allows_pitch": true,
+          "contact_scope": "host_only"
+        },
+        "audience_decision": "Which pricing assumption should a leader test first?",
+        "angle": "Show a reversible test before changing a commercial model.",
+        "outline": [
+          "Separate a packaging change from a willingness-to-pay claim.",
+          "Compare two assumptions using one bounded test."
+        ],
+        "proof": {
+          "claim": "A cleared synthetic operating example compares two pricing assumptions.",
+          "source_id": "speaking-proof-source",
+          "cleared": true,
+          "placement": "host_pitch"
+        },
+        "sources": [
+          {
+            "id": "programme-source",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "Example Forum AI decisions takes place on 2026-11-20.",
+            "url": "https://example.test/evidence/programme-source",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "rules-source",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "Example Forum AI decisions accepts a host-only pitch by 2026-11-10.",
+            "url": "https://example.test/evidence/rules-source",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "audience-source",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "The audience owns commercial decisions.",
+            "url": "https://example.test/evidence/audience-source",
+            "observed_at": "2026-10-15T12:00:00Z"
+          },
+          {
+            "id": "speaking-proof-source",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "A cleared synthetic operating example compares two pricing assumptions.",
+            "url": "https://example.test/evidence/speaking-proof-source",
+            "observed_at": "2026-10-15T12:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "job-practice",
+      "kind": "practice",
+      "contact_id": null,
+      "source_id": "practice-source",
+      "due_at": null,
+      "details": {
+        "title": "A reversible pricing decision aid",
+        "decision_aid": {
+          "question": "Which pricing assumption should be tested first?",
+          "options": [
+            {
+              "label": "Keep current pricing",
+              "benefit": "Preserves comparability",
+              "cost": "May miss changed willingness to pay"
+            },
+            {
+              "label": "Run a limited buyer test",
+              "benefit": "Tests demand before repricing",
+              "cost": "A small sample can mislead"
+            }
+          ],
+          "tradeoff": "Keep current pricing unless a limited test provides useful contrary evidence.",
+          "test": "Compare five buyer reactions to one changed assumption and review the evidence.",
+          "disconfirming": "No consistent difference supports keeping current pricing.",
+          "evidence_ids": [
+            "practice-source"
+          ]
+        },
+        "privacy_review": {
+          "cleared": true,
+          "source_id": "practice-source",
+          "reviewed_at": "2026-10-15T12:00:00Z"
+        },
+        "rights": {
+          "cleared": true,
+          "source_id": "practice-source",
+          "cleared_at": "2026-10-15T12:00:00Z",
+          "placement": "practice_asset"
+        },
+        "sources": [
+          {
+            "id": "practice-source",
+            "kind": "company",
+            "visibility": "public",
+            "fact": "A reversible pricing test can compare two assumptions.",
+            "url": "https://example.test/evidence/practice-source",
+            "observed_at": "2026-10-15T12:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "job-research",
+      "kind": "research",
+      "contact_id": null,
+      "source_id": "research-brief-synthetic",
+      "due_at": null,
+      "details": {
+        "company": "Example Research Studio",
+        "question": "Does the public product change imply a different pricing decision?",
+        "hypothesis": "The change may alter which unit buyers value.",
+        "alternative": "It may only rename an unchanged package.",
+        "decision": "Which pricing question is worth testing?",
+        "owner_role": "Commercial leader, authority unconfirmed",
+        "next_question": "What does the current first-party pricing page actually say?",
+        "sources": [],
+        "contradictions": []
+      }
+    }
+  ]
+}

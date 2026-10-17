@@ -242,6 +242,7 @@ test('a decline suppresses the present London week while a bump expires on the n
 
 test('verified completion remains closed until the evidence-grounded recommendation changes', () => {
   const context = reviewContext();
+  context.metrics.pending_human_qualification = 0;
   const candidate = weeklyReview(context, POLICY, AT).recommendations[0];
   context.feedback = [{ recommendation_id: candidate.id, decision: 'completed', recorded_at: '2026-10-09T13:00:00Z', outcome: 'verified' }];
   assert.deepEqual(weeklyReview(context, POLICY, AT).recommendations, []);

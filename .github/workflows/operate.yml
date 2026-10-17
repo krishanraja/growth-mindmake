@@ -6,10 +6,11 @@ on:
         description: Producer operation; consumer support remains a separate rollout
         type: choice
         options:
+          - engine
           - daily
           - readiness
           - weekly-review
-        default: daily
+        default: engine
         required: true
       commit:
         description: Persist artifacts only after the separate consumer rollout is ready
@@ -46,6 +47,12 @@ jobs:
       - name: Dry daily plan
         if: ${{ inputs.mode == 'daily' && !inputs.commit }}
         run: node src/cli.mjs daily --summary
+      - name: Dry complete engine cycle
+        if: ${{ inputs.mode == 'engine' && !inputs.commit }}
+        run: node src/cli.mjs engine --summary
+      - name: Persist complete engine cycle
+        if: ${{ inputs.mode == 'engine' && inputs.commit }}
+        run: node src/cli.mjs engine --commit --summary
       - name: Persist daily producer artifacts
         if: ${{ inputs.mode == 'daily' && inputs.commit }}
         run: node src/cli.mjs daily --commit --summary

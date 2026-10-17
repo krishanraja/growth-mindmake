@@ -1,13 +1,16 @@
 import { randomUUID, createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { FEATURES, parseAttempt } from '../contracts/operations.ts';
+import { CONTRACT_NAMES, FEATURES, parseAttempt } from '../contracts/operations.ts';
 import { plan } from './orchestrator.mjs';
 import { weeklyReview } from './weekly-review.mjs';
 import { handoff } from './publish.mjs';
+import { enginePlan } from './engine.mjs';
+
+const registry = JSON.parse(await readFile(new URL('../config/campaigns.json', import.meta.url), 'utf8'));
 
 export async function contractHashes() {
   const result = {};
-  for (const name of ['growth','reporting','operations']) result[name] = createHash('sha256').update(await readFile(new URL(`../contracts/${name}.ts`, import.meta.url))).digest('hex');
+  for (const name of CONTRACT_NAMES) result[name] = createHash('sha256').update(await readFile(new URL(`../contracts/${name}.ts`, import.meta.url))).digest('hex');
   return result;
 }
 export async function readiness(remote) {
@@ -25,19 +28,25 @@ export class RunFailure extends Error {
   constructor(attempt) { super('Growth operation did not complete'); this.attempt = attempt; }
 }
 export async function execute(remote, policy, { command = 'daily', cursor, launchDate, clock = () => new Date().toISOString(), observe = () => {} } = {}) {
-  if (!['daily','weekly-review'].includes(command)) throw new Error('Unknown live command');
+  if (!['daily','engine','weekly-review'].includes(command)) throw new Error('Unknown live command');
   const ready = await readiness(remote);
   if (!ready.ready) throw new Error('Control Center reporting integration is not ready');
   const configuredLaunch = ready.activation.launch_date ?? undefined;
   if (launchDate && launchDate !== configuredLaunch) throw new Error('Launch date must match canonical activation');
   if (!configuredLaunch) throw new Error('Launch date must be recorded in the canonical activation state before writes');
-  const attempt = parseAttempt({ version: 1, attempt_id: `gma-${randomUUID()}`, command, started_at: clock(), finished_at: null, status: 'started', phase: command === 'daily' ? 'capture' : 'review_context', run_id: null, error_code: null });
+  const attempt = parseAttempt({ version: 1, attempt_id: `gma-${randomUUID()}`, command, started_at: clock(), finished_at: null, status: 'started', phase: command === 'weekly-review' ? 'review_context' : 'capture', run_id: null, error_code: null });
   observe({ attempt_id: attempt.attempt_id, state: 'attempt_pending' });
   try { await remote.recordAttempt(attempt); } catch { throw new RunFailure(parseAttempt({ ...attempt, status: 'unknown', finished_at: clock(), error_code: 'readback_unconfirmed' })); }
   let writeStarted = false;
   try {
     let artifact, receipt;
-    if (command === 'daily') {
+    if (command === 'engine') {
+      const context = await remote.engineContext();
+      attempt.phase = 'plan'; artifact = enginePlan(context, policy, registry, { at: clock(), launchDate: configuredLaunch });
+      attempt.run_id = artifact.run_id; attempt.phase = 'handoff'; writeStarted = true;
+      observe({ run_id: artifact.run_id, attempt_id: attempt.attempt_id, state: 'handoff_pending' });
+      receipt = await remote.commitWork(artifact);
+    } else if (command === 'daily') {
       const snapshot = await remote.snapshot(cursor);
       attempt.phase = 'plan'; artifact = plan(snapshot, policy, { at: clock(), launchDate: configuredLaunch });
       attempt.run_id = artifact.run_id; attempt.phase = 'handoff'; writeStarted = true;

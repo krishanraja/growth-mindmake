@@ -12,15 +12,19 @@ Extend the existing Growth Numbers and Next patterns. Use the existing Advisory 
 
 ## Contract ownership
 
-The producer owns `contracts/growth.ts`, `contracts/reporting.ts` and `contracts/operations.ts`. Copy **all three files byte for byte into one directory, retaining those filenames**, or consume them through a deterministic versioned package. Both growth.ts and operations.ts import ./reporting.ts. An example consumer location is api/_mindmakeContracts/{growth,reporting,operations}.ts; it is a package layout proposal, not an implemented path. Update the earlier proposal's single-vendor-file imports rather than breaking these relative imports. Compare SHA-256 digests in CI and at read-only readiness. Do not independently retype interfaces or relax parsers on one side. A shape mismatch is consumer-pending or incompatible, never a successful empty response.
+The producer owns the seven files listed in the manifest below. Copy **all seven files byte for byte into one directory, retaining their filenames**, or consume them through a deterministic versioned package. Keep relative imports intact: growth.ts and operations.ts import reporting.ts; engine.ts imports growth.ts, motions.ts, lifecycle.ts and research.ts; motions.ts imports growth.ts. A proposed consumer directory is api/_mindmakeContracts/. Update earlier single-file vendor imports rather than flattening this package. Compare SHA-256 digests in CI and at read-only readiness. Do not independently retype interfaces or relax parsers on one side. A shape mismatch is consumer-pending or incompatible, never a successful empty response.
 
-The canonical [manifest](../contracts/manifest.json) is version 1 for producer **1.1.0**. `npm run contracts` verifies the exact bytes in CI. Copy the manifest with the three files for provenance; the file digests below are its readable mirror. These identify the producer package, not a completed consumer release. Use this manifest rather than an earlier chat excerpt or unmerged branch.
+The canonical [manifest](../contracts/manifest.json) is version 1 for producer **2.0.0**. `npm run contracts` verifies the exact bytes in CI. Copy the manifest with the seven files for provenance; the file digests below are its readable mirror. Wire version 1 alone does not imply compatibility with the older release: the exact seven digests and required features are binding. These identify producer artifacts, not a completed consumer release. Use this manifest rather than an earlier chat excerpt or unmerged branch.
 
 | Contract | Wire version | SHA-256 |
 | --- | --- | --- |
 | growth.ts | 1 | `da672a11d66502a50adf3b5de8b93bb406f244163dd4542bd0269e9b2e5ef16b` |
-| reporting.ts | 1 | `8d608a5659ef3560329fddd53d5b85b153df05e670b56d65318f37906851fd78` |
-| operations.ts | 1 | `30b4304bf4a9b77a23a577cc5767841fe671d9f8005a85dd6dc15f294482eec0` |
+| reporting.ts | 1 | `f04546ea070e0a8df91f2b87e86913075f5d24b25081659e55771b1b93b946f9` |
+| operations.ts | 1 | `5f3a1c032a45c262d3ead51f52232aaacdb6908c9954f411f9c31796687be265` |
+| engine.ts | 1 | `a37d415fa891b6e44da9da7c79980f89e2db3bbc64cae7917f155bd8e147bb42` |
+| motions.ts | 1 | `13844836910e0ab1cfdbf2481e2b07bcdeb3957459be7567277b6ded991a8550` |
+| lifecycle.ts | 1 | `0328f8d6829810a42bb09a96dde91b85e5491f008875c386d1218f227ea1c5f6` |
+| research.ts | 1 | `07279341c476c4d1941cf21db102237d3f8785e2c1146f5d07144ac80c5b462c` |
 
 ## Required protocol routes
 
@@ -31,7 +35,10 @@ The machine client implements the following contract. Implement it in the consum
 | `GET /api/growth/mindmake` with optional `cursor` | Raw version-1 source snapshot. Bounded prospect page and source revision; never infer global coverage from it. |
 | `POST /api/growth/mindmake` | Version-1 draft batch; return an acknowledged receipt accounting for every recommendation and its persisted consumed report. |
 | `GET /api/growth/mindmake?run_id=...` | Durable acknowledged run receipt for recovery and independent readback. |
-| `GET /api/growth/mindmake/operations?capabilities=1` | Raw version-1 Capabilities with all three exact contract digests, required feature flags and canonical activation. |
+| `GET /api/growth/mindmake/work?context=1` | Raw EngineContext: current bounded snapshot and complete selected explicit jobs. Supplies the full growth portfolio. |
+| `POST /api/growth/mindmake/work` | Raw WorkBatch. Atomically persist artifacts, holds, full report and every input disposition; return the work receipt below. |
+| `GET /api/growth/mindmake/work?run_id=...` | The durable work receipt and exact persisted WorkBatch for independent readback and safe recovery. |
+| `GET /api/growth/mindmake/operations?capabilities=1` | Raw version-1 Capabilities with all seven exact contract digests, required feature flags and canonical activation. |
 | `POST /api/growth/mindmake/operations` with `kind: attempt` | Version-1 envelope carrying Attempt; return `{ok:true, attempt:...}` after durable persistence. |
 | `GET /api/growth/mindmake/operations?attempt_id=...` | `{ok:true, attempt:...}` for that exact identity. |
 | `GET /api/growth/mindmake/operations?review_context=1` | Raw version-1 ReviewContext with complete current global measures, coverage, run health and recorded feedback. |
@@ -39,7 +46,29 @@ The machine client implements the following contract. Implement it in the consum
 | `GET /api/growth/mindmake/operations?review_id=...` | `{ok:true, review:...}` for that exact semantic review identity. |
 | `GET /api/growth/mindmake/report` | Required human-authenticated private read model. Consumer implementation combines authoritative global outcomes with the producer artifacts and existing action/feedback lifecycle. |
 
-Attempt writes carry version, identity, command, start/finish times, state, phase, run identity and an allowlisted error code only. Weekly review references the global context seal. Use the parsers for the precise required fields. Capabilities must advertise `snapshot`, `report_persistence`, `attempt_journal`, `weekly_review`, `human_reporting`, `human_actions`, `global_outcomes` and `feedback` only after each is implemented and tested. Never set a feature flag to satisfy readiness before its endpoint and behaviour exist.
+Attempt writes carry version, identity, command (`engine`, `daily` or `weekly-review`), start/finish times, state, phase, run identity and an allowlisted error code only. Weekly review references the global context seal. Use the parsers for precise required fields. Capabilities must advertise `snapshot`, `report_persistence`, `attempt_journal`, `weekly_review`, `human_reporting`, `human_actions`, `global_outcomes`, `feedback`, `campaign_context`, `work_persistence` and `commercial_learning` only after each is implemented and tested. Never set a feature flag merely to satisfy readiness.
+
+## Complete engine work protocol
+
+`engine` is now the full cycle and the manual runner's default, dry unless explicitly committed. `daily` retains the older bounded outbound protocol for compatibility. Implement the work routes before claiming the whole engine is supported. There is no Vercel web app in this producer: its deployed artifact is the repository and manual GitHub runner. The private consumer remains the existing Control Center deployment.
+
+EngineContext contains `version`, `generated_at`, `source_revision`, `complete`, `snapshot` and up to 100 `jobs`. Outer and snapshot source revisions must match. Each job has `id`, `kind`, `contact_id` or null, `source_id`, `due_at` or null, and strictly typed `details`. The source owner selects actual work from existing records. Do not manufacture jobs from enriched contacts, a recent scrape or a target shortfall. Missing source data is unknown, not a synthetic empty success. Keep selected-context completeness distinct from global outcome coverage.
+
+The ten kinds are `outreach`, `introduction`, `inbound`, `qualification`, `proof_scope`, `delivery`, `trust`, `speaking`, `practice` and `research`. The executable registry maps these to all seven campaigns. Full source and output examples are in the synthetic [engine fixture](../fixtures/engine-context.json), with independent per-kind and HTTP tests. Use the exact parsers for payloads rather than inventing a looser key/value bag.
+
+Source resolution is an ingestion responsibility as well as a producer gate. Derive request, call, opt-in, scope, terms and payment references from the actual same-contact/same-proof canonical records. Translate only permitted minimal evidence into the snapshot. Preserve source IDs, event times, retrieval scope and visibility; do not renew timestamps or replace authoritative records with inferred text. Canonical private terms, signed scope and payment references must remain private and retrievable by their authorised owner.
+
+The response to POST and recovery GET is `{ok:true,batch:WorkBatch,created:[{item_id,record_id}],held:[{item_id,reason}],replayed:boolean}`. Every prepared item appears exactly once in created or held. Created destination record IDs must be distinct. Every source job is already accounted for in batch.items or batch.held, including capacity deferral; persist both. The batch report must match these counts. Independent readback compares the complete semantic batch, not a summary. Delivery-only batch time is excluded from replay; source revision, content seal, dispositions and actual artifacts are retained. Conflicting content under the same run ID is a conflict.
+
+Atomically persist this journal and map items to existing private intelligence, Growth, Advisory, Home action, capability handoff or editorial handoff records. Do not create a second action queue. Preserve human edits and existing decisions. Recheck source revision, current suppression and state at ingestion; hold stale or conflicting work with a reason rather than resetting or overwriting it. One shared preparation cap applies across all jobs: five by default, ten maximum, with the strictest policy/registry limit winning.
+
+Each item separates outward `body` from `internal_notes`. The fully sourced aid for an outreach note is an internal review attachment; it is not automatically appended to the first message. Never copy private notes, proof terms or research into an external action. Public asset rights are placement-specific. Warm recipient permission does not grant public reuse. `ARTIFACT_ROUTES` in engine.ts binds each kind to its exact channel, semantic destination, permitted campaign and matching closure event. Map those semantic destinations through existing route helpers. A missing rendering/action surface is a consumer implementation gap to report to Krish; never silently hide the artifact or mark it completed.
+
+Introduction items represent separate connector permission, recipient permission and an agreed connection. Inbound respects actual service delivery and response state; a pending or failed free brief routes to the existing capability owner, without a duplicate service email. Qualification preparation changes no qualification count. Proof scope requires the actual held, human-qualified deal and private terms. Delivery handoff requires distinct same-proof signed scope and verified payment with no reversal; the delivery owner must retrieve and inspect the full accepted scope before beginning. A handoff receipt proves neither delivery nor client acceptance.
+
+Trust and speaking items are exact inspectable drafts. Programme and deadline dates require matching current first-party evidence, and a host-only pitch confers no audience permission. Research tasks request evidence collection; research enrichments review supplied source excerpts, not independently fetched pages. Store proposed research privately, retaining observed/inferred/unknown distinctions, ordinary alternatives and contradictions. Neither type creates a ranked prospect action or closes its research task merely because a draft exists.
+
+The work receipt, attempt and existing action read models must survive reload, replay and uncertainty. `work-resume --run-id` reads the stored batch without another POST. An unconfirmed write remains unknown until that record is read. Keep private batch bodies out of public workflow logs and artifacts.
 
 The producer's per-run DashboardReport is explicitly `selected_page`, provisional, with `global_outcomes: consumer_required`. Its page outcomes cannot power the headline global business metric. ReviewContext supplies the independent global facts; the human reporting endpoint owns their authoritative projection. The human feedback route may reuse the existing authenticated action API, but must return persisted evidence compatible with ReviewContext rather than invent a parallel workflow.
 
@@ -130,9 +159,15 @@ The weekly-review input covers the global outcome window, run successes/failures
 
 A weekly recommendation must retain `global_review` scope, the same source revision as its parent review and the same examined count as that global context. The parser rejects a selected-page recommendation or conflicting nested provenance inside a global review. Do not relabel a page artifact as a global finding merely to make it fit the dashboard.
 
+ReviewContext also requires `commercial`: unique campaign `origins` (qualified conversations and paid proofs, with explicit `unattributed` available), `promises` (due and overdue), `proposals` (awaiting decision and declined), `founder_minutes` (null if unknown), and one `experiment` or null. Attribution cannot exceed global outcomes or silently invent payment-window counts. Attribute using recorded origin, never the newest draft or whichever page is selected. Derive due promises and proposal decisions from actual owners and agreed dates.
+
+An experiment records its ID, hypothesis, metric, baseline, target, review date, status, observed value or null and matching persisted evidence ID or null. An observation needs evidence; a closed experiment cannot have no observation. The diagnosis checks actual channel coverage, effort and experiment state. A target observed is not causal proof and cannot change qualified or paid counts. Unknown effort must not become zero. Persist the complete commercial section and coherent diagnosis with the weekly artifact.
+
+The one weekly action prioritises overdue promises, then existing proof proposal decisions, then held-conversation qualification before fresh acquisition work. The `honour_promises` improvement closes only on a matching `promise_fulfilment_recorded` event. `review_proof_decisions` closes on `proof_decision_recorded`; it does not require or imply payment. Other action kinds retain their exact matching event. The existing persisted feedback suppression applies to these priorities too.
+
 ## Failing runs remain visible
 
-Implement the attempt journal before relying on ingestion for health. A write-enabled daily or weekly-review run records its bounded started attempt before source capture and then records a terminal result under the same identity. The producer carries the current phase in memory; it does not promise a journal write at every intermediate phase. Safe terminal states are succeeded, failed or unknown, with the terminal phase and allowlisted error code. Source failure and invalid context before draft ingestion must therefore leave started plus terminal evidence in the dashboard.
+Implement the attempt journal before relying on ingestion for health. A write-enabled engine, daily or weekly-review run records its bounded started attempt before source capture and then records a terminal result under the same identity. The producer carries the current phase in memory; it does not promise a journal write at every intermediate phase. Safe terminal states are succeeded, failed or unknown, with the terminal phase and allowlisted error code. Source failure and invalid context before ingestion must therefore leave started plus terminal evidence in the dashboard.
 
 Terminal attempt records are immutable. Accept an exact terminal replay idempotently; reject a conflicting terminal state for the same attempt. If a terminal write may have persisted but its response or readback is uncertain, read that identity before any further mutation. Never replace a stored success or failure with a guessed unknown state merely because confirmation was lost. Keep the producer's uncertainty distinct from the consumer's authoritative terminal record.
 
@@ -175,6 +210,13 @@ All fixtures are synthetic or designated. Check both desktop and phone through t
 | Introduction with either opt-in missing; suppressed contact after preparation | Human hold or stop; no implied permission and no external action |
 | Identical replay, changed payload, lost POST response, readback disagreement and concurrent commits | One durable effect; conflict/unknown surfaced; every created/held item and consumed report verified |
 | Weekly review persisted twice and refreshed | Stable semantic review; one canonical action; source coverage, feedback and outcome counts read back |
+| Every campaign and all ten explicit work kinds | Actual inspectable artifacts persist and appear through existing surfaces; full work report and every source disposition read back |
+| Mixed inbound, proof, relationship, acquisition and asset jobs | One shared cap, priorities respected, capacity holds explicit; one direct action per recipient |
+| Separate introduction opt-ins, failed/pending brief service, unconfirmed call and unsigned/unpaid proof | Correct preparation or hold; no inferred permission, duplicate service response, qualification, payment or delivery |
+| Unattributed outcomes, unknown founder effort, overdue promise, pending proposal and observed experiment | Unknown remains unknown; existing commitments lead acquisition; one persisted-feedback-aware action; target observation claims no causation |
+| Changed first-party event date, private public-asset claim, unearned first-person story and research contradiction | Affected item held or private reconciliation retained; no fabricated public claim or automatic outreach |
+| Work receipt aliases two items to one destination record, drops an item or truncates an artifact | Reject as incomplete persistence; readback cannot claim success |
+| Maximum valid research or lifecycle payload and another independent inbound request | Oversized artifact is explicitly held; independent valid work still proceeds within the cap |
 | Global review carrying a selected-page recommendation, different source revision or different examined count | Contract validation rejects the mismatched nested provenance before persistence or display |
 | Wrong auth, cross-tenant access, machine write to human outcome fields and anonymous private report | Denied without private response content or credential leakage |
 | Consumer digest mismatch or missing advertised capability | Read-only readiness refuses compatibility; no silent fallback or mutation |
