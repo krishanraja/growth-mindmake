@@ -1,3 +1,5 @@
+> **Superseded on 2026-10-18** by [`docs/CONTROL-CENTER-BRIEF.md`](CONTROL-CENTER-BRIEF.md): Control Center now runs one protocol for every growth engine. Kept for its history.
+
 # Control Center implementation handoff
 
 Implement the **consumer** for the completed growth-mindmake producer. Use the frozen contract manifest in this document and the release evidence in [RELEASE.md](RELEASE.md). This is the one copy-paste brief for the next Control Center task. It grants no production authority by itself.
