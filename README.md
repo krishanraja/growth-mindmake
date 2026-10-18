@@ -43,4 +43,4 @@ The [operations guide](docs/OPERATIONS.md) covers producer checks and safe recov
 
 Commercial language is pinned to reviewed Mindmake North Star and canon revisions. After 30 days without source review, the producer holds. A timestamp change alone never renews that review. Public Git contains code, sanitised rules and synthetic fixtures. Private output belongs only under ignored runtime/ and never enters CI artifacts.
 
-Read [AGENTS.md](AGENTS.md), [the accepted brief](docs/BRIEF.md), [architecture](docs/ARCHITECTURE.md), [playbooks](docs/playbooks/README.md) and [review prompts](prompts/README.md).
+Read [AGENTS.md](AGENTS.md), [the accepted brief](docs/BRIEF.md), [architecture](docs/ARCHITECTURE.md), [playbooks](docs/playbooks/README.md), [review prompts](prompts/README.md) and [the preserved source corpus](_corpus/README.md).
