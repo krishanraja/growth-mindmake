@@ -15,6 +15,8 @@ Complete this repository's growth producer, operating playbooks, reporting contr
 
 ## Current execution boundary
 
+Scope update, 2026-10-19: Krish authorised every growth engine to adopt the Control Center protocol and run on its daily dispatch. [AGENTS.md](../AGENTS.md) records exactly what that loop may do; the rest of this section still holds for everything else.
+
 The user corrected the scope: finish **growth-mindmake only**, then give them the Control Center handoff. Do not implement, deploy, migrate, activate or test against live Control Center as part of this release. Do not change its repository, database, runtime credentials, schedules or records. The earlier companion PR is an unmerged proposal, not completed consumer implementation.
 
 Local changes and synthetic consumer tests inside this repository are in scope. A synthetic consumer proves the producer's protocol and recovery behaviour. It does not prove a deployed dashboard, production data coverage or activated schedule. [RELEASE.md](RELEASE.md) owns the completion record; [CONTROL-CENTRE-HANDOFF.md](CONTROL-CENTRE-HANDOFF.md) is the sole consumer implementation brief.

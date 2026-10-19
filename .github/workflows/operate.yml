@@ -1,15 +1,19 @@
 name: Run bounded growth producer
 on:
+  # Control Center wakes this engine once a day (about 06:10 London) with { directive_id, engine_id }.
+  repository_dispatch:
+    types: [cc-growth-directive]
   workflow_dispatch:
     inputs:
       mode:
-        description: Producer operation; consumer support remains a separate rollout
+        description: Producer operation; dispatch is the Control Center protocol run and never writes drafts
         type: choice
         options:
           - engine
           - daily
           - readiness
           - weekly-review
+          - dispatch
         default: engine
         required: true
       commit:
@@ -23,7 +27,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   plan:
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.mode != 'dispatch'
     runs-on: ubuntu-latest
     environment: growth-runtime
     timeout-minutes: 3
@@ -62,3 +66,42 @@ jobs:
       - name: Persist weekly review
         if: ${{ inputs.mode == 'weekly-review' && inputs.commit }}
         run: node src/cli.mjs weekly-review --commit --summary
+
+  # The Control Center protocol run (docs/control-center/ENGINE-PROTOCOL.md). It journals the
+  # attempt, reads the directive, prepares dry, reports proposals and reads Krish's decisions.
+  # It never sends, posts, spends, drafts into Gmail or commits an Advisory batch. No environment
+  # gate, so a daily wake-up never waits for a manual approval. No artifact is uploaded.
+  dispatch:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'repository_dispatch' || inputs.mode == 'dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CONTROL_CENTER_URL: ${{ vars.CONTROL_CENTER_URL }}
+      CONTROL_CENTER_ENGINE_TOKEN: ${{ secrets.CONTROL_CENTER_ENGINE_TOKEN }}
+      # Optional read of the bounded snapshot. When absent the run holds and says so.
+      MINDMAKE_GROWTH_TOKEN: ${{ secrets.GROWTH_ENGINE_TOKEN }}
+      # The wake-up payload is data: it reaches the run only as environment values, never as shell text.
+      CC_WAKE_ENGINE_ID: ${{ github.event.client_payload.engine_id }}
+      CC_WAKE_DIRECTIVE_ID: ${{ github.event.client_payload.directive_id }}
+    steps:
+      - name: Reject a write-enabled dispatch request
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.commit }}
+        run: |
+          echo 'The dispatch run never writes drafts. Leave commit disabled.' >&2
+          exit 1
+      - name: Require the Control Center binding
+        run: |
+          if [ -z "$CONTROL_CENTER_URL" ] || [ -z "$CONTROL_CENTER_ENGINE_TOKEN" ]; then
+            echo 'CONTROL_CENTER_URL (repository variable) or CONTROL_CENTER_ENGINE_TOKEN (repository secret) is not set. Nothing was read or written.' >&2
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Daily Control Center dispatch (dry; nothing sends)
+        if: ${{ github.event_name == 'repository_dispatch' }}
+        run: node src/cli.mjs dispatch
+      - name: Manual Control Center dispatch (dry; nothing sends)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: node src/cli.mjs dispatch --kind manual-${{ github.run_number }}

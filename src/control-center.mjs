@@ -4,18 +4,31 @@ import { parseAttempt, parseCapabilities, parseReviewContext, parseWeeklyReview 
 import { parseReport } from '../contracts/reporting.ts';
 import { parseEngineContext, parseWorkBatch, semanticWorkBatch } from '../contracts/engine.ts';
 
-export function client(base, token, { fetcher = fetch } = {}) {
+const CODE = /^[a-z][a-z0-9_]{0,63}$/;
+/** One bounded HTTPS transport for every Control Center route: no redirects, 20 s, JSON only, no retries. */
+function httpsOrigin(base) {
   const origin = new URL(base);
   if (origin.protocol !== 'https:' || origin.username || origin.password || origin.pathname !== '/' || origin.search || origin.hash) throw new Error('Control Center must be a credential-free HTTPS origin');
-  if (!token || /[\r\n]/.test(token)) throw new Error('Managed runtime credential is missing');
-  async function request(method, query = '', body, path = '/api/growth/mindmake') {
-    const response = await fetcher(new URL(`${path}${query}`, origin), { method, headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(20000), ...(body ? { body: JSON.stringify(body) } : {}) });
-    if (!response.ok) { const failure = new Error(`Control Center ${method} failed (${response.status}); no automatic retry`); failure.status = response.status; throw failure; }
-    if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('Control Center returned a non-JSON response');
-    const text = await response.text();
-    if (text.length > 2_000_000) throw new Error('Control Center response exceeded the byte budget');
-    try { return JSON.parse(text); } catch { throw new Error('Control Center returned invalid JSON'); }
+  return origin;
+}
+async function transport({ origin, token, fetcher, method, path, body, headers = {}, timeoutMs = 20000 }) {
+  const response = await fetcher(new URL(path, origin), { method, headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: 'application/json', ...headers }, redirect: 'error', signal: AbortSignal.timeout(timeoutMs), ...(body ? { body: JSON.stringify(body) } : {}) });
+  if (!response.ok) {
+    // Keep only a lower_snake code from the error body: never the body, a URL or a credential.
+    let code = null;
+    try { if (response.headers.get('content-type')?.includes('application/json')) { const text = await response.text(); if (text.length <= 20000) { const value = JSON.parse(text); code = [value?.error, value?.code].find(c => typeof c === 'string' && CODE.test(c)) ?? null; } } } catch { code = null; }
+    const failure = new Error(`Control Center ${method} failed (${response.status}); no automatic retry`); failure.status = response.status; failure.code = code; throw failure;
   }
+  if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('Control Center returned a non-JSON response');
+  const text = await response.text();
+  if (text.length > 2_000_000) throw new Error('Control Center response exceeded the byte budget');
+  try { return JSON.parse(text); } catch { throw new Error('Control Center returned invalid JSON'); }
+}
+
+export function client(base, token, { fetcher = fetch } = {}) {
+  const origin = httpsOrigin(base);
+  if (!token || /[\r\n]/.test(token)) throw new Error('Managed runtime credential is missing');
+  const request = (method, query = '', body, path = '/api/growth/mindmake') => transport({ origin, token, fetcher, method, path: `${path}${query}`, body });
   const operation = (method, query, body) => request(method, query, body, '/api/growth/mindmake/operations');
   const work = (method, query, body) => request(method, query, body, '/api/growth/mindmake/work');
   const envelope = (value, field, parse) => { if (!value || value.ok !== true || !value[field]) throw new Error('Control Center operation was not acknowledged'); return parse(value[field]); };
@@ -85,4 +98,56 @@ export function validateReceipt(value, runId) {
   if (!value.report || typeof value.report !== 'object' || Array.isArray(value.report) || !Number.isInteger(value.report.prepared) || value.report.prepared !== ids.length) throw new Error('Destination receipt is missing its complete consumed run report');
   if (value.report.dashboard !== undefined && parseReport(value.report.dashboard).pipeline.prepared !== value.report.prepared) throw new Error('Destination receipt has inconsistent report counts');
   return value;
+}
+
+/**
+ * The growth engine protocol 1.0.0 (docs/control-center/ENGINE-PROTOCOL.md), on the same
+ * bounded transport. Every write is read back before it counts; nothing is retried blindly.
+ * The bearer is this engine's own gen1_ token. It is never printed, logged or stored.
+ */
+export const ENGINE_SLUG = 'mindmake';
+export function engineClient(base, token, { fetcher = fetch, slug = ENGINE_SLUG, timeoutMs = 20000 } = {}) {
+  const origin = httpsOrigin(base);
+  if (typeof token !== 'string' || !/^gen1_[A-Za-z0-9_-]{43,}$/.test(token)) throw new Error('Control Center engine credential is missing or malformed');
+  if (!/^[a-z][a-z0-9-]{0,63}$/.test(slug)) throw new Error('Invalid engine slug');
+  const base_path = `/api/growth/engines/${slug}`;
+  const call = (method, route, body, headers) => transport({ origin, token, fetcher, method, path: `${base_path}/${route}`, body, headers, timeoutMs });
+  const sameAttempt = (a, b) => ['attempt_id','command','run_id','status','phase','error_code','started_at','finished_at'].every(k => (a[k] ?? null) === (b?.[k] ?? null));
+  return {
+    async capabilities() { return call('GET', 'capabilities'); },
+    async directive() {
+      const value = await call('GET', 'directive');
+      if (!value || value.ok !== true || !value.directive || typeof value.directive !== 'object') throw new Error('Control Center returned no directive');
+      return value;
+    },
+    async attempt(id) {
+      const value = await call('GET', `attempts/${encodeURIComponent(id)}`);
+      if (!value || value.ok !== true || value.attempt?.attempt_id !== id) throw new Error('Destination attempt identity mismatch');
+      return value.attempt;
+    },
+    async recordAttempt(attempt) {
+      const written = await call('POST', 'attempts', attempt);
+      if (!written || written.ok !== true || !sameAttempt(attempt, written.attempt)) throw new Error('Control Center did not acknowledge the attempt');
+      const observed = await this.attempt(attempt.attempt_id);
+      if (!sameAttempt(attempt, observed)) throw new Error('Destination attempt readback mismatch');
+      return { attempt: observed, replayed: written.replayed === true };
+    },
+    async postReport(report) {
+      const ack = await call('POST', 'reports', report, { 'idempotency-key': report.run_id });
+      if (!ack || ack.accepted !== true || ack.run_id !== report.run_id || typeof ack.replayed !== 'boolean') throw new Error('Control Center did not acknowledge the report');
+      if (ack.payload_sha256 !== report.payload_sha256) throw new Error('Control Center computed a different report digest');
+      return ack;
+    },
+    async readReport(runId) {
+      const value = await call('GET', `reports/${encodeURIComponent(runId)}`);
+      if (!value || value.accepted !== true || value.run_id !== runId || typeof value.payload_sha256 !== 'string') throw new Error('Control Center returned no stored report');
+      return value;
+    },
+    async decisions(since) {
+      const value = await call('GET', `decisions?since=${encodeURIComponent(since)}`);
+      if (!value || value.ok !== true || !Array.isArray(value.decisions)) throw new Error('Control Center returned no decisions');
+      for (const d of value.decisions) if (!d || typeof d.proposal_id !== 'string' || !['approved','declined','done'].includes(d.decision) || typeof d.decided_at !== 'string' || !(d.payload_sha256 === null || /^[0-9a-f]{64}$/.test(d.payload_sha256))) throw new Error('Control Center returned an invalid decision');
+      return value.decisions;
+    }
+  };
 }

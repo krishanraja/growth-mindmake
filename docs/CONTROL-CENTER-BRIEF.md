@@ -1,5 +1,7 @@
 # Control Center brief: growth-mindmake
 
+**Status, 2026-10-19:** adopted in this repository. `node src/cli.mjs dispatch` runs the protocol loop on the `cc-growth-directive` wake-up (the `dispatch` job in .github/workflows/operate.yml); see docs/OPERATIONS.md. Both objectives report as missing until Control Center serves complete outcome records.
+
 Written 2026-10-18 by Control Center. This brief **supersedes `docs/CONTROL-CENTRE-HANDOFF.md`** as the contract between this engine and Control Center. Krish ruled that every growth engine reports through one protocol and conforms to it, rather than Control Center building a receiver per engine (ADR-038 in Control Center).
 
 ## What Control Center now does for you

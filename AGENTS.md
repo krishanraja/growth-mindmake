@@ -15,9 +15,11 @@ Apply the canonical personal harness and krish-principles, then strategy-brief, 
 
 ## Current release boundary
 
-Work only in this repository. The user explicitly stopped Control Center implementation and requested a complete producer followed by one handoff. Do not modify another repository, run a Control Center migration, deploy or activate a consumer, create a live schedule or write production records from this task. Authentication does not expand that scope. A future consumer owner receives docs/CONTROL-CENTRE-HANDOFF.md; an earlier unmerged companion PR does not establish completion.
+Work only in this repository. Krish first stopped Control Center implementation here and asked for a complete producer followed by one handoff. On 2026-10-19 he authorised every growth engine to adopt the Control Center protocol and run on its daily `cc-growth-directive` dispatch. docs/CONTROL-CENTER-BRIEF.md now supersedes docs/CONTROL-CENTRE-HANDOFF.md as the contract.
 
-Docs/RELEASE.md owns the producer completion record. Keep built, tested, published, consumer-implemented, migrated, deployed and activated distinct. Never call the whole system live because this repository passes its tests.
+That authorisation covers one loop only: the `dispatch` command and the `dispatch` job in .github/workflows/operate.yml may journal attempts, read the directive, capabilities and decisions, and post one protocol report a day through `/api/growth/engines/mindmake/` with this engine's own bearer, `CONTROL_CENTER_ENGINE_TOKEN`. Nothing else widens. Do not modify another repository, run a Control Center migration, deploy or change a consumer, add a schedule of this repository's own, commit an Advisory batch, draft into Gmail or write any production record other than the protocol's attempts and reports. The dispatch never sends, posts, spends or changes a permission; a decision is Krish's yes to one exact payload, and he acts on it himself. Authentication does not expand that scope.
+
+Docs/RELEASE.md owns the completion record. Keep built, tested, merged, deployed and activated distinct, and keep a live run separate from a live outcome. Never call the whole system live because this repository passes its tests.
 
 ## One owner per responsibility
 
@@ -27,14 +29,15 @@ Docs/RELEASE.md owns the producer completion record. Keep built, tested, publish
 - src/stages/qualify.mjs: prospect relevance, evidence and suppression gates. Never human conversation qualification.
 - src/stages/draft.mjs: proposed message and decision aid.
 - src/stages/scorecard.mjs: London-week and first-month outcome semantics. Global counts require complete outcome coverage independent of a prospect page.
-- src/control-center.mjs: bounded authenticated transport, receipt validation and authoritative readback. No blind write retries.
+- src/control-center.mjs: bounded authenticated transport, receipt validation and authoritative readback, including the growth engine protocol client (`engineClient`). No blind write retries.
+- src/dispatch.mjs: the daily Control Center dispatch run. Report envelope and digest, London objective windows, the mapping from prepared outputs to proposals and holds, and the attempt, report, readback and decisions loop. Dry by construction.
 - src/orchestrator.mjs: routing and semantic identities. Domain rules stay in their stages.
 - src/engine.mjs and contracts/engine.ts: complete selected-job cycle, shared capacity, campaign routing, private work identity and exact dispositions. `engine` is the full cycle; `daily` retains the earlier outbound interface.
 - src/stages/motions.mjs and contracts/motions.ts: evidence-scoped outreach, trust, speaking and reusable aids; reuse existing outbound eligibility.
 - src/stages/lifecycle.mjs and contracts/lifecycle.ts: introduction permissions, actual inbound requests, qualification preparation, bounded proof scope and paid delivery handoff. Preparation changes no outcome.
 - src/stages/research.mjs and contracts/research.ts: explicit research tasks and proposed private enrichment from supplied sources; no automatic prospect authority.
 - src/weekly-review.mjs: global commercial constraints, source-backed channel attribution, actual effort and observed experiments, with one persisted-feedback-aware recommendation.
-- docs/CONTROL-CENTRE-HANDOFF.md: the single downstream implementation brief, with contract identity, acceptance and rollout gates.
+- docs/CONTROL-CENTER-BRIEF.md and docs/control-center/: the protocol contract with Control Center, copied from its authoritative source. docs/CONTROL-CENTRE-HANDOFF.md remains as history and for the seven frozen contracts.
 
 pipeline/stage-conveyor.json declares executable ownership and handoffs. Keep it current when topology changes. Do not add a parallel state store, scheduler, contact database, approval interface or model provider.
 
@@ -48,6 +51,6 @@ Agents prepare. Krish approves the exact recipient, channel, wording and action,
 
 ## Checks and delivery
 
-Run npm run contracts, npm run check, npm test, npm run conveyor, npm run demo -- --summary and npm run demo:review. Use the repository's synthetic consumer harness for persistence, failure, replay and recovery proof. Do not make a production write or change another repository to prove this producer works.
+Run npm run contracts, npm run check, npm test, npm run conveyor, npm run demo -- --summary, npm run demo:review and npm run demo:engine. Use the repository's synthetic consumer harness and the protocol stand-in (tests/support/engine-protocol-service.mjs) for persistence, failure, replay and recovery proof. Do not make a production write or change another repository to prove this producer works; the live dispatch run is the only production write, and only through the protocol.
 
 After a correction, rerun the original failure and adjacent checks. Freeze contract versions and SHA-256 hashes only after the final source changes. Keep the release record and handoff consistent with the actual CLI and wire contracts. Missing consumer support is a consumer-pending state, not evidence of a live integration. Business target achievement always requires actual recorded outcomes.

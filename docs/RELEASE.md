@@ -1,5 +1,26 @@
 # Release state
 
+## Control Center protocol adoption, 2026-10-19
+
+Krish authorised every growth engine to adopt the Control Center protocol and run on its daily dispatch (2026-10-19). [CONTROL-CENTER-BRIEF.md](CONTROL-CENTER-BRIEF.md) now supersedes the handoff below as the contract.
+
+| Layer | State | Evidence |
+| --- | --- | --- |
+| Protocol client and dispatch run | Built | `engineClient` in src/control-center.mjs, src/dispatch.mjs and `node src/cli.mjs dispatch` |
+| Tests | Pass on synthetic data | 152 of 152 tests, 15 of them for the dispatch against a local protocol stand-in: worked-example digest, schema-valid report, replay, 409 conflict, 401, lost response, `engine_inactive`, decisions and CLI redaction |
+| Runner | Built, not merged | The `dispatch` job in .github/workflows/operate.yml on branch `claude/adopt-cc-protocol`. It runs only from main, so nothing runs until the branch is merged |
+| Activation | Recorded by Control Center, not observed here | Control Center switched the engine on with dispatch on 2026-10-18. No live run of this code has been observed from this repository |
+| Snapshot source on the runner | Unverified | The dispatch job reads `GROWTH_ENGINE_TOKEN` without the `growth-runtime` environment. If that secret is environment-only, live runs hold with `source_credential_unavailable` until it is a repository secret |
+| Full engine cycle, live | Held | Its job-context route was retired by the protocol; live runs report `engine_context_route_retired` |
+| Objectives | Missing, with reason | Neither `qualified_conversations` nor `paid_proofs` can be measured until Control Center serves complete Mindmake outcome records |
+| Commercial outcomes | Not established | Require recorded human-confirmed conversations and verified payments |
+
+The dispatch never sends, posts, spends, drafts into Gmail or commits an Advisory batch. The seven frozen contracts and their digests are unchanged.
+
+Verified on 19 October 2026: `npm run contracts`, `npm run check`, `npm test` (152 pass, no failures or skips), `npm run conveyor` (14 stages, 21 edges), `npm run demo -- --summary`, `npm run demo:review` and `npm run demo:engine` all pass. No call was made to live Control Center.
+
+## Producer 2.0.0, 2026-10-17
+
 **Full producer v2.0.0 is complete and verified. Control Center implementation remains pending.** This release completes the original growth-repository portfolio, beyond the earlier outbound and reporting subsystem. The user's scope correction limits implementation to growth-mindmake and one downstream handoff.
 
 | Layer | State | Evidence |
@@ -10,7 +31,7 @@
 | Consumer schema, deployment and activation | Pending | Require migration readback, reviewed promotion, authenticated canary and an actual activation record |
 | Commercial outcomes | Not established by this release | Require global human-confirmed conversations and verified proof payments |
 
-The earlier [Control Center PR 469](https://github.com/krishanraja/control-center/pull/469) is an **unmerged proposal**. It is reference material for the downstream owner, not completed consumer implementation or a release dependency to merge from this task.
+The [Control Center PR 469](https://github.com/krishanraja/control-center/pull/469) was an unmerged proposal when this record was written. The Control Center brief of 2026-10-18 says it merged that day; this repository has not verified that independently.
 
 ## Frozen release identity
 
