@@ -10,6 +10,8 @@ A named cold draft needs a concrete primary-source observation and a reason this
 
 ## Choose the argument
 
+Apply [the copy and offer doctrine](10-copy-and-offer-doctrine.md) first: label the path and awareness level, choose the lead type, and hold one decision, one canon promise and one ask.
+
 Start with what changed in their world. Explain one possible consequence with calibrated language. Offer one useful way to think about it. Use proof only if it supports that exact decision and its permission covers the proposed use.
 
 Warm context can support a longer note when each paragraph earns its place. For a cold first contact, keep one observation, one relevance signal, at most one proof point and one low-friction ask. Use at most one link. Rich work means useful reasoning, not a longer product description.

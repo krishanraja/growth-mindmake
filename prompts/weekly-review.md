@@ -4,6 +4,8 @@ Follow [the shared contract](README.md) and [the scorecard playbook](../docs/pla
 
 Required input: explicit `report_window`, `timezone`, actual `launch_date` in `YYYY-MM-DD` form or null, `coverage`, `qualified_conversations`, `paid_proofs`, `reversals`, `origin_breakdown`, `blocked_actions`, `pending_decisions`, `founder_effort` or unknown, and prior `experiment`. Missing source coverage must appear before interpretation. First-month reporting covers 30 London calendar dates including activation day; never infer a launch timestamp or substitute the build date.
 
+Fill `experiment_proposal` as the doctrine's [test record](../docs/playbooks/10-copy-and-offer-doctrine.md#test-record-mapped-to-the-weekly-experiment): one decision question, one change against a stated control, a success signal and a guardrail. Prefer angle, lead type, proof placement or ask tests; market and offer tests are Krish's. Call low-volume learning directional.
+
 Return `artifact_type: "weekly_review"` with:
 
 ```json

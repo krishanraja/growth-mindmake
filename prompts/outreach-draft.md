@@ -6,6 +6,8 @@ Required input: `action_ref`, exact `recipient_ref`, `sender_persona`, `channel`
 
 Write one complete note. Begin with the recipient's situation. Distinguish the outside-in hypothesis from fact. Every paragraph adds value. Use one ask, at most one link for a cold first contact, and no invented familiarity, generic compliment, "checking in", fake urgency or public diary link. Warm context may justify more detail. The useful contribution earns the offer.
 
+Before writing, label the path, awareness level and lead type from [the copy and offer doctrine](../docs/playbooks/10-copy-and-offer-doctrine.md#awareness-lead-type-and-ask-by-path): a cold first contact uses a Story lead built on the observed trigger, an introduced or inbound leader a Promise lead, a leader already asking for the brain an Offer lead. Hold one decision, one canon promise and one ask. Before returning `ready_for_review`, run edit passes A to E and set each `review` boolean only after the matching pass.
+
 Return `artifact_type: "outreach_draft"` with:
 
 ```json

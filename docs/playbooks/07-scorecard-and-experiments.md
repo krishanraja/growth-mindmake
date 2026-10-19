@@ -36,6 +36,8 @@ Report missing source coverage before calculating ratios. A zero denominator yie
 
 ## One experiment at a time
 
+Write the experiment as the [copy and offer doctrine's test record](10-copy-and-offer-doctrine.md#test-record-mapped-to-the-weekly-experiment).
+
 Record an experiment privately with a falsifiable hypothesis, eligible audience, one change, comparison method, leading signal, outcome signal, adverse signal, review date or event, owner and reversal condition. Use a decision aid angle or CTA change before considering a new paid tool or channel. Existing approval, privacy and sending boundaries still apply.
 
 Low volume limits causal claims. Compare comparable opportunities and explain selection differences. Call directional learning directional. Do not optimise on a tiny apparent conversion uplift or alter qualification to improve a chart. At day 30, inspect actual paid evidence, missing data, relationship cost and founder effort before recommending the next experiment.

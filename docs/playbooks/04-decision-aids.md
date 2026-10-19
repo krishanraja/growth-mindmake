@@ -8,6 +8,8 @@ Examples include: which pricing assumption to test with buyers; which leader jud
 
 ## One-page content contract
 
+The [copy and offer doctrine](10-copy-and-offer-doctrine.md) governs the Rule of One, proof placement and the edit passes for the page.
+
 1. **Decision:** the choice in one plain sentence, with the intended reader role.
 2. **What changed:** two or three supported observations, with compact source references and dates.
 3. **Options:** a fair account of the plausible routes, including keeping the current approach when reasonable.

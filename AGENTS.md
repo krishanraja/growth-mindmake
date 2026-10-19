@@ -11,7 +11,7 @@ This repository's North Star is [`docs/NORTH_STAR.md`](docs/NORTH_STAR.md): an a
 - Only Krish changes it.
 <!-- north-star:end -->
 
-Apply the canonical personal harness and krish-principles, then strategy-brief, krish-build and verification-loop for material changes. Read docs/BRIEF.md and docs/RELEASE.md before changing scope. Commercial content also uses Mindmake context, conversion strategy and Krish's voice rules.
+Apply the canonical personal harness and krish-principles, then strategy-brief, krish-build and verification-loop for material changes. Read docs/BRIEF.md and docs/RELEASE.md before changing scope. Commercial content also uses Mindmake context, conversion strategy and Krish's voice rules. Every draft, aid, review and proof-scope proposal applies docs/playbooks/10-copy-and-offer-doctrine.md.
 
 ## Current release boundary
 

@@ -8,7 +8,7 @@ Read the authorised Control Center contact, relationship history, suppression st
 
 Record a private note with the real last touch, the decision that may matter now, source references, what remains uncertain, the value we can provide, and whether contact serves the relationship. Separate "this company changed its pricing" from "this leader needs help". The latter needs a conversation or a clearly labelled hypothesis.
 
-Choose one route: a useful direct note, permission to send a decision aid, a specific introduction request, or no action. A broad request to circulate Mindmake fails the usefulness test.
+Use the [copy and offer doctrine](10-copy-and-offer-doctrine.md) for the lead type and the weakest link. Choose one route: a useful direct note, permission to send a decision aid, a specific introduction request, or no action. A broad request to circulate Mindmake fails the usefulness test.
 
 ## Protect the connector
 
