@@ -11,6 +11,11 @@ This repository's North Star is [`docs/NORTH_STAR.md`](docs/NORTH_STAR.md): an a
 - Only Krish changes it.
 <!-- north-star:end -->
 
+## Handcrafted (Ruling, Krish, 2026-10-19)
+
+Mindmake is the one handcrafted engine: it is intertwined with Control Center's Network, Visibility and Advisory, and Krish acts himself. It never goes live on its own. He may approve a proposal or amend it first on his list (protocol 1.1.0, `docs/control-center/ENGINE-PROTOCOL.md`, "Amend"): when a decision says `amended: true`, prepare his version (`exact_payload`, `amount_usd`, after recomputing `amended_sha256`), never the engine's own.
+
+
 Apply the canonical personal harness and krish-principles, then strategy-brief, krish-build and verification-loop for material changes. Read docs/BRIEF.md and docs/RELEASE.md before changing scope. Commercial content also uses Mindmake context, conversion strategy and Krish's voice rules. Every draft, aid, review and proof-scope proposal applies docs/playbooks/10-copy-and-offer-doctrine.md.
 
 ## Current release boundary
