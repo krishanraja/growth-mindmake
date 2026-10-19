@@ -24,6 +24,8 @@ Route the outcome: qualify and agree the next decision; request one missing fact
 
 ## Consult and scope
 
+The [copy and offer doctrine](10-copy-and-offer-doctrine.md) maps this section onto Browne's five-step sale, a discovery list for Krish, an objection matrix and the Value Equation as a design lens for proof-scope proposals.
+
 State the decision as it now appears and check it with the leader. Identify what the current workaround prevents, what better would look like, and what evidence would disprove the proposed approach. Ask who can move the decision and who must supply context. Do not infer buying authority from title or introduce private buyer psychology into copy.
 
 A proof scope needs:

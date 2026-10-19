@@ -15,7 +15,7 @@ Select the smallest useful form:
 | Open a relevant room | A host pitch or talk abstract | A specific audience decision the session helps |
 | Answer an engaged reader | An individual reply draft | A useful answer without a hidden campaign |
 
-No daily publishing quota. A post can end on a useful verdict with no CTA. If it includes a commercial ask, use one route supported by the current canon. Mindmake says "we". Krish may say "I" in his own posts and notes when an authorised source earns the claim.
+Choose the lead for a room from the [copy and offer doctrine](10-copy-and-offer-doctrine.md). No daily publishing quota. A post can end on a useful verdict with no CTA. If it includes a commercial ask, use one route supported by the current canon. Mindmake says "we". Krish may say "I" in his own posts and notes when an authorised source earns the claim.
 
 ## LinkedIn
 

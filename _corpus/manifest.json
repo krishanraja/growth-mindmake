@@ -10,6 +10,16 @@
       "file": "mindmake-high-value-lead-corpus.md",
       "bytes": 58649,
       "sha256": "4b30ec876dd46e6f0dbe54d399ddf034565339278aa22afa91b3c4e19acee294"
+    },
+    {
+      "file": "copywriting-offers-demand-corpus.md",
+      "bytes": 68132,
+      "sha256": "04fddb23da2cb210470f60b57a6d78b56d37c3f84316217e0e493caa6b9856d9"
+    },
+    {
+      "file": "copywriting-offers-demand-corpus-summary.md",
+      "bytes": 476,
+      "sha256": "2de846209031c79c7d635509da1d64516cfd055f6dad5b60274ef3cdcf926e87"
     }
   ]
 }

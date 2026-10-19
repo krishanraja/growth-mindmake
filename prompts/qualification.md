@@ -4,6 +4,8 @@ Follow [the shared contract](README.md) and [the qualification playbook](../docs
 
 Required input: `conversation_ref`, `held_at`, `person_ref`, `opportunity_ref`, authorised `conversation_notes`, `agreed_next_step`, `current_offer_fit` and any existing `human_confirmation`. Missing evidence stays unknown.
 
+Read the exchange through Browne's five steps in [the copy and offer doctrine](../docs/playbooks/10-copy-and-offer-doctrine.md#brownes-five-step-sale-in-qualification): motivation to `owned_problem` and `active_need`, selective presentation to `offer_fit`, close to `agreed_next_step`. Record objections as information against the doctrine's objection matrix. A missing step is `unknown`, and honest non-fit routes to `useful_answer`, `refer_with_permission` or `close`.
+
 Return `artifact_type: "qualification_review"` with:
 
 ```json

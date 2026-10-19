@@ -1,5 +1,22 @@
 # Release state
 
+## Copy and offer doctrine, 2026-10-19
+
+Krish supplied *The Copywriting, Offers and Demand Corpus* on 19 October 2026 with the instruction that every growth engine be imbued with it. This entry applies it to the drafting surfaces. It changes no runtime code, contract, policy or output shape.
+
+| Layer | State | Evidence |
+| --- | --- | --- |
+| Preserved originals | Built | `_corpus/copywriting-offers-demand-corpus.md` (68,132 bytes) and `_corpus/copywriting-offers-demand-corpus-summary.md` (476 bytes), copied byte for byte and listed in `_corpus/manifest.json`; `.gitattributes` stops line-ending conversion in `_corpus/` |
+| Doctrine | Built | [docs/playbooks/10-copy-and-offer-doctrine.md](playbooks/10-copy-and-offer-doctrine.md), with its list of where this engine's rules change the corpus |
+| Wiring | Built | Shared prompt rule 9, the six drafting and review prompts, playbooks 01, 03 to 07, the playbook index and AGENTS.md |
+| Tests and checks | Pass on synthetic data | Integrity check fails when one byte of the preserved copy changes and passes once restored |
+| Merged, deployed, activated | Not yet | Branch only. Prompts are optional review contracts; no model integration applies them automatically |
+| Commercial outcomes | Not established | A better draft is not a qualified conversation or a paid proof |
+
+The seven frozen contracts and their digests are unchanged.
+
+Verified on 19 October 2026: `npm run contracts`, `npm run check`, `npm test` (152 pass, no failures or skips), `npm run conveyor` (14 stages, 21 edges), `npm run demo -- --summary`, `npm run demo:review` and `npm run demo:engine` all pass. No call was made to live Control Center.
+
 ## Control Center protocol adoption, 2026-10-19
 
 Krish authorised every growth engine to adopt the Control Center protocol and run on its daily dispatch (2026-10-19). [CONTROL-CENTER-BRIEF.md](CONTROL-CENTER-BRIEF.md) now supersedes the handoff below as the contract.

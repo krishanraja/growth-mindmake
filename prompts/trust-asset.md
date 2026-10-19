@@ -4,6 +4,8 @@ Follow [the shared contract](README.md) and [the trust-and-speaking playbook](..
 
 Required input: `source_artifact_ref`, `source_class`, `allowed_audience`, `claim_evidence_packet`, `surface_ref`, `surface_status_evidence`, `format`, `sender_persona` and current `canon_refs`. A host pitch also requires the actual host, audience, programme and current submission rules. No live surface evidence means status remains unverified and external action stays blocked.
 
+A room usually meets an unaware or problem-aware audience: use a Story or Proclamation lead from [the copy and offer doctrine](../docs/playbooks/10-copy-and-offer-doctrine.md#awareness-lead-type-and-ask-by-path), one argument as the big idea, cleared proof placed next to its claim, and edit passes A to E before `ready_for_review`. Never Offer copy in an editorial or speaking surface.
+
 Return `artifact_type: "trust_asset"` with:
 
 ```json

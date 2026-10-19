@@ -1,1 +1,4 @@
 * text=auto eol=lf
+# Preserved originals are verified byte for byte; never convert their line endings.
+_corpus/*.md -text
+_corpus/README.md text eol=lf

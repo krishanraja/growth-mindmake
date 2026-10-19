@@ -4,6 +4,8 @@ Follow [the shared contract](README.md) and [the decision-aid playbook](../docs/
 
 Required input: `decision_question`, `audience_role`, `source_ledger`, `contrary_evidence`, `permission_scope`, `version` (`private_named` or `reusable_practice`), current `canon_refs` and an optional single `cta_choice`. A source URL alone does not support a claim.
 
+The aid is the engine's reciprocity in the doctrine's sense: useful without any purchase. Apply the Rule of One (one decision, one reader role) and the [proof hierarchy](../docs/playbooks/10-copy-and-offer-doctrine.md#proof-hierarchy-and-proof-cards): research earns logical argument, not client outcomes. Run edit passes A to E before `ready_for_review`.
+
 Return `artifact_type: "decision_aid"` with:
 
 ```json

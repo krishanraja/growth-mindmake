@@ -4,6 +4,8 @@ Follow [the shared contract](README.md). Use a real authorised relationship pack
 
 Required input: `contact_ref`, `relationship_ref`, authorised `last_touch`, `decision_evidence`, `suppression_state`, `allowed_audience`, `requested_mode` and `canon_refs`. For an introduction also require a real connector context and separate permission states for connector and recipient.
 
+Choose the route by the doctrine's [persuasion chain](../docs/playbooks/10-copy-and-offer-doctrine.md#diagnose-the-weakest-link-first): name the weakest link for this relationship (usually relevance or timing) and recommend `no_action` when the evidence cannot fix it. A forwardable explanation is written for the connector as its reader, with a Story or Problem-Solution lead and a permission-only ask.
+
 Return `artifact_type: "warm_thought"` with:
 
 ```json
