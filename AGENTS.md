@@ -11,6 +11,11 @@ This repository's North Star is [`docs/NORTH_STAR.md`](docs/NORTH_STAR.md): an a
 - Only Krish changes it.
 <!-- north-star:end -->
 
+## "Get going"
+
+When Krish says "Get going", or opens a session with no more specific task, follow `docs/GET-GOING.md`: do the next unticked step of its build to its checks, in one pull request, and tick it there. Keep that file current as the plan changes. Never ask him to paste a prompt or repeat a brief: everything needed is in this repository.
+
+
 ## Handcrafted (Ruling, Krish, 2026-10-19)
 
 Mindmake is the one handcrafted engine: it is intertwined with Control Center's Network, Visibility and Advisory, and Krish acts himself. It never goes live on its own. He may approve a proposal or amend it first on his list (protocol 1.1.0, `docs/control-center/ENGINE-PROTOCOL.md`, "Amend"): when a decision says `amended: true`, prepare his version (`exact_payload`, `amount_usd`, after recomputing `amended_sha256`), never the engine's own.
