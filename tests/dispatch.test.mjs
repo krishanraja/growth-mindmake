@@ -5,7 +5,7 @@ import { execFile } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 import { engineClient } from '../src/control-center.mjs';
-import { runDispatch, reportDigest, canonicalJson, buildReport, objectiveReadings, proposalsFrom, londonMidnight, londonWeek, payloadDigest, DispatchError } from '../src/dispatch.mjs';
+import { runDispatch, readDirective, reportDigest, canonicalJson, buildReport, objectiveReadings, proposalsFrom, londonMidnight, londonWeek, payloadDigest, DispatchError } from '../src/dispatch.mjs';
 import { plan } from '../src/orchestrator.mjs';
 import { enginePlan } from '../src/engine.mjs';
 import { startProtocolService, STAND_IN_TOKEN, violations, digest, directiveFixture } from './support/engine-protocol-service.mjs';
@@ -88,6 +88,7 @@ test('a prepared note becomes a send proposal bound to its exact words, channel 
   assert.match(send.exact_payload, /^Subject: /);
   assert.equal(send.payload_sha256, payloadDigest({ channel: 'email', exact_payload: send.exact_payload, target: 'buyer-a' }));
   assert.equal(send.close_condition.event, 'outreach_sent');
+  assert.equal(send.subject_ref, 'contact:buyer-a', 'the note names its person by Control Center id, so his list keeps one copy');
   assert.ok(send.expires_at);
   const improvement = proposals.find(p => p.proposal_id.startsWith('gmi-'));
   assert.ok(['strategy', 'none'].includes(improvement.wall));
@@ -260,4 +261,17 @@ test('the dispatch CLI never prints the bearer or private source text, and refus
       assert.notEqual(refused.code, 0); assert.equal(refused.stdout, '');
     }
   } finally { await service.close(); }
+});
+
+test('any 1.x directive is read, since Control Center only adds within 1.x; anything else stops the run', () => {
+  for (const v of ['1.0.0', '1.1.0', '1.2.0']) assert.doesNotThrow(() => readDirective(directiveFixture({ schema_version: v })), v);
+  for (const v of ['2.0.0', '1.2', '', null]) assert.throws(() => readDirective(directiveFixture({ schema_version: v })), /directive_invalid/, String(v));
+});
+
+test('a report is sent as 1.2.0 and a note\'s subject passes the schema; an unwalled item names no subject', () => {
+  const batch = plan(snapshot(), POLICY, { at: AT });
+  const { proposals } = proposalsFrom({ batch, snapshot: snapshot(), policy: POLICY });
+  const report = buildReport({ run_id: 'gmr-run-1', mode: 'synthetic', observed_at: AT, source: { revision: 'r1', captured_at: AT }, status: 'ready', objectives: [], activity: [], proposals, holds: [] });
+  assert.equal(report.schema_version, '1.2.0');
+  assert.ok(proposals.filter(p => p.wall !== 'send').every(p => p.subject_ref === undefined));
 });
