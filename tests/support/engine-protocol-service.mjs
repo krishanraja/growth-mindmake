@@ -39,7 +39,8 @@ export function directiveFixture(changes = {}) {
   return {
     ok: true, chosen_by: 'rule',
     directive: {
-      schema_version: '1.0.0', directive_id: 'mindmake:2026-10-19', engine_id: 'growth-mindmake', for_date: '2026-10-19',
+      // Control Center serves its newest 1.x (ENGINE-PROTOCOL.md, "Versions").
+      schema_version: '1.2.0', directive_id: 'mindmake:2026-10-19', engine_id: 'growth-mindmake', for_date: '2026-10-19',
       aim: 'Every paid proof starts from a warm path or a room.',
       objectives: [
         { key: 'qualified_conversations', label: 'Qualified conversations', target: 5, unit: 'people', window: 'week', timezone: 'Europe/London', latest: null, availability: 'unreported' },
@@ -69,7 +70,7 @@ export async function startProtocolService({ token = STAND_IN_TOKEN, directive =
     const i = faults.findIndex(f => f.method === req.method && f.route === route);
     if (i >= 0) { const [f] = faults.splice(i, 1); if (f.drop) { req.socket.destroy(); return; } reply(f.status, f.body ?? { error: 'synthetic_fault' }); return; }
     if (route === null) { reply(404, { error: 'not_found' }); return; }
-    if (req.method === 'GET' && route === 'capabilities') { reply(200, { schema_version: '1.0.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', idempotency: true, activation: { state: active ? 'active' : 'inactive', activated_on: activatedOn }, features: {} }); return; }
+    if (req.method === 'GET' && route === 'capabilities') { reply(200, { schema_version: '1.2.0', schema_versions: ['1.0.0', '1.1.0', '1.2.0'], engine_id: 'growth-mindmake', product_slug: 'mindmake', idempotency: true, activation: { state: active ? 'active' : 'inactive', activated_on: activatedOn }, features: {} }); return; }
     if (req.method === 'GET' && route === 'directive') { reply(200, directive); return; }
     if (req.method === 'GET' && route === 'decisions') { reply(200, { ok: true, decisions }); return; }
     if (route === 'attempts' && req.method === 'POST') {

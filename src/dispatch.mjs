@@ -19,6 +19,7 @@ export const TIMEZONE = 'Europe/London';
 export const REPORT_SCHEMA = JSON.parse(await readFile(new URL('../docs/control-center/engine-report.schema.json', import.meta.url), 'utf8'));
 const DAY = 86400000;
 const CODE = /^[a-z][a-z0-9_]{0,63}$/;
+const CONTACT = /^[A-Za-z0-9_-]{1,64}$/;
 const ID = /^[A-Za-z0-9][A-Za-z0-9:._-]{0,119}$/;
 const HTTPS = /^https:\/\/\S+$/;
 const DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
@@ -112,10 +113,15 @@ export function objectiveReadings({ at, activatedOn = null }) {
 
 const intOrNull = v => Number.isInteger(v) && v >= 0 ? v : null;
 const part = (v, keys) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(keys.map(k => [k, intOrNull(v[k])])) : null;
+/** The version this engine sends: 1.2.0 for subject_ref. */
+export const SCHEMA_VERSION = '1.2.0';
+/** Control Center only ever adds within 1.x, so any 1.x directive is read (ENGINE-PROTOCOL.md, "Versions"). Requiring 1.0.0 exactly stopped every run from 2026-10-19 on directive_invalid. */
+const SERVED = /^1\.\d+\.\d+$/;
+
 /** The directive is data from Control Center. It can name a next action; it cannot widen authority. */
 export function readDirective(value) {
   const d = value?.directive;
-  if (value?.ok !== true || !d || typeof d !== 'object' || d.schema_version !== '1.0.0' || d.engine_id !== ENGINE_ID || typeof d.directive_id !== 'string' || !d.directive_id.startsWith(`${SLUG}:`) || !d.next_action || typeof d.next_action !== 'object' || !Array.isArray(d.decisions_since) || !Array.isArray(d.objectives)) throw new DispatchError('directive_invalid');
+  if (value?.ok !== true || !d || typeof d !== 'object' || typeof d.schema_version !== 'string' || !SERVED.test(d.schema_version) || d.engine_id !== ENGINE_ID || typeof d.directive_id !== 'string' || !d.directive_id.startsWith(`${SLUG}:`) || !d.next_action || typeof d.next_action !== 'object' || !Array.isArray(d.decisions_since) || !Array.isArray(d.objectives)) throw new DispatchError('directive_invalid');
   const counts = d.in_house?.counts;
   return {
     directive_id: d.directive_id,
@@ -150,6 +156,9 @@ function finishProposal(p) {
     const { target, ...body } = proposal;
     proposal.payload_sha256 = payloadDigest(body);
   }
+  // A note names its recipient by the Control Center contact id it came with, so his list
+  // keeps Advisory's, People's or Visibility's copy when they already hold that person.
+  if (proposal.wall === 'send' && typeof proposal.target === 'string' && CONTACT.test(proposal.target)) proposal.subject_ref = `contact:${proposal.target}`;
   delete proposal.target;
   return proposal;
 }
@@ -229,7 +238,7 @@ export function proposalsFrom({ batch = null, snapshot = null, work = null, work
 /** Build the report envelope exactly as engine-report.schema.json, then check it against that schema. */
 export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds }) {
   const body = {
-    schema_version: '1.0.0', engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
+    schema_version: SCHEMA_VERSION, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
     objectives, activity: activity.slice(0, 40).map(line => ({ line: cut(line, 500), evidence_url: null })),
     proposals, events, holds: holds.slice(0, 40).map(h => ({ reason: cut(h.reason, 200), detail: h.detail === null || h.detail === undefined ? null : cut(h.detail, 1000) }))
   };
