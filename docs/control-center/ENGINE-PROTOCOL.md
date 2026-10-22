@@ -70,6 +70,13 @@ warmth and consent classification have separate counts and definitions. These
 reads contain no raw correspondence, mailbox addresses, profiles or credentials.
 Correspondence, transcripts and connectors unverified through the engine bearer
 remain visibly unavailable. This is a scoped preparation read, not a new CRM.
+`work_context` reuses the existing version-1 selected-job contract and snapshot
+builder. Jobs come from native Advisory `growth_context.engine_jobs`, with
+their existing source identities; no parallel job table is created. That
+context runs the complete producer cycle before fresh campaign preparation,
+under the shared capacity. An unavailable context or missing source holds
+those jobs explicitly. Native replies without enough request context block
+fresh acquisition; engine plan declines are retained until a new review.
 
 `GET /api/growth/engines/<slug>/outcomes` returns `{ ok, outcomes }` with
 complete paginated native lifecycle records, source coverage, London-week and

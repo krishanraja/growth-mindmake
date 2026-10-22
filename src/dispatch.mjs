@@ -321,11 +321,12 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const read = capabilities?.features?.context ? {} : await source();
     const snapshot = read?.snapshot ?? null;
     const holds = [], activity = [];
-    let strategic = null, outcomes = null, strategicSource = null;
+    let strategic = null, outcomes = null, strategicSource = null, liveWorkContext = null;
     if (capabilities?.features?.context) {
       try {
         const supplied = validateStrategicRead(await cc.context(), 'context', clock());
         strategicSource = { revision: supplied.source_revision ?? payloadDigest(supplied.records), captured_at: supplied.observed_at };
+        liveWorkContext = supplied.work_context ?? null;
         strategic = strategicPlan(supplied, { at: clock(), capacity: policy.limits.recommendations_per_run });
         holds.push(...strategic.held);
         for (const coverage of supplied.coverage.filter(c => !c.available)) holds.push({ reason: 'context_source_unavailable', detail: `${coverage.source} is unread; no empty result is assumed.` });
@@ -354,14 +355,15 @@ export async function runDispatch({ cc, source, context = null, policy, registry
         activity.push(`Read one snapshot page in dry mode: ${batch.report.examined} prospects examined, ${batch.recommendations.length} notes prepared, ${batch.report.held.length} held before drafting.${snapshot.next_cursor ? ' More prospects exist beyond this page.' : ''}`);
       } catch (error) { holds.push({ reason: 'plan_held', detail: cut(error?.message ?? 'The bounded plan held.', 1000) }); }
     } else if (!strategic) holds.push(read?.hold ?? { reason: 'source_unavailable', detail: 'No snapshot was read.' });
-    if (context) {
+    const producerContext = context ?? liveWorkContext;
+    if (producerContext) {
       try {
-        work = enginePlan(context, policy, registry, { at, launchDate });
+        work = enginePlan(producerContext, policy, registry, { at, launchDate });
         activity.push(`Ran the full engine cycle dry on ${work.jobs_examined} supplied jobs: ${work.items.length} prepared, ${work.held.length} held.`);
       } catch (error) { holds.push({ reason: 'engine_cycle_held', detail: cut(error?.message ?? 'The full engine cycle held.', 1000) }); }
-    } else if (mode === 'live' && !strategic) holds.push({ reason: 'engine_context_unavailable', detail: 'The shared protocol does not provide usable cross-channel context. No autonomous coverage is claimed.' });
-    const mapped = proposalsFrom({ batch, snapshot, work, workSnapshot: context?.snapshot ?? null, policy });
-    if (strategic) mapped.proposals = strategic.selected.map(campaignProposal).slice(0,10);
+    } else if (mode === 'live') holds.push({ reason: 'engine_context_unavailable', detail: 'The shared protocol does not provide a usable complete selected-job context. No full producer coverage is claimed.' });
+    const mapped = proposalsFrom({ batch, snapshot, work, workSnapshot: producerContext?.snapshot ?? null, policy });
+    if (strategic) mapped.proposals = [...mapped.proposals,...strategic.selected.map(campaignProposal)].slice(0,policy.limits.recommendations_per_run);
     if (mode === 'live' && capabilities?.features?.exact_actions && policy.execution?.authority === 'exact_approval' && policy.execution.maximum_cost_usd === 0 && policy.execution.require_independent_receipt === true) {
       phase = 'prepare_action';
       const decisions = await cc.decisions(new Date(Date.parse(started_at)-30*DAY).toISOString());

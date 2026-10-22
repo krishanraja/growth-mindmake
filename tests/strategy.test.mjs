@@ -43,6 +43,25 @@ test('a shared read cannot masquerade as another engine, stale context or an emp
   assert.throws(()=>validateStrategicRead({ok:true,context:{...context({}),engine_id:'other'}},'context',NOW));
   assert.throws(()=>validateStrategicRead({ok:true,context:{...context({}),observed_at:'2026-10-01T00:00:00Z'}},'context',NOW));
 });
+test('an existing native reply blocks fresh acquisition and a declined campaign stays declined until revised',()=>{
+  const c=context({advisory:[campaign('fresh'),{id:'reply',state:'replied'}]});
+  assert.equal(strategicPlan(c,{at:NOW}).selected.length,0);
+  c.records.advisory.pop();c.feedback=[{reference:'pilot:fresh',stage:'plan',state:'declined',decided_at:NOW}];
+  assert.equal(strategicPlan(c,{at:NOW}).held[0].reason,'campaign_declined');
+});
+test('the shared context runs the existing complete selected-job producer before campaign preparation',async()=>{
+  const full=JSON.parse(await readFile(new URL('../fixtures/engine-context.json',import.meta.url)));
+  full.generated_at=NOW;full.snapshot.generated_at=NOW;
+  const registry=JSON.parse(await readFile(new URL('../config/campaigns.json',import.meta.url)));
+  const policy=JSON.parse(await readFile(new URL('../config/policy.json',import.meta.url)));
+  const reports=[];
+  const cc={recordAttempt:async()=>{},directive:async()=>directiveFixture(),capabilities:async()=>({activation:{activated_on:'2026-10-18'},features:{context:true}}),context:async()=>({ok:true,context:{...context({advisory:[]}),work_context:full}}),decisions:async()=>[],postReport:async r=>{reports.push(r);return{replayed:false}},readReport:async()=>reports.at(-1)};
+  const result=await runDispatch({cc,source:async()=>{throw Error('Retired source must not run')},policy,registry,attemptId:'gma-full-cycle-12345678',clock:()=>NOW});
+  assert.equal(result.status,'succeeded');
+  assert.ok(reports[0].activity.some(a=>a.line.includes(`full engine cycle dry on ${full.jobs.length} supplied jobs`)));
+  assert.ok(reports[0].proposals.length>0);
+  assert.ok(reports[0].proposals.length<=policy.limits.recommendations_per_run);
+});
 test('daily dispatch consumes shared context and full outcomes without the retired snapshot credential; an unverified execution stays held',async()=>{
   const reports=[], attempts=[], calls=[];
   const cc={recordAttempt:async a=>attempts.push(a),directive:async()=>directiveFixture(),capabilities:async()=>({activation:{activated_on:'2026-10-18'},features:{context:true,outcomes:true,exact_actions:true}}),context:async()=>({ok:true,context:context({advisory:[campaign('11111111-1111-4111-8111-111111111111')]})}),outcomes:async()=>({ok:true,outcomes:outcomes()}),decisions:async()=>[{proposal_id:'live-1',decision:'approved',stage:'go_live'}],actionReceipt:async()=>({ok:true,receipt:{state:'submitted',provider_id:'sent-but-unverified'}}),executeAction:async()=>calls.push('send'),postReport:async r=>{reports.push(r);return{replayed:false}},readReport:async()=>reports.at(-1)};

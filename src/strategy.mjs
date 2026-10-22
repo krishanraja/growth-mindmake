@@ -42,8 +42,14 @@ export function outcomeScorecard(outcomes, at) {
  * stays there. No engine copy competes with the native action on his one list. */
 export function strategicPlan(context, { at, capacity = 5 } = {}) {
   const candidates = [], held = [], seen = new Set();
+  const unresolvedReplies = (context.records.advisory ?? []).filter(r=>r.state==='replied' && !r.growth_context?.campaign && !(r.growth_context?.engine_jobs?.length));
+  if (unresolvedReplies.length) {
+    held.push({reason:'existing_replies_first',detail:`${unresolvedReplies.length} existing replies need their current request read on the native Advisory record before fresh acquisition preparation.`});
+    capacity = 0;
+  }
   for (const [lane, rows] of Object.entries(context.records)) for (const row of rows ?? []) {
-    const c = row.growth_context?.campaign;
+    const raw = row.growth_context?.campaign;
+    const c = raw ? {...raw,reply_waiting:raw.reply_waiting || row.state==='replied'} : null;
     if (!c) continue;
     const ref = lane === 'advisory' ? `pilot:${row.id}` : lane === 'visibility' ? `target:${row.id}` : null;
     const stop = reason => held.push({ reason, detail: `${ref ?? lane}: campaign held.` });
