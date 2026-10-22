@@ -1,16 +1,17 @@
 /**
- * Control Center's daily dispatch for this engine (growth engine protocol 1.0.0).
+ * Control Center's daily dispatch for this engine (additive growth protocol 1.x).
  *
  * One run: journal the attempt, read the directive, run the engine dry on what it can read
  * safely, turn its outputs into proposals, report, read the report back, read Krish's
- * decisions and journal the terminal attempt. Nothing here sends, posts, spends, drafts into
- * Gmail or commits an Advisory batch. An approval only means Krish said yes to that exact payload.
+ * decisions and journal the terminal attempt. The separately guarded shared executor
+ * may carry out an exact approved go-live; an uncertain result is never retried.
  */
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { seal } from './guards.mjs';
 import { plan } from './orchestrator.mjs';
 import { enginePlan } from './engine.mjs';
+import { validateStrategicRead, strategicPlan, outcomeScorecard } from './strategy.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
 export const PRODUCT_SLUG = 'mindmake';
@@ -204,6 +205,22 @@ export function workItemProposal(item) {
   }) };
 }
 
+/** The campaign plan points back to its native owner. Its first external
+ * action is prepared separately only after this plan has been approved. */
+export function campaignProposal(campaign) {
+  const { first_action, ...strategy } = campaign;
+  const nativeSubject = campaign.ref.startsWith('pilot:') ? `contact:${first_action.recipient_contact_id}` : campaign.ref;
+  return { ...finishProposal({
+    proposal_id: `gmc-${seal({ ref: campaign.ref, reviewed_at: campaign.reviewed_at }).slice(0,32)}`,
+    title: cut(campaign.title ?? campaign.argument, 160), why: cut(`${campaign.argument} Commitment: ${campaign.commitment}. Preparation: ${campaign.preparation}`,1000),
+    kind: 'prepared', wall: 'strategy', objective_key: 'qualified_conversations',
+    exact_payload: JSON.stringify({ ...strategy, first_action }, null, 2),
+    stage: 'plan', parent_proposal_id: null,
+    evidence: campaign.sources.slice(0,12).map(s => ({ label: cut(s.label ?? 'Campaign evidence',500), url: s.url })),
+    close_condition: { event: 'campaign_plan_accepted', reference: campaign.ref },
+  }), subject_ref: nativeSubject };
+}
+
 function tally(values) { return [...values.reduce((m, v) => m.set(v, (m.get(v) ?? 0) + 1), new Map())].sort(([a], [b]) => a.localeCompare(b)); }
 const holdCode = (prefix, reason) => cut(`${prefix}_${CODE.test(reason) ? reason : 'held'}`, 200);
 
@@ -285,12 +302,44 @@ export async function runDispatch({ cc, source, context = null, policy, registry
   };
   try {
     const directive = readDirective(await cc.directive());
-    let activatedOn = null;
-    try { const caps = await cc.capabilities(); activatedOn = typeof caps?.activation?.activated_on === 'string' ? caps.activation.activated_on : null; } catch { activatedOn = null; }
+    if (mode === 'live') {
+      // A restarted daily run reuses its already accepted report. It must not
+      // prepare new bytes or re-execute actions under that same run identity.
+      phase = 'recovery';
+      let previous = null;
+      try { previous = await cc.readReport(run_id); }
+      catch (e) { if (e.status !== 404) throw e; }
+      if (previous) {
+        if (previous.report?.engine_id !== ENGINE_ID || previous.report.mode !== mode || previous.report.run_id !== run_id || reportDigest(previous.report) !== previous.payload_sha256) throw new DispatchError('recovery_report_mismatch');
+        outcome.report = { status: previous.report.status, payload_sha256: previous.payload_sha256, proposals: previous.report.proposals.length, holds: previous.report.holds.map(h=>h.reason), read_back: true, replayed: true };
+        return await finish('succeeded',null);
+      }
+    }
+    let activatedOn = null, capabilities = null;
+    try { capabilities = await cc.capabilities(); activatedOn = typeof capabilities?.activation?.activated_on === 'string' ? capabilities.activation.activated_on : null; } catch { activatedOn = null; }
     phase = 'capture';
-    const read = await source();
+    const read = capabilities?.features?.context ? {} : await source();
     const snapshot = read?.snapshot ?? null;
     const holds = [], activity = [];
+    let strategic = null, outcomes = null, strategicSource = null;
+    if (capabilities?.features?.context) {
+      try {
+        const supplied = validateStrategicRead(await cc.context(), 'context', clock());
+        strategicSource = { revision: supplied.source_revision ?? payloadDigest(supplied.records), captured_at: supplied.observed_at };
+        strategic = strategicPlan(supplied, { at: clock(), capacity: policy.limits.recommendations_per_run });
+        holds.push(...strategic.held);
+        for (const coverage of supplied.coverage.filter(c => !c.available)) holds.push({ reason: 'context_source_unavailable', detail: `${coverage.source} is unread; no empty result is assumed.` });
+        activity.push(`Read cross-channel context from ${supplied.coverage.length} native sources. Selected ${strategic.selected.length} complete relationship campaigns; existing records retain the words and action.`);
+        for (const c of strategic.selected) activity.push(`${c.motion}: ${c.argument} Next: ${c.commitment}. Owner ${c.owner}; record ${c.record_id}.`);
+        activity.push(`Weekly strategic review ${strategic.review.id}: ${strategic.review.experiment}`);
+        for (const task of strategic.research) activity.push(`Network research ${task.contact_id}: verify a ${task.motion} route. This is research preparation, not outreach authority.`);
+        if (!strategic.selected.length) holds.push({ reason: 'complete_campaign_needed', detail: 'No current complete campaign passed the route, proof and preparation gates. Native drafts stay preserved.' });
+      } catch { holds.push({ reason: 'context_read_unavailable', detail: 'The advertised cross-channel context could not be validated.' }); }
+    }
+    if (capabilities?.features?.outcomes) {
+      try { outcomes = validateStrategicRead(await cc.outcomes(), 'outcomes', clock()); }
+      catch { holds.push({ reason: 'outcomes_read_unavailable', detail: 'Complete outcome windows could not be validated; no counts are assumed.' }); }
+    }
     activity.push(`Read directive ${directive.directive_id}, chosen by ${directive.chosen_by === 'krish' ? 'Krish' : 'rule'}; its next action ${directive.next_proposal_id ? `names proposal ${directive.next_proposal_id}` : 'names no proposal'}.`);
     if (wakeDirectiveId && wakeDirectiveId !== directive.directive_id) activity.push(`The wake-up named directive ${wakeDirectiveId}; the directive read now is ${directive.directive_id}, and the run follows the one it read.`);
     activity.push(...inHouseLines(directive.in_house));
@@ -304,24 +353,63 @@ export async function runDispatch({ cc, source, context = null, policy, registry
         batch = plan(snapshot, policy, { at, launchDate });
         activity.push(`Read one snapshot page in dry mode: ${batch.report.examined} prospects examined, ${batch.recommendations.length} notes prepared, ${batch.report.held.length} held before drafting.${snapshot.next_cursor ? ' More prospects exist beyond this page.' : ''}`);
       } catch (error) { holds.push({ reason: 'plan_held', detail: cut(error?.message ?? 'The bounded plan held.', 1000) }); }
-    } else holds.push(read?.hold ?? { reason: 'source_unavailable', detail: 'No snapshot was read.' });
+    } else if (!strategic) holds.push(read?.hold ?? { reason: 'source_unavailable', detail: 'No snapshot was read.' });
     if (context) {
       try {
         work = enginePlan(context, policy, registry, { at, launchDate });
         activity.push(`Ran the full engine cycle dry on ${work.jobs_examined} supplied jobs: ${work.items.length} prepared, ${work.held.length} held.`);
       } catch (error) { holds.push({ reason: 'engine_cycle_held', detail: cut(error?.message ?? 'The full engine cycle held.', 1000) }); }
-    } else if (mode === 'live') holds.push({ reason: 'engine_context_route_retired', detail: 'The full engine cycle needs a job context that Control Center no longer serves; the protocol replaced that route. Only the snapshot page is read.' });
+    } else if (mode === 'live' && !strategic) holds.push({ reason: 'engine_context_unavailable', detail: 'The shared protocol does not provide usable cross-channel context. No autonomous coverage is claimed.' });
     const mapped = proposalsFrom({ batch, snapshot, work, workSnapshot: context?.snapshot ?? null, policy });
+    if (strategic) mapped.proposals = strategic.selected.map(campaignProposal).slice(0,10);
+    if (mode === 'live' && capabilities?.features?.exact_actions && policy.execution?.authority === 'exact_approval' && policy.execution.maximum_cost_usd === 0 && policy.execution.require_independent_receipt === true) {
+      phase = 'prepare_action';
+      const decisions = await cc.decisions(new Date(Date.parse(started_at)-30*DAY).toISOString());
+      for (const decision of decisions.filter(d => d.decision === 'approved' && d.stage === 'plan')) {
+        try {
+          const prepared = await cc.prepareAction(decision.proposal_id);
+          if (prepared?.ok === true && prepared.prepared?.parent_proposal_id === decision.proposal_id && prepared.prepared.completed === true) {
+            mapped.proposals = mapped.proposals.filter(p=>p.proposal_id !== decision.proposal_id); continue;
+          }
+          if (prepared?.ok === true && prepared.prepared?.parent_proposal_id === decision.proposal_id && prepared.prepared.existing_proposal) {
+            const existing = prepared.prepared.existing_proposal;
+            if (existing.stage !== 'go_live' || existing.parent_proposal_id !== decision.proposal_id || existing.wall !== 'send') throw new Error('Existing action invalid');
+            mapped.proposals = mapped.proposals.filter(p=>p.proposal_id !== decision.proposal_id);
+            mapped.proposals.unshift(existing); continue;
+          }
+          const a = prepared?.prepared?.action;
+          if (prepared.ok !== true || prepared.prepared.parent_proposal_id !== decision.proposal_id || payloadDigest(a) !== prepared.prepared.payload_sha256 || a.cost_usd !== 0 || !Array.isArray(a.assets) || a.assets.length || a.channel !== 'email') throw new Error('Invalid prepared action');
+          mapped.proposals = mapped.proposals.filter(p=>p.proposal_id !== decision.proposal_id);
+          mapped.proposals.unshift({ proposal_id: `gma-${payloadDigest(a).slice(0,32)}`, title: cut(`Review the exact email: ${a.subject}`,160), why: 'The campaign plan is approved. This approval binds this recipient, email, full wording, no assets, zero cost and the stated time window.', kind: 'prepared', wall: 'send', amount_usd: 0, channel: 'email', objective_key: 'qualified_conversations', exact_payload: JSON.stringify(a,null,2), payload_sha256: payloadDigest(a), evidence: [], expires_at: a.expires_at, stage: 'go_live', parent_proposal_id: decision.proposal_id, subject_ref: `contact:${a.recipient_contact_id}`, close_condition: { event: 'external_action_verified', reference: a.source_ref } });
+        } catch { holds.push({ reason: 'approved_plan_preparation_blocked', detail: 'The approved plan changed, its proof or recipient is unavailable, or no supported execution route exists. No action is inferred.' }); }
+      }
+      phase = 'execute_action';
+      for (const decision of decisions.filter(d => d.decision === 'approved' && d.stage === 'go_live')) {
+        try {
+          let receipt;
+          try { receipt = await cc.actionReceipt(decision.proposal_id); }
+          catch (e) { if (e.status !== 404) throw e; receipt = null; }
+          if (!receipt) receipt = await cc.executeAction(decision.proposal_id);
+          else if (receipt.receipt?.state === 'submitted') receipt = await cc.reconcileAction(decision.proposal_id);
+          const expectedDigest = decision.amended === true ? decision.amended_sha256 : decision.payload_sha256;
+          if (receipt?.receipt?.state !== 'verified' || !receipt.receipt.provider_id || receipt.receipt.payload_sha256 !== expectedDigest) throw new Error('Receipt not verified');
+          activity.push(`Approved external action ${decision.proposal_id} has an independently verified provider receipt.`);
+          mapped.proposals = mapped.proposals.filter(p=>p.proposal_id !== decision.proposal_id);
+          outcome.sends++;
+        } catch { holds.push({ reason: 'external_action_unverified', detail: 'The connector is blocked, the exact approval no longer matches, or delivery needs reconciliation. No resend or completion is assumed.' }); }
+      }
+      mapped.proposals = mapped.proposals.slice(0,10);
+    }
     holds.push(...mapped.holds); activity.push(...mapped.activity);
     const current = new Map(mapped.proposals.map(p => [p.proposal_id, p.payload_sha256]));
     const approved = directive.decisions_since.filter(d => d.decision === 'approved');
     activity.push(`Control Center returned ${directive.decisions_since.length} decisions from the last seven days: ${approved.length} approved, ${directive.decisions_since.length - approved.length} declined; ${approved.filter(d => d.payload_sha256 && current.get(d.proposal_id) === d.payload_sha256).length} approvals match a payload in this report.`);
-    activity.push('Nothing in this run sent, posted, spent or drafted into Gmail, and no Advisory batch was committed. Krish acts on an approved payload himself.');
+    activity.push('Preparation used the existing daily dispatch. External actions require exact approval, a supported connector and independently verified receipts. Native drafts and human edits remain with their owners.');
     const observed_at = clock();
     const report = buildReport({
-      run_id, mode, observed_at, status: !snapshot ? 'degraded' : holds.length ? 'held' : 'ready',
-      source: { revision: snapshot && snapshot.source_revision.length <= 128 ? snapshot.source_revision : revision, captured_at: snapshot?.generated_at ?? observed_at },
-      objectives: objectiveReadings({ at: observed_at, activatedOn }), activity, proposals: mapped.proposals, holds
+      run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.length ? 'held' : 'ready',
+      source: strategicSource ?? { revision: snapshot && snapshot.source_revision.length <= 128 ? snapshot.source_revision : revision, captured_at: snapshot?.generated_at ?? observed_at },
+      objectives: outcomes ? outcomeScorecard(outcomes, observed_at) : objectiveReadings({ at: observed_at, activatedOn }), activity, proposals: mapped.proposals, holds
     });
     outcome.report = { status: report.status, payload_sha256: report.payload_sha256, proposals: report.proposals.length, walled: report.proposals.filter(p => p.wall !== 'none').length, holds: report.holds.map(h => h.reason), objectives: report.objectives.map(o => ({ key: o.key, availability: o.availability })), replayed: null };
     phase = 'report';

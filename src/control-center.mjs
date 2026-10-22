@@ -115,6 +115,12 @@ export function engineClient(base, token, { fetcher = fetch, slug = ENGINE_SLUG,
   const sameAttempt = (a, b) => ['attempt_id','command','run_id','status','phase','error_code','started_at','finished_at'].every(k => (a[k] ?? null) === (b?.[k] ?? null));
   return {
     async capabilities() { return call('GET', 'capabilities'); },
+    async context() { return call('GET', 'context'); },
+    async outcomes() { return call('GET', 'outcomes'); },
+    async prepareAction(id) { return call('GET', `prepare-action/${encodeURIComponent(id)}`); },
+    async executeAction(id) { return call('POST', `execute/${encodeURIComponent(id)}`, {}); },
+    async actionReceipt(id) { return call('GET', `execute/${encodeURIComponent(id)}`); },
+    async reconcileAction(id) { return call('POST', `execute/${encodeURIComponent(id)}`, { reconcile: true }); },
     async directive() {
       const value = await call('GET', 'directive');
       if (!value || value.ok !== true || !value.directive || typeof value.directive !== 'object') throw new Error('Control Center returned no directive');

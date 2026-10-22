@@ -1,6 +1,44 @@
 # Operate the producer
 
-This repository is the growth-mindmake producer. Its one authorised write to live Control Center is the daily protocol dispatch below (Krish, 2026-10-19). Do not implement, migrate, deploy or activate anything in Control Center from here. [RELEASE.md](RELEASE.md) owns completion status; [CONTROL-CENTER-BRIEF.md](CONTROL-CENTER-BRIEF.md) owns the contract.
+This repository is the growth-mindmake producer. The trusted-distribution scope
+accepted on 22 October includes the shared Control Center context, outcome and
+approved-action flow. [RELEASE.md](RELEASE.md) owns completion status;
+[CONTROL-CENTER-BRIEF.md](CONTROL-CENTER-BRIEF.md) owns the contract.
+
+## Release the trusted-distribution cycle
+
+1. Verify the Control Center repository, production project/domain, database
+   binding and current known-good deployment together. Record the exact rollback
+   revision privately. Obtain the named production-release approval.
+2. Release Control Center's additive protocol and action journal migration.
+   Read back the registry: autonomous mode, ten held intros, original five
+   qualified conversations and one paid proof, and the unchanged activation date.
+   Verify the new context/outcome feature flags with the engine's managed bearer.
+3. Release this producer after the consumer is ready. The existing dispatch
+   uses `CONTROL_CENTER_ENGINE_TOKEN`; no local browser session or new schedule
+   is required. Its legacy snapshot credential is no longer needed for the
+   shared context path.
+4. Run one bounded preparation canary with a distinct run kind. Read the exact
+   stored report, native references, missing coverage and attempt back. A restart
+   reads that day's existing report rather than repeating actions.
+5. Review the finished campaign plan in Control Center. Its approval permits
+   preparing the exact go-live, which needs its own approval. The first supported
+   connector is plain zero-cost email without assets. Other routes stay blocked.
+   Test real delivery only on the exact approved recipient and action.
+6. Independently read the verified provider receipt and the native lifecycle
+   completed by Control Center's existing done-check sweep. A submitted, claimed
+   or unknown action never triggers a resend. Reconcile known provider ids with
+   the executor's reconciliation operation. Unknown provider ids need a human
+   investigation, not another send.
+
+Rollback stops approved execution by restoring handcrafted mode and the known-good
+deployment/producer revision. Keep the private action journal and all draft
+history. Preserve the original activation date and commercial outcomes.
+
+The weekly review is included in daily reports with a stable London-week identity.
+The fortnightly rebalance cadence is explicit; the initial allocation remains
+70/30 until enough observed outcomes justify a change. Missing correspondence,
+transcripts, recognition outcomes or costs must be shown as unknown, never zero.
 
 ## Local verification
 

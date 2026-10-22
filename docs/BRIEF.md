@@ -1,5 +1,15 @@
 # Accepted brief
 
+## Scope revision, 22 October 2026
+
+Krish approved implementation of the trusted-distribution plan across this
+producer and the existing shared Control Center protocol. This supersedes
+the earlier producer-only and handcrafted boundaries below. The current
+specification is [the trusted-distribution playbook](playbooks/11-trusted-distribution.md).
+Private records and decisions remain in Control Center. Production release
+and exact external actions retain their action-time gates. The original
+18 October activation window is never reset.
+
 ## Outcome
 
 Complete this repository's growth producer, operating playbooks, reporting contracts and synthetic end-to-end verification. Then deliver one concrete implementation handoff for Control Center. The commercial target is **five qualified conversations per London week and at least one paid proof in the first 30 days after actual activation**. These targets describe business outcomes, not what a successful test run proves.

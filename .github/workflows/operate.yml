@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Producer operation; dispatch is the Control Center protocol run and never writes drafts
+        description: Producer operation; dispatch prepares and handles exact approved actions through Control Center
         type: choice
         options:
           - engine
@@ -17,7 +17,7 @@ on:
         default: engine
         required: true
       commit:
-        description: Persist artifacts only after the separate consumer rollout is ready
+        description: Legacy producer persistence; dispatch follows exact Control Center approvals
         type: boolean
         default: false
 permissions:
@@ -69,7 +69,7 @@ jobs:
 
   # The Control Center protocol run (docs/control-center/ENGINE-PROTOCOL.md). It journals the
   # attempt, reads the directive, prepares dry, reports proposals and reads Krish's decisions.
-  # It never sends, posts, spends, drafts into Gmail or commits an Advisory batch. No environment
+  # Exact approved actions use Control Center's guarded executor and independent readback. No environment
   # gate, so a daily wake-up never waits for a manual approval. No artifact is uploaded.
   dispatch:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'repository_dispatch' || inputs.mode == 'dispatch')
