@@ -209,7 +209,7 @@ test('a live run before activation is refused as engine_inactive, and a live run
     assert.equal(result.status, 'succeeded');
     const [report] = posts(service, 'reports');
     assert.equal(report.body.status, 'degraded'); assert.equal(report.body.mode, 'live');
-    assert.deepEqual(report.body.holds.map(h => h.reason), ['source_credential_unavailable', 'engine_context_route_retired']);
+    assert.deepEqual(report.body.holds.map(h => h.reason), ['source_credential_unavailable', 'engine_context_unavailable']);
     assert.ok(report.body.objectives.every(o => o.value === null && o.availability === 'missing'));
     assert.equal(report.body.proposals.length, 0);
   } finally { await service.close(); }

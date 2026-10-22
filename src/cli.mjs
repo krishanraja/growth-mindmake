@@ -31,7 +31,7 @@ async function main() {
   const at = options.at ?? new Date().toISOString();
   const launchDate = options['launch-date'] ?? process.env.GROWTH_LAUNCH_DATE;
   const remote = () => client(process.env.CONTROL_CENTER_URL, process.env.MINDMAKE_GROWTH_TOKEN);
-  if (command === 'help') { console.log('engine [--context FILE] [--commit] [--summary]\nwork-resume --run-id ID\nplan --snapshot FILE [--at ISO] [--output runtime/PRIVATE_FILE]\ndaily [--commit] [--cursor ID] [--summary]\nweekly-review [--context FILE] [--commit] [--summary]\nreadiness\ndoctor\nresume --run-id ID\nattempt --attempt-id ID\nreview-resume --review-id ID\nscorecard --snapshot FILE [--launch-date YYYY-MM-DD]\ndispatch [--synthetic [--snapshot FILE] [--context FILE] [--at ISO]] [--kind NAME]\nEngine runs all campaign and lifecycle work. Daily retains the bounded outbound compatibility interface. Live commands default to read only. Commits require reporting readiness and canonical activation. Nothing sends or publishes.'); return; }
+  if (command === 'help') { console.log('engine [--context FILE] [--commit] [--summary]\nwork-resume --run-id ID\nplan --snapshot FILE [--at ISO] [--output runtime/PRIVATE_FILE]\ndaily [--commit] [--cursor ID] [--summary]\nweekly-review [--context FILE] [--commit] [--summary]\nreadiness\ndoctor\nresume --run-id ID\nattempt --attempt-id ID\nreview-resume --review-id ID\nscorecard --snapshot FILE [--launch-date YYYY-MM-DD]\ndispatch [--synthetic [--snapshot FILE] [--context FILE] [--at ISO]] [--kind NAME]\nEngine runs all campaign and lifecycle work. Daily retains the bounded outbound compatibility interface. Legacy producer commands default to read only. Dispatch uses exact approved actions through Control Center and verifies receipts.'); return; }
   if (command === 'dispatch') { await dispatch(options, policy); return; }
   if (options.commit && (!['daily','engine','weekly-review'].includes(command) || options.snapshot || options.context)) throw new Error('Only a live producer operation can commit');
   if (options.commit && (options.at || options.output)) throw new Error('Live writes use the actual clock and no local export');
@@ -84,7 +84,7 @@ async function main() {
   else console.log(JSON.stringify(batch, null, 2));
 }
 /**
- * Control Center's daily dispatch (protocol 1.0.0). Dry by construction: it reads, prepares and
+ * Control Center's daily dispatch (protocol 1.0.0). It reads, prepares, and handles exact approved actions through
  * reports proposals, and never sends, posts, spends, drafts into Gmail or commits an Advisory batch.
  * Only counts, codes and opaque ids are printed; the bearer never is.
  */

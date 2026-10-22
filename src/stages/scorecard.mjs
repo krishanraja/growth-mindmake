@@ -1,7 +1,7 @@
 const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit' });
 function londonDate(value) { const p = Object.fromEntries(formatter.formatToParts(new Date(value)).map(p => [p.type, p.value])); return `${p.year}-${p.month}-${p.day}`; }
 function addDays(value, days) { const d = new Date(`${value}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10); }
-function qualified(d, at) {
+export function qualified(d, at) {
   const q = d.qualification;
   return Boolean(d.call_taken_at && d.qualified_at && q && q.confirmed_by === 'krish' && ['decision_authority','owned_problem','active_need','offer_fit','next_step_agreed'].every(k => q[k] === true) && Date.parse(q.confirmed_at) >= Date.parse(d.call_taken_at) && Date.parse(q.confirmed_at) <= Date.parse(at) && Date.parse(d.qualified_at) >= Date.parse(d.call_taken_at) && Date.parse(d.qualified_at) <= Date.parse(at));
 }

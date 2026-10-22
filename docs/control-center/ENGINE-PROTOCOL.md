@@ -1,7 +1,6 @@
-<!-- Copied from krishanraja/control-center docs/app/growth/ENGINE-PROTOCOL.md on 2026-10-21. Control Center's copy is authoritative. -->
-# The growth engine protocol, version 1.2.0
+# The growth engine protocol, version 1.3.0
 
-Every growth engine reports into Control Center through this one protocol, and Control Center pushes each engine its next move through it (ADR-038 in Control Center). It replaces the per-engine receivers the handoffs asked for. The engines are:
+Every growth engine reports into Control Center through this one protocol, and Control Center pushes each engine its next move through it ([ADR-038](../../DECISIONS/038-one-protocol-for-growth-engines.md)). It replaces the per-engine receivers the handoffs asked for. The engines are:
 
 | Engine | Slug in the path | `engine_id` | `product_slug` |
 |---|---|---|---|
@@ -55,6 +54,78 @@ Each run, every engine does these five things, in this order:
 **Base URL.** `https://controlcenter.krishraja.com`, in the engine's `CONTROL_CENTER_URL`. HTTPS only. Do not follow redirects. Use bounded timeouts. Never retry a write blindly: read it back first.
 
 ## Routes
+
+### Scoped context and complete outcomes (1.3.0)
+
+Capabilities add `features.context`, `features.outcomes` and `features.exact_actions`.
+Each is false when the engine or deployment lacks the corresponding adapter.
+Older reports and clients remain valid. A catalog entry does not prove usable access.
+
+`GET /api/growth/engines/<slug>/context` returns `{ ok, context }` with
+engine/product identities, observation time, native records, selected Network
+identities, canonical warm paths, proof permissions and per-source coverage.
+Each coverage entry carries availability, completeness, row count, source date
+and reason. The Network selection is bounded and explicitly partial. Relationship
+warmth and consent classification have separate counts and definitions. These
+reads contain no raw correspondence, mailbox addresses, profiles or credentials.
+Correspondence, transcripts and connectors unverified through the engine bearer
+remain visibly unavailable. This is a scoped preparation read, not a new CRM.
+`work_context` reuses the existing version-1 selected-job contract and snapshot
+builder. Jobs come from native Advisory `growth_context.engine_jobs`, with
+their existing source identities; no parallel job table is created. That
+context runs the complete producer cycle before fresh campaign preparation,
+under the shared capacity. An unavailable context or missing source holds
+those jobs explicitly. Native replies without enough request context block
+fresh acquisition; engine plan declines are retained until a new review.
+
+`GET /api/growth/engines/<slug>/outcomes` returns `{ ok, outcomes }` with
+complete paginated native lifecycle records, source coverage, London-week and
+original first-30-day windows, and explicit definitions/unavailable measures.
+The read is independent of contact selection. Bookings never count as held calls;
+qualification remains human-owned. A paid timestamp without independent payment
+evidence cannot establish a verified paid proof. Missing coverage is unknown.
+Recognition, distribution, efficiency and free-pilot measures remain unknown until
+their native sources record complete evidence; never infer them from drafts.
+
+The initial adapter is Mindmake only. Other engines receive feature flags false
+and 404 for these reads, with their existing reports and directives unchanged.
+
+### Exact approved actions (1.3.0)
+
+`GET /api/growth/engines/<slug>/prepare-action/<plan_id>` prepares an action
+from an approved campaign plan and its current native record. It returns an
+existing unexpired child unchanged, or `completed`, before preparing anything
+new. Current proof permission and recipient eligibility are checked again.
+
+The action is the proposal's full JSON `exact_payload`: version, channel,
+recipient contact id and address, subject, body, assets, cost, not-before,
+expiry, source reference and source updated time. Its digest is SHA-256 of
+canonical JSON of the action. A go-live names the approved parent plan.
+An amendment is approved as the entire finished action and uses the existing
+amendment digest. Any native edit, changed address, suppression, closed window
+or invalid digest blocks execution. The two-London-day window accommodates
+the next daily dispatch, including the clock change.
+
+`POST /api/growth/engines/<slug>/execute/<proposal_id>` is the shared executor,
+separate from the proposal-only handler and all drafting surfaces. It accepts
+no action supplied in the request: the approved record is authoritative.
+Initially only plain zero-cost email with no assets and an Advisory source
+reference is supported. Unsupported channels, attachments, spend and direct
+Visibility execution are blocked. An institutional first message may use its
+linked native Advisory relationship; Visibility still owns the session and gates.
+
+A private service-only `growth_engine_actions` journal claims each proposal once,
+inside a transaction that checks both approvals and the current registry. A send
+acknowledgement is `submitted`. Only an independent Gmail GET with the matching
+recipient, subject, body and SENT label permits `verified`. Lost or ambiguous
+sends stay `claimed`/`unknown` and are never resent. Known provider ids can be
+reconciled with `POST .../execute/<id>` and `{ reconcile: true }` without
+another send. `GET .../execute/<id>` only reads the receipt.
+The existing `mail_sent` done check moves the native lifecycle from the verified
+receipt, preserving one completion system and its audit and Undo behavior.
+
+Never claim autonomy from configuration or a green run. Acceptance still requires
+an exact human-approved external action and a real independently verified receipt.
 
 | Method and path | Request | Response |
 |---|---|---|
@@ -169,7 +240,7 @@ On his list, an engine's proposal that carries words (`exact_payload`) or, for a
 
 ## Autonomy: plan, then go-live
 
-Each engine is `handcrafted` or `autonomous` (`growth_engines.autonomy`, in the directive's `constraints` and in `capabilities`). Ruling (Krish, 2026-10-19): Full Time, Heartside, Legibility, Make Your Mind Up and AEO are autonomous; Mindmake is handcrafted. And: "Autonomy is given where it's deserved." Krish can switch any engine back to handcrafted.
+Each engine is `handcrafted` or `autonomous` (`growth_engines.autonomy`, in the directive's `constraints` and in `capabilities`). Ruling (Krish, 2026-10-22): Mindmake now prepares autonomously and executes only a supported, exact approved finished action with independent verification. This supersedes its 19 October handcrafted setting. Krish can switch any engine back to handcrafted.
 
 **Autonomous**, in two steps, each on his list:
 1. **The plan.** Propose what you are going to do as `stage: "plan"` behind a wall (usually `strategy`), with the plan in `exact_payload` so he can amend it. Wait for his yes.

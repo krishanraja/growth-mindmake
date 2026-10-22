@@ -1,5 +1,23 @@
 # Release state
 
+## Trusted distribution implementation, 22 October 2026
+
+Built locally across the producer and Control Center shared protocol. Adds
+scoped context/outcome reads, campaign selection, a stable weekly review,
+the ten-held-intro target and the two-week/one-workflow pilot policy. The
+existing commercial activation date is retained. The shared executor has
+exact approval, native revision, durable claim and independent receipt gates.
+Its native lifecycle completion reuses Control Center's existing done checks.
+
+Local verification includes paginated source coverage, London DST boundaries,
+cross-engine isolation, campaign and proof gates, full outcome counting,
+provider receipt matching and PostgreSQL claim/recovery/permission checks.
+The seven frozen version-1 contracts remain byte-identical.
+
+Production migration, deployment and a daily canary remain release gates.
+An approved external action and its real receipt remain an acceptance gate.
+No local test establishes a meeting, invitation, paid proof or recognition.
+
 ## Copy and offer doctrine, 2026-10-19
 
 Krish supplied *The Copywriting, Offers and Demand Corpus* on 19 October 2026 with the instruction that every growth engine be imbued with it. This entry applies it to the drafting surfaces. It changes no runtime code, contract, policy or output shape.
