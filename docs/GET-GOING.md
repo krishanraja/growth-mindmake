@@ -45,6 +45,7 @@ Today's live report (2026-10-19) was `held`: one proposal ("Refresh the missing 
 ## The build
 
 - [ ] **Step 0.** Correct the status line at the top of docs/CONTROL-CENTER-BRIEF.md: the first live run on 2026-10-19 succeeded, so it is no longer only tested against a local stand-in.
+- [ ] **Step 0.5 (added 2026-10-22).** Read docs/briefs/2026-10-22-heygen-outbound.md: HeyGen outbound is held on the open founder-visibility ruling. Record the hold (`founder_visibility_open`) and do not raise a duplicate question; growth-makeyourmindup asks it.
 - [ ] **Step 1.** Take the job context from what Control Center does serve: the directive (`next_action`, `objectives`, `decisions_since`, `in_house`) plus the snapshot page. Remove the calls to `/work` and `/operations` so the `engine_context_route_retired` hold goes away and the full cycle runs on dispatch.
 - [ ] **Step 2.** Turn the 50 held prospects into one decision for Krish rather than silence: a `wall: strategy` proposal on `qualified_conversations` that says how many were held for each reason and what change to the buyer definition would release them. Do not widen the definition yourself.
 - [ ] **Step 3.** Use `in_house` (Advisory, Network, Visibility counts). Propose into those lanes, and never a second note to someone Advisory already holds.
