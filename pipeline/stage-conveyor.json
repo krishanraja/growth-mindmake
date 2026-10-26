@@ -455,7 +455,10 @@
       "owner": "growth-engine",
       "owned_paths": [
         "src/dispatch.mjs",
-        "src/strategy.mjs"
+        "src/strategy.mjs",
+        "src/stages/canon.mjs",
+        "src/stages/rows.mjs",
+        "src/stages/signals.mjs"
       ],
       "inputs": [
         "engine_directive",
@@ -472,7 +475,7 @@
         "safety"
       ],
       "side_effects": [
-        "Attempt journal and one protocol report to Control Center; never a message, post, spend, Gmail draft or Advisory batch"
+        "Attempt journal, one protocol report and, from 1.6.0, bounded research requests to Control Center (inside its daily caps; it may file a commenter as a cold, engaged contact); never a message, post, spend, Gmail draft or Advisory batch"
       ],
       "retry": {
         "mode": "manual",
@@ -482,7 +485,7 @@
       },
       "completion": {
         "source": "destination_readback",
-        "evidence": "tests/dispatch.test.mjs verifies the started and terminal attempts, the report digest readback, replay, conflict and decisions against a local stand-in"
+        "evidence": "tests/dispatch.test.mjs verifies the started and terminal attempts, the report digest readback, replay, conflict and decisions against a local stand-in; tests/rows.test.mjs verifies the five rows, the live canon read, the signal pipeline and that only counts are printed"
       }
     }
   ],

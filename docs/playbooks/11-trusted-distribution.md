@@ -64,3 +64,86 @@ old copy and edits before any positioning revision; never turn new wording
 into permission to send. A report or a successful scheduled run establishes
 mechanics only. Repeated trusted access and commercial progress establish
 whether the engine works.
+
+## Amplifiers and the five rows (Rulings, Krish, 2026-10-26)
+
+"Every action should make me exponentially more visible." The engine hunts
+the people whose yes puts Krish in front of many, in his words: prolific
+investors, well-connected people, people anywhere with inordinate amounts of
+money and a desire to take control of AI and steer their investments towards
+it ("think global"), those who deliver AI training en masse, those who educate
+students en masse, those who educate CEOs en masse, and broadcast and social
+channels with mass audiences on growing with AI. In the protocol these are
+`investor`, `connector`, `ai_capital`, `ai_trainer`, `student_educator`,
+`ceo_educator` and `broadcaster` (`src/stages/rows.mjs`).
+
+- **Who.** Read from a person's own words on their record. A title is never
+  proof of wealth, authority or permission: `ai_capital` needs a named capital
+  vehicle (a family office, a sovereign or strategic fund) and an AI interest
+  on record, and a chairman is never read as rich.
+- **How far.** Reach is a sourced, dated figure (members, learners a year,
+  listeners, portfolio companies), asked of Control Center's research desk as
+  a cited question once a month for the strongest candidates. Without one it
+  is a band from their followers, and without that it is unknown. Never a
+  guess.
+- **Rank.** `log10(reach) x fit x route x goal x closeness`: a million-strong
+  channel ranks above a thousand-strong one by its logarithm, not by a
+  factor of a thousand. Fit is how directly the kind reaches leaders who
+  decide; route is the channel a note can take; goal is a match to one of his
+  week's goals, named word for word in `serves`.
+- **The ask decides the row.** Partner (investors, AI-minded capital, AI
+  trainers) is PARTNERS; an introduction (connectors) and a signal from a
+  buyer are REACH OUT; an appearance (broadcasters) is VISIBILITY; a session
+  (CEO and student educators) is EVENTS; a close tie gone quiet for 90 days is
+  NETWORK. Six a row at most, one person once.
+- **Words.** One ask, in Krish's own name, British English, no invented
+  familiarity, no em dash, and Mindmake only in its canon's own words. The
+  canon is read live from `krishanraja/mindmake` on every run
+  (`src/stages/canon.mjs`), never from a pinned copy: the pinned copy went
+  stale within a week of its approval. Each action names the canon files and
+  the engine's own word files by git blob SHA in `source_revision`, and
+  Control Center reads those SHAs again before he acts.
+- **Channel.** An address on Control Center's record first (it never comes to
+  the engine), WhatsApp only for a close tie, X only where his numeric id is
+  on file. No route, no row.
+- **Draft, don't send.** A row is a prepared send that he carries out himself
+  from his phone: a Gmail draft he sends, a message app opened with the words
+  typed, or a form submitted on his tap. The engine never sends it.
+- **No, with a reason, for good.** Every No is kept with no decay. A plain No
+  means never that person on that row; wrong person or already in touch means
+  never that person; not now means 30 days; too small raises the reach floor
+  for that kind to the next band; wrong audience drops that kind in that
+  sector; not my topic drops that topic; pitch off moves that row to its other
+  words, and a repeat is for the weekly review to put to him as a doctrine
+  change.
+
+## Signals from his buyers (Rulings, Krish, 2026-10-26)
+
+Shown a LinkedIn post ("AI's next job casualty could be your boss"), Krish
+said the people who engage with posts like it "could be really valuable to
+reach out to but only if they're the right types of ICP: worried executives,
+as opposed to AI people", that the voices he follows "are talking to the
+people I want to talk to", and that "the growth engine needs to think about
+those types of signals and relevant signals from the ICPs I want, and bring
+them to me for action."
+
+- **Where to look.** This week's posts by the voices he follows (Control
+  Center's `voices`) and on a few topics where executives argue about AI and
+  their jobs; then the comments under the posts where most people argued
+  (`src/stages/signals.mjs`).
+- **Who counts.** An executive (C-suite or senior by their own headline),
+  worried in their own words (their board asking, their team, their managers,
+  not knowing what it means), and never an AI person (someone who builds,
+  sells or teaches AI), a consultant, coach or speaker selling to the same
+  buyer, or someone whose comment pitches an answer. The Horizon's buyer, a
+  PE or VC backed media, adtech or data leader, ranks first.
+- **What he gets.** A REACH OUT row whose note opens with what they said and
+  names the post, then Mindmake in the canon's words and the canon's main ask
+  with its one link. One message, one ask, no sequence, sent only by him.
+- **Who it reaches.** The canon limits outreach to his network, people
+  introduced to him, readers and people who heard him speak, and says adding
+  any other list "is Krish's decision". This is that decision, for people who
+  engaged in public on the subject, one at a time, each on his own press
+  (Ruling, Krish, 2026-10-26). Control Center files someone it finds this way
+  as a cold, engaged contact, and keeps an address its search did not check
+  off the record.

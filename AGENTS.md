@@ -24,6 +24,16 @@ Mindmake prepares autonomously across Network, Advisory, Guests, Visibility and 
 
 Apply the canonical personal harness and krish-principles, then strategy-brief, krish-build and verification-loop for material changes. Read docs/BRIEF.md and docs/RELEASE.md before changing scope. Commercial content also uses Mindmake context, conversion strategy and Krish's voice rules. Every draft, aid, review and proof-scope proposal applies docs/playbooks/10-copy-and-offer-doctrine.md.
 
+## The five rows and signals (Rulings, Krish, 2026-10-26)
+
+- growth-mindmake owns everything about growing Mindmake and connecting Krish to the right people: who, rank, words, channel and learning. Control Center holds the holistic view (records, walls, execution, the widget, the research tools) and never duplicates it (Control Center ADR-041).
+- Every suggestion is ranked by how far his name travels: hunt amplifiers (playbook 11).
+- No stored assumptions about the venture: row words come from Mindmake's canon read live each run, and every action names the files it rests on by blob SHA.
+- A row action pressed on his widget becomes a Gmail draft he sends himself, a message opened with the words typed, or a form submitted on his tap. The engine never sends it.
+- No on any suggestion takes a reason, a better one replaces it, and the lesson is kept for good.
+- People who comment on posts about AI and their jobs are worth reaching, but only worried executives in his ICP, never AI people. The engine thinks about these signals and brings each to him for action; Control Center only collects. This is his decision to reach people beyond his network who engaged in public, one note at a time, each on his press.
+- The North Star number stays as written; reach only ranks the work.
+
 ## Current release boundary
 
 Krish authorised implementation across growth-mindmake and Control Center on 22 October 2026. Extend the shared protocol and the existing daily `cc-growth-directive` dispatch. docs/CONTROL-CENTER-BRIEF.md supersedes the historical producer-only handoff.
@@ -48,6 +58,7 @@ Docs/RELEASE.md owns the completion record. Keep built, tested, merged, deployed
 - src/stages/lifecycle.mjs and contracts/lifecycle.ts: introduction permissions, actual inbound requests, qualification preparation, bounded proof scope and paid delivery handoff. Preparation changes no outcome.
 - src/stages/research.mjs and contracts/research.ts: explicit research tasks and proposed private enrichment from supplied sources; no automatic prospect authority.
 - src/weekly-review.mjs: global commercial constraints, source-backed channel attribution, actual effort and observed experiments, with one persisted-feedback-aware recommendation.
+- src/stages/rows.mjs: the five rows on Krish's home screen (protocol 1.6.0): amplifier kinds, reach, rank, the words, the channel, and the lessons of every No and its reason. src/stages/signals.mjs: signals from his buyers (who commented, worried, on posts about AI and their jobs) and the research it asks Control Center to run for them. src/stages/canon.mjs: Mindmake's canon read live from its own repository every run, named by blob SHA. Playbook 11 holds the doctrine.
 - docs/CONTROL-CENTER-BRIEF.md and docs/control-center/: the protocol contract with Control Center, copied from its authoritative source. docs/CONTROL-CENTRE-HANDOFF.md remains as history and for the seven frozen contracts.
 
 pipeline/stage-conveyor.json declares executable ownership and handoffs. Keep it current when topology changes. Do not add a parallel state store, scheduler, contact database, approval interface or model provider.

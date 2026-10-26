@@ -111,7 +111,7 @@ export function engineClient(base, token, { fetcher = fetch, slug = ENGINE_SLUG,
   if (typeof token !== 'string' || !/^gen1_[A-Za-z0-9_-]{43,}$/.test(token)) throw new Error('Control Center engine credential is missing or malformed');
   if (!/^[a-z][a-z0-9-]{0,63}$/.test(slug)) throw new Error('Invalid engine slug');
   const base_path = `/api/growth/engines/${slug}`;
-  const call = (method, route, body, headers) => transport({ origin, token, fetcher, method, path: `${base_path}/${route}`, body, headers, timeoutMs });
+  const call = (method, route, body, headers, ms = timeoutMs) => transport({ origin, token, fetcher, method, path: `${base_path}/${route}`, body, headers, timeoutMs: ms });
   const sameAttempt = (a, b) => ['attempt_id','command','run_id','status','phase','error_code','started_at','finished_at'].every(k => (a[k] ?? null) === (b?.[k] ?? null));
   return {
     async capabilities() { return call('GET', 'capabilities'); },
@@ -148,6 +148,14 @@ export function engineClient(base, token, { fetcher = fetch, slug = ENGINE_SLUG,
       const value = await call('GET', `reports/${encodeURIComponent(runId)}`);
       if (!value || value.accepted !== true || value.run_id !== runId || typeof value.payload_sha256 !== 'string') throw new Error('Control Center returned no stored report');
       return value;
+    },
+    /** 1.6.0: bounded lookups Control Center runs for this engine (ENGINE-PROTOCOL.md, "The research desk").
+     *  A LinkedIn read takes up to a minute and a half, so this one call waits longer. Each request_id is
+     *  answered once; a lost response is safe to send again under the same ids. */
+    async research(requests) {
+      const value = await call('POST', 'research', { requests }, undefined, Math.max(timeoutMs, 150000));
+      if (!value || value.ok !== true || !Array.isArray(value.research) || value.research.length !== requests.length || value.research.some((r, i) => r?.request_id !== requests[i].request_id)) throw new Error('Control Center did not answer the research');
+      return value.research;
     },
     async decisions(since) {
       const value = await call('GET', `decisions?since=${encodeURIComponent(since)}`);

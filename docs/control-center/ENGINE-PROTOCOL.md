@@ -1,4 +1,4 @@
-# The growth engine protocol, version 1.4.0
+# The growth engine protocol, version 1.6.0
 
 Every growth engine reports into Control Center through this one protocol, and Control Center pushes each engine its next move through it ([ADR-038](../../DECISIONS/038-one-protocol-for-growth-engines.md)). It replaces the per-engine receivers the handoffs asked for. The engines are:
 
@@ -19,7 +19,7 @@ Control Center only ever adds within 1.x: a new minor version adds fields, never
 
 - **Accept any 1.x** in what Control Center serves (the directive, capabilities, decisions), and ignore a field you do not know. Never require an exact version back.
 - **Send the version you speak.** `capabilities.schema_versions` lists every version Control Center takes; check that yours is in it.
-- **Raise yours only for a field you use.** 1.1.0 adds a proposal's `stage` and `parent_proposal_id`; 1.2.0 adds its `subject_ref`; 1.4.0 adds the North Star number and urgency to the directive (below), and nothing to the report. 1.5.0 adds `taste`, Krish's approved voice rules, to the directive (below), and nothing to the report.
+- **Raise yours only for a field you use.** 1.1.0 adds a proposal's `stage` and `parent_proposal_id`; 1.2.0 adds its `subject_ref`; 1.4.0 adds the North Star number and urgency to the directive (below), and nothing to the report. 1.5.0 adds `taste`, Krish's approved voice rules, to the directive (below), and nothing to the report. 1.6.0 adds a proposal's `row`, `rank`, `reach`, `amplifier_kind`, `features`, `serves` and `source_revision`, a version 2 action, 40 proposals a report, `week_goals` and `rows_rule` in the directive, `carried_out` and `reason_code` in a decision, and the research desk (below).
 
 On 2026-10-19 Control Center began serving 1.1.0. Legibility required exactly 1.0.0 back from capabilities, and Mindmake from the directive, so both stopped on every run (`receiver_contract_mismatch`, `directive_invalid`) and reported nothing for two days. That is why this rule exists.
 
@@ -135,7 +135,9 @@ an exact human-approved external action and a real independently verified receip
 | `GET /api/growth/engines/<slug>/reports/<run_id>` | | `{ accepted: true, run_id, payload_sha256, mode, accepted_at, report }`, or 404 |
 | `POST /api/growth/engines/<slug>/attempts` | an attempt | `{ ok: true, attempt[, replayed] }` |
 | `GET /api/growth/engines/<slug>/attempts/<attempt_id>` | | `{ ok: true, attempt }`, or 404 |
-| `GET /api/growth/engines/<slug>/decisions[?since=<time>]` | | `{ ok, decisions: [{ proposal_id, decision: 'approved'\|'declined'\|'done', decided_at, payload_sha256, stage, amended[, exact_payload, amount_usd, amended_sha256] }] }` |
+| `GET /api/growth/engines/<slug>/decisions[?since=<time>]` | | `{ ok, decisions: [{ proposal_id, decision: 'approved'\|'declined'\|'done', decided_at, payload_sha256, stage, amended[, exact_payload, amount_usd, amended_sha256][, carried_out][, reason_code, reason_text] }] }` |
+| `POST /api/growth/engines/<slug>/research` | `{ requests: [...] }` (1.6.0, Mindmake) | `{ ok, research: [{ request_id, kind, subject_ref, query, why, status, evidence, answer, requested_at, answered_at }] }` |
+| `GET /api/growth/engines/<slug>/research[/<request_id>]` | | `{ ok, research }`, or 404 |
 
 **Errors.**
 - **400:** the report or attempt is malformed. The body names the field.
@@ -148,6 +150,51 @@ an exact human-approved external action and a real independently verified receip
 - **413:** the report is over 512 KB.
 - **429:** rate limited, with `Retry-After`.
 - **500 `store_failed`:** the store failed. This is redacted and carries no row or body.
+
+### The five rows: people in front of Krish (1.6.0)
+
+Ruling (Krish, 2026-10-26): growth-mindmake owns everything about growing Mindmake and connecting Krish to the right people: who, how far each one reaches, the words, and what it learns from his answers. Control Center holds the holistic view: the records, the walls, the press, and his home screen. It ranks nothing itself and never writes a Mindmake pitch ([ADR-041](../../DECISIONS/041-the-engine-hunts-control-center-holds.md)).
+
+Every action should make him exponentially more visible, so the engine hunts amplifiers, people whose yes puts him in front of many others (`amplifier_kind`): `investor` (prolific investors), `connector` (well-connected people), `ai_capital` (people anywhere with inordinate money who want to shape AI and steer their investments to it), `ai_trainer`, `student_educator` and `ceo_educator` (those who teach AI, students or CEOs at scale), and `broadcaster` (mass broadcast and social channels on growing with AI).
+
+A proposal for his home screen carries, on top of 1.2.0:
+
+| Field | Meaning |
+|---|---|
+| `row` | `reach_out`, `network`, `visibility`, `events` or `partners`: where it shows. The ask decides the row (an intro or a portfolio session, getting closer, appearing on their channel, a talk or a session, co-delivering) |
+| `rank` | The engine's order within the row, 1 first. Control Center shows this order and never re-ranks it |
+| `reach` | `{ value, band, basis, source_url, as_of }`. A `value` is a claim, so it names its `source_url` and `as_of`, and its `band` matches it. Without a source give `value: null` and a band; `unknown` is said, never guessed |
+| `amplifier_kind`, `features` | The kind, and `{ sector, topic, seniority }` (lower-case words, seniority `c_suite`, `senior` or `other`), which his reasons for a No filter on |
+| `serves` | One of `week_goals`, word for word, or null |
+| `source_revision` | 1 to 8 `{ repo, path, sha }`: every file the words were written from, by its git blob SHA on the default branch. Before he acts, Control Center reads each SHA again; a file that moved or went makes the action stale (it shows the next one, and you write it again), and a repository it cannot read acts on nothing. It holds no venture fact itself |
+
+A row proposal is a prepared `send`, `stage: null` (Krish carries it out himself, so it is never a go-live the executor could send), with `subject_ref` set and `channel` equal to its action's. Its `title` is the line he reads on his phone, shown whole, so it is at most 72 characters of plain words. Its `exact_payload` is a **version 2 action**, with no address and no number: Control Center reads those from its own records when he presses.
+
+```json
+{ "version": 2, "channel": "email", "recipient_contact_id": "<uuid>", "subject": "One line", "body": "The words", "form": null }
+```
+
+`channel` is `email` (a subject, up to 7,000 characters), `x_message` or `whatsapp` (up to 1,000, opened for him with the words typed), or `form` (`recipient_contact_id` null, `form: { url, answers: [{ label, value }] }`, 1 to 40 answers). The recipient may differ from `subject_ref`: an introduction goes to the mutual and is about the person they introduce. A 1.6.0 report may carry 40 proposals, a ranked queue for each row.
+
+**His answer.** From his home screen, Clear says how he carried it out (`carried_out`: `draft`, a Gmail draft he sends himself; `message`, a message app opened with the words typed; `submit`, a form submitted on his tap). Never send or submit a proposal he carried out; the shared executor refuses it (`carried_out_by_krish`), and Control Center reports the closing event when it sees it. Purge carries `reason_code` (`wrong_person`, `not_now`, `already_in_touch`, `too_small`, `wrong_audience`, `not_my_topic`, `pitch_off`, `other`) and his own words in `reason_text`: offer better, and do not offer that person, or anything like it on that reason, again. The context's `feedback` carries every past answer with the row, subject, `amplifier_kind`, `features` and `reach` it was about, so a reason can be applied to what is like it and what he taught is never forgotten.
+
+**Context, 1.6.0** (Mindmake). On top of 1.3.0, `GET .../context` adds `amplifier_candidates` (up to 300 people on tiers 1 to 4 who read as reaching many, up to 200 close ties first and then 100 from the wider network, each by followers: a title tagged amplifier or multiplier, 5,000 followers or more, or a creator or influencer badge; a wide net, you judge), `routes` (per contact id, `{ email: verified|unchecked|none, x, linkedin, instagram, whatsapp }`, never the address; X only once the person's numeric X id is on file, since X's message link needs it; WhatsApp only for someone close), `companies` (`company_intel` for their domains), `research` (below; anyone a research row names, by `subject_ref` or as a commenter he already has, gets `routes` too) and `voices` (the people he follows for inspiration, as the content engine keeps them in `content_creators`: `{ slug, name, linkedin_url, why, last_post_url, last_post_at }`; who gathers under them is yours to find). Each part has its coverage line; a part that cannot be read says so and is never sent empty.
+
+### The research desk (1.6.0)
+
+Control Center holds the tools; the engine decides what to look up. `POST /api/growth/engines/<slug>/research` with `{ requests: [{ request_id, kind, subject_ref, query, why }] }`, 1 to 10:
+
+- `kind` is `search` (an Exa web search: up to five results, each `{ title, url, snippet, published }`) or `question` (a Perplexity answer with its citations), or one of the three LinkedIn signal kinds below.
+- `query` is at most 400 characters and never carries an address or a phone number; `why` says what the answer decides.
+- Each `request_id` is answered once: the same id replays its stored answer, and the same id with different words is 409.
+- Status is `answered`, `empty`, `failed` or `over_cap`. The caps are per day: 40 searches (about $0.0025 each) and 20 questions (about $0.001 each), from measured unit costs; 6 `posts` (up to $0.02 each), 3 `post_engagers` (up to $0.08 each) and 8 `person_route` (up to $0.01 each), from the Apify actors' published prices, each run also capped in dollars at Apify. Every kind at its cap is about $0.56 a day. Over the cap nothing runs; ask again tomorrow under a new id. `GET .../capabilities` carries `research: { kinds, per_day }`.
+
+**Signals** (Krish, 2026-10-26: people who comment on posts like "AI's next job casualty could be your boss" are worth reaching, "but only if they're the right types of ICP: worried executives, as opposed to AI people"; the voices he follows "are talking to the people I want to talk to"; "the growth engine needs to think about those types of signals and relevant signals from the ICPs I want, and bring them to me for action"). Which signals matter, which posts to read and which commenter is his buyer are yours. Control Center only collects:
+
+- `posts`: `query` is topic words, or the profile link of a voice (`https://www.linkedin.com/in/<id>`). Up to ten posts from the last month, each a result with `engagement: { comments, reactions }`; `title` is the author and their headline.
+- `post_engagers`: `query` is one LinkedIn post link. Up to forty commenters, one result each, with `snippet` their comment as written and `person: { handle, name, headline, contact_id }`. `contact_id` is set when he already has them, which makes them warm. The post's author is left out, and so is anyone he marked do not contact or closed.
+- `person_route`: `query` is `li:<handle>` from a `post_engagers` result. Someone he already has costs nothing (`subject_ref` names them). Otherwise one profile read with an email search, and the person is filed as a cold, engaged contact (`origin_channel` `growth_signal`), so you can name them as `contact:<id>` and his press can draft to them. The answer says only `an address the search checked`, `only a guessed address, kept off the record` or `no address found`; an address the search did not check never reaches the record (`api/_ingestGate.ts`), and the same person is never searched twice or filed twice. The address never comes back to you.
+- `GET .../research[/<request_id>]` reads them back, and the next context carries the last 14 days.
 
 ## The report
 
@@ -220,6 +267,8 @@ The schema is [engine-directive.schema.json](engine-directive.schema.json).
 | `aim_by`, `week_of`, `week_target`, `current`, `urgency`, `urgency_reason` | 1.4.0, optional. The parent product's North Star number from Control Center's daily refresh ([ADR-040](../../DECISIONS/040-every-repository-chases-one-number.md)): its deadline, this week's rung of its weekly ladder, the latest reading, the urgency U1 to U5 by ai-harness `contract/north-star-metric.md`, and why. Mindmake's figures read `"private"`. Absent when no refresh has read the number |
 | `north_star` | 1.4.0, optional. `{ parent, own, intensity }`: the parent product's number and the engine's own (each `{ repo, metric, unit, aim_by, week_of, week_target, current, urgency, urgency_reason, read_on }`, or null), and `intensity { urgency, drafts_multiplier, rule }`, set by the more urgent of the two. U3 doubles draft output, U4 asks for a bold swing every day, U5 for three unconventional recovery plays. The walls, `spend_cap_usd` and `max_actions` never move with it |
 | `taste` | 1.5.0, optional. `{ rule, approved_voice_rules[] }`: Krish's approved voice rules (`taste_profile_form`, lane voice: approved or reworded by him only, form only, his words only while the answer they quote stands), each `{ layer, rule, his_words, what_it_means }`. Follow them for how anything you draft is written, never to choose what it is about, and never to judge, score or rank. An empty list means none approved yet: never invent one. Absent means they could not be read today (krishanraja/inspirationhouse `docs/TWO_WAY.md`, step 6) |
+| `week_goals` | 1.6.0, optional. His goals for this week in his own words, newest week, at most three. A row's `serves` quotes one exactly. Empty when he has set none; absent when they could not be read |
+| `rows_rule` | 1.6.0, Mindmake only, with `week_goals`: how to put people in front of him, word for word (the five rows, above) |
 | `in_house` | Mindmake only. `{ rule, counts }` says what Advisory (`pilot_deals`), Network (warm tiers) and Visibility (stages and rooms) did this week inside Control Center, as counts. A part that could not be read is `null`, never zero. These three drive Mindmake's growth already, so the engine proposes into them and never drafts a second note or pitch to someone they already hold |
 
 **How the next action is chosen, by rule** (Ruling, Krish, 2026-10-18), in order:
@@ -279,5 +328,6 @@ The states are `inactive`, `never_reported`, `healthy`, `held`, `degraded`, `fai
 | Each accepted live report | One `workflow_runs` row (`workflow_id` = `engine_id`, `agent_id` from the registry), so fleet health sees it |
 | A walled proposal | Home's one list, source `engine`, one per engine at a time and never beside Control Center's own copy of the same subject. Clear approves exactly that payload, Purge declines, Bump keeps it off until his next day (`api/_verbs.ts`, `actOnEngine`) |
 | An unwalled proposal | Growth > Engines, where he can pick it as tomorrow's push |
+| A row proposal (1.6.0) | His home screen widget, in the engine's rank within its row, and his one list like any walled proposal. What he carries out from the widget is recorded as `carried_out`; his No as `reason_code` |
 | Objectives, activity, holds | Growth > Engines |
 | Media and copy to review | Growth > Packs, until packs join this protocol |
