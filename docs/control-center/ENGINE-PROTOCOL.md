@@ -1,4 +1,4 @@
-# The growth engine protocol, version 1.3.0
+# The growth engine protocol, version 1.4.0
 
 Every growth engine reports into Control Center through this one protocol, and Control Center pushes each engine its next move through it ([ADR-038](../../DECISIONS/038-one-protocol-for-growth-engines.md)). It replaces the per-engine receivers the handoffs asked for. The engines are:
 
@@ -19,7 +19,7 @@ Control Center only ever adds within 1.x: a new minor version adds fields, never
 
 - **Accept any 1.x** in what Control Center serves (the directive, capabilities, decisions), and ignore a field you do not know. Never require an exact version back.
 - **Send the version you speak.** `capabilities.schema_versions` lists every version Control Center takes; check that yours is in it.
-- **Raise yours only for a field you use.** 1.1.0 adds a proposal's `stage` and `parent_proposal_id`; 1.2.0 adds its `subject_ref`.
+- **Raise yours only for a field you use.** 1.1.0 adds a proposal's `stage` and `parent_proposal_id`; 1.2.0 adds its `subject_ref`; 1.4.0 adds the North Star number and urgency to the directive (below), and nothing to the report. 1.5.0 adds `taste`, Krish's approved voice rules, to the directive (below), and nothing to the report.
 
 On 2026-10-19 Control Center began serving 1.1.0. Legibility required exactly 1.0.0 back from capabilities, and Mindmake from the directive, so both stopped on every run (`receiver_contract_mismatch`, `directive_invalid`) and reported nothing for two days. That is why this rule exists.
 
@@ -217,15 +217,18 @@ The schema is [engine-directive.schema.json](engine-directive.schema.json).
 | `next_action` | `{ proposal_id, instruction, why, close_condition }`: the one thing to do |
 | `decisions_since[]` | His decisions in the last seven days, each as `GET .../decisions` gives it: the `payload_sha256` it was made on, the `stage`, and his version when `amended` |
 | `constraints` | `{ walls, autonomy, autonomy_rule, spend_cap_usd: 0, max_actions: 5 }`. `walls` is the rule above, word for word; `autonomy` and `autonomy_rule` say who acts once he approves, below, and end with the one-ask-at-a-time rule |
+| `aim_by`, `week_of`, `week_target`, `current`, `urgency`, `urgency_reason` | 1.4.0, optional. The parent product's North Star number from Control Center's daily refresh ([ADR-040](../../DECISIONS/040-every-repository-chases-one-number.md)): its deadline, this week's rung of its weekly ladder, the latest reading, the urgency U1 to U5 by ai-harness `contract/north-star-metric.md`, and why. Mindmake's figures read `"private"`. Absent when no refresh has read the number |
+| `north_star` | 1.4.0, optional. `{ parent, own, intensity }`: the parent product's number and the engine's own (each `{ repo, metric, unit, aim_by, week_of, week_target, current, urgency, urgency_reason, read_on }`, or null), and `intensity { urgency, drafts_multiplier, rule }`, set by the more urgent of the two. U3 doubles draft output, U4 asks for a bold swing every day, U5 for three unconventional recovery plays. The walls, `spend_cap_usd` and `max_actions` never move with it |
+| `taste` | 1.5.0, optional. `{ rule, approved_voice_rules[] }`: Krish's approved voice rules (`taste_profile_form`, lane voice: approved or reworded by him only, form only, his words only while the answer they quote stands), each `{ layer, rule, his_words, what_it_means }`. Follow them for how anything you draft is written, never to choose what it is about, and never to judge, score or rank. An empty list means none approved yet: never invent one. Absent means they could not be read today (krishanraja/inspirationhouse `docs/TWO_WAY.md`, step 6) |
 | `in_house` | Mindmake only. `{ rule, counts }` says what Advisory (`pilot_deals`), Network (warm tiers) and Visibility (stages and rooms) did this week inside Control Center, as counts. A part that could not be read is `null`, never zero. These three drive Mindmake's growth already, so the engine proposes into them and never drafts a second note or pitch to someone they already hold |
 
 **How the next action is chosen, by rule** (Ruling, Krish, 2026-10-18), in order:
 
 1. Something Krish approved that the engine has not yet done, with the approved payload (his version when he amended it). For an autonomous engine, an approved plan says "build it up to go-live, then propose the go-live", and an approved go-live says "go live with exactly what he approved".
 2. If the engine is failing, unknown or stale: repair, naming what broke.
-3. The unwalled pending proposal that closes the widest gap to an objective. An objective that is not measured yet counts as a wide gap, and a proposal on no objective as a small one.
+3. The unwalled pending proposal that closes the widest gap to an objective. An objective that is not measured yet counts as a wide gap, and a proposal on no objective as a small one. Urgency raises the floor of every gap on an objective (U2 0.1, U3 0.4, U4 0.6, U5 0.8), so behind the number, a proposal that moves it comes first.
 4. If everything proposed is behind a wall: keep preparing, and do not act on what waits on Krish. He sees one of your asks at a time, so add no second ask of a kind that already waits on him.
-5. If nothing is proposed: propose your best move on the widest gap.
+5. If nothing is proposed: propose your best move on the widest gap; at U3 two experiments, at U4 one bold swing, at U5 three unconventional recovery plays, each different in kind.
 
 Krish can pick another unwalled proposal on Growth > Engines as tomorrow's push (`chosen_by: krish`). The rule never replaces his pick.
 
@@ -259,6 +262,7 @@ Either way, the walls rule holds: nothing goes out without a decision whose dige
 Ruling (Krish, 2026-10-21), so the engines and the parts of Control Center that already queue things for him never put the same thing in front of him twice:
 
 - **One ask per engine at a time.** Of an engine's walled proposals, his list shows one: a go-live first, then a check-in, then a plan, then a spend, a send, a post and a strategy call, the oldest first within each. The rest wait their turn, each named, and the next comes forward when he answers (or bumps) the one shown. So never add a second ask of a kind that already waits; keep the one waiting current instead.
+- **Spends take turns by the ladder** (Ruling, Krish, 2026-10-22). Spends draw on the same prepaid credits, so while one venture's spend (not its plan or check-in) is on his list, a spend from a venture lower on the portfolio ladder is held, named (`waits_on_ladder`), and comes forward when the higher one is answered or bumped. That engine's next ask still comes forward in the meantime.
 - **One copy of a person, stage or room.** Advisory (`pilot_deals`), People, Visibility and Events already draft notes and pitches. A proposal whose `subject_ref` names someone or something they hold is left off his list, and theirs stays. It is not declined: it waits, and it lapses when it expires. Propose into them, never a second note.
 - **Who owns what.** Control Center's People and Visibility own outreach to shows and guests for Make Your Mind Up, so that engine proposes posts and measures, never a pitch, a swap or a partner note. A product with an active engine has that engine as its one strategy voice: the Sunday growth council writes no weekly move for it.
 

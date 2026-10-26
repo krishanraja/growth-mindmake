@@ -12,6 +12,7 @@ import { seal } from './guards.mjs';
 import { plan } from './orchestrator.mjs';
 import { enginePlan } from './engine.mjs';
 import { validateStrategicRead, strategicPlan, outcomeScorecard } from './strategy.mjs';
+import { readVoice } from './stages/draft.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
 export const PRODUCT_SLUG = 'mindmake';
@@ -128,6 +129,8 @@ export function readDirective(value) {
     directive_id: d.directive_id,
     chosen_by: value.chosen_by === 'krish' ? 'krish' : 'rule',
     next_proposal_id: typeof d.next_action.proposal_id === 'string' && ID.test(d.next_action.proposal_id) ? d.next_action.proposal_id : null,
+    // 1.5.0 `taste`: Krish's approved voice rules, for drafting only. Absent reads as unknown, never none.
+    voice: readVoice(d.taste),
     decisions_since: d.decisions_since.filter(x => x && typeof x.proposal_id === 'string' && ['approved','declined'].includes(x.decision)).map(x => ({ proposal_id: x.proposal_id, decision: x.decision, payload_sha256: typeof x.payload_sha256 === 'string' ? x.payload_sha256 : null })),
     in_house: counts && typeof counts === 'object' ? {
       advisory: part(counts.advisory, ['drafted_waiting','sent_this_week','replied_waiting','calls_booked_this_week','paid']),
@@ -137,6 +140,12 @@ export function readDirective(value) {
   };
 }
 const n = v => v === null ? 'an unknown number of' : String(v);
+/** Says which voice rules drafting receives, as a count. The rules never reach a judge or score. */
+export function voiceLine(voice) {
+  if (voice.state === 'approved') return `Krish's approved voice rules: ${voice.rules.length} read for the drafting packets of a model drafting step, for how words are written only; today's template drafts do not use them. No judge, score, rank or gate receives them.`;
+  if (voice.state === 'none') return "Krish's approved voice rules: none approved yet, so drafting uses none and invents none.";
+  return "Krish's approved voice rules could not be read today, so drafting uses none and invents none.";
+}
 export function inHouseLines(inHouse) {
   if (!inHouse) return ['Control Center sent no in-house counts for Advisory, Network or Visibility today, so none are assumed.'];
   const { advisory: a, network: w, visibility: v } = inHouse;
@@ -344,6 +353,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     activity.push(`Read directive ${directive.directive_id}, chosen by ${directive.chosen_by === 'krish' ? 'Krish' : 'rule'}; its next action ${directive.next_proposal_id ? `names proposal ${directive.next_proposal_id}` : 'names no proposal'}.`);
     if (wakeDirectiveId && wakeDirectiveId !== directive.directive_id) activity.push(`The wake-up named directive ${wakeDirectiveId}; the directive read now is ${directive.directive_id}, and the run follows the one it read.`);
     activity.push(...inHouseLines(directive.in_house));
+    activity.push(voiceLine(directive.voice));
+    outcome.voice = { state: directive.voice.state, approved: directive.voice.rules.length };
     phase = 'plan';
     const at = clock();
     const today = londonDate(at);
