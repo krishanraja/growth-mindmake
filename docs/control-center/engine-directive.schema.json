@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://controlcenter.krishraja.com/schemas/engine-directive-1.0.0.json",
-  "title": "Growth engine directive, protocol 1.0.0 to 1.4.0 (ADR-038)",
+  "title": "Growth engine directive, protocol 1.0.0 to 1.6.0 (ADR-038)",
   "type": "object",
   "required": [
     "schema_version",
@@ -193,6 +193,35 @@
             "type": "string",
             "pattern": "^[0-9a-f]{64}$",
             "description": "Present when amended: SHA-256 of the canonical JSON of {amount_usd, exact_payload}."
+          },
+          "carried_out": {
+            "enum": [
+              "draft",
+              "message",
+              "submit"
+            ],
+            "description": "1.6.0, present when set: Krish carried it out himself from his home screen (a Gmail draft he sends, a message app opened with the words typed, a form submitted on his tap). Never send or submit it yourself."
+          },
+          "reason_code": {
+            "enum": [
+              "wrong_person",
+              "not_now",
+              "already_in_touch",
+              "too_small",
+              "wrong_audience",
+              "not_my_topic",
+              "pitch_off",
+              "other"
+            ],
+            "description": "1.6.0, present on a No he gave a reason for. Offer better, and do not offer that person, or anything like it on that reason, again."
+          },
+          "reason_text": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 1000,
+            "description": "1.6.0, with reason_code: his own words, when he gave any."
           }
         }
       }
@@ -566,6 +595,18 @@
           }
         }
       }
+    },
+    "week_goals": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "string"
+      },
+      "description": "1.6.0, optional: his goals for this week in his own words, newest week. A row proposal's serves quotes one exactly. Empty when none set; absent when they could not be read."
+    },
+    "rows_rule": {
+      "type": "string",
+      "description": "1.6.0, Mindmake only, with week_goals: how to put people in front of him (ENGINE-PROTOCOL.md, The five rows), word for word."
     }
   }
 }

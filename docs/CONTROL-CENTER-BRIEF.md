@@ -1,5 +1,16 @@
 # Control Center brief: growth-mindmake
 
+**The five rows, 2026-10-26 (protocol 1.6.0):** when Control Center's
+capabilities list 1.6.0 and `rows`, the dispatch adds up to 30 row proposals for
+Krish's home screen widget (REACH OUT, NETWORK, VISIBILITY, EVENTS, PARTNERS):
+amplifiers ranked by how far a yes travels, close ties gone quiet, and worried
+executives who commented on posts about AI and their jobs. Each is a prepared
+send with a version 2 action that names no address, written from Mindmake's
+canon read live this run and naming those files by blob SHA. It asks Control
+Center's research desk for cited reach figures and LinkedIn signals, inside
+its daily caps. Before Control Center serves 1.6.0 the report is 1.2.0 and
+unchanged. Doctrine: playbook 11; contract: docs/control-center/ENGINE-PROTOCOL.md.
+
 **Current implementation, 2026-10-22:** the additive shared protocol provides
 capability-negotiated context and complete outcome windows. The producer uses
 native records and a 70/30 distribution/direct-learning allocation, with replies

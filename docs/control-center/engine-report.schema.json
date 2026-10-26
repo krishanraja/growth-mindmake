@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://controlcenter.krishraja.com/schemas/engine-report-1.0.0.json",
-  "title": "Growth engine report, protocol 1.0.0 (ADR-038)",
+  "title": "Growth engine report, protocol 1.6.0 (ADR-038)",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -21,9 +21,12 @@
         "1.0.0",
         "1.1.0",
         "1.2.0",
-        "1.3.0"
+        "1.3.0",
+        "1.4.0",
+        "1.5.0",
+        "1.6.0"
       ],
-      "description": "1.1.0 adds a proposal's stage and parent_proposal_id, 1.2.0 its subject_ref; an older report carrying a newer field is refused. 1.3.0 adds scoped context/outcome reads and exact action execution without changing report fields."
+      "description": "1.1.0 adds a proposal's stage and parent_proposal_id, 1.2.0 its subject_ref; an older report carrying a newer field is refused. 1.3.0 adds scoped context/outcome reads and exact action execution without changing report fields. 1.4.0 and 1.5.0 change only the directive. 1.6.0 adds a proposal's row, rank, reach, amplifier_kind, features, serves and source_revision, and allows 40 proposals (ENGINE-PROTOCOL.md, The five rows)."
     },
     "engine_id": {
       "type": "string",
@@ -160,7 +163,7 @@
     },
     "proposals": {
       "type": "array",
-      "maxItems": 10,
+      "maxItems": 40,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -308,9 +311,171 @@
             ],
             "pattern": "^(contact|target|event):[A-Za-z0-9_-]{1,64}$",
             "description": "1.2.0. The person, stage or room the proposal is about, by the id Control Center gave the engine. His list keeps Control Center's own copy of the same subject instead."
+          },
+          "row": {
+            "enum": [
+              "reach_out",
+              "network",
+              "visibility",
+              "events",
+              "partners",
+              null
+            ],
+            "description": "1.6.0: the row on Krish's home screen. A row proposal is a prepared send with stage null, a subject_ref, a rank, a source_revision and a version 2 action in exact_payload. Its title is the line on his phone, shown whole: at most 72 characters."
+          },
+          "rank": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 1000,
+            "description": "1.6.0: the engine's order within the row, 1 first."
+          },
+          "reach": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "value",
+              "band",
+              "basis",
+              "source_url",
+              "as_of"
+            ],
+            "properties": {
+              "value": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "description": "A sourced number, or null. A number needs source_url and as_of, and its band must match it."
+              },
+              "band": {
+                "enum": [
+                  "under_1k",
+                  "1k_10k",
+                  "10k_100k",
+                  "100k_1m",
+                  "over_1m",
+                  "unknown"
+                ]
+              },
+              "basis": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "What is counted: portfolio companies, members, learners a year, subscribers."
+              },
+              "source_url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^https://\\S+$",
+                "maxLength": 2000
+              },
+              "as_of": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              }
+            }
+          },
+          "amplifier_kind": {
+            "enum": [
+              "investor",
+              "connector",
+              "ai_capital",
+              "ai_trainer",
+              "student_educator",
+              "ceo_educator",
+              "broadcaster",
+              null
+            ]
+          },
+          "features": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "sector": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-z][a-z0-9_ -]{0,59}$"
+              },
+              "topic": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-z][a-z0-9_ -]{0,59}$"
+              },
+              "seniority": {
+                "enum": [
+                  "c_suite",
+                  "senior",
+                  "other",
+                  null
+                ]
+              }
+            },
+            "description": "1.6.0: what his reasons for a No filter on."
+          },
+          "serves": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 300,
+            "description": "1.6.0: one of the directive's week_goals, word for word."
+          },
+          "source_revision": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "repo",
+                "path",
+                "sha"
+              ],
+              "properties": {
+                "repo": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$"
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 300
+                },
+                "sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$",
+                  "description": "The file's git blob SHA on the default branch when the words were written."
+                }
+              }
+            },
+            "description": "1.6.0: every file the words were written from. Control Center refuses the action once one has moved."
           }
         }
-      }
+      },
+      "description": "At most 10 before 1.6.0; 1.6.0 allows 40, a ranked queue for each of the five rows."
     },
     "events": {
       "type": "array",

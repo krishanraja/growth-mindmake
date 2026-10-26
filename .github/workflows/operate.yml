@@ -74,7 +74,7 @@ jobs:
   dispatch:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'repository_dispatch' || inputs.mode == 'dispatch')
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       CONTROL_CENTER_URL: ${{ vars.CONTROL_CENTER_URL }}
       CONTROL_CENTER_ENGINE_TOKEN: ${{ secrets.CONTROL_CENTER_ENGINE_TOKEN }}

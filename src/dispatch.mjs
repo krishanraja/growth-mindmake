@@ -13,6 +13,9 @@ import { plan } from './orchestrator.mjs';
 import { enginePlan } from './engine.mjs';
 import { validateStrategicRead, strategicPlan, outcomeScorecard } from './strategy.mjs';
 import { readVoice } from './stages/draft.mjs';
+import { amplifierRows, rankRows, ROWS } from './stages/rows.mjs';
+import { signalRequests, signalRows } from './stages/signals.mjs';
+import { readCanon, blobSha, CanonError } from './stages/canon.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
 export const PRODUCT_SLUG = 'mindmake';
@@ -56,12 +59,15 @@ export function schemaErrors(schema, value, path = '$') {
   if (value === null || value === undefined) return errors;
   if (typeof value === 'string') {
     if (schema.maxLength !== undefined && value.length > schema.maxLength) errors.push(`${path}: too long`);
+    if (schema.minLength !== undefined && value.length < schema.minLength) errors.push(`${path}: too short`);
     if (schema.pattern && !new RegExp(schema.pattern, 'u').test(value)) errors.push(`${path}: does not match its pattern`);
     if (schema.format === 'date-time' && (!DATE_TIME.test(value) || !Number.isFinite(Date.parse(value)))) errors.push(`${path}: not a date-time`);
   }
   if (typeof value === 'number' && schema.minimum !== undefined && value < schema.minimum) errors.push(`${path}: below its minimum`);
+  if (typeof value === 'number' && schema.maximum !== undefined && value > schema.maximum) errors.push(`${path}: above its maximum`);
   if (Array.isArray(value)) {
     if (schema.maxItems !== undefined && value.length > schema.maxItems) errors.push(`${path}: too many items`);
+    if (schema.minItems !== undefined && value.length < schema.minItems) errors.push(`${path}: too few items`);
     if (schema.items) value.forEach((item, i) => errors.push(...schemaErrors(schema.items, item, `${path}[${i}]`)));
   } else if (typeof value === 'object') {
     for (const key of schema.required ?? []) if (!Object.hasOwn(value, key)) errors.push(`${path}: missing ${key}`);
@@ -115,8 +121,16 @@ export function objectiveReadings({ at, activatedOn = null }) {
 
 const intOrNull = v => Number.isInteger(v) && v >= 0 ? v : null;
 const part = (v, keys) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(keys.map(k => [k, intOrNull(v[k])])) : null;
-/** The version this engine sends: 1.2.0 for subject_ref. */
+/** The version this engine sends: 1.2.0 for subject_ref, and 1.6.0 once Control Center reads rows. */
 export const SCHEMA_VERSION = '1.2.0';
+export const ROWS_VERSION = '1.6.0';
+/** The engine files row words are written from, named in every row's source_revision. */
+export const ENGINE_REPO = 'krishanraja/growth-mindmake';
+export const WORD_FILES = ['src/stages/rows.mjs', 'src/stages/signals.mjs'];
+const repoRoot = new URL('../', import.meta.url);
+export async function engineFiles() {
+  return Promise.all(WORD_FILES.map(async path => ({ repo: ENGINE_REPO, path, sha: blobSha(await readFile(new URL(path, repoRoot), 'utf8')) })));
+}
 /** Control Center only ever adds within 1.x, so any 1.x directive is read (ENGINE-PROTOCOL.md, "Versions"). Requiring 1.0.0 exactly stopped every run from 2026-10-19 on directive_invalid. */
 const SERVED = /^1\.\d+\.\d+$/;
 
@@ -131,6 +145,8 @@ export function readDirective(value) {
     next_proposal_id: typeof d.next_action.proposal_id === 'string' && ID.test(d.next_action.proposal_id) ? d.next_action.proposal_id : null,
     // 1.5.0 `taste`: Krish's approved voice rules, for drafting only. Absent reads as unknown, never none.
     voice: readVoice(d.taste),
+    // 1.6.0: his goals this week, word for word, so each row says which one it serves.
+    week_goals: Array.isArray(d.week_goals) ? d.week_goals.filter(g => typeof g === 'string' && g.trim() && g.length <= 300).slice(0, 10) : [],
     decisions_since: d.decisions_since.filter(x => x && typeof x.proposal_id === 'string' && ['approved','declined'].includes(x.decision)).map(x => ({ proposal_id: x.proposal_id, decision: x.decision, payload_sha256: typeof x.payload_sha256 === 'string' ? x.payload_sha256 : null })),
     in_house: counts && typeof counts === 'object' ? {
       advisory: part(counts.advisory, ['drafted_waiting','sent_this_week','replied_waiting','calls_booked_this_week','paid']),
@@ -262,9 +278,9 @@ export function proposalsFrom({ batch = null, snapshot = null, work = null, work
 }
 
 /** Build the report envelope exactly as engine-report.schema.json, then check it against that schema. */
-export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds }) {
+export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION }) {
   const body = {
-    schema_version: SCHEMA_VERSION, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
+    schema_version, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
     objectives, activity: activity.slice(0, 40).map(line => ({ line: cut(line, 500), evidence_url: null })),
     proposals, events, holds: holds.slice(0, 40).map(h => ({ reason: cut(h.reason, 200), detail: h.detail === null || h.detail === undefined ? null : cut(h.detail, 1000) }))
   };
@@ -289,12 +305,66 @@ export function errorCode(error, phase) {
   return `${phase}_unavailable`;
 }
 
+const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.some(f => f.request_id === r.request_id))];
+
+/**
+ * The five rows (playbook 11): amplifiers and close ties gone quiet from the
+ * context, signals from his buyers through the research desk, every action
+ * written from the canon read this run. Live runs ask Control Center to
+ * collect (at most two rounds of ten, inside its daily caps); a synthetic run
+ * asks for nothing. Counts only leave this function for the printed outcome.
+ */
+export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles }) {
+  const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0 };
+  let canon, files;
+  try { canon = await canonReader(); files = [...canon.files, ...await wordFiles()]; }
+  catch (error) {
+    holds.push({ reason: error instanceof CanonError ? error.code : 'canon_unavailable', detail: "Mindmake's canon could not be read from its own repository this run, so no row action was written. Nothing falls back to an older copy." });
+    return { proposals: [], holds, activity, counts };
+  }
+  let ctx = context;
+  let research = Array.isArray(ctx.research) ? [...ctx.research] : [];
+  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at });
+  if (mode === 'live' && capabilities?.features?.research === true) {
+    let pending = [...signalRequests({ voices: ctx.voices, research, at }), ...amplifiersFirst.research].slice(0, 10);
+    for (let round = 0; round < 2 && pending.length; round++) {
+      try {
+        const got = await cc.research(pending);
+        counts.research_asked += pending.length;
+        counts.research_answered += got.filter(r => r.status === 'answered').length;
+        research = mergeResearch(got, research);
+      } catch {
+        holds.push({ reason: 'research_unavailable', detail: 'Control Center could not run the lookups asked for this run; rows use what was already known.' });
+        break;
+      }
+      pending = signalRequests({ voices: ctx.voices, research, at });
+    }
+    // Someone filed this run has no routes in the context read before it: read it again once.
+    if (research.some(r => r.kind === 'person_route' && r.status === 'answered' && !(ctx.research ?? []).some(x => x.request_id === r.request_id))) {
+      try { ctx = validateStrategicRead(await cc.context(), 'context', clock()); research = mergeResearch(research, ctx.research ?? []); }
+      catch { holds.push({ reason: 'context_reread_unavailable', detail: 'People found this run get their row on the next run.' }); }
+    }
+  }
+  const amplifiers = ctx === context ? amplifiersFirst : amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at });
+  const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at });
+  const { kept, dropped } = rankRows([...amplifiers.rows, ...signals.rows]);
+  const proposals = kept.map(finishProposal);
+  counts.prepared = proposals.length;
+  const held = [...amplifiers.held, ...signals.held];
+  counts.held = held.length;
+  for (const [reason, count] of tally(held)) holds.push({ reason: holdCode('row', reason), detail: `${count} possible row action${count === 1 ? '' : 's'} held: ${reason.replace(/_/g, ' ')}.` });
+  if (dropped) holds.push({ reason: 'row_per_row_cap', detail: `${dropped} more row action${dropped === 1 ? '' : 's'} ranked below the six a row shows.` });
+  activity.push(`Rows from Mindmake's canon as it is today (${canon.files.map(f => f.sha.slice(0, 7)).join(', ')}): ${ROWS.map(r => `${proposals.filter(p => p.row === r).length} ${r.replace('_', ' ')}`).join(', ')}.`);
+  if (counts.research_asked) activity.push(`Asked Control Center for ${counts.research_asked} lookups; ${counts.research_answered} answered.`);
+  return { proposals, holds, activity, counts };
+}
+
 /**
  * One dispatch run. `cc` is the protocol client; `source()` reads the bounded snapshot and
  * resolves `{ snapshot }` or `{ hold }`. `context` is an engine context, supplied only for a
  * synthetic run, because the protocol retired the live work-context route.
  */
-export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString() }) {
+export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles }) {
   if (!['live','synthetic'].includes(mode) || !/^[a-z][a-z0-9-]{0,40}$/.test(kind) || !/^gma-[A-Za-z0-9-]{8,80}$/.test(attemptId)) throw new Error('Invalid dispatch options');
   const started_at = clock();
   const run_id = `${SLUG}:${londonDate(started_at)}:${kind}`;
@@ -330,10 +400,11 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const read = capabilities?.features?.context ? {} : await source();
     const snapshot = read?.snapshot ?? null;
     const holds = [], activity = [];
-    let strategic = null, outcomes = null, strategicSource = null, liveWorkContext = null;
+    let strategic = null, outcomes = null, strategicSource = null, liveWorkContext = null, suppliedContext = null;
     if (capabilities?.features?.context) {
       try {
         const supplied = validateStrategicRead(await cc.context(), 'context', clock());
+        suppliedContext = supplied;
         strategicSource = { revision: supplied.source_revision ?? payloadDigest(supplied.records), captured_at: supplied.observed_at };
         liveWorkContext = supplied.work_context ?? null;
         strategic = strategicPlan(supplied, { at: clock(), capacity: policy.limits.recommendations_per_run });
@@ -413,6 +484,18 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       }
       mapped.proposals = mapped.proposals.slice(0,10);
     }
+    // 1.6.0: the five rows on his home screen, after everything else, in the room a report has left.
+    let schema_version = SCHEMA_VERSION;
+    if (suppliedContext && capabilities?.features?.rows === true && Array.isArray(capabilities.schema_versions) && capabilities.schema_versions.includes(ROWS_VERSION)) {
+      phase = 'rows';
+      schema_version = ROWS_VERSION;
+      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles });
+      const room = Math.max(0, 40 - mapped.proposals.length);
+      mapped.proposals.push(...rows.proposals.slice(0, room));
+      if (rows.proposals.length > room) holds.push({ reason: 'row_cap', detail: `${rows.proposals.length - room} more row actions wait for a later run; a report carries at most 40.` });
+      holds.push(...rows.holds); activity.push(...rows.activity);
+      outcome.rows = rows.counts;
+    }
     holds.push(...mapped.holds); activity.push(...mapped.activity);
     const current = new Map(mapped.proposals.map(p => [p.proposal_id, p.payload_sha256]));
     const approved = directive.decisions_since.filter(d => d.decision === 'approved');
@@ -422,7 +505,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const report = buildReport({
       run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.length ? 'held' : 'ready',
       source: strategicSource ?? { revision: snapshot && snapshot.source_revision.length <= 128 ? snapshot.source_revision : revision, captured_at: snapshot?.generated_at ?? observed_at },
-      objectives: outcomes ? outcomeScorecard(outcomes, observed_at) : objectiveReadings({ at: observed_at, activatedOn }), activity, proposals: mapped.proposals, holds
+      objectives: outcomes ? outcomeScorecard(outcomes, observed_at) : objectiveReadings({ at: observed_at, activatedOn }), activity, proposals: mapped.proposals, holds, schema_version
     });
     outcome.report = { status: report.status, payload_sha256: report.payload_sha256, proposals: report.proposals.length, walled: report.proposals.filter(p => p.wall !== 'none').length, holds: report.holds.map(h => h.reason), objectives: report.objectives.map(o => ({ key: o.key, availability: o.availability })), replayed: null };
     phase = 'report';
