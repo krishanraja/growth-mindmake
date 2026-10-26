@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { engineClient } from '../src/control-center.mjs';
 import { readDirective, runDispatch } from '../src/dispatch.mjs';
-import { readVoice, voiceBlock, draftingPrompt, judgingPrompt, DRAFTING_PROMPTS, JUDGING_PROMPTS } from '../src/stages/draft.mjs';
+import { readVoice, voiceBlock, draftingPrompt, judgingPrompt, withoutGate, GATE_MARKERS, DRAFTING_PROMPTS, JUDGING_PROMPTS } from '../src/stages/draft.mjs';
 import { startProtocolService, directiveFixture, violations } from './support/engine-protocol-service.mjs';
 import { AT, POLICY, snapshot } from './helpers.mjs';
 
@@ -70,9 +70,20 @@ test('a dispatch run reads taste, reports only a count, and keeps it out of ever
     assert.equal(result.status, 'succeeded');
     assert.deepEqual(result.voice, { state: 'approved', approved: 1 });
     const report = service.requests.find(r => r.method === 'POST' && r.route === 'reports').body;
-    assert.ok(report.activity.some(a => /approved voice rules: 1 read for the drafting prompts/.test(a.line)));
+    assert.ok(report.activity.some(a => /approved voice rules: 1 read for the drafting packets/.test(a.line)));
     const text = JSON.stringify(report);
     assert.ok(!text.includes(RULE) && !text.includes(WORDS) && !text.includes(MEANS));
     assert.ok(!JSON.stringify(result).includes(RULE));
   } finally { await service.close(); }
+});
+
+test('a packet that carries voice rules never carries the quality gate rubric', async () => {
+  const readme = await readFile(new URL('../prompts/README.md', import.meta.url), 'utf8');
+  assert.ok(/28 of 48/.test(readme) && /rubric total/.test(readme), 'the gate still exists in the shared contract');
+  for (const name of DRAFTING_PROMPTS) {
+    const packet = await draftingPrompt(name, { input: {}, voice: readVoice(one) });
+    assert.ok(packet.includes(RULE), name);
+    for (const marker of GATE_MARKERS) assert.doesNotMatch(packet, marker, `${name}: ${marker}`);
+  }
+  assert.throws(() => withoutGate('Score it on the rubric.'), /quality gate/);
 });

@@ -30,13 +30,13 @@ Lifecycle: building. The detail is in `README.md`.
 
 ## What changed recently
 
-- 2026-10-26 **Drafting reads Krish's approved voice rules from the daily directive (protocol 1.5.0 `taste`).** The four drafting prompts get them as a labelled block, for how words are written only; none approved or unreadable means none, never invented; no judge, score or rank receives them. Any 1.x directive is still accepted.
+- 2026-10-26 **Krish's approved voice rules from the daily directive (protocol 1.5.0 `taste`) are carried into the drafting packets for a model drafting step.** No model drafting step runs yet, so today's template drafts do not use them. The packets leave out the quality gate; none approved or unreadable means none, never invented; no judge, score or rank receives them. Any 1.x directive is still accepted.
 - 2026-10-23 **The North Star now has a number, a weekly ladder and an urgency rating.** Ruling (Krish, 2026-10-23): every repository chases one aggressive number on a weekly ladder, and urgency U1 to U5 sets how hard it pushes. The number is in `docs/NORTH_STAR.md`; contract: ai-harness `contract/north-star-metric.md`.
 
 ## What is next and what is waiting on Krish
 
 - Measure the North Star number and record it on the first line under "Where it is right now".
-- North Star check (2026-10-26): holds. Notes drafted for warm paths and rooms now follow his approved voice; the number is still unmeasured.
+- North Star check (2026-10-26): holds. His approved voice is ready for a model drafting step on warm-path and room notes; template drafts do not use it yet, and the number is still unmeasured.
 
 ## Read next
 

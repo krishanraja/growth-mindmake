@@ -142,7 +142,7 @@ export function readDirective(value) {
 const n = v => v === null ? 'an unknown number of' : String(v);
 /** Says which voice rules drafting receives, as a count. The rules never reach a judge or score. */
 export function voiceLine(voice) {
-  if (voice.state === 'approved') return `Krish's approved voice rules: ${voice.rules.length} read for the drafting prompts, for how words are written only. No judge, score, rank or gate receives them.`;
+  if (voice.state === 'approved') return `Krish's approved voice rules: ${voice.rules.length} read for the drafting packets of a model drafting step, for how words are written only; today's template drafts do not use them. No judge, score, rank or gate receives them.`;
   if (voice.state === 'none') return "Krish's approved voice rules: none approved yet, so drafting uses none and invents none.";
   return "Krish's approved voice rules could not be read today, so drafting uses none and invents none.";
 }
