@@ -17,6 +17,7 @@ Apply these rules to every prompt:
 7. Output a single JSON object matching the specified shape, with no surrounding prose. Return `blocked` or `needs_review` when required input is missing. `ready_for_review` means inspectable, never approved to send.
 8. No tool, send, publish, schedule, subscribe, spend, deletion or production write action. Return an artifact and its gate only.
 9. Apply [the copy and offer doctrine](../docs/playbooks/10-copy-and-offer-doctrine.md) to every recipient-facing or reader-facing draft and review. Before writing, choose the path, awareness level and lead type, one decision and one canon promise (Rule of One). Keep proof proximal to its claim and inside its permission. Run edit passes A to E before returning `ready_for_review`; record the 0 to 4 rubric total and weakest link in `limitations`, not in the body. Below 28 of 48, return `needs_review`. The doctrine adds no output field and changes no JSON shape.
+10. Drafting prompts (outreach draft, warm thought, trust asset, decision aid) receive a labelled `KRISH'S APPROVED VOICE RULES` block, built by `draftingPrompt` in `src/stages/draft.mjs` from the Control Center directive's `taste` (protocol 1.5.0). Follow those rules for how the words are written, never to choose what they are about. None approved, or none readable, means none: never invent or recall one. Judging prompts (qualification, weekly review, research moment) never receive them, and no rubric, score, rank or gate uses them.
 
 Every result includes this envelope:
 

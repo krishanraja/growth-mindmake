@@ -1,7 +1,7 @@
 ---
 repo: krishanraja/growth-mindmake
 product: Mindmake growth engine
-as_of: 2026-10-23
+as_of: 2026-10-26
 head: fd2b8fd
 lifecycle: building
 production_url: none
@@ -22,7 +22,7 @@ Mindmake's growth engine: relationships, introductions, researched named outreac
 
 The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish's calendar with the right conversations.
 
-## Where it is right now (as of 2026-10-23)
+## Where it is right now (as of 2026-10-26)
 
 <!-- north-star-state {"week_of": "2026-10-26", "week_target": 2, "current": null, "current_as_of": null, "current_source": null, "urgency": 4, "urgency_reason": "not measured yet"} --> **North Star number: U4, far behind.** Qualified leader conversations a week, every one from a warm path or a room: not measured yet, against 2 this week, on the way to 20 by 30 November 2026. A bold swing every day; work that does not move the number waits.
 
@@ -30,12 +30,13 @@ Lifecycle: building. The detail is in `README.md`.
 
 ## What changed recently
 
+- 2026-10-26 **Drafting reads Krish's approved voice rules from the daily directive (protocol 1.5.0 `taste`).** The four drafting prompts get them as a labelled block, for how words are written only; none approved or unreadable means none, never invented; no judge, score or rank receives them. Any 1.x directive is still accepted.
 - 2026-10-23 **The North Star now has a number, a weekly ladder and an urgency rating.** Ruling (Krish, 2026-10-23): every repository chases one aggressive number on a weekly ladder, and urgency U1 to U5 sets how hard it pushes. The number is in `docs/NORTH_STAR.md`; contract: ai-harness `contract/north-star-metric.md`.
 
 ## What is next and what is waiting on Krish
 
 - Measure the North Star number and record it on the first line under "Where it is right now".
-- North Star check (2026-10-23): holds.
+- North Star check (2026-10-26): holds. Notes drafted for warm paths and rooms now follow his approved voice; the number is still unmeasured.
 
 ## Read next
 

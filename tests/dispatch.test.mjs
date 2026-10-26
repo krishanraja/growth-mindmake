@@ -264,7 +264,7 @@ test('the dispatch CLI never prints the bearer or private source text, and refus
 });
 
 test('any 1.x directive is read, since Control Center only adds within 1.x; anything else stops the run', () => {
-  for (const v of ['1.0.0', '1.1.0', '1.2.0']) assert.doesNotThrow(() => readDirective(directiveFixture({ schema_version: v })), v);
+  for (const v of ['1.0.0', '1.1.0', '1.2.0', '1.4.0', '1.5.0']) assert.doesNotThrow(() => readDirective(directiveFixture({ schema_version: v })), v);
   for (const v of ['2.0.0', '1.2', '', null]) assert.throws(() => readDirective(directiveFixture({ schema_version: v })), /directive_invalid/, String(v));
 });
 
