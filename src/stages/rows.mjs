@@ -214,17 +214,76 @@ export function clause(value, max) {
   const at = Math.max(...[', ', '; ', ' and ', ' plus ', ' with ', ' who ', ' which '].map(m => room.lastIndexOf(m)));
   return at >= 30 ? `${room.slice(0, at).replace(/[,;:]+$/, '')}.` : cutAt(sentence, max);
 }
-/** Like clause, but whole: a sentence or a part of one ending at a comma, "and" or a word, with a full stop and never an ellipsis. Empty when nothing of at least 15 characters fits. */
-export function wholeClause(value, max) {
-  const t = clean(value ?? '');
-  if (!t || max < 16) return '';
-  const sentence = (t.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? t).replace(/[.!?]+$/, '');
-  if (sentence.length + 1 <= max) return `${sentence}.`;
-  const room = sentence.slice(0, max - 1);
-  const at = Math.max(...[', ', '; ', ' and ', ' plus ', ' with ', ' who ', ' which '].map(m => room.lastIndexOf(m)));
-  const cut = at >= 15 ? at : room.lastIndexOf(' ');
-  return cut >= 15 ? `${room.slice(0, cut).replace(/[\s,;:'-]+$/, '')}.` : '';
+// ── Whole lines (Krish's card line is never cut mid-phrase) ────────────────
+// The first live 1.7.0 run cut lines at a word and ended them on "by.", "at.",
+// "u.s." and "the executive.". A card line is now built only from whole pieces:
+// a whole first sentence, a whole title, or the part of a title before a
+// separator; a piece that would end on a joiner, an initial or an internal slug
+// is dropped, and the known line alone stands.
+
+/** Words a whole clause never ends on. */
+export const JOINERS = new Set(['at', 'of', 'by', 'for', 'to', 'from', 'in', 'on', 'with', 'and', 'or', 'the', 'a', 'an', '&', 'plus', 'who', 'which', 'that', 'as']);
+const ABBREVIATIONS = new Set(['mr', 'mrs', 'ms', 'dr', 'st', 'inc', 'ltd', 'co', 'corp', 'vs', 'etc', 'jr', 'sr', 'no', 'approx']);
+/** An internal name (builder_economy, signal_noise) is Control Center's, never his. */
+const SLUG = /\b[a-z0-9]+_[a-z0-9_]+\b/;
+const SMALL_WORDS = new Set(['at', 'of', 'by', 'for', 'to', 'from', 'in', 'on', 'with', 'and', 'or', 'the', 'a', 'an', 'as', 'vs']);
+
+/** Whether text ends whole: not on a joiner, a lone initial or a dangling sign, and holding no internal slug. */
+export function endsWhole(text) {
+  const t = clean(text ?? '').replace(/[.,;:!?]+$/, '');
+  if (!t || SLUG.test(t)) return false;
+  const last = t.split(' ').at(-1);
+  if (JOINERS.has(last.toLowerCase()) || /[&+/\u2013\u2014-]$/.test(last) || /^\p{L}$/u.test(last)) return false;
+  return true;
 }
+
+/** The first sentence, read past initials and abbreviations ("Led the U.S. launch", "Example Inc. and"). */
+export function firstSentence(value) {
+  const t = clean(value ?? '');
+  const re = /[.!?](?=\s|$)/g;
+  let m;
+  while ((m = re.exec(t))) {
+    const before = t.slice(0, m.index);
+    const word = before.split(' ').at(-1) ?? '';
+    const next = t.slice(m.index + 1).trimStart();
+    if (next && (/^\p{L}$/u.test(word) || word.includes('.') || ABBREVIATIONS.has(word.toLowerCase()) || !/^[\p{Lu}\d"'(]/u.test(next))) continue;
+    return before;
+  }
+  return t.replace(/[.!?]+$/, '');
+}
+
+/** The first sentence with its full stop, only when it fits whole and ends whole; otherwise nothing. */
+export function wholeSentence(value, max) {
+  const s = firstSentence(value);
+  return s && s.length + 1 <= max && endsWhole(s) ? `${s}.` : '';
+}
+
+const ROLE_SEPARATORS = [' | ', ' \u00b7 ', ' \u2013 ', ' \u2014 ', ' - ', ' @ ', ' at ', ', ', ' & ', ' and '];
+/** Who they are as a whole field: "title at company", else the title, else the title up to its first separator; otherwise nothing. */
+export function wholeRole(title, company, max) {
+  const t = clean(title ?? ''), co = clean(company ?? '');
+  const options = [
+    t && co && !t.toLowerCase().includes(co.toLowerCase()) ? `${t} at ${co}` : '',
+    t,
+    ...ROLE_SEPARATORS.map(sep => t.includes(sep) ? t.slice(0, t.indexOf(sep)) : ''),
+    t ? '' : co,
+  ];
+  for (const o of options) {
+    const x = o.replace(/[.,;:\s]+$/, '');
+    if (x.length >= 2 && x.length + 1 <= max && endsWhole(x)) return `${x}.`;
+  }
+  return '';
+}
+
+/** Raw lower-case record data ("chief marketing officer at u.s. example bank") in title case; anything with a capital is left as written. */
+export function titleCase(value) {
+  const t = clean(value ?? '');
+  if (!/\p{L}/u.test(t) || t !== t.toLowerCase()) return t;
+  return t.split(' ').map((w, i) => w.includes('.') ? w.toUpperCase()
+    : i > 0 && SMALL_WORDS.has(w) ? w
+    : w.split('-').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join('-')).join(' ');
+}
+
 /** The last word on a line he reads: never longer than its place allows. */
 export function cutClean(value, max) { return cutAt(value, max); }
 const TIE_WORDS = { '1_reciprocated': 'You have written to each other before', '2_core_network': 'In your core network', '3_known_network': 'In your wider network', '4_owned_network': 'On one of your own lists' };
@@ -255,23 +314,27 @@ const reachWords = r => r?.value ? `${r.value.toLocaleString('en-GB')}, ${r.basi
  * (who they are and why them, and how he knows them) and the brief a tap opens.
  * Written in code from what Control Center holds about them; nothing invented.
  */
-export function caseFor({ c, name, company, ask, kind, reach, fit, serves }) {
-  const title = cleanName(c?.current_title ?? c?.contacts?.title ?? c?.headline ?? '');
-  const role = title && company ? `${title} at ${company}` : title || company || '';
+export function caseFor({ c, name, company: rawCompany, ask, kind, reach, fit, serves }) {
+  const title = titleCase(cleanName(c?.current_title ?? c?.contacts?.title ?? c?.headline ?? ''));
+  const company = titleCase(cleanName(rawCompany ?? ''));
+  const role = title && company && !title.toLowerCase().includes(company.toLowerCase()) ? `${title} at ${company}` : title || company || '';
   const known = knownLine(c);
-  const story = c?.hook || c?.why_them || '';
+  // Why them: the first whole sentence of Control Center's hook, else of its why_them, never one naming an internal slug.
+  const storyOf = room => wholeSentence(c?.hook, room) || wholeSentence(c?.why_them, room);
+  const story = [c?.hook, c?.why_them].map(firstSentence).find(x => x && !SLUG.test(x)) ?? '';
   let because;
   if (ask === 'relationship') {
     const last = monthYear(c?.email_last) ?? monthYear(c?.contacts?.last_touch_at);
     const head = `A close tie gone quiet${last ? ` since ${last}` : ''}.`;
-    const who = role ? wholeClause(role, BECAUSE_MAX - head.length - 1) : '';
+    const who = wholeRole(title, company, BECAUSE_MAX - head.length - 1);
     because = who ? `${head} ${who}` : head;
   } else {
-    // Who they are and why them in one clause, then how he knows them. When both will not fit,
-    // why them stays whole and the known line shortens; never a cut word, never an ellipsis.
+    // Who they are and why them in one whole piece, then how he knows them. When both will not
+    // fit, the piece stays whole and the known line shortens; a piece that will not fit whole is
+    // dropped, and the known line alone is better than a broken one.
     const short = knownShort(c);
-    const lead = story || role;
-    const why = lead ? wholeClause(lead, BECAUSE_MAX - short.length - 1) : '';
+    const room = BECAUSE_MAX - short.length - 1;
+    const why = storyOf(room) || wholeRole(title, company, room);
     because = !why ? (known.length <= BECAUSE_MAX ? known : short)
       : why.length + 1 + known.length <= BECAUSE_MAX ? `${why} ${known}` : `${why} ${short}`;
   }
@@ -279,7 +342,7 @@ export function caseFor({ c, name, company, ask, kind, reach, fit, serves }) {
   const brief = [
     clause(`${name}${role ? `, ${role}` : ''}`, BRIEF_LINE_MAX),
     `${TIE_WORDS[c?.network_tier] ?? 'Someone Control Center holds'}. ${known}`,
-    ...(story ? [clause(story, BRIEF_LINE_MAX)] : []),
+    ...(story ? [cutClean(`${story}.`, BRIEF_LINE_MAX)] : []),
     askLine,
     ...(ask === 'relationship' ? [] : [clause(`Reach: ${reachWords(reach)}`, BRIEF_LINE_MAX)]),
     `Mindmake fit ${fit} of 100, as Control Center scores it.`,

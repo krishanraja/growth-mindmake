@@ -1,5 +1,9 @@
 # Release state
 
+## Whole card lines, 27 October 2026
+
+Built and tested locally; a pull request, not merged or deployed. The first live 1.7.0 run (`mindmake:2026-10-27:manual-18`) showed `because` lines cut mid-phrase. A line is now built only from whole pieces, never cut at a word, and raw lower-case titles are title-cased. Live once merged and the next run reports.
+
 ## Rows he can decide on (protocol 1.7.0), 27 October 2026
 
 Built and tested locally; a pull request, not merged or deployed. Rows rank by Control Center's Mindmake fit, leave out competitors and anyone under fit 40, and fill NETWORK from the last email. Every row carries `because` (at most 80 characters, whole) and `brief` at 1.7.0 only, with a title of at most 56; an older Control Center gets the rows without them. Live only once Control Center serves 1.7.0 and a run reports with it; a card he acts on is the outcome, not this record.
