@@ -158,3 +158,118 @@ test('the printed outcome carries no count of meetings, bookings or traffic', as
   assert.deepEqual(result.report.objectives.find(o => o.key === 'good_meetings'), { key: 'good_meetings', availability: 'measured' });
   assert.equal(JSON.stringify(result).includes('"value"'), false);
 });
+
+// ── Held meetings and his good tap (protocol 1.10.0, synthetic shapes) ──────
+
+import { readMeetings, countGood, originCandidates, meetingsServed, MEETINGS_VERSION, ORIGIN_CANDIDATES_MAX } from '../src/stages/meetings.mjs';
+import { violations } from './support/engine-protocol-service.mjs';
+
+const cid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const mtg = (n, over = {}) => ({ meeting_id: `mtg_${String(n).padStart(32, '0')}`, contact_id: cid(n), held_at: '2026-10-28T10:00:00Z', good: null, good_at: null, origin_path: null, origin_ref: null, assists: [], said_yes_because: null, ...over });
+const covered = (over = {}) => ({ source: 'meetings', available: true, complete: true, rows: 0, observed_at: NOW, reason: null, ...over });
+const SERVED_ALL = ['1.6.0', '1.7.0', '1.8.0', '1.9.0', MEETINGS_VERSION];
+
+test('held meetings are read only where served and available; a row that does not parse is left out and counted', () => {
+  assert.equal(meetingsServed({ schema_versions: SERVED_ALL, features: { meetings: true } }), true);
+  assert.equal(meetingsServed({ schema_versions: SERVED_ALL, features: {} }), false, 'the flag, not the version alone');
+  assert.equal(meetingsServed({ schema_versions: ['1.9.0'], features: { meetings: true } }), false);
+  assert.deepEqual(readMeetings({ coverage: [] }), { state: 'unserved', reason: 'meetings_not_in_context' });
+  assert.deepEqual(readMeetings({ coverage: [covered({ available: false, reason: 'calendar_read_stale' })], meetings: [] }), { state: 'unavailable', reason: 'calendar_read_stale' });
+  const r = readMeetings({ coverage: [covered()], meetings: [mtg(1), { ...mtg(2), contact_id: 'someone@example.com' }, { ...mtg(3), origin_path: 'made-up' }] });
+  assert.equal(r.state, 'served');
+  assert.equal(r.meetings.length, 1);
+  assert.equal(r.dropped, 2);
+  assert.equal(r.complete, false, 'a dropped row means the count is not whole');
+  assert.equal(readMeetings({ coverage: [covered({ complete: false, reason: 'calendar_partly_read' })], meetings: [mtg(1)] }).reason, 'calendar_partly_read');
+});
+
+test('the number from his taps: good meetings held in the London week, by the path recorded at his tap', () => {
+  const week = { start: '2026-10-26', end: '2026-11-02' };
+  const ms = [
+    mtg(1, { good: true, origin_path: 'podcast' }), mtg(2, { good: true, origin_path: 'podcast' }), mtg(3, { good: true, origin_path: null }),
+    mtg(4, { good: false, origin_path: 'partner' }), mtg(5), mtg(6, { good: true, held_at: '2026-11-02T09:00:00Z' }),
+    mtg(7, { good: true, held_at: '2026-11-01T23:30:00Z' })
+  ];
+  const c = countGood(ms, week, londonDate);
+  assert.equal(c.total, 4, 'a Sunday-night London meeting is in the week; a Monday one is next week\'s');
+  assert.deepEqual(c.by_path, { podcast: 2, unknown: 2 });
+  assert.equal(c.unanswered, 1);
+  assert.equal(c.held, 6);
+});
+
+test('where an unanswered meeting came from is read from the engine\'s own records, one candidate a person, oldest first', () => {
+  const context = {
+    records: {
+      guests: [{ id: 'g1', contact_id: cid(1), invite_show: 'makeyourmindup' }],
+      visibility: [{ id: 't1', type: 'podcast', booking_contact_id: cid(2) }, { id: 't2', type: 'conference', booking_contact_id: cid(3) }],
+      advisory: [{ id: 'p1', contact_id: cid(6), visibility_target_id: null, guest_id: null }]
+    },
+    feedback: [
+      { proposal_id: 'gm-row-partner', row: 'partners', subject_ref: `contact:${cid(4)}`, state: 'approved', carried_out: 'draft', decided_at: '2026-10-27T09:00:00Z' },
+      { proposal_id: 'gm-row-signal', row: 'reach_out', amplifier_kind: 'signal', subject_ref: `contact:${cid(5)}`, state: 'approved', carried_out: 'message', decided_at: '2026-10-27T09:00:00Z' },
+      { proposal_id: 'gm-row-declined', row: 'partners', subject_ref: `contact:${cid(8)}`, state: 'declined', carried_out: null, decided_at: '2026-10-27T09:00:00Z' }
+    ],
+    network: [{ contact_id: cid(7) }, { contact_id: cid(9) }, { contact_id: cid(10) }]
+  };
+  const meetings = [8, 7, 6, 5, 4, 3, 2, 1].map((n, i) => mtg(n, { held_at: `2026-10-2${i}T10:00:00Z`.replace('2026-10-20', '2026-10-20') }));
+  meetings.push(mtg(1, { meeting_id: 'mtg_dup', held_at: '2026-10-29T10:00:00Z' }), mtg(9, { good: true }), mtg(10, { origin_path: 'inbound' }));
+  const c = originCandidates({ meetings, context });
+  const by = Object.fromEntries(c.map(x => [x.contact_id, x]));
+  assert.deepEqual(by[cid(1)], { contact_id: cid(1), path: 'own-show-guest', origin_ref: 'guest:g1' });
+  assert.deepEqual(by[cid(2)], { contact_id: cid(2), path: 'podcast', origin_ref: 'target:t1' });
+  assert.deepEqual(by[cid(3)], { contact_id: cid(3), path: 'guest-seat', origin_ref: 'target:t2' });
+  assert.deepEqual(by[cid(4)], { contact_id: cid(4), path: 'partner', origin_ref: 'proposal:gm-row-partner' });
+  assert.deepEqual(by[cid(5)], { contact_id: cid(5), path: 'public-signal', origin_ref: 'proposal:gm-row-signal' });
+  assert.deepEqual(by[cid(6)], { contact_id: cid(6), path: 'existing-relationship', origin_ref: 'pilot:p1' });
+  assert.deepEqual(by[cid(7)], { contact_id: cid(7), path: 'existing-relationship', origin_ref: null });
+  assert.equal(by[cid(8)], undefined, 'a row he declined is no path, and nothing is guessed');
+  assert.equal(by[cid(9)], undefined, 'an answered meeting needs none');
+  assert.equal(by[cid(10)], undefined, 'a recorded path is never offered again');
+  assert.equal(c.filter(x => x.contact_id === cid(1)).length, 1, 'one candidate a person');
+  assert.equal(c[0].contact_id, cid(7), 'oldest meeting first, as his list asks');
+  const many = Array.from({ length: 50 }, (_, i) => mtg(100 + i));
+  assert.equal(originCandidates({ meetings: many, context: { network: many.map(m => ({ contact_id: m.contact_id })) } }).length, ORIGIN_CANDIDATES_MAX);
+});
+
+function tapped({ meetings, coverage = covered(), features = { context: true, meetings: true } }) {
+  return harness({
+    capabilities: { activation: { activated_on: '2026-10-18' }, schema_versions: SERVED_ALL, features },
+    context: { schema_version: MEETINGS_VERSION, engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [coverage], records: { guests: [{ id: 'g1', contact_id: cid(1), invite_show: 'makeyourmindup' }] }, meetings, feedback: [], network: [] }
+  });
+}
+
+test('once Control Center serves his meetings, the number is counted from his taps, the Monday ask is not posted, and the report carries 1.10.0 candidates', async () => {
+  const schema = JSON.parse(await readFile(new URL('../docs/control-center/engine-report.schema.json', import.meta.url), 'utf8'));
+  const h = tapped({ meetings: [mtg(1), mtg(2, { good: true, origin_path: 'podcast' }), mtg(3, { good: true, origin_path: 'existing-relationship' })] });
+  const result = await run(h);
+  assert.equal(result.status, 'succeeded');
+  const rep = h.reports[0];
+  assert.equal(rep.schema_version, MEETINGS_VERSION);
+  const o = rep.objectives.find(x => x.key === 'good_meetings');
+  assert.equal(o.availability, 'measured');
+  assert.equal(o.value, 2);
+  assert.equal(rep.proposals.some(p => p.proposal_id.startsWith('gmg-')), false, 'his taps replace the Monday ask');
+  assert.deepEqual(rep.origin_candidates, [{ contact_id: cid(1), path: 'own-show-guest', origin_ref: 'guest:g1' }]);
+  assert.ok(rep.activity.some(a => a.line.startsWith('Good meetings in the week of 2026-10-26: 2 against a target of 2, from his taps') && a.line.includes('1 of the 3 held that week is not answered yet')));
+  assert.deepEqual(violations(schema, rep), []);
+  assert.equal(JSON.stringify(rep).includes('@'), false, 'contact ids only, never an address');
+});
+
+test('a partial read of his meetings is never the number, and an unavailable one falls back to the Monday ask', async () => {
+  const partial = tapped({ meetings: [mtg(2, { good: true, origin_path: 'podcast' })], coverage: covered({ complete: false, reason: 'calendar_partly_read' }) });
+  await run(partial);
+  const o = partial.reports[0].objectives.find(x => x.key === 'good_meetings');
+  assert.equal(o.availability, 'missing');
+  assert.equal(o.value, null);
+  assert.match(o.reason, /calendar_partly_read/);
+  assert.ok(partial.reports[0].activity.some(a => a.line.includes('this is a floor and is not reported as the number')));
+  const down = tapped({ meetings: [], coverage: covered({ available: false, reason: 'calendar_not_read' }) });
+  await run(down);
+  assert.ok(down.reports[0].proposals.some(p => p.proposal_id === 'gmg-2026-10-26'), 'the Monday ask stands in');
+  assert.ok(down.reports[0].activity.some(a => a.line.includes('not usable this run (calendar_not_read)')));
+  assert.equal(down.reports[0].origin_candidates, undefined);
+  const flagless = tapped({ meetings: [mtg(1)], features: { context: true } });
+  await run(flagless);
+  assert.notEqual(flagless.reports[0].schema_version, MEETINGS_VERSION, 'no flag, no 1.10.0 report');
+  assert.ok(flagless.reports[0].proposals.some(p => p.proposal_id === 'gmg-2026-10-26'));
+});

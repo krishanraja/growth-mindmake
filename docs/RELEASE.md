@@ -1,5 +1,9 @@
 # Release state
 
+## The number from his taps, 27 October 2026
+
+Built and tested; merges with Control Center's side (krishanraja/control-center#582). Once Control Center serves his held meetings (1.10.0, `features.meetings`), good meetings are counted from his one tap after each: a meeting he marked good, in the London week it was held, by the path recorded at his tap. The Monday ask is then no longer posted; it stands in whenever the meetings are not served or not available. A read Control Center says is incomplete is never the number: the count is missing with its reason, and the line calls the floor a floor. Each run also says where each unanswered meeting came from (`origin_candidates`, at most 40, one a person, oldest first), from the engine's own records only: a guest on his show, a show or stage whose booking contact they are, a row he carried out about them, an Advisory pilot, then a warm tie; a person the records say nothing about gets none and is recorded as unknown. Contact ids only. The protocol copies in `docs/control-center/` are brought up to 1.10.0. Four deliberate breakages each failed a test. 281 tests. Not live until Control Center applies its migration and serves the part.
+
 ## Control Center registers the number, 27 October 2026
 
 Control Center side, merged and applied live (krishanraja/control-center#580, migration `20261112120000`). Mindmake's registry row now holds `good_meetings` (20 a week by 30 November), `podcasts_booked` (2 a week) and `stages_confirmed` (1 a fortnight) beside its five earlier objectives, read back from production; no other engine changed. Control Center's next action now weighs the gap on the keys this engine already reports, instead of treating them as unknown. Step 1 of protocol 1.10.0; the held meetings and his good tap are next. The Control Center change that retired its "already grows Mindmake" rule (krishanraja/control-center#579) is deployed to production.

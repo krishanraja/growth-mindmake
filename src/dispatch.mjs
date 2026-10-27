@@ -17,7 +17,7 @@ import { amplifierRows, rankRows, ROWS, TITLE_MAX, TITLE_MAX_BRIEF } from './sta
 import { signalRequests, signalRows } from './stages/signals.mjs';
 import { readCanon, readRecord, blobSha, CanonError } from './stages/canon.mjs';
 import { pitchRows } from './stages/pitches.mjs';
-import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, STOPGAP_PREFIX } from './stages/meetings.mjs';
+import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, STOPGAP_PREFIX, MEETINGS_VERSION, meetingsServed, readMeetings, countGood, tappedObjective, tappedLine, originCandidates } from './stages/meetings.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
 export const PRODUCT_SLUG = 'mindmake';
@@ -303,11 +303,13 @@ export function proposalsFrom({ batch = null, snapshot = null, work = null, work
 }
 
 /** Build the report envelope exactly as engine-report.schema.json, then check it against that schema. */
-export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION }) {
+export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null }) {
   const body = {
     schema_version, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
     objectives, activity: activity.slice(0, 40).map(line => ({ line: cut(line, 500), evidence_url: null })),
-    proposals, events, holds: holds.slice(0, 40).map(h => ({ reason: cut(h.reason, 200), detail: h.detail === null || h.detail === undefined ? null : cut(h.detail, 1000) }))
+    proposals, events, holds: holds.slice(0, 40).map(h => ({ reason: cut(h.reason, 200), detail: h.detail === null || h.detail === undefined ? null : cut(h.detail, 1000) })),
+    // 1.10.0: where each unanswered meeting came from, only when there is one to say.
+    ...(origin_candidates?.length ? { origin_candidates } : {})
   };
   const report = { ...body, payload_sha256: reportDigest(body) };
   const errors = schemaErrors(REPORT_SCHEMA, report);
@@ -564,14 +566,31 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       }
       mapped.proposals = mapped.proposals.slice(0,10);
     }
-    // The number (docs/NORTH_STAR.md): last week's good meetings from the Monday ask, until Control Center serves each meeting.
+    // The number (docs/NORTH_STAR.md): last week's good meetings. From his taps once Control Center
+    // serves each meeting he held (1.10.0); until then from the Monday ask.
     const thisWeek = londonWeek(at), lastWeek = { start: addDays(thisWeek.start, -7), end: thisWeek.start };
     const due = ladder.length > 0 && lastWeek.start >= ladder[0][0];
-    const answer = !due ? { state: 'not_due' } : decisionsRead ? readStopgap(decisionsRead, lastWeek.start, payloadDigest) : { state: 'unread' };
     const thisTarget = directive.north_star.week_target ?? ladderTarget(ladder, thisWeek.start);
-    if (due && (answer.state === 'unanswered' || answer.state === 'unread')) mapped.proposals.unshift(finishProposal(stopgapProposal({ weekOf: lastWeek.start, expiresAt: londonMidnight(thisWeek.end), target: ladderTarget(ladder, lastWeek.start) })));
-    if (answer.state === 'digest_mismatch') holds.push({ reason: 'amended_digest_mismatch', detail: "The Monday ask's amended answer does not match its digest, so it was not counted." });
-    activity.push(goodMeetingsLine({ answer, lastWeekOf: lastWeek.start, lastTarget: ladderTarget(ladder, lastWeek.start), thisTarget, targetSource: directive.north_star.week_target !== null ? "Control Center's refresh" : 'the ladder in docs/NORTH_STAR.md', northStar: directive.north_star }));
+    const targetSource = directive.north_star.week_target !== null ? "Control Center's refresh" : 'the ladder in docs/NORTH_STAR.md';
+    const tapped = suppliedContext && meetingsServed(capabilities) ? readMeetings(suppliedContext) : null;
+    const taps = tapped?.state === 'served' ? tapped : null;
+    let answer = null, goodObjective, origin_candidates = null;
+    if (taps) {
+      const count = countGood(taps.meetings, lastWeek, londonDate);
+      goodObjective = tappedObjective({ read: taps, count, lastWeek, midnight: londonMidnight, timezone: TIMEZONE });
+      activity.push(tappedLine({ read: taps, count, lastWeekOf: lastWeek.start, lastTarget: ladderTarget(ladder, lastWeek.start), thisTarget, targetSource, northStar: directive.north_star }));
+      origin_candidates = originCandidates({ meetings: taps.meetings, context: suppliedContext });
+      const open = new Set(taps.meetings.filter(m => m.good === null && m.origin_path === null).map(m => m.contact_id)).size;
+      activity.push(`Where his meetings came from: ${origin_candidates.length} of the ${open} ${open === 1 ? 'person' : 'people'} in an unanswered meeting ${origin_candidates.length === 1 ? 'has' : 'have'} a path from the engine's records; the rest are recorded as unknown at his tap.`);
+      if (taps.dropped) holds.push({ reason: 'meetings_unreadable', detail: `${taps.dropped} held meeting${taps.dropped === 1 ? '' : 's'} in the context did not parse, so the number is not claimed.` });
+    } else {
+      answer = !due ? { state: 'not_due' } : decisionsRead ? readStopgap(decisionsRead, lastWeek.start, payloadDigest) : { state: 'unread' };
+      if (due && (answer.state === 'unanswered' || answer.state === 'unread')) mapped.proposals.unshift(finishProposal(stopgapProposal({ weekOf: lastWeek.start, expiresAt: londonMidnight(thisWeek.end), target: ladderTarget(ladder, lastWeek.start) })));
+      if (answer.state === 'digest_mismatch') holds.push({ reason: 'amended_digest_mismatch', detail: "The Monday ask's amended answer does not match its digest, so it was not counted." });
+      activity.push(goodMeetingsLine({ answer, lastWeekOf: lastWeek.start, lastTarget: ladderTarget(ladder, lastWeek.start), thisTarget, targetSource, northStar: directive.north_star }));
+      if (tapped) activity.push(`Held meetings: served at 1.10.0 but not usable this run (${tapped.reason}), so the Monday ask stands in.`);
+      goodObjective = goodMeetingsObjective({ answer, lastWeek, thisWeek, midnight: londonMidnight, timezone: TIMEZONE });
+    }
     const booked = suppliedContext ? bookings({ context: suppliedContext, at, weekStart: thisWeek.start, londonDate, addDays }) : null;
     activity.push(bookingLine(booked));
     // 1.6.0: the five rows on his home screen, after everything else, in the room a report has left.
@@ -592,6 +611,9 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       holds.push(...rows.holds); activity.push(...rows.activity);
       outcome.rows = rows.counts;
     }
+    // 1.10.0 adds origin_candidates and changes nothing earlier, so a run that can send it does.
+    if (taps && (schema_version === PITCH_VERSION || schema_version === SCHEMA_VERSION)) schema_version = MEETINGS_VERSION;
+    else if (taps) { origin_candidates = null; holds.push({ reason: 'meetings_need_1_9_0', detail: 'Control Center serves held meetings but not every earlier version this run, so no origin candidates were sent.' }); }
     holds.push(...mapped.holds); activity.push(...mapped.activity);
     // The directive's constraints, in shadow until the switch (plan section 3): counted and reported, nothing hidden.
     const c = directive.constraints;
@@ -609,10 +631,10 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.some(h => !STANDING_HOLDS.has(h.reason)) ? 'held' : 'ready',
       source: strategicSource ?? { revision: snapshot && snapshot.source_revision.length <= 128 ? snapshot.source_revision : revision, captured_at: snapshot?.generated_at ?? observed_at },
       objectives: [
-        goodMeetingsObjective({ answer, lastWeek, thisWeek, midnight: londonMidnight, timezone: TIMEZONE }),
+        goodObjective,
         ...bookingObjectives({ booked, thisWeek, at, midnight: londonMidnight, addDays, londonDate, timezone: TIMEZONE }),
         ...(outcomes ? outcomeScorecard(outcomes, observed_at) : objectiveReadings({ at: observed_at, activatedOn }))
-      ].slice(0, 20), activity, proposals: mapped.proposals, holds, schema_version
+      ].slice(0, 20), activity, proposals: mapped.proposals, holds, schema_version, origin_candidates
     });
     outcome.report = { status: report.status, payload_sha256: report.payload_sha256, proposals: report.proposals.length, walled: report.proposals.filter(p => p.wall !== 'none').length, holds: report.holds.map(h => h.reason), objectives: report.objectives.map(o => ({ key: o.key, availability: o.availability })), replayed: null };
     phase = 'report';
