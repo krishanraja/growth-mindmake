@@ -233,7 +233,7 @@ tests/fixtures/live-shapes/*.json   hand-written synthetic versions of each live
 1. **The show-notes note** (T1, section 9). After one of Jonny's pitches to someone else's show or stage is booked, Jonny asks the host to put the brief link in the show notes or event page: a lasting public link, read just after the audience has heard him.
 2. **The one-sheet as a pitch's one link** (C2). Every pitch then sends a booker to mindmake.co.
 3. **The canon's brief link** in row notes and signals, unchanged and untagged.
-4. **The stage-form website field.** It is krishraja.com today (playbook 11); whether it becomes mindmake.co is his to rule.
+4. **The stage-form website field.** It becomes mindmake.co (Ruling, Krish, 2026-10-27: "mindmake.co for all mindmake venture things"); it is krishraja.com today (playbook 11).
 
 Not this engine's: Make Your Mind Up's own notes (playbook 05, publication boundary) and new pages on the site (the mindmake repository, with his read before merge).
 
@@ -586,7 +586,7 @@ A multiplier gift pack, a decision aid and a case-study cut, only after C2 shows
 
 ## 10. Gates
 
-**Now:** this plan, and his go on Phase 1.
+**Now:** approved in full on 27 October ("go, do all of this to 100% completion bit by bit"), with this repository's pull requests merged by the session once their checks pass.
 
 **Recurring, two a week:**
 - Monday's one ask: the spec and its questions, last week's good-meeting counts, and any asset version by its SHA.
@@ -610,7 +610,7 @@ A Codex card's yes comes when the guard asks. His daily presses stay as they are
 - the AGENTS.md, GET-GOING.md and NOW.md change in Phase 4;
 - his go on Phases 2 to 5 under U4;
 - Control Center's 1.10.0 session (first the held meetings, the one-tap good prompt and `origin_candidates`, `facts[]`, `asset_ref` and the library listing, then the web part and the show-notes kind);
-- the stage-form website field: krishraja.com today, or mindmake.co;
+- the stage-form website field: ruled mindmake.co on 27 October;
 - three changes in the mindmake repository, each needing his yes and his read before merge (its canon's rule for any new page or claim):
   1. the site sending Analytics events for the brief's steps, only after Allow. Marking them as key events is a separate change in the Analytics property, which Krish makes or approves at the time; Control Center's service account stays read-only;
   2. UTM tags kept until a visitor answers the banner, held only in the address or page memory, never written to the device before Allow, dropped on Decline, and passed to Analytics only after Allow;

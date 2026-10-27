@@ -55,6 +55,8 @@ His answers the same day:
 - Traffic counts stay in Control Center. Drive readouts carry only the week-on-week change and the share by path; nothing goes in git, NOW.md, Actions logs or the printed run result.
 - Traffic is never a meeting and never part of the number (docs/NORTH_STAR.md).
 
+Later the same day: "mindmake.co for all mindmake venture things". Every Mindmake link the engine writes, a stage form's website field included, points to mindmake.co; krishraja.com stays only where a form asks for his personal speaker site. He also approved every piece of the plan, with "yes merge them yourself, go": a session merges this repository's pull requests once their checks pass, timed just after a morning run. Each send, publish, spend or permission change still takes his yes at the time.
+
 How the plan reads it (docs/briefs/2026-10-27-bulletproof-growth-engine.md, version 3; an interpretation, pending his go on the plan):
 - Every lane looks for ways to send people to mindmake.co inside the canon: its allowed asks only, one ask a message, and his read before any new page or claim on the site.
 - Traffic is a supporting reading: meetings by path decide what ranks first, and traffic by path only breaks ties between levers. It never steers the work, never counts as a result and is never an objective; it is reported every week beside the number.
