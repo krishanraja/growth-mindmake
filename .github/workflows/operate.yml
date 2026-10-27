@@ -101,7 +101,8 @@ jobs:
           node-version: '24'
       - name: Daily Control Center dispatch (dry; nothing sends)
         if: ${{ github.event_name == 'repository_dispatch' }}
-        run: node src/cli.mjs dispatch
+        # Each wake reports under its own run id (a same-day refill is a new run, N01); a re-run of the same wake keeps its number and reuses its report.
+        run: node src/cli.mjs dispatch --kind dispatch-${{ github.run_number }}
       - name: Manual Control Center dispatch (dry; nothing sends)
         if: ${{ github.event_name == 'workflow_dispatch' }}
         run: node src/cli.mjs dispatch --kind manual-${{ github.run_number }}

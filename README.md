@@ -33,7 +33,7 @@ Every morning at about 06:10 London, Control Center wakes this repository with a
 2. reads today's directive, including the `in_house` counts for Advisory, Network and Visibility;
 3. reads one snapshot page and prepares notes dry, exactly as `daily` does without `--commit`;
 4. turns the prepared notes and the one grounded improvement into proposals: an outward note is `wall: send` with its exact words, channel and digest, a qualification or proof call is `wall: strategy`, and research or internal preparation is `wall: none`. No note is proposed to anyone Advisory already holds;
-5. posts the report under a stable `run_id` (`mindmake:<London date>:dispatch`) and reads it back by digest;
+5. posts the report under a stable `run_id` per wake (`mindmake:<London date>:dispatch-<run number>`) and reads it back by digest;
 6. reads Krish's decisions and journals one terminal attempt.
 
 It never sends, posts, spends, drafts into Gmail or commits an Advisory batch. Both objectives report as missing, with the reason, until Control Center serves complete outcome records. See [operations](docs/OPERATIONS.md#control-center-daily-dispatch).
