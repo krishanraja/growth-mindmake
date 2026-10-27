@@ -1,7 +1,8 @@
 import { seal, clean, DAY } from '../guards.mjs';
 import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
 import { showNoteRows } from './shownotes.mjs';
-import { shadowLine } from './visibility.mjs';
+import { shadowLine, stageVerdict, stageStrength, ccStageVerdict, isDeadDate } from './visibility.mjs';
+import { guestVerdictOf } from './guests.mjs';
 
 /**
  * Podcast pitches, written in Jonny's voice for Krish (protocol 1.9.0, playbook 11).
@@ -28,9 +29,10 @@ import { shadowLine } from './visibility.mjs';
  *
  * Guest invites (VISIBILITY) bring people onto his own shows (Krish,
  * 2026-10-27: guests for Signal & Noise and Make Your Mind Up are part of his
- * visibility; Make Your Mind Up takes a weekly conversation). A guest
- * Control Center's guest standard judged worth having, with an address on
- * record, gets one invite from Jonny, to the show it was judged for. The
+ * visibility; Make Your Mind Up takes a weekly conversation). A guest the
+ * engine's guest standard judges worth having (guests.mjs, on the axes
+ * Control Center serves), with an address on record, gets one invite from
+ * Jonny, to the show it was judged for. The
  * week's invites follow the shows' shares (Make Your Mind Up 70, Signal &
  * Noise 30: Ruling, Krish, 2026-10-20), at most two a run, taken first from
  * the run's ten.
@@ -60,8 +62,14 @@ const SPEAKING_FORMAT = /\b(?:webinar|panel)s?\b/i;
 const NOT_A_STAGE = new Set(['podcast', 'press_relationship', 'newsletter']);
 /** A show with no episode in this long is not taking guests. */
 export const QUIET_AFTER_DAYS = 120;
-/** How Nova's standard ranks a stage: worth taking, a stretch, or not yet judged. */
+/** How the visibility standard ranks a stage: worth taking, a stretch, or not yet judged (the engine's own verdict, visibility.mjs). */
 const VERDICT_WEIGHT = { take: 3, stretch: 2 };
+/** A stage's rank weight from the engine's own verdict on it; unjudged weighs 1, as a stage Control Center had not judged did. Pure. */
+const standardWeight = (t, at) => VERDICT_WEIGHT[stageVerdict(t, at)] ?? 1;
+/** Whether the visibility standard refuses a stage to speak on or a form, leaving a passed date, which it refuses too, to the hold that names it (deadline_passed, event_passed). Pure. */
+const refusedByStandard = (t, at) => stageVerdict(t, at) === 'rejected' && !isDeadDate(t, at);
+/** The line a pitch's why carries: the visibility standard by name, with the engine's own verdict. Pure. */
+const standardSays = (t, at) => { const v = stageVerdict(t, at); return `The visibility standard: ${v === 'take' || v === 'stretch' ? v : 'not yet judged'}.`; };
 /** The rooms his buyer listens in (playbook 11): a show about one of these fits best. */
 export const BUYER_TOPICS = new Set(['leadership', 'marketing', 'advertising', 'media', 'venture', 'finance', 'technology', 'talent']);
 
@@ -102,14 +110,14 @@ export function hostOf(t) {
 /** Days since a show's latest episode, or null when it is not known. */
 const sinceLatest = (t, at) => { const l = Date.parse(t?.latest_episode_at ?? ''); return Number.isFinite(l) ? (Date.parse(at) - l) / DAY : null; };
 
-/** How a show ranks: Nova's verdict, how recently it published, whether it is about a room his buyer is in, and how long it has run. Pure. */
+/** How a show ranks: the visibility standard's verdict, how recently it published, whether it is about a room his buyer is in, and how long it has run. Pure. */
 export function pitchScore(t, at) {
   const days = sinceLatest(t, at);
   const recent = days === null ? 0 : days <= 30 ? 1 : days <= 60 ? 0.85 : 0.7;
   const topic = showTopic(t);
   const fit = topic && BUYER_TOPICS.has(topic) ? 1 : 0.7;
   const eps = Number.isInteger(t?.episodes) && t.episodes > 0 ? t.episodes : 0;
-  return (VERDICT_WEIGHT[t?.verdict] ?? 1) * recent * fit * Math.log10(eps + 10);
+  return standardWeight(t, at) * recent * fit * Math.log10(eps + 10);
 }
 
 /** Why a stage is not pitched today, or null when it may be. Pure. */
@@ -117,7 +125,7 @@ export function pitchHold(t, { L, pitched, at }) {
   if (t?.type !== 'podcast') return 'not_a_podcast';
   if (!t.booking_contact_id || !UUID.test(t.booking_contact_id)) return 'no_booking_address';
   if (t.buried_at) return 'buried';
-  if (t.verdict === 'rejected') return 'rejected';
+  if (stageVerdict(t, at) === 'rejected') return 'rejected';
   if (t.status === 'applied' || t.applied_at) return 'applied';
   if ([t.title, t.organizer].some(x => typeof x === 'string' && OWN_SHOW.test(x))) return 'own_show';
   const days = sinceLatest(t, at);
@@ -142,7 +150,7 @@ export function speakHold(t, { L, pitched, at }) {
   if (stageKind(t) !== 'stage') return 'not_a_stage';
   if (!t.booking_contact_id || !UUID.test(t.booking_contact_id)) return 'no_booking_address';
   if (t.buried_at) return 'buried';
-  if (t.verdict === 'rejected') return 'rejected';
+  if (refusedByStandard(t, at)) return 'rejected';
   if (t.status === 'applied' || t.applied_at) return 'applied';
   if (!['sourced', 'queued'].includes(t.status)) return 'not_open';
   if ([t.title, t.organizer].some(x => typeof x === 'string' && OWN_SHOW.test(x))) return 'own_show';
@@ -153,15 +161,15 @@ export function speakHold(t, { L, pitched, at }) {
   return refusedBy(L, { subject: `target:${t.id}`, row: 'events', kind: 'ceo_educator', sector: null, topic: showTopic(t), band: 'unknown' }, at);
 }
 
-/** How a stage ranks: Nova's verdict, its three scores when judged, how soon its call closes while still open, and whether his buyer is in the room. Pure. */
+/** How a stage ranks: the visibility standard's verdict, its weakest axis when judged, how soon its call closes while still open, and whether his buyer is in the room. Pure. */
 export function speakScore(t, at) {
-  const scores = [t?.room_score, t?.standing_score, t?.only_him_score];
-  const judged = scores.every(x => Number.isFinite(x)) ? Math.max(0.1, Math.min(...scores) / 100) : 0.6;
+  const weakest = stageStrength(t);
+  const judged = weakest === null ? 0.6 : Math.max(0.1, weakest / 100);
   const days = Number.isFinite(Date.parse(t?.deadline_at ?? '')) ? (Date.parse(t.deadline_at) - Date.parse(at)) / DAY : null;
   const soon = days === null ? 1 : days <= 14 ? 1.3 : days <= 30 ? 1.15 : 1;
   const topic = showTopic(t);
   const fit = topic && BUYER_TOPICS.has(topic) ? 1 : 0.7;
-  return (VERDICT_WEIGHT[t?.verdict] ?? 1) * judged * soon * fit;
+  return standardWeight(t, at) * judged * soon * fit;
 }
 
 /** The talk Krish offers a stage: the one Nova suggested for it, else one from its topic. Pure. */
@@ -278,13 +286,15 @@ export const INVITE_SHOWS = {
   makeyourmindup: { share: 70, weekly: true },
   signal_noise: { share: 30, weekly: false },
 };
-/** The guest standard's verdicts that may be invited (Control Center, api/_guestStandard.ts): worth taking, or a stretch. */
+/** The guest standard's verdicts that may be invited (guests.mjs, ported from api/_guestStandard.ts): worth taking, or a stretch. */
 const GUEST_VERDICT = { take: 2, stretch: 1 };
 const OPEN_GUEST = new Set(['scouted', 'enriched']);
 const KRISH = /\bkrish\s+raja\b/i;
 
 /** The shows' shares as the week spec carries them (src/crew/compile.mjs): today's ruled split. */
 export const SHOW_SHARES = Object.freeze(Object.fromEntries(Object.entries(INVITE_SHOWS).map(([k, v]) => [k, v.share])));
+/** The two shows in order (src/lib/shows.ts SHOW_ORDER), which guests.mjs re-exports. */
+export const SHOW_ORDER = Object.freeze(Object.keys(INVITE_SHOWS));
 
 /** Each show's invites this week, by its share of the week's invites (INVITES_A_WEEK unless the spec says otherwise), Make Your Mind Up's share rounded up. Pure. */
 export function weeklyInvites(total = INVITES_A_WEEK, shares = SHOW_SHARES) {
@@ -339,8 +349,9 @@ export function inviteHold(g, { L, invited, routes, at }) {
   if (g.recorded_at || g.published_at) return 'recorded';
   if (!OPEN_GUEST.has(g.status)) return 'not_open';
   if (g.invite_state && g.invite_state !== 'proposed') return 'already_invited';
-  if (g.guest_verdict === 'rejected') return 'guest_rejected';
-  if (!(g.guest_verdict in GUEST_VERDICT)) return 'guest_not_judged';
+  const verdict = guestVerdictOf(g);
+  if (verdict === 'rejected') return 'guest_rejected';
+  if (!(verdict in GUEST_VERDICT)) return 'guest_not_judged';
   if (!guestName(g)) return 'no_name';
   if (KRISH.test(g.name)) return 'krish_himself';
   const email = routes?.[g.contact_id]?.email;
@@ -387,7 +398,7 @@ export function inviteCard({ g, name, show, topic, canon, contact, serves, weekl
   const who = within(`${name}${g.one_liner ? `: ${leadFacts(g.one_liner, CARD_WHO_MAX - name.length - 2).replace(/[.!?]+$/, '')}` : ''}.`, CARD_WHO_MAX) || `${name}.`;
   const known = (contact ? knownWords(contact) : '') || 'You do not know them yet. Jonny writes first, from his own Gmail.';
   const pages = evidencePages(g);
-  const why = [leadFacts(g.why_fit, CARD_LINE_MAX), pages[0] ? within(`Seen online: ${clean(pages[0].label)}.`) : '', g.guest_verdict === 'take' ? `The guest standard judged them worth having on ${show.name}.` : `The guest standard judged them a stretch for ${show.name}, worth asking.`]
+  const why = [leadFacts(g.why_fit, CARD_LINE_MAX), pages[0] ? within(`Seen online: ${clean(pages[0].label)}.`) : '', guestVerdictOf(g) === 'take' ? `The guest standard judged them worth having on ${show.name}.` : `The guest standard judged them a stretch for ${show.name}, worth asking.`]
     .filter(Boolean).filter((l, i, a) => a.findIndex(x => x.slice(0, 40) === l.slice(0, 40)) === i).slice(0, CARD_LINES);
   const goal = serves ? within(`It serves this week's goal: ${serves.replace(/[.!?]+$/, '')}.`) : '';
   const gain = [`A guest for ${weekly ? `${show.name}'s weekly conversation` : show.name}, and a conversation that puts both names in front of each other's audience.`, ...(goal ? [goal] : [])].map(l => within(l)).filter(Boolean);
@@ -713,7 +724,7 @@ export function stageForm(t, { L, pitched, at, tries = [], canon, record = null 
   if (!t.form_fields.length) return hold('in_script');
   if (typeof t.title !== 'string' || !cleanName(t.title)) return hold('no_title');
   if (t.buried_at) return hold('buried');
-  if (t.verdict === 'rejected') return hold('rejected');
+  if (refusedByStandard(t, at)) return hold('rejected');
   if (t.status === 'applied' || t.applied_at) return hold('applied');
   if (!['sourced', 'queued'].includes(t.status)) return hold('not_open');
   if ([t.title, t.organizer].some(x => typeof x === 'string' && OWN_SHOW.test(x))) return hold('own_show');
@@ -775,7 +786,7 @@ function formProposal(f, rank, { t, canon, record, files, weekGoals, at, titleMa
     proposal_id: `gmp-${seal({ subject: `target:${t.id}`, ask: 'form' }).slice(0, 32)}`,
     title: events ? fitTitleWithin(titleMax, `Apply to speak at ${f.name}`, `Apply to ${f.name}`, 'Apply to speak at an event')
       : fitTitleWithin(titleMax, `Apply to be a guest on ${f.name}`, `Apply to ${f.name}`, `Apply to be a guest on a ${noun}`),
-    why: clean(`${f.name} asks for ${events ? 'speakers' : 'guests'} through its own form, and every field it requires is answered from what the run reads.${f.retried ? ' His last tap sent nothing; what it lacked is answered now.' : ''} Nova's verdict: ${t.verdict ?? 'not yet judged'}. One ask: his tap sends it.`).slice(0, 1000),
+    why: clean(`${f.name} asks for ${events ? 'speakers' : 'guests'} through its own form, and every field it requires is answered from what the run reads.${f.retried ? ' His last tap sent nothing; what it lacked is answered now.' : ''} ${standardSays(t, at)} One ask: his tap sends it.`).slice(0, 1000),
     kind: 'prepared', wall: 'send', channel: 'form', amount_usd: 0, objective_key: 'qualified_conversations',
     exact_payload: f.exact, target: f.url, subject_ref: `target:${t.id}`,
     evidence: [], close_condition: { event: 'form_submitted', reference: `${f.row}:form` },
@@ -874,7 +885,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     if (typeof g?.contact_id === 'string' && seenGuest.has(g.contact_id)) continue;
     if (typeof g?.contact_id === 'string') seenGuest.add(g.contact_id);
     const why = inviteHold(g, { L, invited, routes, at }) ?? (lanes.visibility ? null : 'lane_off');
-    if (why) inviteHeld.push(why); else open.push({ g, score: GUEST_VERDICT[g.guest_verdict] ?? 0 });
+    if (why) inviteHeld.push(why); else { const standard = guestVerdictOf(g); open.push({ g, standard, score: GUEST_VERDICT[standard] ?? 0 }); }
   }
   open.sort((a, b) => b.score - a.score || a.g.contact_id.localeCompare(b.g.contact_id));
   const invites = pickInvites(open, invitesThisWeek(context, guests, at), Math.min(caps.invites_per_run, room), weeklyInvites(caps.invites_per_week, caps.show_shares));
@@ -882,19 +893,19 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   const take = shares(pods.length, stages.length, room - invites.length, caps.stage_share);
   const usedFiles = [...files, ...(record?.file ? [record.file] : [])].slice(0, 8);
   const serves = servesOf('visibility', weekGoals);
-  const inviteProposals = invites.map(({ g }, i) => {
+  const inviteProposals = invites.map(({ g, standard }, i) => {
     const name = guestName(g);
     const show = inviteShow(g.invite_show, canon);
     const weekly = INVITE_SHOWS[g.invite_show].weekly;
     const topic = guestTopic(g);
     const words = inviteWords({ name, show, page: evidencePages(g)[0] ?? null });
     const card = inviteCard({ g, name, show, topic, canon, contact: people.get(g.contact_id) ?? null, serves, weekly });
-    const because = `A ${g.guest_verdict === 'take' ? 'strong ' : ''}guest for ${show.name}. Jonny invites them.`;
+    const because = `A ${standard === 'take' ? 'strong ' : ''}guest for ${show.name}. Jonny invites them.`;
     const action = { version: 2, channel: 'email', recipient_contact_id: g.contact_id, subject: words.subject, body: words.body, form: null, mailbox: 'jonny' };
     return {
       proposal_id: `gmp-${seal({ subject: `contact:${g.contact_id}`, ask: 'invite' }).slice(0, 32)}`,
       title: fitTitleWithin(titleMax, `Jonny invites ${name} onto ${show.name}`, `Jonny invites ${firstName(name)} onto ${show.name}`, `Jonny invites a guest onto ${show.name}`),
-      why: clean(`${name} is a guest the guest standard judged ${g.guest_verdict === 'take' ? 'worth having' : 'a stretch'} for ${show.name}, with an address on record. One ask: a conversation on the show.`).slice(0, 1000),
+      why: clean(`${name} is a guest the guest standard judged ${standard === 'take' ? 'worth having' : 'a stretch'} for ${show.name}, with an address on record. One ask: a conversation on the show.`).slice(0, 1000),
       kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: 'qualified_conversations',
       exact_payload: JSON.stringify(action), target: g.contact_id, subject_ref: `contact:${g.contact_id}`,
       evidence: [], close_condition: { event: 'outreach_sent', reference: 'visibility:invite' },
@@ -920,7 +931,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     return {
       proposal_id: `gmp-${seal({ subject: `target:${t.id}`, ask: 'pitch' }).slice(0, 32)}`,
       title: fitTitleWithin(titleMax, `Jonny pitches you to ${show}`, 'Jonny pitches you to a podcast'),
-      why: clean(`${show} is a podcast${eps ? ` with ${eps} episodes` : ''} taking guests, with an address of its own. Nova's verdict: ${t.verdict ?? 'not yet judged'}. One ask: have Krish on.`).slice(0, 1000),
+      why: clean(`${show} is a podcast${eps ? ` with ${eps} episodes` : ''} taking guests, with an address of its own. ${standardSays(t, at)} One ask: have Krish on.`).slice(0, 1000),
       kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: 'qualified_conversations',
       exact_payload: JSON.stringify(action), target: t.booking_contact_id, subject_ref: `target:${t.id}`,
       evidence: [], close_condition: { event: 'outreach_sent', reference: 'visibility:pitch' },
@@ -949,7 +960,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     return {
       proposal_id: `gmp-${seal({ subject: `target:${t.id}`, ask: 'speak' }).slice(0, 32)}`,
       title: fitTitleWithin(titleMax, `Jonny pitches you to speak at ${event}`, `Jonny pitches you to ${event}`, 'Jonny pitches you to speak at an event'),
-      why: clean(`${event} is open for speakers, and its own page gives an address for them. Nova's verdict: ${t.verdict ?? 'not yet judged'}. One ask: ${ask} for Krish.`).slice(0, 1000),
+      why: clean(`${event} is open for speakers, and its own page gives an address for them. ${standardSays(t, at)} One ask: ${ask} for Krish.`).slice(0, 1000),
       kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: 'qualified_conversations',
       exact_payload: JSON.stringify(action), target: t.booking_contact_id, subject_ref: `target:${t.id}`,
       evidence: [], close_condition: { event: 'outreach_sent', reference: 'events:pitch' },
@@ -1035,8 +1046,8 @@ export function ccSubjectFor(job, facts = {}) {
 
 /** api/_peopleDraft.ts forGuest's gate: a guest still proposed, for one of his two shows. Pure. */
 export const ccGuestGate = g => g?.invite_state === 'proposed' && g.invite_show in INVITE_SHOWS;
-/** api/_peopleDraft.ts forTarget's gate: only a stage the standard took or stretched for. Pure. */
-export const ccTargetGate = t => t?.verdict === 'take' || t?.verdict === 'stretch';
+/** api/_peopleDraft.ts forTarget's gate: only a stage Control Center's stored verdict took or stretched for. For the shadow line only. Pure. */
+export const ccTargetGate = t => ['take', 'stretch'].includes(ccStageVerdict(t));
 /** api/_peopleDraft.ts forRoom's gate: a room not archived, to someone in the network with a name. Pure. */
 export const ccRoomGate = (e, person) => Boolean(e && !e.archived_at && typeof person?.full_name === 'string' && person.full_name.trim());
 

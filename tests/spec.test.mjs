@@ -10,6 +10,7 @@ import { readSpecCounts, visibilityTargets, PATHS } from '../src/stages/meetings
 import { parseCanon, blobSha } from '../src/stages/canon.mjs';
 import { engineClient } from '../src/control-center.mjs';
 import { directiveFixture, startProtocolService } from './support/engine-protocol-service.mjs';
+import { STAGE } from './support/standard.mjs';
 
 // The week spec, compiled (plan Phase 2). Synthetic only: invented shows, ids and counts.
 // A Tuesday in the first signable week: this London week starts 2026-11-09.
@@ -258,7 +259,7 @@ test('Jonny\'s ten drafts a day: a second wake the same London day writes only w
   assert.equal(jonnyDraftsToday({ records: { drafts } }, at), 2, 'today\'s Jonny drafts only: not yesterday\'s, not his own box, not undated, not later');
   assert.equal(jonnyDraftsToday({ records: { drafts: [d('2026-06-10T23:30:00Z')] } }, '2026-06-11T08:00:00Z'), 1, 'a summer night past 23:00 UTC is already the next London day');
   const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-  const show = n => ({ id: id(n), title: `The Example Show ${n}`, type: 'podcast', status: 'queued', verdict: 'take', organizer: 'Avery Example', event_url: `https://podcasts.example/show-${n}`, feed_url: `https://feeds.example/${n}`, episodes: 80, latest_episode_at: '2026-11-01T00:00:00Z', booking_contact_id: id(100 + n), booking_source: 'feed_owner' });
+  const show = n => ({ id: id(n), title: `The Example Show ${n}`, type: 'podcast', status: 'queued', ...STAGE.take, organizer: 'Avery Example', event_url: `https://podcasts.example/show-${n}`, feed_url: `https://feeds.example/${n}`, episodes: 80, latest_episode_at: '2026-11-01T00:00:00Z', booking_contact_id: id(100 + n), booking_source: 'feed_owner' });
   const NORTH = `# North Star\n\n## Horizon\n\n> By March 2027, Mindmake is the first name an example leader hears when they ask who can build an AI that knows them.\n\n## What we sell\n\n- **Build your AI brain.** Your taste, standards and judgement, running as a\n  system you own.\n`;
   const CANON = `## What the growth engine may say\n\n1. **Start building your AI brain**, at \`https://mindmake.example/?start=1\`. The main ask,\n   for a leader who can decide. Describe it as\n   the site does: answer a few questions, keep the brief, then a free consultation.\n2. **Subscribe to Make Your Mind Up**, at \`https://publication.example\`, free.\n| Revenue engine door | Build your AI revenue engine |\n| Revenue engine door explanation | The pricing, positioning and team you'll need. |\n`;
   const canon = { ...parseCanon({ northStar: NORTH, canon: CANON }), files: [] };
@@ -308,7 +309,7 @@ test('rows_rule is read as data only, and the plan-wide digest nobody read is go
 
 test('the signed caps reach the stages in a dispatch run, and a second wake the same day writes only Jonny\'s room', async () => {
   const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-  const show = n => ({ id: id(n), title: `The Example Show ${n}`, type: 'podcast', status: 'queued', verdict: 'take', organizer: 'Avery Example', event_url: `https://podcasts.example/show-${n}`, feed_url: `https://feeds.example/${n}`, episodes: 80, latest_episode_at: '2026-11-01T00:00:00Z', booking_contact_id: id(100 + n), booking_source: 'feed_owner' });
+  const show = n => ({ id: id(n), title: `The Example Show ${n}`, type: 'podcast', status: 'queued', ...STAGE.take, organizer: 'Avery Example', event_url: `https://podcasts.example/show-${n}`, feed_url: `https://feeds.example/${n}`, episodes: 80, latest_episode_at: '2026-11-01T00:00:00Z', booking_contact_id: id(100 + n), booking_source: 'feed_owner' });
   const NORTH = `# North Star\n\n## Horizon\n\n> By March 2027, Mindmake is the first name an example leader hears when they ask who can build an AI that knows them.\n\n## What we sell\n\n- **Build your AI brain.** Your taste, standards and judgement, running as a\n  system you own.\n`;
   const CANON = `## What the growth engine may say\n\n1. **Start building your AI brain**, at \`https://mindmake.example/?start=1\`. The main ask,\n   for a leader who can decide. Describe it as\n   the site does: answer a few questions, keep the brief, then a free consultation.\n2. **Subscribe to Make Your Mind Up**, at \`https://publication.example\`, free.\n| Revenue engine door | Build your AI revenue engine |\n| Revenue engine door explanation | The pricing, positioning and team you'll need. |\n`;
   const canon = { ...parseCanon({ northStar: NORTH, canon: CANON }), files: [{ repo: 'krishanraja/mindmake', path: 'project-documentation/01_CANON.md', sha: blobSha(CANON) }] };

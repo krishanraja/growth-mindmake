@@ -15,6 +15,7 @@ import { runDispatch } from '../src/dispatch.mjs';
 import { parseCanon, blobSha, parseRecord } from '../src/stages/canon.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
 import { capsReport, capsContext, AT } from './support/caps-scenario.mjs';
+import { STAGE } from './support/standard.mjs';
 
 // The crew as code (plan Phase 3): card grammar, each specialist's lint and
 // measured check, all in shadow. Synthetic people, shows and ids only.
@@ -122,7 +123,7 @@ test('the Network Steward holds a tie that is not quiet, runs one way, or asks t
   assert.deepEqual(lintIds(network, { ...p, exact_payload: action('Hi Avery,\n\nUp for a call?\n\nKrish') }, ctxWith({ network: [{ ...tie(120), email_outbound: 3 }], routes: { [id(1)]: { email: 'verified' } } })), []);
 });
 
-const show = (over = {}) => ({ id: id(400), title: 'The Example Show', type: 'podcast', status: 'queued', verdict: 'take', organizer: 'Avery Example', booking_contact_id: id(500), latest_episode_at: '2026-10-20T00:00:00Z', episodes: 40, ...over });
+const show = (over = {}) => ({ id: id(400), title: 'The Example Show', type: 'podcast', status: 'queued', ...STAGE.take, organizer: 'Avery Example', booking_contact_id: id(500), latest_episode_at: '2026-10-20T00:00:00Z', episodes: 40, ...over });
 const pitch = (body, over = {}) => ({ proposal_id: 'gmp-1', row: 'visibility', subject_ref: `target:${id(400)}`, close_condition: { event: 'outreach_sent', reference: 'visibility:pitch' }, exact_payload: action(body, { mailbox: 'jonny' }), ...over });
 const GOOD = 'Hi Avery,\n\nI work with Krish Raja, and I think he\'d make a strong guest for The Example Show.\n\nHe\'s Executive Host of Signal & Noise and writes it (https://publication.example).\n\nWould you have him on?\n\nJonny';
 
@@ -139,7 +140,7 @@ test('the Visibility Producer re-runs the pitch holds and checks the title, the 
 });
 
 test('the Stages Producer holds a closed call, a room without his buyer, and two talks', () => {
-  const stage = over => ({ id: id(600), title: 'The Example Summit', type: 'conference', status: 'queued', verdict: 'take', organizer: 'Example Events Ltd', booking_contact_id: id(700), deadline_at: '2026-11-20T00:00:00Z', event_start_at: '2027-03-10T00:00:00Z', audience: 'Marketing leaders at mid-size companies', ...over });
+  const stage = over => ({ id: id(600), title: 'The Example Summit', type: 'conference', status: 'queued', ...STAGE.take, organizer: 'Example Events Ltd', booking_contact_id: id(700), deadline_at: '2026-11-20T00:00:00Z', event_start_at: '2027-03-10T00:00:00Z', audience: 'Marketing leaders at mid-size companies', ...over });
   const p = (subject, body) => ({ proposal_id: 'gmp-2', row: 'events', subject_ref: `target:${id(600)}`, close_condition: { reference: 'events:pitch' }, exact_payload: action(body, { subject, mailbox: 'jonny' }) });
   const ok = p('A speaker for The Example Summit: AI for marketing leaders', 'Hi,\n\nI\'d like to put him forward for a talk: "AI for marketing leaders".\n\nWould you consider him?\n\nJonny');
   assert.deepEqual(lintIds(stages, ok, ctxWith({ records: { visibility: [stage()], drafts: [], guests: [] } })), []);

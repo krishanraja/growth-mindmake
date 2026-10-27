@@ -5,6 +5,7 @@ import { runDispatch, payloadDigest } from '../src/dispatch.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
 import { readFile } from 'node:fs/promises';
 import { golden } from './support/golden.mjs';
+import { STAGE } from './support/standard.mjs';
 
 const NOW = '2026-10-25T12:00:00Z';
 const campaign = (id, motion='multiplier', extra={}) => ({ id, contact_id:id, growth_context:{ campaign:{ title:'A useful founder decision', motion, reviewed_at:NOW, state:'prepared', access:4,authority:4,distribution:5,proof_strength:3,timing:3,effort:2,argument:'AI that can apply a leader\'s judgement to a live commercial decision.',commitment:'A 30-minute demonstration',preparation:'An anonymised worked example.',follow_through:'Agree a two-week pilot on one workflow, only if useful.',success_measure:'A held intro and an agreed decision.',sources:[{url:'https://example.org/research',observed_at:NOW}],proof:[{id:'cleared',permission:'approved',source_url:'https://example.org/proof',allowed_use:'Anonymised private example'}],route:{kind:'rich',evidence:'A sourced founder programme, no assumed relationship.'},first_action:{recipient_contact_id:id,channel:'email',subject:'A founder decision',body:'Would a short demonstration be useful?'},...extra } } });
@@ -14,7 +15,7 @@ const outcomes = (rows=[], complete=true) => ({...context({advisory:rows}),timez
 test('strategic selection reserves 70 percent for access, honours replies and deduplicates recipients across native lanes',()=>{
   const rows=[...Array.from({length:7},(_,i)=>campaign(`m${i}`)),...Array.from({length:5},(_,i)=>campaign(`d${i}`,'direct'))];
   rows.push(campaign('reply','direct',{reply_waiting:true}));
-  const c=context({advisory:rows,visibility:[{...campaign('m0','institution'),room_score:5,standing_score:4,only_him_score:4,score_version:1,verdict:'take'}]});
+  const c=context({advisory:rows,visibility:[{...campaign('m0','institution'),...STAGE.take}]});
   const plan=strategicPlan(c,{at:NOW,capacity:10});
   assert.equal(plan.selected[0].record_id,'reply');
   assert.equal(plan.selected.length,10);
@@ -27,6 +28,11 @@ test('a campaign cannot bypass proof, route, full preparation or Visibility gate
   const result=strategicPlan(context({advisory:rows,visibility:[campaign('d','visibility')]}),{at:NOW});
   assert.equal(result.selected.length,0);
   assert.deepEqual(result.held.map(h=>h.reason),['proof_permission_missing','campaign_route_missing','campaign_incomplete','visibility_standard_held']);
+  // The visibility standard is the engine's own, on the axes served: Control Center's stored verdict neither passes nor holds a stage.
+  const own=v=>strategicPlan(context({advisory:[],visibility:[{...campaign('e','visibility'),...v}]}),{at:NOW}).held.map(h=>h.reason);
+  assert.deepEqual(own({...STAGE.rejected,verdict:'take'}),['visibility_standard_held']);
+  assert.deepEqual(own({verdict:'take',score_version:1}),['visibility_standard_held'],'no axes served: not judged');
+  assert.deepEqual(own({...STAGE.take,verdict:'rejected'}),[]);
 });
 test('global outcomes distinguish bookings, held people, human qualification and independent payment; partial reads stay unknown',()=>{
   const q={confirmed_by:'krish',confirmed_at:NOW,decision_authority:true,owned_problem:true,active_need:true,offer_fit:true,next_step_agreed:true};

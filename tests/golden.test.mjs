@@ -14,6 +14,9 @@ import { golden } from './support/golden.mjs';
 // file adds the one fixture that binds every cap the spec can set, whose digest
 // in tests/golden/golden.json was recorded by running it on the code at
 // feddec8, before the week spec, with the word files and canon reader pinned.
+// It was re-recorded once, when the stages began to act on the engine's own
+// verdicts (plan section 12, M3 to M5); with Control Center's verdicts forced
+// back in, the same fixture reproduces the report the old code gives it.
 const root = new URL('../', import.meta.url);
 const policy = JSON.parse(await readFile(new URL('config/policy.json', root), 'utf8'));
 

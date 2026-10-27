@@ -240,7 +240,9 @@ test('in shadow: counts only, Control Center\'s queue beside what the invite sta
   ] } };
   const frozen = structuredClone(context);
   const out = guestsShadow({ context, canon, at: AT });
-  assert.equal(out.line, "Guest standard, in shadow: 9 guests read; agrees with Control Center on 1, differs on 2 (axes_disagree 1, show_fit_not_served 1); 6 not comparable (axes_not_served 5, not_judged 1). Control Center's queue: 6 ready (makeyourmindup 5, signal_noise 1); the invite stage would hold 4 of them (no_email 3, recorded 1).");
+  // The invite stage acts on the engine's own verdict (plan section 12, M3): the three ready guests with no axes served are
+  // not judged, the one whose axes refuse it is refused, and only the one the axes take reaches the address check.
+  assert.equal(out.line, "Guest standard, in shadow: 9 guests read; agrees with Control Center on 1, differs on 2 (axes_disagree 1, show_fit_not_served 1); 6 not comparable (axes_not_served 5, not_judged 1). Control Center's queue: 6 ready (makeyourmindup 5, signal_noise 1); the invite stage would hold 6 of them (guest_not_judged 3, guest_rejected 1, no_email 1, recorded 1).");
   assert.deepEqual(context, frozen, 'the context is read, never changed');
   assert.equal(out.queue[0], `contact:${id(501)}`, 'the queue leads with Make Your Mind Up');
   assert.deepEqual(out.counts, { ready: 6, unjudged: 1, refused: 2 });

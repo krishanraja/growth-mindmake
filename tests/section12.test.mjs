@@ -71,3 +71,73 @@ test('a shadow that throws says so in one line and never fails the run', async (
   const lines = report.activity.map(a => a.line);
   assert.ok(lines.some(l => /^pilotsShadow: could not be read this run, so it says nothing rather than a guess\.$/.test(l)));
 });
+
+// ── M3 to M5: the engine's version acts ────────────────────────────────────
+//
+// The stages act on the engine's own verdicts (visibility.mjs stageVerdict and
+// stageStrength, guests.mjs guestVerdictOf, rooms.mjs roomVerdict), never on
+// the verdicts and scores Control Center still stores beside them. Only the
+// three files that port a standard read those fields, to judge the axes and to
+// count Control Center's answers in shadow.
+
+const CC_FIELDS = ['verdict', 'guest_verdict', 'guest_reason', 'reject_reason', 'room_score', 'standing_score', 'only_him_score', 'visibility_score', 'draw_score', 'demand_score', 'guest_score', 'senior_score', 'seen_score', 'spark_score'];
+const READERS = new Set(['src/stages/visibility.mjs', 'src/stages/guests.mjs', 'src/stages/rooms.mjs']);
+const names = CC_FIELDS.join('|');
+const READS = [
+  new RegExp(`(?:\\?\\.|\\.)\\s*(?:${names})\\b`),
+  new RegExp(`\\[\\s*['"\`](?:${names})['"\`]\\s*\\]`),
+  new RegExp(`(?:\\b(?:const|let|var)\\s*|\\(\\s*)\\{[^}]*\\b(?:${names})\\b[^}]*\\}`),
+  new RegExp(`['"\`](?:${names})['"\`]\\s+in\\b`),
+];
+/** Source without its comments, so a line that names a field in prose is not a read. */
+const code = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
+
+test('no stage reads Control Center\'s verdicts or scores: only the three files that port a standard do', async () => {
+  const { readdir } = await import('node:fs/promises');
+  const src = new URL('../src/', import.meta.url);
+  const files = (await readdir(src, { recursive: true })).filter(f => f.endsWith('.mjs')).map(f => `src/${f.replaceAll('\\', '/')}`).sort();
+  assert.ok(files.includes('src/stages/pitches.mjs') && files.includes('src/strategy.mjs') && files.length > 20, 'the scan sees the stages');
+  const found = [];
+  for (const f of files) {
+    if (READERS.has(f)) continue;
+    const lines = code(await readFile(new URL(`../${f}`, import.meta.url), 'utf8')).split('\n');
+    lines.forEach((l, i) => { if (READS.some(re => re.test(l))) found.push(`${f}:${i + 1}`); });
+  }
+  assert.deepEqual(found, [], 'a stage reads a verdict or a score Control Center stores');
+  // The scan is proved able to find a read before its silence is trusted.
+  for (const l of ['if (t.verdict === "rejected") return;', 'const w = g?.guest_verdict;', "const v = t['room_score'];", 'const { draw_score } = e;', 'const f = ({ verdict }) => verdict;', "if ('spark_score' in g) x();"]) assert.ok(READS.some(re => re.test(code(l))), l);
+  for (const l of ['// t.verdict is Control Center\'s', "reason: 'verdict'", 'const v = stageVerdict(t, at);']) assert.equal(READS.some(re => re.test(code(l))), false, l);
+});
+
+test('what Control Center stores as its verdict changes nothing a stage does: the axes served decide', async () => {
+  const { stageVerdict, stageStrength } = await import('../src/stages/visibility.mjs');
+  const { guestVerdictOf } = await import('../src/stages/guests.mjs');
+  const { pitchHold, speakHold, pitchScore, speakScore, inviteHold, stageForm } = await import('../src/stages/pitches.mjs');
+  const { lessons } = await import('../src/stages/rows.mjs');
+  const L = lessons([], AT), pitched = new Set();
+  const STORED = [{}, { verdict: 'take' }, { verdict: 'stretch' }, { verdict: 'rejected' }, { verdict: 'unjudged' }, { verdict: null }];
+  const AXES = [{}, { score_version: 1, room_score: 70, standing_score: 70, only_him_score: 60 }, { score_version: 1, room_score: 70, standing_score: 45, only_him_score: 60 }, { score_version: 1, room_score: 40, standing_score: 70, only_him_score: 60 }, { score_version: 0, room_score: 90, standing_score: 90, only_him_score: 90 }];
+  const field = (label, name) => ({ label, name, type: 'text', required: true, options: [] });
+  const pod = { id: id(901), title: 'The Example Show', type: 'podcast', status: 'queued', organizer: 'Avery Example', booking_contact_id: id(902), latest_episode_at: '2026-10-20T00:00:00Z', episodes: 40, audience: 'Marketing leaders' };
+  const conf = { id: id(903), title: 'The Example Summit', type: 'conference', status: 'queued', organizer: 'Example Events Ltd', booking_contact_id: id(904), deadline_at: '2026-11-20T00:00:00Z', event_start_at: '2027-03-10T00:00:00Z', audience: 'Marketing leaders', cfp_url: 'https://summit.example/speak', form_fields: [field('Full name', 'full_name'), field('Email', 'email')] };
+  for (const axes of AXES) {
+    const seen = STORED.map(cc => {
+      const p = { ...pod, ...axes, ...cc }, s = { ...conf, ...axes, ...cc };
+      return JSON.stringify([stageVerdict(p, AT), stageStrength(s), pitchHold(p, { L, pitched, at: AT }), speakHold(s, { L, pitched, at: AT }), pitchScore(p, AT), speakScore(s, AT), stageForm(s, { L, pitched, at: AT, canon })?.hold ?? null]);
+    });
+    assert.equal(new Set(seen).size, 1, `stage axes ${JSON.stringify(axes)}: the same whatever Control Center stored`);
+  }
+  const GUEST_AXES = [{}, { senior_score: 70, seen_score: 70, spark_score: 70 }, { senior_score: 70, seen_score: 50, spark_score: 70 }, { senior_score: 70, seen_score: 20, spark_score: 70 }, { senior_score: null, seen_score: null, spark_score: null }];
+  const person = { contact_id: id(905), name: 'Avery Example', status: 'enriched', invite_show: 'makeyourmindup', invite_state: null };
+  for (const axes of GUEST_AXES) {
+    const seen = [{}, { guest_verdict: 'take' }, { guest_verdict: 'stretch' }, { guest_verdict: 'rejected' }, { guest_verdict: null }, { guest_reason: 'guest_wrong_show' }].map(cc => {
+      const g = { ...person, ...axes, ...cc };
+      return JSON.stringify([guestVerdictOf(g), inviteHold(g, { L, invited: new Set(), routes: { [id(905)]: { email: 'verified' } }, at: AT })]);
+    });
+    assert.equal(new Set(seen).size, 1, `guest axes ${JSON.stringify(axes)}: the same whatever Control Center stored`);
+  }
+  // And the axes do decide: a refusal on them holds, a take on them pitches.
+  assert.equal(pitchHold({ ...pod, ...AXES[3], verdict: 'take' }, { L, pitched, at: AT }), 'rejected');
+  assert.equal(guestVerdictOf({ ...person, ...GUEST_AXES[3], guest_verdict: 'take' }), 'rejected');
+  assert.equal(stageVerdict({ ...pod, verdict: 'take' }, AT), 'unjudged', 'no axes served: not judged, never Control Center\'s word for it');
+});
