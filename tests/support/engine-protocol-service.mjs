@@ -35,6 +35,53 @@ export function violations(s, v, path = '$') {
   return out;
 }
 
+/**
+ * Control Center's own parser for a version 2 row action (parseActionV2 in
+ * krishanraja/control-center src/lib/growthEngines.ts), ported line for line
+ * so a test checks an action as the consumer reads it, not as the producer
+ * wrote it. Returns { ok: true, value } or { ok: false, error }.
+ */
+export function parseActionV2(text) {
+  let a;
+  try { a = JSON.parse(text ?? ''); } catch { return { ok: false, error: 'the action is not JSON' }; }
+  const isObj = x => !!x && typeof x === 'object' && !Array.isArray(x);
+  const str = (x, max) => typeof x === 'string' && x.trim() && x.length <= max ? x.trim() : null;
+  if (!isObj(a)) return { ok: false, error: 'the action is not an object' };
+  const extra = Object.keys(a).filter(k => !['version', 'channel', 'recipient_contact_id', 'subject', 'body', 'form', 'mailbox'].includes(k));
+  if (extra.length) return { ok: false, error: `the action has a field the protocol does not know: ${extra.join(', ')}` };
+  if (a.version !== 2) return { ok: false, error: 'the action must be version 2' };
+  if (!['email', 'x_message', 'whatsapp', 'form'].includes(a.channel)) return { ok: false, error: 'the action channel must be email, x_message, whatsapp or form' };
+  const channel = a.channel;
+  const max = channel === 'email' ? 7000 : channel === 'form' ? 6000 : 1000;
+  const body = str(a.body, max);
+  if (!body) return { ok: false, error: `the action needs its words (${max} characters at most)` };
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const recipient = a.recipient_contact_id === null || a.recipient_contact_id === undefined ? null : typeof a.recipient_contact_id === 'string' && UUID.test(a.recipient_contact_id) ? a.recipient_contact_id : undefined;
+  if (recipient === undefined) return { ok: false, error: 'recipient_contact_id must be a contact id or null' };
+  if (channel !== 'form' && !recipient) return { ok: false, error: `a ${channel} action names the contact it goes to` };
+  const subject = a.subject === null || a.subject === undefined ? null : str(a.subject, 200);
+  if (channel === 'email' && (!subject || /[\r\n]/.test(subject))) return { ok: false, error: 'an email action carries a one-line subject' };
+  if (channel !== 'email' && subject) return { ok: false, error: 'only an email has a subject' };
+  let form = null;
+  if (channel === 'form') {
+    const f = a.form;
+    if (!isObj(f) || typeof f.url !== 'string' || !/^https:\/\/\S+$/.test(f.url) || f.url.length > 2000) return { ok: false, error: 'a form action carries the form url (https)' };
+    if (!Array.isArray(f.answers) || !f.answers.length || f.answers.length > 40) return { ok: false, error: 'a form action carries 1 to 40 answers' };
+    const answers = [];
+    for (const [i, q] of f.answers.entries()) {
+      const label = isObj(q) ? str(q.label, 300) : null;
+      const value = isObj(q) && typeof q.value === 'string' && q.value.length <= 6000 ? q.value : null;
+      if (!label || value === null) return { ok: false, error: `form answer ${i + 1} needs a label and a value` };
+      answers.push({ label, value });
+    }
+    form = { url: f.url, answers };
+  } else if (a.form !== null && a.form !== undefined) return { ok: false, error: 'only a form action carries a form' };
+  const mailbox = a.mailbox === null || a.mailbox === undefined ? null : a.mailbox === 'krish' || a.mailbox === 'jonny' ? a.mailbox : undefined;
+  if (mailbox === undefined) return { ok: false, error: 'mailbox must be krish, jonny or null' };
+  if (mailbox && channel !== 'email') return { ok: false, error: 'only an email lands in a mailbox' };
+  return { ok: true, value: { version: 2, channel, recipient_contact_id: recipient, subject: channel === 'email' ? subject : null, body, form, mailbox } };
+}
+
 export function directiveFixture(changes = {}) {
   return {
     ok: true, chosen_by: 'rule',

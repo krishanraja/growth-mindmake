@@ -33,8 +33,18 @@ import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, serves
  * Noise 30: Ruling, Krish, 2026-10-20), at most two a run, taken first from
  * the run's ten.
  *
+ * Forms on his tap (Ruling, Krish, 2026-10-26: "a form is filled for him and
+ * his tap submits it; when it cannot be, the most automated next best
+ * route"). A stage whose own speaker call or guest form Control Center has
+ * read (cfp_url, form_fields) gets a form action instead of a pitch: every
+ * field it asks answered by the field's own label from what the run reads
+ * live, which his Submit fills in a browser and sends. A form that cannot be
+ * answered for certain is never written, and the stage falls to its Jonny
+ * pitch. A form is his press, not a Jonny draft, so it is outside the ten.
+ *
  * Pure: everything comes from the context, the directive and the files read
- * this run. No model call. No address, ever.
+ * this run. No model call. No address, ever, but the one public business
+ * address a form is given for him (FORM_EMAIL).
  */
 
 /** Pitches a run writes at most: Control Center drafts at most ten a day. */
@@ -232,11 +242,11 @@ export function pitchWords({ show, host, topic, canon, record }) {
 }
 
 /** The full card a tap would open (1.8.0), from the stage alone: who the show is, that Krish does not know them, why, what he gets, the angles. */
-export function pitchCard({ t, show, host, topic, canon, serves, at }) {
+export function pitchCard({ t, show, host, topic, canon, serves, at, noun = 'podcast' }) {
   const eps = Number.isInteger(t.episodes) && t.episodes > 0 ? t.episodes : null;
   const by = host ? `, hosted by ${host}` : t.organizer && cleanName(t.organizer) !== show ? `, published by ${cleanName(t.organizer)}` : '';
   const audience = typeof t.audience === 'string' && t.audience.trim() ? leadFacts(`Its audience: ${t.audience.trim().replace(/[.!?]+$/, '')}.`, 200) : '';
-  const who = within([`${show} is a podcast${eps ? ` with ${eps} episodes` : ''}${by}.`, audience].filter(Boolean).join(' '), CARD_WHO_MAX) || `${show} is a podcast.`;
+  const who = within([`${show} is a ${noun}${eps ? ` with ${eps} episodes` : ''}${by}.`, audience].filter(Boolean).join(' '), CARD_WHO_MAX) || `${show} is a ${noun}.`;
   const known = 'You do not know them yet. The show publishes this address in its own feed, and Jonny writes first.';
   const why = [leadFacts(t.why_him, CARD_LINE_MAX), leadFacts(t.why_now, CARD_LINE_MAX), monthYear(t.latest_episode_at) ? `Its latest episode was out in ${monthYear(t.latest_episode_at)}, so it is taking guests now.` : '']
     .filter(Boolean).filter((l, i, a) => a.findIndex(x => x.slice(0, 40) === l.slice(0, 40)) === i).slice(0, CARD_LINES);
@@ -417,27 +427,411 @@ export function reachOf(t, basis, unknown) {
   return { value: null, band: 'unknown', basis: unknown, source_url: null, as_of: null };
 }
 
+// ── Forms on his tap (Ruling, Krish, 2026-10-26) ───────────────────────────
+//
+// "A form is filled for him and his tap submits it; when it cannot be, the
+// most automated next best route." Control Center reads each stage's own
+// speaker call or guest form (cfp_url) and the fields it asks (form_fields).
+// The engine answers each field by its own label from what the run reads,
+// and his Submit fills it in a browser and sends it, but only when every
+// required field is filled and nothing on the page is his alone to give.
+// A form the engine cannot answer for certain is never written, and the
+// stage falls to its Jonny pitch.
+
+/** His public business address: the one email a form is ever given for him (Krish, 2026-10-26). Never any other. */
+export const FORM_EMAIL = 'hello@krishraja.com';
+/** His own site, which a website field is given. */
+export const FORM_SITE = 'https://krishraja.com';
+/** Forms a row leads with at most in a run, so the people the engine ranked still show behind them on his widget. */
+export const FORMS_PER_ROW = 2;
+/** A bio and an abstract are whole sentences within these, or within a limit the field's own label states. */
+export const BIO_MAX = 700;
+export const ABSTRACT_MAX = 1500;
+/** What Control Center's version 2 form action takes (parseActionV2), and a proposal's exact words. */
+const FORM_ANSWERS_MAX = 40;
+const PAYLOAD_MAX = 8000;
+/** A try Control Center says went, or may have gone (a browser that never answered): never sent again. */
+const SENT = new Set(['submitted', 'confirmed', 'running']);
+/** The holds that are the form's own to count; a stage's own reasons (applied, buried, past its deadline, a No) are its pitch's. */
+const FORM_OWN = new Set(['in_script', 'sent', 'blocked', 'terms', 'unanswerable', 'no_email', 'labels_overlap', 'too_long', 'per_run_cap']);
+
+/** A label as Control Center's form runner reads it (api/_formRunner.ts): lower case, letters and digits, single spaces. Pure. */
+export const formKey = s => String(s ?? '').toLowerCase().replace(/\*/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
+
+// What a field asks, read from its label as formKey gives it. Checked in this
+// order: what is never his to give first, then what the run can answer.
+const CONSENT = /\b(?:terms|conditions|privacy|consent|agree|agreement|policy|gdpr|permission|opt in|unsubscribe|newsletter|code of conduct|marketing (?:emails?|communications?))\b/;
+const PHONE = /\b(?:phone|mobile|cell|telephone|tel|whatsapp|sms|contact number)\b/;
+const PAYMENT = /\b(?:card|cvc|cvv|iban|payment|billing|invoice|fees?|price|cost|budget|honorarium|sort code|account number|paypal|vat|tax)\b/;
+const SECRET = /\b(?:password|passcode|pin)\b/;
+const BIRTH = /\b(?:birth|dob|birthday|age)\b/;
+const DEMOGRAPHIC = /\b(?:gender|sex|pronouns?|ethnic\w*|race|racial|disab\w*|religio\w*|sexual\w*|orientation|nationality|citizenship|veteran|marital|caste|lgbt\w*|minority|underrepresented|diversity)\b/;
+const SOMEONE_ELSE = /\b(?:referee|reference|nominat\w*|recommend\w*|assistant|agent|manager|colleague|emergency|spouse|guardian|parent|booker|co ?speakers?|co ?presenters?|co ?hosts?|second speaker|additional speakers?|other speakers?|panell?ists?|moderators?)\b/;
+const NOT_TEXT = new Set(['number', 'range', 'date', 'datetime-local', 'time', 'month', 'week', 'color', 'tel']);
+const EMAIL = /\be ?mail\b/;
+const LINKEDIN = /\blinked ?in\b/;
+const ELSEWHERE = /\b(?:twitter|instagram|tiktok|facebook|youtube|threads|bluesky|mastodon|social|handle|video|recording|reel|sample|slides?|deck|portfolio|headshot|photo|image|picture|logo|cv|resume)\b/;
+const ORG = /\b(?:company|organi[sz]ation|employer|business|affiliation|institution|firm)\b/;
+const NOT_ORG_NAME = /\b(?:size|website|site|url|link|web|description|describe|revenue|employees|industry|sector|type|logo|stage|founded|funding|headcount|number|about|address)\b/;
+const WEBSITE = /\b(?:website|web site|homepage|home page|personal site|url|web address|link)\b/;
+const POSTAL = /\b(?:address|street|post ?code|zip|postal|house|flat|apartment)\b/;
+const PLACE = /\b(?:location|city|town|country|region|state|province|county|based|where are you|time ?zone)\b/;
+const TALK_TITLE = /\b(?:(?:talk|session|presentation|proposal|keynote|workshop|panel|episode|submission) (?:title|name)|title of (?:your |the )?(?:talk|session|presentation|proposal|keynote|workshop|submission)|(?:proposed|working) title)\b/;
+const FIRST = /\b(?:first|given|fore) ?name\b/;
+const LAST = /\b(?:last|family|sur) ?name\b/;
+const NOT_HIS_NAME = /\b(?:middle|event|talk|session|show|podcast|episode|file|user|nick|brand|product|team|school|university|venue|group|account|channel|project|book|course|publication|newsletter|conference)\b/;
+const JOB = /\b(?:job ?title|job|role|position|designation|occupation|(?:your|current|professional) title)\b/;
+const BIO = /\b(?:bio|biography|about (?:you|yourself|me|the speaker|the guest)|speaker profile|introduce yourself|who are you|background)\b/;
+const ABSTRACT = /\b(?:abstract|synopsis|summary|outline|description|describe|proposal|pitch|what (?:will|would|do) you (?:like to )?(?:talk|speak|cover|share|discuss)|talk about|speak about|about (?:your|the) (?:talk|session|idea|topic|presentation)|session details|why (?:should|would) (?:we|you)|why you|your idea|episode idea|topic idea)\b/;
+const FORMAT = /\b(?:format|session type|talk type|presentation type|submission type|type of (?:session|talk|presentation|submission))\b/;
+const TOPIC_FIELD = /\b(?:topics?|track|theme|category|subject|stream|focus area|area of expertise|expertise)\b/;
+/** An option that is a prompt, a catch-all or a different ask: never chosen. */
+const NOT_AN_OPTION = /^(?:select|choose|please|pick|none|n a|other|any)\b|\b(?:lightning|workshop|masterclass|tutorial|hands on|lab|poster|demo)\b/;
+const AI_OPTION = /\b(?:ai|a i|artificial intelligence|machine learning|generative|genai|gen ai|llms?)\b/;
+
+/**
+ * What a form's field asks, from its own label and type: one of the answers
+ * the run can give (full_name, first_name, last_name, email, company,
+ * job_title, website, bio, talk_title, abstract, format, topic), one the
+ * canon does not give yet (linkedin, location), one never given for him
+ * (terms, phone, payment, password, birth, demographic, someone_else,
+ * number, address), or null for anything else. Pure.
+ */
+export function fieldAsk(field) {
+  const k = formKey(field?.label);
+  const type = String(field?.type ?? 'text').toLowerCase();
+  if (!k) return null;
+  if (CONSENT.test(k)) return 'terms';
+  // A box or a choice is never ticked for him: the fields read carry no choices for one.
+  if (type === 'checkbox' || type === 'radio') return null;
+  if (type === 'tel' || PHONE.test(k)) return 'phone';
+  if (PAYMENT.test(k)) return 'payment';
+  if (SECRET.test(k)) return 'password';
+  if (BIRTH.test(k)) return 'birth';
+  if (DEMOGRAPHIC.test(k)) return 'demographic';
+  if (SOMEONE_ELSE.test(k)) return 'someone_else';
+  if (NOT_TEXT.has(type)) return 'number';
+  if (type === 'email' || EMAIL.test(k)) return 'email';
+  if (LINKEDIN.test(k)) return 'linkedin';
+  if (ELSEWHERE.test(k)) return null;
+  if (ORG.test(k)) return NOT_ORG_NAME.test(k) ? null : 'company';
+  if (WEBSITE.test(k)) return 'website';
+  if (POSTAL.test(k)) return 'address';
+  if (PLACE.test(k)) return 'location';
+  if (TALK_TITLE.test(k)) return 'talk_title';
+  if (FIRST.test(k)) return 'first_name';
+  if (LAST.test(k)) return 'last_name';
+  if (/\bname\b/.test(k)) return NOT_HIS_NAME.test(k) ? null : 'full_name';
+  if (JOB.test(k) && !/\b(?:description|describe|responsibilit\w*)\b/.test(k)) return 'job_title';
+  if (BIO.test(k)) return 'bio';
+  if (ABSTRACT.test(k)) return 'abstract';
+  if (FORMAT.test(k)) return 'format';
+  if (TOPIC_FIELD.test(k)) return 'topic';
+  return null;
+}
+
+/** A limit the field's own label states ("max 100 words", "500 characters"), or none. Pure. */
+export function labelLimit(label) {
+  const k = formKey(label);
+  const m = /\b(?:max(?:imum)?|up to|no more than|under|less than|within|in)\s+(\d{1,5})\s+(words?|characters?|chars?)\b/.exec(k)
+    ?? /\b(\d{1,5})\s+(words?|characters?|chars?)\b/.exec(k);
+  if (!m) return {};
+  return /^w/.test(m[2]) ? { words: Number(m[1]) } : { chars: Number(m[1]) };
+}
+
+/** Whole sentences of the text within a limit of characters and of words, never cut mid-sentence; '' when not even the first fits. Pure. */
+export function wholeWithin(text, { chars = Infinity, words = Infinity } = {}) {
+  let out = '';
+  for (const s of clean(text).split(/(?<=[.!?]["”]?)\s+/)) {
+    const next = out ? `${out} ${s}` : s;
+    if (next.length > chars || next.split(/\s+/).length > words) break;
+    out = next;
+  }
+  return out;
+}
+
+/** Who Krish is, in the third person, from the canon and his own site's record read this run. Pure. */
+export function formBio(canon, record) {
+  return [
+    `Krish Raja is ${KRISH_TITLE} and writes ${canon.publication.name} (${canon.publication.url}).`,
+    `At Mindmake he helps leaders build their AI brain: "${canon.brain}"`,
+    ...(record?.line ? [record.line] : []),
+  ].map(clean).join(' ');
+}
+
+/** What he would talk about there, plainly, then who he is: the abstract a form asks for, and the words of the form action. Pure. */
+export function formAbstract({ row, name, ask, talk, about, canon, record }) {
+  const lead = row !== 'events' ? `Krish Raja would come on ${name} to talk about ${about}.`
+    : ask === 'a panel seat' ? `On a panel at ${name}, Krish Raja would speak to ${about}.`
+    : `In "${talk}", Krish Raja talks about ${about}.`;
+  return wholeWithin([
+    lead,
+    `He is ${KRISH_TITLE} and writes ${canon.publication.name} (${canon.publication.url}).`,
+    `At Mindmake he helps leaders build their AI brain: "${canon.brain}"`,
+    ...(record?.line ? [record.line] : []),
+  ].map(clean).join(' '), { chars: ABSTRACT_MAX });
+}
+
+/** The first of the options a preference names, in the order of the preferences, as the form wrote it; null when none fits. Pure. */
+function choose(options, preferences) {
+  const real = (Array.isArray(options) ? options : []).filter(o => typeof o === 'string' && formKey(o) && !NOT_AN_OPTION.test(formKey(o)));
+  for (const p of preferences) { const hit = real.find(o => p.test(formKey(o))); if (hit) return clean(hit); }
+  return null;
+}
+
+/** Which kinds of field a value may go in: an email in an email field, a link in a link field, a choice only from a field's own options, and text in text. */
+const FITS = { email: ['email'], url: ['website'], select: ['format', 'topic'] };
+function fits(type, ask) {
+  if (FITS[type]) return FITS[type].includes(ask);
+  return ['text', 'textarea', 'search', ''].includes(type) && ask !== 'format';
+}
+
+/** The answer to one field, from what the run reads, or null when the run is not sure of one. Pure. */
+export function answerFor(field, said) {
+  const ask = fieldAsk(field);
+  const type = String(field?.type ?? 'text').toLowerCase();
+  if (!ask || !fits(type, ask)) return null;
+  const limit = labelLimit(field.label);
+  const whole = (text, max) => wholeWithin(text, { chars: Math.min(max, limit.chars ?? Infinity), words: limit.words ?? Infinity }) || null;
+  switch (ask) {
+    case 'full_name': return 'Krish Raja';
+    case 'first_name': return 'Krish';
+    case 'last_name': return 'Raja';
+    case 'email': return FORM_EMAIL;
+    case 'company': return 'Mindmake';
+    case 'job_title': return KRISH_TITLE;
+    case 'website': return FORM_SITE;
+    case 'bio': return whole(said.bio, BIO_MAX);
+    case 'abstract': return whole(said.abstract, ABSTRACT_MAX);
+    case 'talk_title': return whole(said.talk, 200);
+    case 'format': return type === 'select' ? choose(field.options, said.formats) : null;
+    case 'topic': return type === 'select' ? choose(field.options, said.topics) : whole(said.topicLine, 200);
+    // linkedin and location: the canon names no profile and no city today. The rest are never his to give here.
+    default: return null;
+  }
+}
+
+/** The answer Control Center's runner would put in a field: the first whose label the field's contains, or is contained by (api/_formRunner.ts). Pure. */
+export function runnerPick(fieldLabel, answers) {
+  const label = formKey(fieldLabel);
+  return answers.find(a => { const key = formKey(a.label); return key && label && Math.min(label.length, key.length) >= 3 && (label === key || label.includes(key) || key.includes(label)); }) ?? null;
+}
+
+/** Whether the runner would put any answer in a field it was not written for, or tick a box with one. Pure. */
+export function overlaps(fields, answers) {
+  return fields.some(f => {
+    const grouped = f.type === 'checkbox' || f.type === 'radio';
+    // The runner leaves a terms box alone (a required one blocks the form), and a group is matched by its name.
+    if (grouped && fieldAsk(f) === 'terms') return false;
+    const got = runnerPick(grouped ? (f.name || f.label) : f.label, answers);
+    if (!got) return false;
+    if (grouped) return true;
+    const own = answers.find(a => formKey(a.label) === formKey(f.label));
+    return !own || own.value !== got.value;
+  });
+}
+
+/**
+ * The answers for one form, each under the field's own label, one for every
+ * required field, or why there are none: a required field the run is not
+ * sure of (unanswerable), a required terms box (terms: ticking one is a
+ * legal yes in his name), no email for the stage to answer him on
+ * (no_email), or labels so alike that the runner would put an answer in the
+ * wrong field (labels_overlap). `missing` is what an
+ * earlier try sent nothing for; each is answered now or it holds. Pure.
+ */
+export function formAnswers(fields, said, missing = []) {
+  const answers = [];
+  const add = (label, value) => { if (!answers.some(a => formKey(a.label) === formKey(label) && a.value === value)) answers.push({ label: clean(label).slice(0, 300), value }); };
+  // A required terms box is a legal yes only he can give: named first, whatever else the form lacks.
+  if ((Array.isArray(fields) ? fields : []).some(f => f?.required === true && fieldAsk(f) === 'terms')) return { answers: [], hold: 'terms' };
+  for (const f of Array.isArray(fields) ? fields : []) {
+    if (!f || typeof f.label !== 'string' || !formKey(f.label)) { if (f?.required === true) return { answers: [], hold: 'unanswerable' }; continue; }
+    const value = formKey(f.label).length >= 3 ? answerFor(f, said) : null;
+    if (value === null) { if (f.required === true) return { answers: [], hold: 'unanswerable' }; continue; }
+    add(f.label, value);
+  }
+  const extra = [];
+  for (const m of Array.isArray(missing) ? missing : []) {
+    const f = { label: String(m ?? ''), name: null, type: 'text', required: true, options: [] };
+    // Answered already and still not filled: the run has nothing better for it.
+    if (runnerPick(f.label, answers)) return { answers: [], hold: 'unanswerable' };
+    const value = formKey(f.label).length >= 3 ? answerFor(f, said) : null;
+    if (value === null) return { answers: [], hold: fieldAsk(f) === 'terms' ? 'terms' : 'unanswerable' };
+    add(f.label, value);
+    extra.push(f);
+  }
+  if (!answers.some(a => a.value === FORM_EMAIL)) return { answers: [], hold: 'no_email' };
+  if (answers.length > FORM_ANSWERS_MAX) return { answers: [], hold: 'too_long' };
+  // When one label holds another ("Name" and "Company name"), both fields match both answers, so no order separates them.
+  if (overlaps([...fields.filter(f => f && typeof f.label === 'string'), ...extra], answers)) return { answers: [], hold: 'labels_overlap' };
+  return { answers, hold: null };
+}
+
+/** The row a stage's own form goes on: a stage to speak on on events, a podcast's or a show's guest form on visibility; null for anything else. Pure. */
+export function formRow(t) {
+  if (stageKind(t) === 'stage') return 'events';
+  if (t?.type === 'podcast' || t?.type === 'guest_appearance') return 'visibility';
+  return null;
+}
+
+/** A form page the runner may open: https, whole, never a profile or a way to reach someone. */
+const formUrl = u => typeof u === 'string' && /^https:\/\/\S+$/.test(u) && u.length <= 2000 && !NOT_A_SOURCE.test(u) ? u : null;
+/** A form's page as a key, so Control Center's copy of the url matches the one the engine wrote. */
+const formUrlKey = u => { try { const x = new URL(u); x.hash = ''; return `${x.host}${x.pathname.replace(/\/+$/, '')}${x.search}`.toLowerCase(); } catch { return null; } };
+const sameForm = (a, b) => { const x = formUrlKey(a); return x !== null && x === formUrlKey(b); };
+
+/**
+ * One stage's form: its row and answers, or its row and why it is held, or
+ * null when the stage has no form the engine can read (no https cfp_url, or
+ * fields not read yet). A stage's own reasons come first, as its pitch would
+ * give them, then what his taps did with the form, then the answers. Pure.
+ */
+export function stageForm(t, { L, pitched, at, tries = [], canon, record = null }) {
+  const row = formRow(t);
+  const url = formUrl(t?.cfp_url);
+  if (!row || !url || !Array.isArray(t.form_fields)) return null;
+  const hold = h => ({ row, hold: h });
+  // An empty list is a form drawn in script, which the runner cannot read: left alone.
+  if (!t.form_fields.length) return hold('in_script');
+  if (typeof t.title !== 'string' || !cleanName(t.title)) return hold('no_title');
+  if (t.buried_at) return hold('buried');
+  if (t.verdict === 'rejected') return hold('rejected');
+  if (t.status === 'applied' || t.applied_at) return hold('applied');
+  if (!['sourced', 'queued'].includes(t.status)) return hold('not_open');
+  if ([t.title, t.organizer].some(x => typeof x === 'string' && OWN_SHOW.test(x))) return hold('own_show');
+  const now = Date.parse(at);
+  if (Number.isFinite(Date.parse(t.deadline_at ?? '')) && Date.parse(t.deadline_at) < now) return hold('deadline_passed');
+  if (Number.isFinite(Date.parse(t.event_start_at ?? '')) && Date.parse(t.event_start_at) < now) return hold('event_passed');
+  // A show known to have gone quiet is not taking guests; a guest form on its own page with no feed read is the show asking.
+  if (row === 'visibility' && (sinceLatest(t, at) ?? 0) > QUIET_AFTER_DAYS) return hold('quiet_show');
+  const mine = (Array.isArray(tries) ? tries : []).filter(f => sameForm(f?.url, url));
+  if (mine.some(f => SENT.has(f?.status))) return hold('sent');
+  if (pitched.has(t.id)) return hold('already_pitched');
+  const topic = showTopic(t);
+  const refused = refusedBy(L, { subject: `target:${t.id}`, row, kind: row === 'events' ? 'ceo_educator' : 'broadcaster', sector: null, topic, band: 'unknown' }, at);
+  if (refused) return hold(refused);
+  // The last try that sent nothing: what only he could give holds it; what was missing is answered now or holds it.
+  const last = mine.filter(f => f?.status === 'not_sent').sort((a, b) => String(b?.created_at ?? '').localeCompare(String(a?.created_at ?? '')))[0] ?? null;
+  const blockers = Array.isArray(last?.blockers) ? last.blockers : [];
+  if (blockers.length) return hold(blockers.includes('terms') ? 'terms' : 'blocked');
+  const name = cleanName(t.title);
+  const ask = row === 'events' ? speakingAsk(t) : 'a guest spot';
+  const talk = talkTitle(t, topic);
+  const [about, short] = TOPIC_PITCH[topic] ?? TOPIC_PITCH.leadership;
+  const topicRe = TOPICS.find(([n]) => n === topic)?.[1];
+  const said = {
+    bio: formBio(canon, record), abstract: formAbstract({ row, name, ask, talk, about, canon, record }), talk, ask,
+    topicLine: short.charAt(0).toUpperCase() + short.slice(1),
+    formats: row !== 'events' ? [] : ask === 'a panel seat' ? [/\bpanel/, /\btalk\b/, /\bkeynote\b/, /\bpresentation\b/] : [/\btalk\b/, /\bkeynote\b/, /\bpresentation\b/, /\bsession\b/],
+    // Every talk he gives is about AI, so a track named for it first, then one for the stage's own topic.
+    topics: [AI_OPTION, ...(topicRe ? [topicRe] : [])],
+  };
+  const { answers, hold: why } = formAnswers(t.form_fields, said, Array.isArray(last?.missing) ? last.missing : []);
+  if (why) return hold(why);
+  const action = { version: 2, channel: 'form', recipient_contact_id: null, subject: null, body: said.abstract, form: { url, answers }, mailbox: null };
+  const exact = JSON.stringify(action);
+  if (exact.length > PAYLOAD_MAX || !said.abstract) return hold('too_long');
+  return { row, hold: null, url, name, ask, talk, topic, exact, retried: Boolean(last) };
+}
+
+/** A form proposal for his tap: a prepared send on its row, about the stage, with the form's page and every answer. */
+function formProposal(f, rank, { t, canon, record, files, weekGoals, at, titleMax }) {
+  const events = f.row === 'events';
+  const noun = t.type === 'podcast' ? 'podcast' : 'show';
+  const serves = servesOf(f.row, weekGoals);
+  const base = events ? speakCard({ t, event: f.name, ask: f.ask, talk: f.talk, topic: f.topic, canon, serves })
+    : pitchCard({ t, show: f.name, host: hostOf(t), topic: f.topic, canon, serves, at, noun });
+  const room = typeof t.audience === 'string' && t.audience.trim() ? t.audience.trim().replace(/[.!?]+$/, '') : '';
+  const sources = [...base.sources];
+  if (!sources.some(s => s.url === f.url) && sources.length < CARD_SOURCES) sources.push({ label: fitTitleWithin(80, `${f.name}, its ${events ? 'call for speakers' : 'guest form'}`), url: f.url });
+  const card = {
+    ...base,
+    known: within(`You do not know them yet. ${f.name}'s own page links this form for ${events ? 'speakers' : 'guests'}, and your tap sends it, every answer shown first.`) || 'You do not know them yet. Its own page links this form, and your tap sends it, every answer shown first.',
+    // What he gets: the stage asked.
+    gain: [within(`${f.name} asked for ${events ? 'talks' : 'guests'} through its own form: ${f.ask} for you${room ? `, in front of ${room}` : ''}.`) || `${f.name} asked for ${events ? 'talks' : 'guests'} through its own form.`, ...base.gain.slice(1)],
+    sources,
+  };
+  const closes = dayMonth(t.deadline_at);
+  const because = events ? `A stage that asks for talks${closes ? `, call closes ${closes}` : ''}. Your tap applies.` : `A ${noun} that asks for guests. Your tap applies.`;
+  return {
+    proposal_id: `gmp-${seal({ subject: `target:${t.id}`, ask: 'form' }).slice(0, 32)}`,
+    title: events ? fitTitleWithin(titleMax, `Apply to speak at ${f.name}`, `Apply to ${f.name}`, 'Apply to speak at an event')
+      : fitTitleWithin(titleMax, `Apply to be a guest on ${f.name}`, `Apply to ${f.name}`, `Apply to be a guest on a ${noun}`),
+    why: clean(`${f.name} asks for ${events ? 'speakers' : 'guests'} through its own form, and every field it requires is answered from what the run reads.${f.retried ? ' His last tap sent nothing; what it lacked is answered now.' : ''} Nova's verdict: ${t.verdict ?? 'not yet judged'}. One ask: his tap sends it.`).slice(0, 1000),
+    kind: 'prepared', wall: 'send', channel: 'form', amount_usd: 0, objective_key: 'qualified_conversations',
+    exact_payload: f.exact, target: f.url, subject_ref: `target:${t.id}`,
+    evidence: [], close_condition: { event: 'form_submitted', reference: `${f.row}:form` },
+    expires_at: new Date(Math.min(Date.parse(at) + 14 * DAY, Number.isFinite(Date.parse(t.deadline_at ?? '')) ? Date.parse(t.deadline_at) : Infinity)).toISOString(), stage: null, parent_proposal_id: null,
+    row: f.row, rank,
+    reach: events ? reachOf(t, 'people in its room, as Nova read it', "an event's room not yet measured") : reachOf(t, 'people in its audience, as Nova read it', 'a podcast audience not yet measured'),
+    amplifier_kind: events ? 'ceo_educator' : 'broadcaster', features: { sector: null, topic: f.topic, seniority: null }, serves,
+    source_revision: [...files, ...(record?.file ? [record.file] : [])].slice(0, 8),
+    ...(because.length <= BECAUSE_MAX ? { because } : {}),
+    brief: [card.who, card.known, ...card.why.slice(0, 2), `The ask: your tap sends ${f.name}'s own form, every answer shown first.`].map(l => cutClean(l, BRIEF_LINE_MAX)).slice(0, 6),
+    card,
+  };
+}
+
+/**
+ * Today's forms, at most FORMS_PER_ROW a row, best first (a stage by its
+ * pitch's score, a show by its pitch's), ranked 1 on up within each row;
+ * the form's own holds; and the stages whose pitch waits behind a form
+ * (`routed`: form_route while a form is the route, form_sent once one went).
+ */
+export function formRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, L = lessons(context?.feedback, at), pitched = pitchedStages(context) }) {
+  const tries = Array.isArray(context?.records?.forms) ? context.records.forms : [];
+  const held = [], routed = new Map(), open = { visibility: [], events: [] }, seen = new Set();
+  for (const t of Array.isArray(context?.records?.visibility) ? context.records.visibility : []) {
+    if (typeof t?.id !== 'string' || !UUID.test(t.id) || seen.has(t.id)) continue;
+    seen.add(t.id);
+    const f = stageForm(t, { L, pitched, at, tries, canon, record });
+    if (!f) continue;
+    if (f.hold) {
+      if (f.hold === 'sent') routed.set(t.id, 'form_sent');
+      if (FORM_OWN.has(f.hold)) held.push(f.hold);
+      continue;
+    }
+    open[f.row].push({ f, t, score: f.row === 'events' ? speakScore(t, at) : pitchScore(t, at) });
+  }
+  const proposals = [];
+  for (const row of ['visibility', 'events']) {
+    open[row].sort((a, b) => b.score - a.score || a.t.id.localeCompare(b.t.id));
+    open[row].forEach(({ f, t }, i) => {
+      // A form waiting its turn is still the route: its pitch waits behind it.
+      routed.set(t.id, 'form_route');
+      if (i < FORMS_PER_ROW) proposals.push(formProposal(f, i + 1, { t, canon, record, files, weekGoals, at, titleMax }));
+      else held.push('per_run_cap');
+    });
+  }
+  return { proposals, held, routed };
+}
+
 /**
  * Today's pitches, best first, at most PITCHES_PER_RUN between them, each a
  * 1.9.0 row proposal for Jonny's box: podcasts on the visibility row, stages
  * to speak on on the events row; and why every other stage was left out.
+ * A stage whose own form is answered gets the form, first on its row, and
+ * its pitch waits behind it; the pitches rank after the forms on their row.
  * Ranks start at 1 within each row.
  */
 export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX }) {
   const L = lessons(context?.feedback, at);
   const pitched = pitchedStages(context);
+  const forms = formRows({ context, weekGoals, canon, record, files, at, titleMax, L, pitched });
+  const lead = { visibility: forms.proposals.filter(p => p.row === 'visibility').length, events: forms.proposals.filter(p => p.row === 'events').length };
   const held = [], stageHeld = [], pods = [], stages = [];
   const seen = new Set();
   for (const t of Array.isArray(context?.records?.visibility) ? context.records.visibility : []) {
     if (typeof t?.id !== 'string' || !UUID.test(t.id) || seen.has(t.id)) continue;
     seen.add(t.id);
     const kind = stageKind(t);
-    // A stage of neither kind is not counted as held from one.
+    // A stage of neither kind is not counted as held from one. One whose own form is the route is not pitched as well.
     if (kind === 'podcast') {
-      const why = pitchHold(t, { L, pitched, at });
+      const why = pitchHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? null;
       if (why) held.push(why); else pods.push({ t, score: pitchScore(t, at) });
     } else if (kind === 'stage') {
-      const why = speakHold(t, { L, pitched, at });
+      const why = speakHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? null;
       if (why) stageHeld.push(why); else stages.push({ t, score: speakScore(t, at) });
     }
   }
@@ -479,7 +873,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
       exact_payload: JSON.stringify(action), target: g.contact_id, subject_ref: `contact:${g.contact_id}`,
       evidence: [], close_condition: { event: 'outreach_sent', reference: 'visibility:invite' },
       expires_at: new Date(Date.parse(at) + 14 * DAY).toISOString(), stage: null, parent_proposal_id: null,
-      row: 'visibility', rank: i + 1,
+      row: 'visibility', rank: lead.visibility + i + 1,
       reach: { value: null, band: 'unknown', basis: "a guest's audience not yet measured", source_url: null, as_of: null },
       amplifier_kind: null, features: { sector: null, topic, seniority: null }, serves, source_revision: files.slice(0, 8),
       ...(because.length <= BECAUSE_MAX ? { because } : {}),
@@ -505,7 +899,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
       exact_payload: JSON.stringify(action), target: t.booking_contact_id, subject_ref: `target:${t.id}`,
       evidence: [], close_condition: { event: 'outreach_sent', reference: 'visibility:pitch' },
       expires_at: new Date(Date.parse(at) + 14 * DAY).toISOString(), stage: null, parent_proposal_id: null,
-      row: 'visibility', rank: inviteProposals.length + i + 1,
+      row: 'visibility', rank: lead.visibility + inviteProposals.length + i + 1,
       reach: reachOf(t, 'people in its audience, as Nova read it', 'a podcast audience not yet measured'),
       amplifier_kind: 'broadcaster', features: { sector: null, topic, seniority: null }, serves, source_revision: usedFiles,
       ...(because.length <= BECAUSE_MAX ? { because } : {}),
@@ -534,7 +928,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
       exact_payload: JSON.stringify(action), target: t.booking_contact_id, subject_ref: `target:${t.id}`,
       evidence: [], close_condition: { event: 'outreach_sent', reference: 'events:pitch' },
       expires_at: new Date(Math.min(Date.parse(at) + 14 * DAY, Number.isFinite(Date.parse(t.deadline_at ?? '')) ? Date.parse(t.deadline_at) : Infinity)).toISOString(), stage: null, parent_proposal_id: null,
-      row: 'events', rank: i + 1,
+      row: 'events', rank: lead.events + i + 1,
       reach: reachOf(t, 'people in its room, as Nova read it', "an event's room not yet measured"),
       amplifier_kind: 'ceo_educator', features: { sector: null, topic, seniority: null }, serves: speakServes, source_revision: usedFiles,
       ...(because.length <= BECAUSE_MAX ? { because } : {}),
@@ -544,5 +938,6 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   });
   if (pods.length > take.podcasts) held.push(...Array(pods.length - take.podcasts).fill('pitch_per_run_cap'));
   if (stages.length > take.stages) stageHeld.push(...Array(stages.length - take.stages).fill('pitch_per_run_cap'));
-  return { proposals: [...inviteProposals, ...podcastProposals, ...stageProposals], held, stageHeld, inviteHeld };
+  // Forms first: a report keeps at most forty, and a pitch left out waits for the next run.
+  return { proposals: [...forms.proposals, ...inviteProposals, ...podcastProposals, ...stageProposals], held, stageHeld, inviteHeld, formHeld: forms.held };
 }
