@@ -48,7 +48,7 @@ export function parseActionV2(text) {
   const isObj = x => !!x && typeof x === 'object' && !Array.isArray(x);
   const str = (x, max) => typeof x === 'string' && x.trim() && x.length <= max ? x.trim() : null;
   if (!isObj(a)) return { ok: false, error: 'the action is not an object' };
-  const extra = Object.keys(a).filter(k => !['version', 'channel', 'recipient_contact_id', 'subject', 'body', 'form', 'mailbox'].includes(k));
+  const extra = Object.keys(a).filter(k => !['version', 'channel', 'recipient_contact_id', 'subject', 'body', 'form', 'mailbox', 'kind'].includes(k));
   if (extra.length) return { ok: false, error: `the action has a field the protocol does not know: ${extra.join(', ')}` };
   if (a.version !== 2) return { ok: false, error: 'the action must be version 2' };
   if (!['email', 'x_message', 'whatsapp', 'form'].includes(a.channel)) return { ok: false, error: 'the action channel must be email, x_message, whatsapp or form' };
@@ -80,7 +80,11 @@ export function parseActionV2(text) {
   const mailbox = a.mailbox === null || a.mailbox === undefined ? null : a.mailbox === 'krish' || a.mailbox === 'jonny' ? a.mailbox : undefined;
   if (mailbox === undefined) return { ok: false, error: 'mailbox must be krish, jonny or null' };
   if (mailbox && channel !== 'email') return { ok: false, error: 'only an email lands in a mailbox' };
-  return { ok: true, value: { version: 2, channel, recipient_contact_id: recipient, subject: channel === 'email' ? subject : null, body, form, mailbox } };
+  // 1.10.0: the show-notes note, an email in Jonny's box only.
+  const kind = a.kind === null || a.kind === undefined ? null : a.kind === 'show_notes_ask' ? a.kind : undefined;
+  if (kind === undefined) return { ok: false, error: 'the action kind must be show_notes_ask or null' };
+  if (kind === 'show_notes_ask' && (channel !== 'email' || mailbox !== 'jonny')) return { ok: false, error: "a show_notes_ask is an email in Jonny's box (mailbox jonny): he asks the host he pitched" };
+  return { ok: true, value: { version: 2, channel, recipient_contact_id: recipient, subject: channel === 'email' ? subject : null, body, form, mailbox, ...(kind ? { kind } : {}) } };
 }
 
 export function directiveFixture(changes = {}) {

@@ -667,6 +667,13 @@
       "phase": "done",
       "state": "closed",
       "closed_by": "PR #24"
+    },
+    {
+      "id": "N20",
+      "what": "Four of the five pending 22 October campaign plans point to Advisory records Control Center no longer holds, so prepare-action refuses them forever, and with no expiry they hold his one-ask-at-a-time list.",
+      "phase": "0",
+      "state": "open",
+      "closed_by": null
     }
   ]
 }

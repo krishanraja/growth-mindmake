@@ -1,5 +1,9 @@
 # Release state
 
+## The show-notes note, and dead plans taken back, 27 October 2026
+
+Built and tested; pairs with krishanraja/control-center#584. Once one of Jonny's pitches to someone else's show or stage is booked (`booked_at` on a `job: booked` Jonny draft), the engine writes one short note in Jonny's voice thanking the host and asking for the brief link in the show notes or event page, the canon's brief URL tagged `growth-podcast` or `growth-guest-seat` (`src/stages/shownotes.mjs`, the one stage that writes a tagged link). It is ranked before any new pitch inside Jonny's ten a day, once per booking, never to a guest on his own shows, with no objective. The dispatch also withdraws pending campaign plans whose Advisory record Control Center no longer holds (`withdrawn`, only with complete Advisory records, never a decided one). Both are sent only where Control Center's capabilities say so, so nothing changes before it deploys. Six deliberate breakages each failed a test.
+
 ## The week spec, compiled (plan Phase 2), 27 October 2026
 
 Built and tested; not live. Nothing in a report changes until the week of 9 November, and the first signable spec takes effect at the first run after he signs it.

@@ -1,5 +1,6 @@
 import { seal, clean, DAY } from '../guards.mjs';
 import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
+import { showNoteRows } from './shownotes.mjs';
 
 /**
  * Podcast pitches, written in Jonny's voice for Krish (protocol 1.9.0, playbook 11).
@@ -831,7 +832,7 @@ export function formRows({ context, weekGoals, canon, record = null, files, at, 
  * its pitch waits behind it; the pitches rank after the forms on their row.
  * Ranks start at 1 within each row.
  */
-export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS }) {
+export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false }) {
   const L = lessons(context?.feedback, at);
   const pitched = pitchedStages(context);
   const lanes = { ...LANES_ON, ...(caps.lanes ?? {}) };
@@ -839,8 +840,11 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   // Jonny's Gmail takes ten drafts a day (Control Center, api/_pitchDrafts.ts). What a wake earlier
   // today already drafted there comes out of this run's room, so a second wake never asks for more.
   const used = jonnyDraftsToday(context, at);
-  const room = Math.max(0, Math.min(caps.per_run, (caps.jonny_per_day ?? PITCHES_PER_RUN) - used));
   const lead = { visibility: forms.proposals.filter(p => p.row === 'visibility').length, events: forms.proposals.filter(p => p.row === 'events').length };
+  // 1.10.0: a booked show's note asking for the brief link comes before any new pitch, inside the day's room (shownotes.mjs).
+  const notes = showNotes ? showNoteRows({ context, canon, files, at, titleMax, room: Math.max(0, Math.min(caps.per_run, (caps.jonny_per_day ?? PITCHES_PER_RUN) - used)) }) : { proposals: [], held: [] };
+  for (const n of notes.proposals) n.rank = ++lead[n.row];
+  const room = Math.max(0, Math.min(caps.per_run, (caps.jonny_per_day ?? PITCHES_PER_RUN) - used) - notes.proposals.length);
   const held = [], stageHeld = [], pods = [], stages = [];
   const seen = new Set();
   for (const t of Array.isArray(context?.records?.visibility) ? context.records.visibility : []) {
@@ -960,7 +964,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   if (pods.length > take.podcasts) held.push(...Array(pods.length - take.podcasts).fill('pitch_per_run_cap'));
   if (stages.length > take.stages) stageHeld.push(...Array(stages.length - take.stages).fill('pitch_per_run_cap'));
   // Forms first: a report keeps at most forty, and a pitch left out waits for the next run.
-  return { proposals: [...forms.proposals, ...inviteProposals, ...podcastProposals, ...stageProposals], held, stageHeld, inviteHeld, formHeld: forms.held, jonny: { used, room } };
+  return { proposals: [...forms.proposals, ...notes.proposals, ...inviteProposals, ...podcastProposals, ...stageProposals], held, stageHeld, inviteHeld, formHeld: forms.held, notesHeld: notes.held, jonny: { used, room } };
 }
 
 // ── The caps a run reads (plan Phase 2, N04) ───────────────────────────────

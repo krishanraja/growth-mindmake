@@ -459,6 +459,7 @@
         "src/stages/canon.mjs",
         "src/stages/meetings.mjs",
         "src/stages/traffic.mjs",
+        "src/stages/shownotes.mjs",
         "src/stages/rows.mjs",
         "src/stages/signals.mjs",
         "src/stages/pitches.mjs",

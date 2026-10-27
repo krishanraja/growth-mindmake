@@ -30,7 +30,7 @@
         "1.9.0",
         "1.10.0"
       ],
-      "description": "1.1.0 adds a proposal's stage and parent_proposal_id, 1.2.0 its subject_ref; an older report carrying a newer field is refused. 1.3.0 adds scoped context/outcome reads and exact action execution without changing report fields. 1.4.0 and 1.5.0 change only the directive. 1.6.0 adds a proposal's row, rank, reach, amplifier_kind, features, serves and source_revision, and allows 40 proposals (ENGINE-PROTOCOL.md, The five rows). 1.7.0 adds a row proposal's because and brief, which a row then needs. 1.8.0 adds a row proposal's card, the full card a tap opens, which a row then needs. 1.9.0 lets a visibility or events row's email action (exact_payload) name Jonny's box (mailbox), and changes no report field. 1.10.0 adds web_analytics to the directive of an engine whose product has a Google Analytics site with the per-post breakdown, and origin_candidates to the report of the engine whose meetings Control Center reads (Mindmake, features.meetings)."
+      "description": "1.1.0 adds a proposal's stage and parent_proposal_id, 1.2.0 its subject_ref; an older report carrying a newer field is refused. 1.3.0 adds scoped context/outcome reads and exact action execution without changing report fields. 1.4.0 and 1.5.0 change only the directive. 1.6.0 adds a proposal's row, rank, reach, amplifier_kind, features, serves and source_revision, and allows 40 proposals (ENGINE-PROTOCOL.md, The five rows). 1.7.0 adds a row proposal's because and brief, which a row then needs. 1.8.0 adds a row proposal's card, the full card a tap opens, which a row then needs. 1.9.0 lets a visibility or events row's email action (exact_payload) name Jonny's box (mailbox), and changes no report field. 1.10.0 adds web_analytics to the directive of an engine whose product has a Google Analytics site with the per-post breakdown, origin_candidates to the report of the engine whose meetings Control Center reads (Mindmake, features.meetings), and a row action's kind show_notes_ask (exact_payload), Jonny's show-notes note after a booking."
     },
     "engine_id": {
       "type": "string",
@@ -235,7 +235,8 @@
               "string",
               "null"
             ],
-            "maxLength": 8000
+            "maxLength": 8000,
+            "description": "The exact words to approve. On a row proposal (1.6.0), a version 2 action as JSON text: { version: 2, channel, recipient_contact_id, subject, body, form, mailbox, kind }, never an address. mailbox (1.9.0): krish, jonny or null; jonny on the visibility and events rows only. kind (1.10.0, optional): show_notes_ask or null, only on an email with mailbox jonny about a stage (subject_ref target:<id>): Jonny's one note to a host after his pitch was booked, asking for the brief link in the show notes, drafted once a stage only after booked_at is recorded (ENGINE-PROTOCOL.md, The show-notes note). An older report naming a kind is refused."
           },
           "payload_sha256": {
             "type": "string",
@@ -701,6 +702,30 @@
             ],
             "maxLength": 2000,
             "description": "A stable id (contact:<id>, a proposal id) or a public https page, never an address."
+          }
+        }
+      }
+    },
+    "withdrawn": {
+      "type": "array",
+      "maxItems": 40,
+      "description": "1.10.0, optional: your own pending proposals you take back, each with why. Each one Krish has not decided becomes expired and leaves his list; a decided one is left as it is. Never both proposed and withdrawn in one report.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proposal_id",
+          "reason"
+        ],
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9:._-]{0,119}$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
           }
         }
       }

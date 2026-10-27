@@ -70,9 +70,10 @@ test('a fix with no guard, or an accepted one, says why, and only a guarded fix 
   }
 });
 
-test('every finding N01 to N19 is present exactly once, and a closed one names what closed it', () => {
+test('every finding from N01 on is present exactly once, numbered without gaps, and a closed one names what closed it', () => {
   const ids = register.findings.map(n => n.id);
-  assert.deepEqual([...ids].sort(), Array.from({ length: 19 }, (_, i) => `N${String(i + 1).padStart(2, '0')}`));
+  assert.ok(ids.length >= 19, 'the plan names N01 to N19');
+  assert.deepEqual([...ids].sort(), Array.from({ length: ids.length }, (_, i) => `N${String(i + 1).padStart(2, '0')}`));
   for (const n of register.findings) {
     assert.ok(typeof n.what === 'string' && n.what.length > 10, n.id);
     assert.match(n.phase, PHASE, n.id);

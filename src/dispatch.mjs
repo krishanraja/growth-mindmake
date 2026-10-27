@@ -107,7 +107,7 @@ export const CARD_VERSION = '1.8.0';
 export const PITCH_VERSION = '1.9.0';
 /** The engine files row words are written from, named in every row's source_revision. */
 export const ENGINE_REPO = 'krishanraja/growth-mindmake';
-export const WORD_FILES = ['src/stages/rows.mjs', 'src/stages/signals.mjs', 'src/stages/pitches.mjs'];
+export const WORD_FILES = ['src/stages/rows.mjs', 'src/stages/signals.mjs', 'src/stages/pitches.mjs', 'src/stages/shownotes.mjs'];
 const repoRoot = new URL('../', import.meta.url);
 export async function engineFiles() {
   return Promise.all(WORD_FILES.map(async path => ({ repo: ENGINE_REPO, path, sha: blobSha(await readFile(new URL(path, repoRoot), 'utf8')) })));
@@ -269,14 +269,34 @@ export function proposalsFrom({ batch = null, snapshot = null, work = null, work
   return { proposals: unique.slice(0, 10), holds, activity };
 }
 
+const PILOT_REF = /^pilot:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+/**
+ * Pending campaign plans whose Advisory record Control Center no longer
+ * holds: prepare-action would refuse each one forever, so they are taken
+ * back (1.10.0 withdrawn). Only when the Advisory records are served
+ * complete, never one he decided, never one this run proposes again. Pure.
+ */
+export function deadPlans(context, proposing = new Set()) {
+  const cov = (Array.isArray(context?.coverage) ? context.coverage : []).find(c => c?.source === 'advisory');
+  if (!cov || cov.available !== true || cov.complete !== true || !Array.isArray(context?.records?.advisory)) return [];
+  const held = new Set(context.records.advisory.map(r => String(r?.id ?? '').toLowerCase()));
+  return (Array.isArray(context?.feedback) ? context.feedback : [])
+    .filter(f => typeof f?.proposal_id === 'string' && f.proposal_id.startsWith(CAMPAIGN_PREFIX) && f.state === 'pending' && !f.decided_at && !proposing.has(f.proposal_id))
+    .filter(f => { const m = PILOT_REF.exec(String(f.reference ?? '')); return m && !held.has(m[1].toLowerCase()); })
+    .slice(0, 40)
+    .map(f => ({ proposal_id: f.proposal_id, reason: 'Its Advisory record is no longer held, so this plan can never run.' }));
+}
+
 /** Build the report envelope exactly as engine-report.schema.json, then check it against that schema. */
-export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null }) {
+export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null }) {
   const body = {
     schema_version, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
     objectives, activity: activity.slice(0, 40).map(line => ({ line: cut(line, 500), evidence_url: null })),
     proposals, events, holds: holds.slice(0, 40).map(h => ({ reason: cut(h.reason, 200), detail: h.detail === null || h.detail === undefined ? null : cut(h.detail, 1000) })),
     // 1.10.0: where each unanswered meeting came from, only when there is one to say.
-    ...(origin_candidates?.length ? { origin_candidates } : {})
+    ...(origin_candidates?.length ? { origin_candidates } : {}),
+    // 1.10.0: its own pending plans it takes back, only when there is one.
+    ...(withdrawn?.length ? { withdrawn } : {})
   };
   const report = { ...body, payload_sha256: reportDigest(body) };
   const errors = schemaErrors(REPORT_SCHEMA, report);
@@ -350,7 +370,9 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // invited onto his own shows and podcasts on visibility, stages to speak on
   // on events. With them, the forms of stages that asked, for his Submit. An
   // older Control Center gets none.
-  const pitched = pitches ? pitchRows({ context: ctx, weekGoals: directive.week_goals, canon, record: await recordReader(), files, at, titleMax, caps: caps.pitches }) : { proposals: [], held: [], stageHeld: [], inviteHeld: [], formHeld: [], jonny: null };
+  // 1.10.0: notes asking a booked show for the brief link, only where Control Center drafts them.
+  const showNotes = capabilities?.features?.show_notes === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes('1.10.0');
+  const pitched = pitches ? pitchRows({ context: ctx, weekGoals: directive.week_goals, canon, record: await recordReader(), files, at, titleMax, caps: caps.pitches, showNotes }) : { proposals: [], held: [], stageHeld: [], inviteHeld: [], formHeld: [], notesHeld: [], jonny: null };
   const isForm = p => p.channel === 'form';
   // A stage that asked leads its row, one tap from done: the people ranked on that row come after its forms (at most two a row).
   const lead = {};
@@ -363,6 +385,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   counts.speaking_pitches = pitched.proposals.filter(p => p.row === 'events' && !isForm(p)).length;
   counts.forms = pitched.proposals.filter(isForm).length;
   counts.prepared = proposals.length;
+  for (const [reason, count] of tally(pitched.notesHeld ?? [])) holds.push({ reason: holdCode('notes', reason), detail: `${count} booked show${count === 1 ? '' : 's'} not asked for the brief link today: ${reason.replace(/_/g, ' ')}.` });
   for (const [reason, count] of tally(pitched.inviteHeld ?? [])) holds.push({ reason: holdCode('invite', reason), detail: `${count} guest${count === 1 ? '' : 's'} not invited today: ${reason.replace(/_/g, ' ')}.` });
   for (const [reason, count] of tally(pitched.held)) holds.push({ reason: holdCode('pitch', reason), detail: `${count} podcast${count === 1 ? '' : 's'} not pitched today: ${reason.replace(/_/g, ' ')}.` });
   for (const [reason, count] of tally(pitched.stageHeld ?? [])) holds.push({ reason: holdCode('speak', reason), detail: `${count} stage${count === 1 ? '' : 's'} to speak on not pitched today: ${reason.replace(/_/g, ' ')}.` });
@@ -617,9 +640,15 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       holds.push(...rows.holds); activity.push(...rows.activity);
       outcome.rows = rows.counts;
     }
-    // 1.10.0 adds origin_candidates and changes nothing earlier, so a run that can send it does.
-    if (taps && (schema_version === PITCH_VERSION || schema_version === SCHEMA_VERSION)) schema_version = MEETINGS_VERSION;
-    else if (taps) { origin_candidates = null; holds.push({ reason: 'meetings_need_1_9_0', detail: 'Control Center serves held meetings but not every earlier version this run, so no origin candidates were sent.' }); }
+    // Plans Control Center can never run, because the Advisory record each rests on is gone, are taken back (1.10.0).
+    let withdrawn = capabilities?.features?.withdrawn === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes(MEETINGS_VERSION) && suppliedContext
+      ? deadPlans(suppliedContext, new Set(mapped.proposals.map(p => p.proposal_id))) : [];
+    // 1.10.0 adds origin_candidates and withdrawn and changes nothing earlier, so a run that can send them does.
+    const isNote = p => { try { return JSON.parse(p.exact_payload ?? 'null')?.kind === 'show_notes_ask'; } catch { return false; } };
+    const wants110 = !!taps || withdrawn.length > 0 || mapped.proposals.some(isNote);
+    if (wants110 && (schema_version === PITCH_VERSION || schema_version === SCHEMA_VERSION)) schema_version = MEETINGS_VERSION;
+    else if (wants110) { origin_candidates = null; withdrawn = []; mapped.proposals = mapped.proposals.filter(p => !isNote(p)); holds.push({ reason: 'meetings_need_1_9_0', detail: 'Control Center serves 1.10.0 but not every earlier version this run, so no origin candidates, withdrawals or show-notes notes were sent.' }); }
+    if (withdrawn.length) activity.push(`Took back ${withdrawn.length} pending plan${withdrawn.length === 1 ? '' : 's'} whose Advisory record Control Center no longer holds, so ${withdrawn.length === 1 ? 'it' : 'they'} could never run and no longer wait on his list.`);
     holds.push(...mapped.holds); activity.push(...mapped.activity);
     // The directive's constraints, in shadow until the switch (plan section 3): counted and reported, nothing hidden.
     const c = directive.constraints;
@@ -640,7 +669,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
         goodObjective,
         ...bookingObjectives({ booked, thisWeek, at, midnight: londonMidnight, addDays, londonDate, timezone: TIMEZONE }),
         ...(outcomes ? outcomeScorecard(outcomes, observed_at) : objectiveReadings({ at: observed_at, activatedOn }))
-      ].slice(0, 20), activity, proposals: mapped.proposals, holds, schema_version, origin_candidates
+      ].slice(0, 20), activity, proposals: mapped.proposals, holds, schema_version, origin_candidates, withdrawn
     });
     outcome.report = { status: report.status, payload_sha256: report.payload_sha256, proposals: report.proposals.length, walled: report.proposals.filter(p => p.wall !== 'none').length, holds: report.holds.map(h => h.reason), objectives: report.objectives.map(o => ({ key: o.key, availability: o.availability })), replayed: null };
     phase = 'report';
