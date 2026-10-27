@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { golden } from './golden.mjs';
 
 /** Synthetic stand-in for Control Center's growth engine protocol 1.0.0, never production storage. */
 const schema = JSON.parse(await readFile(new URL('../../docs/control-center/engine-report.schema.json', import.meta.url), 'utf8'));
@@ -102,7 +103,7 @@ export function directiveFixture(changes = {}) {
   };
 }
 
-export async function startProtocolService({ token = STAND_IN_TOKEN, directive = directiveFixture(), decisions = [], activatedOn = '2026-10-18', active = true } = {}) {
+export async function startProtocolService({ token = STAND_IN_TOKEN, directive = directiveFixture(), decisions = [], activatedOn = '2026-10-18', active = true, recorded = true } = {}) {
   const reports = new Map(), attempts = new Map(), requests = [], faults = [];
   const base = '/api/growth/engines/mindmake/';
   const server = createServer(async (req, res) => {
@@ -132,6 +133,8 @@ export async function startProtocolService({ token = STAND_IN_TOKEN, directive =
     }
     if (route?.startsWith('attempts/') && req.method === 'GET') { const a = attempts.get(decodeURIComponent(route.slice(9))); reply(a ? 200 : 404, a ? { ok: true, attempt: a } : { error: 'not_found' }); return; }
     if (route === 'reports' && req.method === 'POST') {
+      // Every report a fixture posts is checked against the one it gave before the week spec (tests/support/golden.mjs). A run on the wall clock, or a test of behaviour that is new since, passes recorded: false.
+      if (recorded) golden(body);
       const problems = violations(schema, body);
       if (problems.length) { reply(400, { error: 'invalid_report', field: problems[0] }); return; }
       if (body.engine_id !== 'growth-mindmake' || body.product_slug !== 'mindmake') { reply(403, { error: 'wrong_engine' }); return; }

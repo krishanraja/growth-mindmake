@@ -7,6 +7,7 @@ import { pitchRows, pitchHold, pitchedStages, pitchScore, pitchWords, hostOf, sh
 import { lessons, titleFor, OWN_SHOW, WORDS, KRISH_TITLE, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, BECAUSE_MAX, TITLE_MAX_BRIEF } from '../src/stages/rows.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture, violations } from './support/engine-protocol-service.mjs';
+import { golden } from './support/golden.mjs';
 
 // Synthetic only: invented shows, .test and example addresses, no live record.
 const NOW = '2026-10-27T09:00:00.000Z';
@@ -175,7 +176,7 @@ test('a dispatch run reports pitches at 1.9.0 only where Control Center serves i
     const cc = { recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: served.at(-1), week_goals: GOALS }),
       capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true } }),
       context: async () => ({ ok: true, context: { schema_version: served.at(-1), engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }], records: { advisory: [], visibility: [stage(1, { verdict: 'take' }), stage(2)], drafts: [{ visibility_target_id: id(2) }] }, amplifier_candidates: [], routes: {}, feedback: [], research: [] } }),
-      decisions: async () => [], postReport: async rep => { reports.push(rep); return { replayed: false }; }, readReport: async () => reports.at(-1) };
+      decisions: async () => [], postReport: async rep => { reports.push(golden(rep)); return { replayed: false }; }, readReport: async () => reports.at(-1) };
     const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: `gma-pitch-${expected.replace(/\./g, '')}-1234`, clock: () => NOW,
       canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/pitches.mjs', sha: 'b'.repeat(40) }], recordReader: async () => { recordReads++; return RECORD; } });
     assert.equal(result.status, 'succeeded', expected);
@@ -320,7 +321,7 @@ test('a dispatch run at 1.9.0 reports speaking pitches on events and says why th
   const cc = { recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: '1.9.0', week_goals: GOALS }),
     capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true } }),
     context: async () => ({ ok: true, context: { schema_version: '1.9.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }], records: { advisory: [], visibility: [stage(1), summit(2), summit(3, { deadline_at: '2026-10-01T00:00:00Z' })], drafts: [] }, amplifier_candidates: [], routes: {}, feedback: [], research: [] } }),
-    decisions: async () => [], postReport: async rep => { reports.push(rep); return { replayed: false }; }, readReport: async () => reports.at(-1) };
+    decisions: async () => [], postReport: async rep => { reports.push(golden(rep)); return { replayed: false }; }, readReport: async () => reports.at(-1) };
   const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-speak-190-1234', clock: () => NOW,
     canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/pitches.mjs', sha: 'b'.repeat(40) }], recordReader: async () => RECORD });
   assert.equal(result.status, 'succeeded');
@@ -531,7 +532,7 @@ test('a dispatch run at 1.9.0 reports invites with the pitches, counts them, and
   const cc = { recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: '1.9.0', week_goals: GOALS }),
     capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true } }),
     context: async () => ({ ok: true, context: { schema_version: '1.9.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }], records: { advisory: [], visibility: [stage(1)], drafts: [], guests: [guest(1), guest(2, { invite_state: 'booked' }), guest(3, { guest_verdict: 'rejected' })] }, amplifier_candidates: [], routes: route(1, 2, 3), feedback: [], research: [] } }),
-    decisions: async () => [], postReport: async rep => { reports.push(rep); return { replayed: false }; }, readReport: async () => reports.at(-1) };
+    decisions: async () => [], postReport: async rep => { reports.push(golden(rep)); return { replayed: false }; }, readReport: async () => reports.at(-1) };
   const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-invite-190-1234', clock: () => NOW,
     canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/pitches.mjs', sha: 'b'.repeat(40) }], recordReader: async () => RECORD });
   assert.equal(result.status, 'succeeded');

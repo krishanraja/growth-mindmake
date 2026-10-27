@@ -1,9 +1,7 @@
 /** Portfolio and institution selection over scoped, dated Control Center reads.
  * This is preparation. Native records own people, words and lifecycle states. */
-import { createHash } from 'node:crypto';
 import { qualified } from './stages/scorecard.mjs';
 
-const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const MOTIONS = ['multiplier', 'institution', 'visibility', 'direct'];
 const rank = c => c.access + c.authority + c.distribution + c.proof_strength + c.timing - c.effort;
 const scores = c => ['access','authority','distribution','proof_strength','timing','effort'].every(k => Number.isInteger(c[k]) && c[k] >= 0 && c[k] <= 5);
@@ -40,7 +38,7 @@ export function outcomeScorecard(outcomes, at) {
 
 /** A campaign lives on its existing Advisory/Visibility record. Human wording
  * stays there. No engine copy competes with the native action on his one list. */
-export function strategicPlan(context, { at, capacity = 5 } = {}) {
+export function strategicPlan(context, { at, capacity = 5, allocation = null } = {}) {
   const candidates = [], held = [], seen = new Set();
   const unresolvedReplies = (context.records.advisory ?? []).filter(r=>r.state==='replied' && !r.growth_context?.campaign && !(r.growth_context?.engine_jobs?.length));
   if (unresolvedReplies.length) {
@@ -86,8 +84,10 @@ export function strategicPlan(context, { at, capacity = 5 } = {}) {
   }).filter(Boolean).slice(0,5);
   const missing = context.coverage.filter(c=>!c.complete).map(c=>c.source);
   const pathsWithoutAccess = (context.paths?.targets ?? []).filter(p=>p.kind==='none' || p.path?.kind==='none');
-  return { selected, held, allocation: { multiplier_institution: .7, direct_learning: .3, rebalance_every_days: 14 },
+  // The allocation is config/policy.json's `acquisition`, read where it belongs and still inert (plan section 1): nothing ranks by it yet.
+  // No plan-wide digest (N14, removed): each campaign is bound by its own proposal's payload_sha256, which his decision names.
+  const share = (v, d) => typeof v === 'number' && v >= 0 && v <= 1 ? v : d;
+  return { selected, held, allocation: { multiplier_institution: share(allocation?.multiplier_institution_share, .7), direct_learning: share(allocation?.direct_learning_share, .3), rebalance_every_days: Number.isInteger(allocation?.rebalance_days) ? allocation.rebalance_days : 14 },
     research: networkResearch,
-    review: { id: `mindmake:strategy:${date.toISOString().slice(0,10)}`, experiment: pathsWithoutAccess.length ? 'Test one existing host opportunity with no credible route: research an evidenced mutual and seek permission for one introduction.' : 'Find one absent institution where comparable practitioners earn invitations; verify audience, route and proof before preparing a pitch.', coverage_gaps: missing, comparable_practitioner_evidence: 'Not yet verified; research is required before a claim or approach.', buyer_questions: ['Can the leader see their own criteria applied to an actual business decision?','What must stay private to the leader versus shared with a portfolio?','What would make the two-week pilot worth continuing?'], commercial_inference: 'Drafts and successful runs are preparation only.' },
-    digest: digest(selected.map(c=>({ ref:c.ref, reviewed_at:c.reviewed_at, action:c.first_action }))) };
+    review: { id: `mindmake:strategy:${date.toISOString().slice(0,10)}`, experiment: pathsWithoutAccess.length ? 'Test one existing host opportunity with no credible route: research an evidenced mutual and seek permission for one introduction.' : 'Find one absent institution where comparable practitioners earn invitations; verify audience, route and proof before preparing a pitch.', coverage_gaps: missing, comparable_practitioner_evidence: 'Not yet verified; research is required before a claim or approach.', buyer_questions: ['Can the leader see their own criteria applied to an actual business decision?','What must stay private to the leader versus shared with a portfolio?','What would make the two-week pilot worth continuing?'], commercial_inference: 'Drafts and successful runs are preparation only.' } };
 }

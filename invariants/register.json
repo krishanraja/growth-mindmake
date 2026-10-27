@@ -535,7 +535,7 @@
   "findings": [
     {
       "id": "N01",
-      "what": "A second Control Center wake on the same London day replayed the first report, though the protocol gives a later wake a new run_id. The per-day budget of pitch drafts stays Phase 2.",
+      "what": "A second Control Center wake on the same London day replayed the first report, though the protocol gives a later wake a new run_id. The per-day budget of Jonny drafts followed in PR #28: a later wake writes only what is left of Control Center's ten a day (tests/spec.test.mjs).",
       "phase": "done",
       "state": "closed",
       "closed_by": "PR #26"
@@ -549,18 +549,18 @@
     },
     {
       "id": "N03",
-      "what": "The directive's north_star, urgency, constraints and rows_rule were read nowhere. PR #25 reads north_star, urgency and constraints; rows_rule is still unread.",
-      "phase": "2",
-      "state": "open",
-      "closed_by": null,
-      "partly_closed_by": "PR #25"
+      "what": "The directive's north_star, urgency, constraints and rows_rule were read nowhere. PR #25 reads north_star, urgency and constraints; PR #28 reads rows_rule as data only (its SHA-256 and length in an activity line, never its words), because this engine owns the rows doctrine (Ruling, Krish, 2026-10-27; plan M10 retires Control Center's copy).",
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #28"
     },
     {
       "id": "N04",
       "what": "Policy fields voice, recognition, acquisition, pilot, venture and execution.* are never read, and row, fit and pitch caps and the 70/30 split are hard-coded.",
-      "phase": "2",
-      "state": "open",
-      "closed_by": null
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #28",
+      "note": "The caps now come from the week spec in force (src/crew/compile.mjs), inside policy.bounds, with today's values as the stages' defaults. recognition holds the ruled targets of 27 October and is read for the booking line; acquisition is read into strategicPlan's allocation, still inert by plan section 1; venture and every execution field are read as gates that can only narrow (the compiler, the executor). Two stay unread on purpose: voice ('mixed') is superseded by each action's mailbox (1.9.0) and the directive's taste (1.5.0), and pilot describes the offer, which the canon read live owns (no stored assumptions about the venture). Both wait on Krish to remove; targets.held_intros_per_week is likewise unread and outside N04."
     },
     {
       "id": "N05",
@@ -628,10 +628,10 @@
     },
     {
       "id": "N14",
-      "what": "strategicPlan().digest is computed and never read.",
-      "phase": "2",
-      "state": "open",
-      "closed_by": null
+      "what": "strategicPlan().digest was computed and never read. Removed in PR #28 rather than used: each campaign is already bound by its own proposal's payload_sha256, which his decision names, and the report schema has no field for a plan-wide digest.",
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #28"
     },
     {
       "id": "N15",

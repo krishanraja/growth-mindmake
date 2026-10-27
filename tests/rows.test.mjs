@@ -6,6 +6,7 @@ import { kindsOf, reachOf, countIn, lessons, refusedBy, amplifierRows, rankRows,
 import { icpOf, signalRequests, signalRows, isoWeek } from '../src/stages/signals.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
+import { golden } from './support/golden.mjs';
 
 // Synthetic only: fictional people, .test addresses, example links.
 const NOW = '2026-10-26T09:00:00.000Z';
@@ -228,7 +229,7 @@ test('a dispatch run against Control Center 1.6.0: the rows reach the report, re
         evidence: r.kind === 'posts' ? [{ url: POST_URL, title: 'Pat Writer: Founder', engagement: { comments: 300, reactions: 900 } }]
           : r.kind === 'post_engagers' ? [engager('stranger-ceo', 'Sam Stranger', 'CEO, Example Media', 'This keeps me up at night: what happens to my managers?')] : [] }));
     },
-    decisions: async () => [], postReport: async r => { reports.push(r); return { replayed: false }; }, readReport: async () => reports.at(-1),
+    decisions: async () => [], postReport: async r => { reports.push(golden(r)); return { replayed: false }; }, readReport: async () => reports.at(-1),
   };
   const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-rows-12345678', clock: () => NOW,
     canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/rows.mjs', sha: 'b'.repeat(40) }] });
@@ -248,7 +249,7 @@ test('a dispatch run against Control Center 1.6.0: the rows reach the report, re
   assert.ok(rows.every(p => !('because' in p) && !('brief' in p) && !('card' in p)), 'a 1.6.0 Control Center gets the rows without their reasons or their cards');
 
   // Before Control Center reads rows, the engine reports as it always has.
-  const older = []; const cc2 = { ...cc, capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, features: { context: true } }), postReport: async r => { older.push(r); return { replayed: false }; }, readReport: async () => older.at(-1) };
+  const older = []; const cc2 = { ...cc, capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, features: { context: true } }), postReport: async r => { older.push(golden(r)); return { replayed: false }; }, readReport: async () => older.at(-1) };
   await runDispatch({ cc: cc2, source: async () => ({}), policy, registry: {}, attemptId: 'gma-rows-older-1234', clock: () => NOW, canonReader: async () => { throw new Error('never read'); } });
   assert.equal(older[0].schema_version, '1.2.0');
   assert.equal(older[0].proposals.some(p => 'row' in p), false);
@@ -259,7 +260,7 @@ test('a canon that cannot be read holds every row and says why', async () => {
   const reports = [];
   const cc = { recordAttempt: async () => {}, directive: async () => directiveFixture(), capabilities: async () => ({ schema_versions: ['1.6.0'], features: { context: true, rows: true } }),
     context: async () => ({ ok: true, context: { schema_version: '1.6.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [], records: { advisory: [] }, ...ampContext() } }),
-    decisions: async () => [], postReport: async r => { reports.push(r); return { replayed: false }; }, readReport: async () => reports.at(-1) };
+    decisions: async () => [], postReport: async r => { reports.push(golden(r)); return { replayed: false }; }, readReport: async () => reports.at(-1) };
   await runDispatch({ cc, source: async () => ({}), policy, registry: {}, attemptId: 'gma-canon-held-1234', clock: () => NOW, canonReader: async () => { throw new CanonError('main_ask_unreadable'); } });
   assert.equal(reports[0].proposals.some(p => p.row), false);
   assert.ok(reports[0].holds.some(h => h.reason === 'main_ask_unreadable'));
@@ -356,7 +357,7 @@ test('a dispatch run against Control Center 1.7.0 reports 1.7.0, and every row c
   const cc = { recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: '1.7.0', week_goals: GOALS }),
     capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: ['1.6.0', '1.7.0'], features: { context: true, rows: true } }),
     context: async () => ({ ok: true, context: { schema_version: '1.7.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }], records: { advisory: [] }, ...ampContext() } }),
-    decisions: async () => [], postReport: async r => { reports.push(r); return { replayed: false }; }, readReport: async () => reports.at(-1) };
+    decisions: async () => [], postReport: async r => { reports.push(golden(r)); return { replayed: false }; }, readReport: async () => reports.at(-1) };
   const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-rows-17-123456', clock: () => NOW,
     canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/rows.mjs', sha: 'b'.repeat(40) }] });
   assert.equal(result.status, 'succeeded');
@@ -688,7 +689,7 @@ test('a dispatch run reports 1.8.0 with the full card only where Control Center 
     const cc = { recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: served.at(-1), week_goals: GOALS }),
       capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true } }),
       context: async () => ({ ok: true, context: { schema_version: served.at(-1), engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }], records: { advisory: [] }, ...ampContext() } }),
-      decisions: async () => [], postReport: async rep => { reports.push(rep); return { replayed: false }; }, readReport: async () => reports.at(-1) };
+      decisions: async () => [], postReport: async rep => { reports.push(golden(rep)); return { replayed: false }; }, readReport: async () => reports.at(-1) };
     const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: `gma-card-${expected.replace(/\./g, '')}-1234`, clock: () => NOW,
       canonReader: async () => fullCanon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/rows.mjs', sha: 'b'.repeat(40) }] });
     assert.equal(result.status, 'succeeded', expected);

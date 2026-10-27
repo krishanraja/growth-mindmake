@@ -7,6 +7,7 @@ import { pitchRows, formRows, stageForm, formAnswers, fieldAsk, formKey, answerF
 import { lessons, KRISH_TITLE, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, BECAUSE_MAX, TITLE_MAX_BRIEF } from '../src/stages/rows.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture, violations, parseActionV2 } from './support/engine-protocol-service.mjs';
+import { golden } from './support/golden.mjs';
 
 // Synthetic only: invented stages and forms, example links, no live record.
 // The one address a form is given is his public business address (FORM_EMAIL).
@@ -366,7 +367,7 @@ test('a dispatch run at 1.9.0 reports forms first on their row, the people behin
       context: async () => ({ ok: true, context: { schema_version: served.at(-1), engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }],
         records: { advisory: [], visibility: [summit(1), summit(2, { form_fields: [...FIELDS, field('Phone', { type: 'tel', required: true })] })], drafts: [], forms: [] },
         amplifier_candidates: [professor], routes: { [id(4)]: { email: 'verified', x: false, linkedin: true, instagram: false, whatsapp: false } }, feedback: [], research: [] } }),
-      decisions: async () => [], postReport: async rep => { reports.push(rep); return { replayed: false }; }, readReport: async () => reports.at(-1) };
+      decisions: async () => [], postReport: async rep => { reports.push(golden(rep)); return { replayed: false }; }, readReport: async () => reports.at(-1) };
     const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: `gma-form-${expected.replace(/\./g, '')}-1234`, clock: () => NOW,
       canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/pitches.mjs', sha: 'b'.repeat(40) }], recordReader: async () => RECORD });
     assert.equal(result.status, 'succeeded', expected);

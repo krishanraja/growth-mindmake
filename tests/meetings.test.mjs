@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, stopgapPayload, readStopgap, bookings, PATHS } from '../src/stages/meetings.mjs';
 import { runDispatch, payloadDigest, amendedDigestOk, campaignProposal, londonDate, addDays, LADDER } from '../src/dispatch.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
+import { golden } from './support/golden.mjs';
 
 // A Tuesday: this London week starts 2026-11-02, so last week (2026-10-26) is the first counted rung.
 const NOW = '2026-11-03T12:00:00Z';
@@ -16,7 +17,7 @@ function harness({ decisions = [], capabilities = { activation: { activated_on: 
   const cc = {
     recordAttempt: async () => ({ ok: true }), directive: async () => directive, capabilities: async () => capabilities,
     decisions: async () => decisions, readReport: async () => { const r = reports.at(-1); if (!r) throw Object.assign(new Error('none'), { status: 404 }); return { accepted: true, run_id: r.run_id, payload_sha256: r.payload_sha256, report: r }; },
-    postReport: async r => { reports.push(r); return { accepted: true, run_id: r.run_id, payload_sha256: r.payload_sha256, replayed: false }; },
+    postReport: async r => { reports.push(golden(r)); return { accepted: true, run_id: r.run_id, payload_sha256: r.payload_sha256, replayed: false }; },
     context: async () => ({ ok: true, context }), outcomes: async () => { throw new Error('not served'); },
     prepareAction: async id => { prepared.push(id); if (prepareAction) return prepareAction(id); throw new Error('no route'); },
     actionReceipt: async () => { throw Object.assign(new Error('none'), { status: 404 }); }, executeAction: async () => { throw new Error('no executor'); }

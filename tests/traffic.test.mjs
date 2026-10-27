@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { tagged, untagged, readWeb, trafficLines, bookedHosts, CONSENT, TAG_PATHS } from '../src/stages/traffic.mjs';
 import { runDispatch, readDirective } from '../src/dispatch.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
+import { golden } from './support/golden.mjs';
 
 // Synthetic shapes only: no real site figures, no measurement id.
 const BRIEF = 'https://mindmake.co/?start=1';
@@ -81,7 +82,7 @@ test('the dispatch reports the traffic lines to Control Center, never as an obje
   const cc = {
     recordAttempt: async () => ({ ok: true }), directive: async () => directiveFixture({ schema_version: '1.10.0', web_analytics }),
     capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, features: {} }), decisions: async () => [],
-    readReport: async () => { const r = reports.at(-1); return { accepted: true, run_id: r.run_id, payload_sha256: r.payload_sha256, report: r }; }, postReport: async r => { reports.push(r); return { accepted: true, run_id: r.run_id, payload_sha256: r.payload_sha256, replayed: false }; },
+    readReport: async () => { const r = reports.at(-1); return { accepted: true, run_id: r.run_id, payload_sha256: r.payload_sha256, report: r }; }, postReport: async r => { reports.push(golden(r)); return { accepted: true, run_id: r.run_id, payload_sha256: r.payload_sha256, replayed: false }; },
     context: async () => { throw new Error('not served'); }, outcomes: async () => { throw new Error('not served'); },
     prepareAction: async () => { throw new Error('no route'); }, actionReceipt: async () => { throw Object.assign(new Error('none'), { status: 404 }); }, executeAction: async () => { throw new Error('none'); }
   };

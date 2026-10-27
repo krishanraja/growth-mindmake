@@ -6,19 +6,19 @@
  * decisions and journal the terminal attempt. The separately guarded shared executor
  * may carry out an exact approved go-live; an uncertain result is never retried.
  */
-import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { seal } from './guards.mjs';
+import { seal, canonicalJson, payloadDigest, schemaErrors } from './guards.mjs';
 import { plan } from './orchestrator.mjs';
 import { enginePlan } from './engine.mjs';
 import { validateStrategicRead, strategicPlan, outcomeScorecard } from './strategy.mjs';
 import { readVoice } from './stages/draft.mjs';
-import { amplifierRows, rankRows, ROWS, TITLE_MAX, TITLE_MAX_BRIEF } from './stages/rows.mjs';
+import { amplifierRows, rankRows, ROWS, PER_ROW, TITLE_MAX, TITLE_MAX_BRIEF } from './stages/rows.mjs';
 import { signalRequests, signalRows } from './stages/signals.mjs';
 import { readCanon, readRecord, blobSha, CanonError } from './stages/canon.mjs';
 import { pitchRows } from './stages/pitches.mjs';
-import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, STOPGAP_PREFIX, MEETINGS_VERSION, meetingsServed, readMeetings, countGood, tappedObjective, tappedLine, originCandidates } from './stages/meetings.mjs';
+import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, readSpecCounts, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, visibilityTargets, STOPGAP_PREFIX, MEETINGS_VERSION, meetingsServed, readMeetings, countGood, tappedObjective, tappedLine, originCandidates } from './stages/meetings.mjs';
 import { readWeb, trafficLines, bookedHosts } from './stages/traffic.mjs';
+import { weekSpec, defaultSpec, parseSpec, compiledDrift, STAGE_CAPS, SPEC_PREFIX, FIRST_SPEC_WEEK } from './crew/compile.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
 export const PRODUCT_SLUG = 'mindmake';
@@ -26,32 +26,26 @@ export const SLUG = 'mindmake';
 export const TIMEZONE = 'Europe/London';
 export const REPORT_SCHEMA = JSON.parse(await readFile(new URL('../docs/control-center/engine-report.schema.json', import.meta.url), 'utf8'));
 /** The weekly ladder Krish set in docs/NORTH_STAR.md, read from the file itself so it never drifts from his number. */
-export const LADDER = readLadder(await readFile(new URL('../docs/NORTH_STAR.md', import.meta.url), 'utf8'));
+const NORTH_STAR_TEXT = await readFile(new URL('../docs/NORTH_STAR.md', import.meta.url), 'utf8');
+export const LADDER = readLadder(NORTH_STAR_TEXT);
+/** docs/NORTH_STAR.md by its blob SHA, which a default week spec names as the file it was written against. */
+export const NORTH_STAR_SHA = blobSha(NORTH_STAR_TEXT);
 /** Campaign plans are the only plans prepare-action may act on (N18). Other plans (`gmg-` and later kinds) are read by their own readers. */
 export const CAMPAIGN_PREFIX = 'gmc-';
-/** Holds that record a standing ruling rather than a problem with this run; they never make a run read as held. */
-const STANDING_HOLDS = new Set(['founder_visibility_open']);
+/** Holds that record a standing ruling or a signature still his to give, rather than a problem with this run; they never make a run read as held. */
+const STANDING_HOLDS = new Set(['founder_visibility_open', 'spec_unsigned']);
 const DAY = 86400000;
 const CODE = /^[a-z][a-z0-9_]{0,63}$/;
 const CONTACT = /^[A-Za-z0-9_-]{1,64}$/;
 const ID = /^[A-Za-z0-9][A-Za-z0-9:._-]{0,119}$/;
 const HTTPS = /^https:\/\/\S+$/;
-const DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 export class DispatchError extends Error {
   constructor(code) { super(`Dispatch stopped: ${code}`); this.code = code; }
 }
 
-/** Canonical JSON: keys sorted at every depth, no whitespace, arrays in order, strings as JSON.stringify writes them. */
-export function canonicalJson(value) {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
-  if (typeof value === 'number') { if (!Number.isFinite(value)) throw new Error('Canonical JSON has no non-finite numbers'); return JSON.stringify(value); }
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
-  if (typeof value === 'object') return `{${Object.keys(value).sort().map(k => { if (value[k] === undefined) throw new Error('Canonical JSON has no undefined values'); return `${JSON.stringify(k)}:${canonicalJson(value[k])}`; }).join(',')}}`;
-  throw new Error('Canonical JSON cannot encode this value');
-}
-const sha256 = text => createHash('sha256').update(text, 'utf8').digest('hex');
-export const payloadDigest = value => sha256(canonicalJson(value));
+/** The canonical digest and the schema check live in guards.mjs, so the week spec's compiler shares them; they are re-exported here unchanged. */
+export { canonicalJson, payloadDigest, schemaErrors } from './guards.mjs';
 /** An amended decision's digest, recomputed: SHA-256 of canonical JSON of exactly `{ amount_usd, exact_payload }`, null when absent (ENGINE-PROTOCOL.md). */
 export function amendedDigestOk(d) {
   if (typeof d?.amended_sha256 !== 'string' || typeof d.exact_payload !== 'string') return false;
@@ -59,39 +53,6 @@ export function amendedDigestOk(d) {
 }
 /** SHA-256 of the canonical report without its own payload_sha256 field. */
 export function reportDigest(report) { const { payload_sha256, ...body } = report; return payloadDigest(body); }
-
-/** Minimal JSON Schema check for the keywords the protocol schema uses. Unknown fields fail. */
-export function schemaErrors(schema, value, path = '$') {
-  const errors = [];
-  if (schema.const !== undefined && value !== schema.const) errors.push(`${path}: must equal ${JSON.stringify(schema.const)}`);
-  if (schema.enum && !schema.enum.includes(value)) errors.push(`${path}: value not allowed`);
-  if (schema.type !== undefined) {
-    const kind = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
-    const allowed = [].concat(schema.type).some(t => t === kind || (t === 'integer' && Number.isInteger(value)) || (t === 'number' && kind === 'number' && Number.isFinite(value)));
-    if (!allowed) { errors.push(`${path}: wrong type`); return errors; }
-  }
-  if (value === null || value === undefined) return errors;
-  if (typeof value === 'string') {
-    if (schema.maxLength !== undefined && value.length > schema.maxLength) errors.push(`${path}: too long`);
-    if (schema.minLength !== undefined && value.length < schema.minLength) errors.push(`${path}: too short`);
-    if (schema.pattern && !new RegExp(schema.pattern, 'u').test(value)) errors.push(`${path}: does not match its pattern`);
-    if (schema.format === 'date-time' && (!DATE_TIME.test(value) || !Number.isFinite(Date.parse(value)))) errors.push(`${path}: not a date-time`);
-  }
-  if (typeof value === 'number' && schema.minimum !== undefined && value < schema.minimum) errors.push(`${path}: below its minimum`);
-  if (typeof value === 'number' && schema.maximum !== undefined && value > schema.maximum) errors.push(`${path}: above its maximum`);
-  if (Array.isArray(value)) {
-    if (schema.maxItems !== undefined && value.length > schema.maxItems) errors.push(`${path}: too many items`);
-    if (schema.minItems !== undefined && value.length < schema.minItems) errors.push(`${path}: too few items`);
-    if (schema.items) value.forEach((item, i) => errors.push(...schemaErrors(schema.items, item, `${path}[${i}]`)));
-  } else if (typeof value === 'object') {
-    for (const key of schema.required ?? []) if (!Object.hasOwn(value, key)) errors.push(`${path}: missing ${key}`);
-    for (const [key, child] of Object.entries(value)) {
-      if (schema.properties && Object.hasOwn(schema.properties, key)) errors.push(...schemaErrors(schema.properties[key], child, `${path}.${key}`));
-      else if (schema.additionalProperties === false) errors.push(`${path}: unknown field ${key}`);
-    }
-  }
-  return errors;
-}
 
 // London calendar. Each boundary is converted on its own, so a week that crosses a clock
 // change starts and ends on different offsets.
@@ -167,6 +128,9 @@ export function readDirective(value) {
     voice: readVoice(d.taste),
     // 1.6.0: his goals this week, word for word, so each row says which one it serves.
     week_goals: Array.isArray(d.week_goals) ? d.week_goals.filter(g => typeof g === 'string' && g.trim() && g.length <= 300).slice(0, 10) : [],
+    // 1.6.0: Control Center's copy of the rows doctrine, read as data only (N03): the SHA-256 of its canonical JSON and its length, never its words.
+    // This engine owns the doctrine (Ruling, Krish, 2026-10-27; plan M10), so the rule never steers a row.
+    rows_rule: typeof d.rows_rule === 'string' && d.rows_rule.trim() ? { sha256: payloadDigest(d.rows_rule), length: d.rows_rule.length } : null,
     // 1.4.0: the number, its urgency and the walls' constraints, read as data (N03). They never widen authority.
     north_star: readNorthStar(d),
     constraints: readConstraints(d),
@@ -344,7 +308,7 @@ const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.s
  * collect (at most two rounds of ten, inside its daily caps); a synthetic run
  * asks for nothing. Counts only leave this function for the printed outcome.
  */
-export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false }) {
+export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS }) {
   // 1.7.0: the title shares the card with the line under it, so it is shorter.
   const titleMax = briefs ? TITLE_MAX_BRIEF : TITLE_MAX;
   const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0 };
@@ -356,7 +320,8 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   }
   let ctx = context;
   let research = Array.isArray(ctx.research) ? [...ctx.research] : [];
-  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax });
+  // The caps come from the week spec in force (src/crew/compile.mjs): today's unless he signed others.
+  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor });
   if (mode === 'live' && capabilities?.features?.research === true) {
     // The engine's own asks first (a cited reach, a profile for a card too thin to show), then the signals' collection.
     let pending = [...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, 10);
@@ -378,14 +343,14 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
       catch { holds.push({ reason: 'context_reread_unavailable', detail: 'People found this run get their row on the next run.' }); }
     }
   }
-  const amplifiers = ctx === context ? amplifiersFirst : amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax });
+  const amplifiers = ctx === context ? amplifiersFirst : amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor });
   const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax });
-  const { kept, dropped } = rankRows([...amplifiers.rows, ...signals.rows]);
+  const { kept, dropped, off } = rankRows([...amplifiers.rows, ...signals.rows], caps.rows);
   // 1.9.0: pitches for Jonny's box, after the rows he presses himself: guests
   // invited onto his own shows and podcasts on visibility, stages to speak on
   // on events. With them, the forms of stages that asked, for his Submit. An
   // older Control Center gets none.
-  const pitched = pitches ? pitchRows({ context: ctx, weekGoals: directive.week_goals, canon, record: await recordReader(), files, at, titleMax }) : { proposals: [], held: [], stageHeld: [], inviteHeld: [], formHeld: [] };
+  const pitched = pitches ? pitchRows({ context: ctx, weekGoals: directive.week_goals, canon, record: await recordReader(), files, at, titleMax, caps: caps.pitches }) : { proposals: [], held: [], stageHeld: [], inviteHeld: [], formHeld: [], jonny: null };
   const isForm = p => p.channel === 'form';
   // A stage that asked leads its row, one tap from done: the people ranked on that row come after its forms (at most two a row).
   const lead = {};
@@ -405,12 +370,16 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const held = [...amplifiers.held, ...signals.held];
   counts.held = held.length;
   for (const [reason, count] of tally(held)) holds.push({ reason: holdCode('row', reason), detail: `${count} possible row action${count === 1 ? '' : 's'} held: ${reason.replace(/_/g, ' ')}.` });
-  if (dropped) holds.push({ reason: 'row_per_row_cap', detail: `${dropped} more row action${dropped === 1 ? '' : 's'} ranked below the six a row shows.` });
+  const sixEach = ROWS.every(r => caps.rows[r]?.max === PER_ROW);
+  if (dropped) holds.push({ reason: 'row_per_row_cap', detail: `${dropped} more row action${dropped === 1 ? '' : 's'} ranked below ${sixEach ? 'the six a row shows' : "the cap the week's spec sets for its row"}.` });
+  if (off) holds.push({ reason: 'row_lane_off', detail: `${off} possible row action${off === 1 ? '' : 's'} on a row the week's spec turned off.` });
   activity.push(`Rows from Mindmake's canon as it is today (${canon.files.map(f => f.sha.slice(0, 7)).join(', ')}): ${ROWS.map(r => `${proposals.filter(p => p.row === r && !isPitch(p) && !isForm(p)).length} ${r.replace('_', ' ')}`).join(', ')}.`);
   if (pitches) activity.push(`Pitches for Jonny's Gmail: ${counts.invites} guests invited onto his shows, ${counts.pitches} podcasts, ${counts.speaking_pitches} stages to speak on.`);
   if (pitches) activity.push(`Forms for his tap: ${counts.forms} stage${counts.forms === 1 ? '' : 's'} asked through their own form, every answer written; only his Submit sends one.`);
   if (counts.research_asked) activity.push(`Asked Control Center for ${counts.research_asked} lookups; ${counts.research_answered} answered.`);
-  return { proposals, holds, activity, counts };
+  // Control Center drafts ten a day into Jonny's Gmail; a wake later the same day writes only what is left.
+  if (pitched.jonny?.used) activity.push(`Jonny's Gmail already holds ${pitched.jonny.used} draft${pitched.jonny.used === 1 ? '' : 's'} made today, so this run writes at most ${pitched.jonny.room} more.`);
+  return { proposals, holds, activity, counts, canonFiles: canon.files };
 }
 
 /**
@@ -433,7 +402,14 @@ export function failureClass(e) {
   return 'the engine could not plan from it';
 }
 
-export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER }) {
+/** A proposed week spec, specs/weeks/<monday>.json, as its text; null when none was proposed for that week. */
+export async function readSpecFile(week) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(week)) return null;
+  try { return await readFile(new URL(`../specs/weeks/${week}.json`, import.meta.url), 'utf8'); }
+  catch (e) { if (e?.code === 'ENOENT') return null; throw e; }
+}
+
+export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA }) {
   if (!['live','synthetic'].includes(mode) || !/^[a-z][a-z0-9-]{0,40}$/.test(kind) || !/^gma-[A-Za-z0-9-]{8,80}$/.test(attemptId)) throw new Error('Invalid dispatch options');
   const started_at = clock();
   const run_id = `${SLUG}:${londonDate(started_at)}:${kind}`;
@@ -482,7 +458,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
         suppliedContext = supplied;
         strategicSource = { revision: supplied.source_revision ?? payloadDigest(supplied.records), captured_at: supplied.observed_at };
         liveWorkContext = supplied.work_context ?? null;
-        strategic = strategicPlan(supplied, { at: clock(), capacity: policy.limits.recommendations_per_run });
+        strategic = strategicPlan(supplied, { at: clock(), capacity: policy.limits.recommendations_per_run, allocation: policy.acquisition });
         holds.push(...strategic.held);
         for (const coverage of supplied.coverage.filter(c => !c.available)) holds.push({ reason: 'context_source_unavailable', detail: `${coverage.source} is unread; no empty result is assumed.` });
         activity.push(`Read cross-channel context from ${supplied.coverage.length} native sources. Selected ${strategic.selected.length} complete relationship campaigns; existing records retain the words and action.`);
@@ -500,6 +476,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     if (wakeDirectiveId && wakeDirectiveId !== directive.directive_id) activity.push(`The wake-up named directive ${wakeDirectiveId}; the directive read now is ${directive.directive_id}, and the run follows the one it read.`);
     activity.push(...inHouseLines(directive.in_house));
     activity.push(voiceLine(directive.voice));
+    if (directive.rows_rule) activity.push(`Control Center's rows rule was read as data only (sha256 ${directive.rows_rule.sha256.slice(0, 12)}, ${directive.rows_rule.length} characters): the rows follow this engine's own doctrine and the week spec, never a rule Control Center holds.`);
     outcome.voice = { state: directive.voice.state, approved: directive.voice.rules.length };
     phase = 'plan';
     const at = clock();
@@ -527,7 +504,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       if (fits.length < plans.length) holds.push({ reason: 'payload_too_long', detail: `${plans.length - fits.length} campaign plan${plans.length - fits.length === 1 ? ' is' : 's are'} longer than the protocol allows and stay${plans.length - fits.length === 1 ? 's' : ''} unproposed.` });
       mapped.proposals = [...mapped.proposals, ...fits].slice(0, policy.limits.recommendations_per_run);
     }
-    if (mode === 'live' && capabilities?.features?.exact_actions && policy.execution?.authority === 'exact_approval' && policy.execution.maximum_cost_usd === 0 && policy.execution.require_independent_receipt === true) {
+    // Every execution field gates the executor and can only narrow it: email only, no assets, zero cost, a receipt.
+    if (mode === 'live' && capabilities?.features?.exact_actions && policy.execution?.authority === 'exact_approval' && policy.execution.maximum_cost_usd === 0 && policy.execution.require_independent_receipt === true && policy.execution.assets === false && Array.isArray(policy.execution.channels) && policy.execution.channels.includes('email')) {
       phase = 'prepare_action';
       const decisions = decisionsRead ?? await cc.decisions(new Date(Date.parse(started_at)-30*DAY).toISOString());
       // Only campaign plans reach prepare-action (N18). The pending 22 October route plans are campaign plans (gmc-), so none is stranded.
@@ -577,6 +555,20 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const targetSource = directive.north_star.week_target !== null ? "Control Center's refresh" : 'the ladder in docs/NORTH_STAR.md';
     const tapped = suppliedContext && meetingsServed(capabilities) ? readMeetings(suppliedContext) : null;
     const taps = tapped?.state === 'served' ? tapped : null;
+    // The week spec (plan Phase 2), read from his decisions before compilation and rows. From the week of
+    // 9 November it carries last week's counts to confirm while his taps are not served: one Monday ask.
+    const ask = due && !taps;
+    const specTexts = {};
+    if (thisWeek.start >= FIRST_SPEC_WEEK) for (const w of [thisWeek.start, addDays(thisWeek.start, -7)]) { try { specTexts[w] = await specReader(w); } catch { specTexts[w] = { unreadable: true }; } }
+    const specFor = w => {
+      const text = specTexts[w] ?? null;
+      if (text === null) return { spec: defaultSpec({ weekOf: w, northStarSha, weekTarget: ladderTarget(ladder, w) }) };
+      if (typeof text !== 'string') return { hold: { reason: 'spec_unreadable', detail: `specs/weeks/${w}.json could not be read, so it is neither posted nor used.` } };
+      const parsed = parseSpec(text);
+      if (!parsed.ok) return { hold: { reason: parsed.reason === 'spec_too_long' ? 'spec_too_long' : 'spec_invalid', detail: `specs/weeks/${w}.json: ${parsed.detail}` } };
+      return { spec: parsed.spec, file: { sha: blobSha(text) } };
+    };
+    const week = weekSpec({ weekOf: thisWeek.start, decisions: decisionsRead, policy, specFor, finish: finishProposal, expiresAt: w => londonMidnight(addDays(w, 7)), ask });
     let answer = null, goodObjective, origin_candidates = null;
     if (taps) {
       const count = countGood(taps.meetings, lastWeek, londonDate);
@@ -587,15 +579,23 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       activity.push(`Where his meetings came from: ${origin_candidates.length} of the ${open} ${open === 1 ? 'person' : 'people'} in an unanswered meeting ${origin_candidates.length === 1 ? 'has' : 'have'} a path from the engine's records; the rest are recorded as unknown at his tap.`);
       if (taps.dropped) holds.push({ reason: 'meetings_unreadable', detail: `${taps.dropped} held meeting${taps.dropped === 1 ? '' : 's'} in the context did not parse, so the number is not claimed.` });
     } else {
-      answer = !due ? { state: 'not_due' } : decisionsRead ? readStopgap(decisionsRead, lastWeek.start, payloadDigest) : { state: 'unread' };
-      if (due && (answer.state === 'unanswered' || answer.state === 'unread')) mapped.proposals.unshift(finishProposal(stopgapProposal({ weekOf: lastWeek.start, expiresAt: londonMidnight(thisWeek.end), target: ladderTarget(ladder, lastWeek.start) })));
-      if (answer.state === 'digest_mismatch') holds.push({ reason: 'amended_digest_mismatch', detail: "The Monday ask's amended answer does not match its digest, so it was not counted." });
+      const viaAsk = !due ? { state: 'not_due' } : decisionsRead ? readStopgap(decisionsRead, lastWeek.start, payloadDigest) : { state: 'unread' };
+      const viaSpec = week.era && ask ? (decisionsRead ? readSpecCounts(decisionsRead, thisWeek.start, payloadDigest, SPEC_PREFIX) : { state: 'unread' }) : null;
+      // Folded into the week spec when it is on his list or he has answered it; otherwise the Monday ask stands.
+      const folded = Boolean(viaSpec) && (week.post !== null || viaSpec.state !== 'unanswered');
+      answer = folded ? ([viaSpec, viaAsk].find(a => a.state === 'counted') ?? (viaSpec.state !== 'unanswered' ? viaSpec : viaAsk)) : viaAsk;
+      if (!folded && due && (answer.state === 'unanswered' || answer.state === 'unread')) mapped.proposals.unshift(finishProposal(stopgapProposal({ weekOf: lastWeek.start, expiresAt: londonMidnight(thisWeek.end), target: ladderTarget(ladder, lastWeek.start) })));
+      if (answer === viaAsk && answer.state === 'digest_mismatch') holds.push({ reason: 'amended_digest_mismatch', detail: "The Monday ask's amended answer does not match its digest, so it was not counted." });
       activity.push(goodMeetingsLine({ answer, lastWeekOf: lastWeek.start, lastTarget: ladderTarget(ladder, lastWeek.start), thisTarget, targetSource, northStar: directive.north_star }));
       if (tapped) activity.push(`Held meetings: served at 1.10.0 but not usable this run (${tapped.reason}), so the Monday ask stands in.`);
       goodObjective = goodMeetingsObjective({ answer, lastWeek, thisWeek, midnight: londonMidnight, timezone: TIMEZONE });
     }
+    // The spec in force, and his ask to sign this week's while it is not signed: one Monday ask.
+    if (week.post) mapped.proposals.unshift(week.post);
+    holds.push(...week.holds); activity.push(...week.lines);
+    if (week.spec) activity.push(...compiledDrift(week.spec, { northStarSha, weekGoalsSha: payloadDigest(directive.week_goals) }));
     const booked = suppliedContext ? bookings({ context: suppliedContext, at, weekStart: thisWeek.start, londonDate, addDays }) : null;
-    activity.push(bookingLine(booked));
+    activity.push(bookingLine(booked, visibilityTargets(policy)));
     // Traffic to mindmake.co: a supporting reading beside the number, never the number (Phase 1b).
     activity.push(...trafficLines({ web: directive.web, hosts: suppliedContext ? bookedHosts(suppliedContext) : new Set() }));
     // 1.6.0: the five rows on his home screen, after everything else, in the room a report has left.
@@ -607,7 +607,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       const cards = briefs && capabilities.schema_versions.includes(CARD_VERSION);
       const pitches = cards && capabilities.schema_versions.includes(PITCH_VERSION);
       schema_version = pitches ? PITCH_VERSION : cards ? CARD_VERSION : briefs ? BRIEF_VERSION : ROWS_VERSION;
-      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches });
+      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps: week.caps });
+      if (week.spec) activity.push(...compiledDrift(week.spec, { canon: rows.canonFiles }));
       if (!pitches) holds.push({ reason: 'pitch_needs_1_9_0', detail: "Control Center does not yet take pitches for Jonny's Gmail (protocol 1.9.0), so none were written." });
       const shown = cards ? rows.proposals : briefs ? rows.proposals.map(({ card, ...p }) => p) : rows.proposals.map(({ because, brief, card, ...p }) => p);
       const room = Math.max(0, 40 - mapped.proposals.length);

@@ -13,9 +13,15 @@ import { stageKind } from './pitches.mjs';
 /** Where a good meeting came from. The engine pre-fills one; Krish confirms it. */
 export const PATHS = ['existing-relationship', 'multiplier-intro', 'partner', 'guest-seat', 'podcast', 'own-show-guest', 'public-signal', 'inbound', 'referral', 'unknown'];
 export const STOPGAP_PREFIX = 'gmg-';
-/** His visibility targets (Ruling, Krish, 2026-10-27). */
+/** His visibility targets (Ruling, Krish, 2026-10-27), as config/policy.json's `recognition` holds them; these are the fallback when a policy has none. */
 export const PODCASTS_A_WEEK = 2;
 export const STAGES_A_FORTNIGHT = 1;
+/** The visibility targets from the policy's `recognition` (N04: read where they belong), else the ruled fallback. */
+export function visibilityTargets(policy) {
+  const r = policy?.recognition;
+  const whole = v => Number.isInteger(v) && v >= 0 ? v : null;
+  return { podcasts: whole(r?.podcasts_booked_per_week) ?? PODCASTS_A_WEEK, stages: whole(r?.stages_confirmed_per_fortnight) ?? STAGES_A_FORTNIGHT };
+}
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_A_WEEK = 500;
 
@@ -98,15 +104,44 @@ export function readStopgap(decisions, weekOf, digest) {
   if (typeof d.amended_sha256 !== 'string' || digest({ amount_usd: amount, exact_payload: d.exact_payload }) !== d.amended_sha256) return { state: 'digest_mismatch' };
   let v;
   try { v = JSON.parse(d.exact_payload); } catch { return { state: 'unreadable' }; }
+  if (!v || typeof v !== 'object' || v.week_of !== weekOf) return { state: 'unreadable' };
+  return countsOf(v.total, v.by_path);
+}
+
+/** A typed total and its paths: counted, or unreadable. Null is unknown, never zero. Pure. */
+function countsOf(total, paths) {
   const count = x => Number.isInteger(x) && x >= 0 && x <= MAX_A_WEEK;
-  if (!v || typeof v !== 'object' || v.week_of !== weekOf || !count(v.total)) return { state: 'unreadable' };
+  if (!count(total)) return { state: 'unreadable' };
   const by_path = {};
-  for (const [k, x] of Object.entries(v.by_path ?? {})) {
+  for (const [k, x] of Object.entries(paths ?? {})) {
     if (!PATHS.includes(k) || !(x === null || count(x))) return { state: 'unreadable' };
     if (x !== null) by_path[k] = x;
   }
-  if (Object.values(by_path).reduce((a, b) => a + b, 0) > v.total) return { state: 'unreadable' };
-  return { state: 'counted', total: v.total, by_path };
+  if (Object.values(by_path).reduce((a, b) => a + b, 0) > total) return { state: 'unreadable' };
+  return { state: 'counted', total, by_path };
+}
+
+/**
+ * From the week of 9 November the Monday ask folds into the week spec (plan
+ * section 1): the `gms-<week>` proposal carries last week's counts in
+ * `last_week`, and his "Change it first" version types them. Read exactly as
+ * the `gmg-` answer is: only his amended version, after its digest is
+ * recomputed; a Clear without numbers counts nothing. The counts are read
+ * whether or not the rest of his version compiles. Pure.
+ */
+export function readSpecCounts(decisions, specWeekOf, digest, prefix = 'gms-') {
+  const d = (Array.isArray(decisions) ? decisions : []).filter(x => x?.proposal_id === `${prefix}${specWeekOf}`).sort((a, b) => String(b.decided_at).localeCompare(String(a.decided_at)))[0];
+  if (!d) return { state: 'unanswered' };
+  if (d.decision === 'declined') return { state: 'declined' };
+  if (d.decision !== 'approved' && d.decision !== 'done') return { state: 'unanswered' };
+  if (d.amended !== true || typeof d.exact_payload !== 'string') return { state: 'cleared_without_counts' };
+  const amount = d.amount_usd === undefined ? null : d.amount_usd;
+  if (typeof d.amended_sha256 !== 'string' || digest({ amount_usd: amount, exact_payload: d.exact_payload }) !== d.amended_sha256) return { state: 'digest_mismatch' };
+  let v;
+  try { v = JSON.parse(d.exact_payload); } catch { return { state: 'unreadable' }; }
+  if (!v || typeof v !== 'object' || v.week_of !== specWeekOf || !v.last_week || typeof v.last_week !== 'object') return { state: 'unreadable' };
+  if (v.last_week.good_meetings_total === null) return { state: 'cleared_without_counts' };
+  return countsOf(v.last_week.good_meetings_total, v.last_week.by_path);
 }
 
 const STOPGAP_REASON = {
@@ -168,9 +203,9 @@ export function bookingObjectives({ booked, thisWeek, at, midnight, addDays, lon
   ];
 }
 
-export function bookingLine(booked) {
+export function bookingLine(booked, targets = { podcasts: PODCASTS_A_WEEK, stages: STAGES_A_FORTNIGHT }) {
   if (!booked) return 'Bookings: not measured; pitch outcomes were not served completely this run.';
-  return `Bookings: ${booked.podcasts} podcast${booked.podcasts === 1 ? '' : 's'} booked this week against ${PODCASTS_A_WEEK}, ${booked.stages} stage${booked.stages === 1 ? '' : 's'} confirmed in the last fourteen days against ${STAGES_A_FORTNIGHT}.`;
+  return `Bookings: ${booked.podcasts} podcast${booked.podcasts === 1 ? '' : 's'} booked this week against ${targets.podcasts}, ${booked.stages} stage${booked.stages === 1 ? '' : 's'} confirmed in the last fourteen days against ${targets.stages}.`;
 }
 
 // ── Held meetings and his good tap (protocol 1.10.0) ────────────────────────

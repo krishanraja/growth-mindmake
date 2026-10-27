@@ -461,7 +461,8 @@
         "src/stages/traffic.mjs",
         "src/stages/rows.mjs",
         "src/stages/signals.mjs",
-        "src/stages/pitches.mjs"
+        "src/stages/pitches.mjs",
+        "src/crew/compile.mjs"
       ],
       "inputs": [
         "engine_directive",
@@ -488,7 +489,7 @@
       },
       "completion": {
         "source": "destination_readback",
-        "evidence": "tests/dispatch.test.mjs verifies the started and terminal attempts, the report digest readback, replay, conflict and decisions against a local stand-in; tests/rows.test.mjs verifies the five rows, the live canon read, the signal pipeline and that only counts are printed; tests/pitches.test.mjs verifies the 1.9.0 podcast and speaking pitches and the guest invites onto his shows for Jonny's Gmail, the invites' weekly shares, their shared budget, the live track record read and that they are written only where Control Center serves 1.9.0; tests/forms.test.mjs verifies the stage forms for his Submit: each field answered by its own label, the holds that leave a form unwritten and fall to the pitch, a try that sent nothing routed again, and that every action parses as Control Center reads it"
+        "evidence": "tests/dispatch.test.mjs verifies the started and terminal attempts, the report digest readback, replay, conflict and decisions against a local stand-in; tests/rows.test.mjs verifies the five rows, the live canon read, the signal pipeline and that only counts are printed; tests/pitches.test.mjs verifies the 1.9.0 podcast and speaking pitches and the guest invites onto his shows for Jonny's Gmail, the invites' weekly shares, their shared budget, the live track record read and that they are written only where Control Center serves 1.9.0; tests/forms.test.mjs verifies the stage forms for his Submit: each field answered by its own label, the holds that leave a form unwritten and fall to the pitch, a try that sent nothing routed again, and that every action parses as Control Center reads it; tests/spec.test.mjs verifies the week spec: the default spec reproduces today's caps, a signed spec (his Clear or his digest-verified version) compiles inside config/policy.json's bounds and reaches the stages, the spec_too_long, spec_amended_invalid and spec_unsigned holds, the fallback chain, Jonny's ten drafts a day across wakes, and that no spec can loosen a bound or add spend; tests/golden/ holds every earlier fixture's report digest, checked byte for byte"
       }
     }
   ],
