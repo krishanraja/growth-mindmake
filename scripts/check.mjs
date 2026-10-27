@@ -28,10 +28,11 @@ for (const file of await walk(root)) {
 }
 // The fast gates of plan Phase 3, each its own script so it can run alone: the crew's cards against their
 // sources, no per-run bespoke code, the local link check, the docs drift check, and the library check on its synthetic listing;
-// and Phase 5's: the old route stays in code for 30 days after the switch.
-const gates = [['scripts/check-crew.mjs'], ['scripts/check-bespoke.mjs'], ['scripts/check-links.mjs'], ['scripts/check-drift.mjs'], ['scripts/check-library.mjs', '--listing', 'tests/fixtures/library/listing.synthetic.json', '--fixture'], ['scripts/check-switch.mjs']];
+// and Phase 5's: the old route stays in code for 30 days after the switch;
+// and, since plan section 12 (M3, M4), the visibility and guest standards ported from Control Center's own guard.
+const gates = [['scripts/check-crew.mjs'], ['scripts/check-bespoke.mjs'], ['scripts/check-links.mjs'], ['scripts/check-drift.mjs'], ['scripts/check-library.mjs', '--listing', 'tests/fixtures/library/listing.synthetic.json', '--fixture'], ['scripts/check-switch.mjs'], ['scripts/check-visibility-standard.mjs']];
 for (const [script, ...args] of gates) {
   const r = spawnSync(process.execPath, [resolve(root, script), ...args], { cwd: root, encoding: 'utf8' });
   if (r.status !== 0) failures.push(`${script}: ${(r.stderr || r.stdout).trim()}`);
 }
-if (failures.length) { console.error(failures.join('\n')); process.exitCode = 1; } else console.log('PASS: syntax, JSON, source style, archive integrity and value-redacted secret checks; the crew cards, bespoke code, links, docs drift, the library check and the old route kept until 30 days after the switch');
+if (failures.length) { console.error(failures.join('\n')); process.exitCode = 1; } else console.log('PASS: syntax, JSON, source style, archive integrity and value-redacted secret checks; the crew cards, bespoke code, links, docs drift, the library check, the old route kept until 30 days after the switch, and the visibility standard');

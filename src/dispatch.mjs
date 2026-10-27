@@ -20,6 +20,9 @@ import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapPropos
 import { readWeb, trafficLines, bookedHosts } from './stages/traffic.mjs';
 import { weekSpec, defaultSpec, parseSpec, compiledDrift, STAGE_CAPS, SPEC_PREFIX, FIRST_SPEC_WEEK } from './crew/compile.mjs';
 import { crewShadow } from './crew/shadow.mjs';
+import { guestsShadow } from './stages/guests.mjs';
+import { visibilityShadow } from './stages/visibility.mjs';
+import { roomsShadow } from './stages/rooms.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
@@ -710,6 +713,12 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // The crew, in shadow until the switch (plan section 3): each specialist's lint and measured check, counted and reported, nothing held or hidden.
     const crew = crewShadow({ proposals: mapped.proposals, context: suppliedContext, canon: rowsRun?.canon ?? null, research: rowsRun?.research ?? null, at, caps: week.caps, constraints: c, objectives, activity, origin_candidates, taps, lastWeek, londonDate });
     activity.push(...crew.lines);
+    // Plan section 12, M3 to M5: the guest standard, the visibility standard and room scoring, ported from Control
+    // Center, in shadow beside its own verdicts: one counted line each, nothing held or changed. A fault here never fails the run.
+    if (suppliedContext) for (const shadow of [guestsShadow, visibilityShadow, roomsShadow]) {
+      try { const { line } = shadow({ context: suppliedContext, canon: rowsRun?.canon ?? null, at }); if (typeof line === 'string' && line) activity.push(line); }
+      catch { activity.push(`${shadow.name}: could not be read this run, so it says nothing rather than a guess.`); }
+    }
     // The Phase 5 switch (src/crew/switch.mjs): one readiness line every run. Only this week's signed spec with
     // `enabled: true`, five proof runs, the shadow lines and the number measured make the crew hold what it finds.
     let proofRuns;
