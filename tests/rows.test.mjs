@@ -333,7 +333,7 @@ test('every row says who they are, how he knows them and why them, inside its li
   assert.match(JSON.parse(jess.exact_payload).body, /^Hi Jess,/);
   assert.equal(cleanName('Avery Example⚡️ '), 'Avery Example');
   const told = caseFor({ c: { network_tier: '2_core_network' }, name: 'Avery Example', company: '', ask: 'introduce', kind: 'connector', reach: { band: 'unknown' }, fit: 50, serves: GOALS[0] });
-  assert.equal(told.because, 'No email on record.', 'with nothing else held, it says only what is known');
+  assert.equal(told.because, 'No emails between you on record.', 'with nothing else held, it says only what is known');
   assert.ok(told.brief.includes(`The ask: one introduction to a leader working out what AI should do for them. It serves this week's goal: ${GOALS[0]}.`));
 });
 
@@ -433,7 +433,7 @@ test('a card line is built only from whole pieces: never ending on a joiner, an 
   assert.equal(firstSentence('Works with Dr. Example on media law. Then more.'), 'Works with Dr. Example on media law', 'nor an abbreviation');
   assert.equal(wholeSentence('Reaches the audience builder_economy wants.', 62), '', 'an internal slug is never his');
   assert.equal(wholeRole('Director of Partnerships for the', '', 62), '', 'a whole field that itself ends on a joiner is dropped');
-  assert.equal(caseFor({ c: { network_tier: '2_core_network', known_since: '2020-05-01', current_title: 'Director of Partnerships for the' }, name: 'Avery Example', company: '', ask: 'introduce', kind: 'connector', reach: { band: 'unknown' }, fit: 60, serves: null }).because, 'Known since 2020, no email on record.', 'the known line alone is better than a broken one');
+  assert.equal(caseFor({ c: { network_tier: '2_core_network', known_since: '2020-05-01', current_title: 'Director of Partnerships for the' }, name: 'Avery Example', company: '', ask: 'introduce', kind: 'connector', reach: { band: 'unknown' }, fit: 60, serves: null }).because, 'Known since 2020, no emails between you on record.', 'the known line alone is better than a broken one');
   assert.equal(wholeRole('VP, Strategy & Operations | Board Member | Advisor to Example Ventures and Example Capital Partners LLP', '', 62), 'VP, Strategy & Operations.', 'the title up to its first separator, the shortest whole piece');
 });
 
@@ -486,7 +486,7 @@ test('how he knows them: every combination of emails each way reads true, and th
     if (/not written back/.test(k)) assert.ok((/They have written/.test(k) ? o : i) === 0, `"not written back" only on a counted zero: ${k}`);
     if (/No email/.test(k)) assert.ok(!(i > 0) && !(o > 0), `no email only when none is counted: ${k}`);
     if (since) assert.match(k, /^Known since 2020, through your Gmail and your LinkedIn connections\./, 'since when and through what; enrichment sources are not where he knows them from');
-    for (const line of [knownLine(c), knownShort(c)]) if (i > 0 || o > 0) assert.equal(/no email on record/i.test(line), false, `the card line never says no email when emails are counted: ${line}`);
+    for (const line of [knownLine(c), knownShort(c)]) if (i > 0 || o > 0) assert.equal(/no emails? (between you )?on record/i.test(line), false, `the card line never says no email when emails are counted: ${line}`);
   }
   assert.equal(mailWords({ email_inbound: 23, email_outbound: 9, email_last: '2026-09-14' }), 'You have emailed each other 32 times (they wrote 23, you wrote 9); the last was Sep 2026.');
   assert.equal(mailWords({ email_inbound: 0, email_outbound: 2 }), 'You have written to them twice, and they have not written back.');
@@ -495,7 +495,7 @@ test('how he knows them: every combination of emails each way reads true, and th
   const raph = { contact_id: id(91), network_tier: '1_reciprocated', known_since: '2025-01-01', email_last: null, email_inbound: 2, email_outbound: 1, current_title: 'Founding Growth', current_company: 'Example Growth Co', hook: 'Built growth at two AI marketing startups.' };
   const told = caseFor({ c: raph, name: 'Ray Example', company: raph.current_company, ask: 'appear', kind: 'broadcaster', reach: { band: 'unknown' }, fit: 58, serves: null });
   const all = [told.because, ...told.brief, cardOf(raph).known].join(' | ');
-  assert.equal(/no email on record/i.test(all), false, all);
+  assert.equal(/no emails? (between you )?on record/i.test(all), false, all);
   assert.equal(/written to each other before/i.test(all), false, all);
   assert.ok(told.brief.includes(cardOf(raph).known), 'the brief says what the card says');
 });

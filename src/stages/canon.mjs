@@ -83,3 +83,44 @@ export async function readCanon({ fetcher = fetch, timeoutMs = 15000 } = {}) {
     ],
   };
 }
+
+// ── Krish's track record, from krishraja.com's own repository ──────────────
+// A podcast pitch says who Krish is in what his own site publishes this run,
+// never from memory. krishanraja/krish-raja is krishraja.com; its
+// src/content/receipts.ts holds every figure the site may show, each sourced
+// in project-documentation/FACTS.md. Only two things are read: the first
+// role's first sentence (where he grew what), and the stage he has spoken on.
+// A file that does not parse leaves the record out of the pitch; it never
+// holds a pitch and nothing is written from an older copy.
+
+export const RECORD_REPO = 'krishanraja/krish-raja';
+export const RECORD_PATH = 'src/content/receipts.ts';
+const RECORD_RAW = 'https://raw.githubusercontent.com/krishanraja/krish-raja/main/';
+
+/** One plain sentence of his track record from receipts.ts, or null. Pure. */
+export function parseRecord(text) {
+  const src = String(text ?? '');
+  const quoted = String.raw`(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")`;
+  const role = new RegExp(String.raw`org:\s*${quoted}[\s\S]*?detail:\s*${quoted}`).exec(src);
+  const org = role ? flat(role[1] ?? role[2] ?? '') : '';
+  const detail = role ? flat((role[3] ?? role[4] ?? '').replace(/\\(['"])/g, '$1')) : '';
+  const grew = /^([a-z][^.]{10,180}?\.)(?=\s|$)/.exec(detail)?.[1] ?? '';
+  const venue = /'Public Speaker \(([^)'"]{3,60})\)'/.exec(src)?.[1] ?? '';
+  const did = org && grew ? `At ${org} he ${grew.replace(/\.$/, '')}` : '';
+  const spoke = venue ? `he has spoken at ${/^the\s/i.test(venue) ? venue : `the ${venue}`}` : '';
+  if (did && spoke) return `${did}, and ${spoke}.`;
+  if (did) return `${did}.`;
+  if (spoke) return `${spoke.charAt(0).toUpperCase()}${spoke.slice(1)}.`;
+  return null;
+}
+
+/** His track record as krishraja.com publishes it this run, with the file it came from, or null when it cannot be read. */
+export async function readRecord({ fetcher = fetch, timeoutMs = 15000 } = {}) {
+  try {
+    const r = await fetcher(`${RECORD_RAW}${RECORD_PATH}`, { redirect: 'error', signal: AbortSignal.timeout(timeoutMs) });
+    if (!r.ok) return null;
+    const text = await r.text();
+    const line = parseRecord(text);
+    return line ? { line, file: { repo: RECORD_REPO, path: RECORD_PATH, sha: blobSha(text) } } : null;
+  } catch { return null; }
+}

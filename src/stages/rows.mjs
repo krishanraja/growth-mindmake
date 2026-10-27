@@ -301,16 +301,17 @@ export function titleCase(value) {
 export function cutClean(value, max) { return cutAt(value, max); }
 /** Emails on record either way, or null when Control Center has not counted them. */
 const mailCount = c => { const i = Number.isInteger(c?.email_inbound) ? c.email_inbound : null, o = Number.isInteger(c?.email_outbound) ? c.email_outbound : null; return i === null && o === null ? null : (i ?? 0) + (o ?? 0); };
-/** How he knows them: "Known since 2021, last email Jun 2024." or "No email on record." It never says no email where emails are counted. */
+/** How he knows them: "Known since 2021, last email Jun 2024." or "No emails between you on record." It never says no email where emails are counted, and never reads as no address. */
 export function knownLine(c) {
   const since = yearOf(c?.known_since), last = monthYear(c?.email_last), n = mailCount(c);
-  const email = last ? `last email ${last}` : n ? `${n} email${n === 1 ? '' : 's'} on record` : 'no email on record';
+  // No emails counted is not no address: the row may still offer one.
+  const email = last ? `last email ${last}` : n ? `${n} email${n === 1 ? '' : 's'} on record` : 'no emails between you on record';
   return since ? `Known since ${since}, ${email}.` : `${email.charAt(0).toUpperCase()}${email.slice(1)}.`;
 }
-/** The known line when room is short: "Known since 2021.", else "Last email Jun 2024.", else the count, else "No email on record." */
+/** The known line when room is short: "Known since 2021.", else "Last email Jun 2024.", else the count, else "No emails between you on record." */
 export function knownShort(c) {
   const since = yearOf(c?.known_since), last = monthYear(c?.email_last), n = mailCount(c);
-  return since ? `Known since ${since}.` : last ? `Last email ${last}.` : n ? `${n} email${n === 1 ? '' : 's'} on record.` : 'No email on record.';
+  return since ? `Known since ${since}.` : last ? `Last email ${last}.` : n ? `${n} email${n === 1 ? '' : 's'} on record.` : 'No emails between you on record.';
 }
 const ASK_WORDS = {
   introduce: () => 'one introduction to a leader working out what AI should do for them',
@@ -533,8 +534,8 @@ export function showOf(c, research = []) {
   const asked = channelAnswerOf(research, c?.contact_id);
   return [asked?.answer, c?.current_title, c?.contacts?.title, c?.headline, c?.who, c?.hook, c?.why_them].map(showIn).find(Boolean) ?? '';
 }
-/** Krish's own shows: an appearance on one is no appearance (Ruling, Krish, 2026-10-27). */
-export const OWN_SHOW = /\b(?:signal\s*(?:&|and|\+)\s*noise|signalandnoise(?:\.ai)?|make\s*your\s*mind\s*up|makeyourmindup(?:\.ai)?)\b/i;
+/** Krish's own shows, by name or by Control Center's own slug (signal_noise): an appearance on one is no appearance (Ruling, Krish, 2026-10-27). */
+export const OWN_SHOW = /\b(?:signal\s*(?:&|and|\+)\s*noise|signal_noise|signalandnoise(?:\.ai)?|make[\s_]*your[\s_]*mind[\s_]*up|makeyourmindup(?:\.ai)?)\b/i;
 /** Whether anything held about them, or the answer about their channel, names one of his own shows. */
 export function onOwnShow(c, research = [], show = '') {
   const asked = channelAnswerOf(research, c?.contact_id);
@@ -589,7 +590,7 @@ export function mailWords(c) {
   if (inn === 0 && out === 0) return 'No emails between you yet.';
   if (out > 0) return `You have written to them ${times(out)}${last ? `; the last email was ${last}` : ''}.`;
   if (inn > 0) return `They have written to you ${times(inn)}${last ? `; the last email was ${last}` : ''}.`;
-  return last ? `The last email between you was ${last}.` : 'No email on record.';
+  return last ? `The last email between you was ${last}.` : 'No emails between you on record.';
 }
 /** How he knows them: since when and through what, then the emails each way. */
 export function knownWords(c) {
@@ -781,13 +782,14 @@ export const WORDS = {
         `You train people to use AI. At Mindmake we build what comes after, one leader at a time: ${lower1(canon.brain)}`,
         'Worth a short call to see if the two fit?',
       ] }
-      : { subject: 'A session for the leaders you back', lines: [
-        `At Mindmake we build AI that knows the leader using it: ${lower1(canon.brain)}`,
-        "Would a working session for the leaders you back be useful? I'd build it around one decision each of them faces.",
+      // Their angle, as the card gives it: the companies they back, in the site's own words where the canon has them.
+      : { subject: p.company ? `A session for the leaders ${p.company} backs` : 'A session for the leaders you back', lines: [
+        canon.site?.revenue && p.company ? `For the companies ${p.company} backs or runs: ${lower1(canon.site.revenue.line)}` : `At Mindmake we build AI that knows the leader using it: ${lower1(canon.brain)}`,
+        `Would a working session for the leaders ${p.company ? `${p.company} backs` : 'you back'} be useful? I'd build it around one decision each of them faces.`,
       ] },
-    (p, canon) => ({ subject: 'One idea for the leaders you work with', lines: [
+    (p, canon) => ({ subject: p.company ? `One idea for the companies ${p.company} backs` : 'One idea for the leaders you work with', lines: [
       `The short version of what we do at Mindmake: ${lower1(canon.brain)}`,
-      "Worth a short call on whether it's useful to the leaders you work with?",
+      `Worth a short call on whether it's useful to ${p.company ? `the leaders at ${p.company}'s companies` : 'the leaders you work with'}?`,
     ] }),
   ],
   introduce: [
@@ -919,9 +921,9 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
       if (why === 'unnamed_channel' && unnamed.length < 2) unnamed.push({ c, name });
       continue;
     }
-    const variant = (L.pitchOff.get(best.row) ?? 0) % WORDS[best.ask].length;
-    const words = WORDS[best.ask][variant]({ kind: best.kind, show }, canon);
     const company = cleanName(c.current_company ?? c.contacts?.company ?? '');
+    const variant = (L.pitchOff.get(best.row) ?? 0) % WORDS[best.ask].length;
+    const words = WORDS[best.ask][variant]({ kind: best.kind, show, company }, canon);
     const title = titleCase(cleanName(c.current_title ?? c.contacts?.title ?? c.headline ?? ''));
     const card = cardFor({ c, id, name, title, company, ask: best.ask, kind: best.kind, reach, fit, serves: best.serves, canon, research, companyRow: companyOf.get(c.contacts?.company_domain) ?? null, at, show: best.ask === 'appear' ? show : '' });
     if (!card) {
@@ -998,7 +1000,9 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
 }
 
 /** The title on his phone. At 1.7.0 (max 56) the line under it says who they are, so the company is left off. */
-export function titleFor(ask, kind, name, company, max = TITLE_MAX, show = '') {
+export function titleFor(ask, kind, rawName, company, max = TITLE_MAX, show = '') {
+  // A title is his line, and "Offer Dr. Avery" is a title in it: the name goes in without one.
+  const name = givenParts(rawName).join(' ') || cleanName(rawName);
   const f = first(name);
   const at = max < TITLE_MAX ? '' : company;
   const fit = (...options) => fitTitleWithin(max, ...options);
