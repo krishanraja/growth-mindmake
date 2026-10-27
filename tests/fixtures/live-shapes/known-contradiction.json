@@ -1,0 +1,27 @@
+{
+  "id": "known-contradiction",
+  "fix": "F30",
+  "what": "The known line says they wrote and that no email is on record.",
+  "synthetic": true,
+  "field": "known",
+  "line": "You have written to each other 3 times. No email on record.",
+  "records": [],
+  "card": {
+    "who": "Chief Marketing Officer at Example Retail.",
+    "known": "You have written to each other 3 times. No email on record.",
+    "why": [
+      "Rebuilt the marketing team around AI tools last year."
+    ],
+    "gain": [
+      "One introduction puts you in front of a leader who decides."
+    ],
+    "angles": [
+      {
+        "title": "Build your AI brain",
+        "line": "The brain door, in the site's words: \"Your taste, standards and judgement.\""
+      }
+    ],
+    "sources": []
+  },
+  "expect": "contradiction"
+}

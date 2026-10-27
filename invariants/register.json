@@ -85,11 +85,11 @@
       "what": "The runner read secret and variable names that did not exist; operate.yml now binds the shared managed growth secret and the Control Center origin variable.",
       "source": "d894012, 37edf0d",
       "guard": {
-        "kind": "none",
-        "where": null,
-        "reason": "No test parses .github/workflows/operate.yml for the secret and variable names it binds; the plan adds that regression test in Phase 3."
+        "kind": "test",
+        "where": "tests/regression/f08-operate-bindings.test.mjs: the dispatch job binds the engine bearer secret and the Control Center origin variable by their real names (F08)",
+        "reason": null
       },
-      "phase": "3"
+      "phase": "done"
     },
     {
       "id": "F09",
@@ -104,14 +104,14 @@
     },
     {
       "id": "F10",
-      "what": "The copied protocol doc linked to a path outside this repository; the copy named the ADR in words instead.",
-      "source": "PR #4",
+      "what": "The copied protocol doc linked to a path outside this repository; the copy named the ADR in words instead. The fault came back and PR #30 fixed it again, with the local link check in npm run check.",
+      "source": "PR #4, PR #30",
       "guard": {
-        "kind": "none",
-        "where": null,
-        "reason": "No link check exists, though docs/RELEASE.md says one ran, and the fault is live again in docs/control-center/ENGINE-PROTOCOL.md at lines 3, 157 and 300. The local link check in scripts/check.mjs is Phase 3."
+        "kind": "test",
+        "where": "tests/regression/f10-links.test.mjs: every relative Markdown link resolves inside the repository, the copied protocol included (F10)",
+        "reason": null
       },
-      "phase": "3"
+      "phase": "done"
     },
     {
       "id": "F11",
@@ -162,11 +162,11 @@
       "what": "A restarted live run could prepare new bytes under an accepted run id; it now reuses the accepted report and stops on recovery_report_mismatch.",
       "source": "PR #7",
       "guard": {
-        "kind": "partial",
-        "where": "tests/dispatch.test.mjs: one dispatch run journals started then one terminal state, reports, reads back and reads decisions",
-        "reason": "Only the synthetic replay is tested; the live report-reuse branch and recovery_report_mismatch in src/dispatch.mjs have no test. Phase 3 adds them."
+        "kind": "test",
+        "where": "tests/regression/f15-recovery.test.mjs: a stored report that does not match its run, its mode or its digest stops the run as recovery_report_mismatch (F15)",
+        "reason": null
       },
-      "phase": "3"
+      "phase": "done"
     },
     {
       "id": "F16",
@@ -195,11 +195,11 @@
       "what": "Docs and the report said the voice rules shaped today's drafts, which come from fixed templates; they now say the rules reach only a model drafting step's packets.",
       "source": "PR #9",
       "guard": {
-        "kind": "partial",
-        "where": "tests/voice.test.mjs: a dispatch run reads taste, reports only a count, and keeps it out of every proposal",
-        "reason": "The report's activity line is pinned; the same claim in NOW.md and prompts/README.md rule 10 is not checked. Phase 3 adds the regression test."
+        "kind": "test",
+        "where": "tests/regression/f18-voice-claims.test.mjs: NOW.md and prompts/README.md rule 10 never say the voice rules shape today's drafts (F18)",
+        "reason": null
       },
-      "phase": "3"
+      "phase": "done"
     },
     {
       "id": "F19",
@@ -228,11 +228,11 @@
       "what": "The engine's schema check ignored maximum, minLength and minItems, so an over-long field could pass locally and fail at Control Center; it now enforces them.",
       "source": "PR #10",
       "guard": {
-        "kind": "partial",
-        "where": "tests/dispatch.test.mjs: the report builder produces a schema-valid envelope, refuses unknown fields and names no private person",
-        "reason": "Exercised only through whole reports; no direct unit test for each bound. Phase 3 adds them."
+        "kind": "test",
+        "where": "tests/regression/f21-schema-bounds.test.mjs: each bound the protocol schema uses is enforced on its own (F21)",
+        "reason": null
       },
-      "phase": "3"
+      "phase": "done"
     },
     {
       "id": "F22",
@@ -522,14 +522,14 @@
     },
     {
       "id": "F48",
-      "what": "A run that reads no context still journals success (manual-24); PR #22 named the likely cause and raised the budget, but the silent success itself is not fixed.",
-      "source": "PR #22",
+      "what": "A run that reads no context still journaled success (manual-24). PR #22 named the likely cause and raised the budget; PR #30 ends such a live run failed with a named class (context_unread, nothing_read or nothing_prepared), its report still sent and read back.",
+      "source": "PR #22, PR #30",
       "guard": {
-        "kind": "none",
-        "where": null,
-        "reason": "Open: a run that reads no context, or prepares nothing while Control Center serves work, should be a held run with a named class. The regression test and the status read of empty output are Phase 3."
+        "kind": "test",
+        "where": "tests/regression/f48-silent-success.test.mjs: a live run whose advertised context cannot be read ends failed as context_unread, the manual-24 shape (F48)",
+        "reason": null
       },
-      "phase": "3"
+      "phase": "done"
     }
   ],
   "findings": [
@@ -543,9 +543,10 @@
     {
       "id": "N02",
       "what": "events[] is always empty, so closes are never reported.",
-      "phase": "3",
-      "state": "open",
-      "closed_by": null
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #30",
+      "note": "events[] carries what the engine itself can prove closed: an approved action's verified receipt (external_action_verified), his counted Monday answer (good_meetings_counted) and his signed week spec (week_spec_signed). Closes Control Center sees on its own side stay its to report."
     },
     {
       "id": "N03",
@@ -573,30 +574,35 @@
     {
       "id": "N06",
       "what": "A repeated pitch_off No never reaches the weekly review as a doctrine change.",
-      "phase": "3",
-      "state": "open",
-      "closed_by": null
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #30",
+      "note": "A row whose words he called off twice or more in 28 days becomes one gmd- strategy proposal for the week, a doctrine review on his list, never a silent variant change (pitchOffReviews in src/stages/rows.mjs)."
     },
     {
       "id": "N07",
       "what": "Mutation-kill claims in PRs #12 to #19 cannot be re-run: no harness is committed or run in CI.",
-      "phase": "3",
-      "state": "open",
-      "closed_by": null
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #30",
+      "note": "scripts/mutate.mjs applies the mutations declared in invariants/mutations.json to a copy and runs the tests each names; npm run mutate re-runs every kill claim, and CI runs it."
     },
     {
       "id": "N08",
       "what": "Docs drift: NOW.md head lags, docs/history/LOG.md is named but missing, merged PRs are called unmerged, and the protocol header says 1.8.0 while documenting 1.9.0.",
       "phase": "3",
       "state": "open",
-      "closed_by": null
+      "closed_by": null,
+      "partly_closed_by": "PR #30",
+      "note": "scripts/check-drift.mjs, in npm run check, now fails on a NOW.md head off the branch or more than 15 commits behind (where git holds the history), a front-matter file that is missing (docs/history/LOG.md now exists) and a protocol header that is not the newest version it documents. A merged pull request called unmerged needs GitHub to read, so it is still checked by hand."
     },
     {
       "id": "N09",
       "what": "The trust-asset prompt's formats differ from contracts/motions.ts.",
-      "phase": "3",
-      "state": "open",
-      "closed_by": null
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #30",
+      "note": "prompts/trust-asset.md now names the contract's three trust formats (founder_post, practice_post, commentary) and sends a host pitch or talk abstract to the speaking motion; a test compares the two."
     },
     {
       "id": "N10",

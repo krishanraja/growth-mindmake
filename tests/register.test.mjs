@@ -50,8 +50,8 @@ test('a fix guarded by a test names a file in tests/ that declares a test with t
     const g = f.guard;
     assert.ok(['test', 'partial', 'none', 'accepted'].includes(g?.kind), f.id);
     if (g.kind !== 'test' && g.kind !== 'partial') continue;
-    const m = /^(tests\/[a-z0-9-]+\.test\.mjs): (.+)$/.exec(g.where ?? '');
-    assert.ok(m, `${f.id}: where is "tests/<file>.test.mjs: <test name>"`);
+    const m = /^(tests\/(?:regression\/)?[a-z0-9-]+\.test\.mjs): (.+)$/.exec(g.where ?? '');
+    assert.ok(m, `${f.id}: where is "tests/<file>.test.mjs: <test name>" (or tests/regression/)`);
     await access(new URL(m[1], root));
     const declared = await testNames(m[1]);
     assert.ok(declared.some(n => n.includes(m[2])), `${f.id}: no test in ${m[1]} is named with "${m[2]}"`);

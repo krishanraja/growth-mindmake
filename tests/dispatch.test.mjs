@@ -207,7 +207,8 @@ test('a live run before activation is refused as engine_inactive, and a live run
   const service = await startProtocolService();
   try {
     const result = await dispatch(service, { mode: 'live', kind: 'dispatch', source: async () => ({ hold: { reason: 'source_credential_unavailable', detail: 'Not available to this run.' } }) });
-    assert.equal(result.status, 'succeeded');
+    // A live run that read nothing is held by its class, never a quiet success (F48); its report still goes and is read back.
+    assert.equal(result.status, 'failed'); assert.equal(result.error_code, 'nothing_read'); assert.equal(result.report.read_back, true);
     const [report] = posts(service, 'reports');
     assert.equal(report.body.status, 'degraded'); assert.equal(report.body.mode, 'live');
     assert.deepEqual(report.body.holds.map(h => h.reason), ['founder_visibility_open', 'source_credential_unavailable', 'engine_context_unavailable']);

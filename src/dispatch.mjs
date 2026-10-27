@@ -12,13 +12,14 @@ import { plan } from './orchestrator.mjs';
 import { enginePlan } from './engine.mjs';
 import { validateStrategicRead, strategicPlan, outcomeScorecard } from './strategy.mjs';
 import { readVoice } from './stages/draft.mjs';
-import { amplifierRows, rankRows, ROWS, PER_ROW, TITLE_MAX, TITLE_MAX_BRIEF } from './stages/rows.mjs';
+import { amplifierRows, rankRows, pitchOffReviews, ROWS, PER_ROW, TITLE_MAX, TITLE_MAX_BRIEF } from './stages/rows.mjs';
 import { signalRequests, signalRows } from './stages/signals.mjs';
 import { readCanon, readRecord, blobSha, CanonError } from './stages/canon.mjs';
 import { pitchRows } from './stages/pitches.mjs';
 import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, readSpecCounts, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, visibilityTargets, STOPGAP_PREFIX, MEETINGS_VERSION, meetingsServed, readMeetings, countGood, tappedObjective, tappedLine, originCandidates } from './stages/meetings.mjs';
 import { readWeb, trafficLines, bookedHosts } from './stages/traffic.mjs';
 import { weekSpec, defaultSpec, parseSpec, compiledDrift, STAGE_CAPS, SPEC_PREFIX, FIRST_SPEC_WEEK } from './crew/compile.mjs';
+import { crewShadow } from './crew/shadow.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
 export const PRODUCT_SLUG = 'mindmake';
@@ -189,6 +190,26 @@ export function improvementProposal(improvement) {
     title: cut(improvement.title, 160), why: cut(improvement.reason, 1000), kind: 'advice',
     wall: improvement.owner === 'krish' ? 'strategy' : 'none', objective_key: OBJECTIVE_FOR[improvement.kind] ?? null,
     close_condition: { event: improvement.close_condition.kind, reference: cut(`${ref.metric}: ${ref.baseline} to ${ref.target}`, 500) }
+  });
+}
+/** Doctrine reviews take this prefix: one a row a London week, never a plan prepare-action reads. */
+export const DOCTRINE_PREFIX = 'gmd-';
+/**
+ * A row whose words he called off more than once lately goes to the weekly
+ * review as a doctrine change, not another variant (N06). Strategy: his
+ * Clear asks for the row's words to be rewritten from playbook 10 and shown
+ * to him before they are used; nothing changes on its own.
+ */
+export function doctrineProposal({ row, count, days, weekOf, expiresAt }) {
+  const name = row.replace('_', ' ');
+  return finishProposal({
+    proposal_id: `${DOCTRINE_PREFIX}${row}-${weekOf}`,
+    title: cut(`Review the words on the ${name} row: ${count} times in ${days} days you said the pitch was off`, 160),
+    why: cut(`Each "pitch was off" already moves the ${name} row to its other words. ${count} in ${days} days says the doctrine behind them needs this week's review, not one more variant. Clear asks for the row's words to be rewritten from the copy doctrine (playbook 10) and shown to you before they are used; Purge keeps them as they are.`, 1000),
+    kind: 'advice', wall: 'strategy', objective_key: 'good_meetings',
+    exact_payload: JSON.stringify({ row, pitch_off_nos: count, window_days: days, week_of: weekOf }, null, 2),
+    close_condition: { event: 'doctrine_reviewed', reference: `row:${row}:week:${weekOf}` },
+    expires_at: expiresAt
   });
 }
 const MODE_TITLE = { warm: 'Send the prepared warm note', cold: 'Send the prepared named note', follow_up: 'Send the prepared follow-up', intro: 'Ask a connector for permission to introduce' };
@@ -402,7 +423,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   if (counts.research_asked) activity.push(`Asked Control Center for ${counts.research_asked} lookups; ${counts.research_answered} answered.`);
   // Control Center drafts ten a day into Jonny's Gmail; a wake later the same day writes only what is left.
   if (pitched.jonny?.used) activity.push(`Jonny's Gmail already holds ${pitched.jonny.used} draft${pitched.jonny.used === 1 ? '' : 's'} made today, so this run writes at most ${pitched.jonny.room} more.`);
-  return { proposals, holds, activity, counts, canonFiles: canon.files };
+  return { proposals, holds, activity, counts, canonFiles: canon.files, canon, research };
 }
 
 /**
@@ -467,7 +488,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     phase = 'capture';
     const read = capabilities?.features?.context ? {} : await source();
     const snapshot = read?.snapshot ?? null;
-    const holds = [], activity = [];
+    // What closed this run, as the engine itself can prove it (N02): an approved action's verified receipt, his counted Monday answer, his signed spec.
+    const holds = [], activity = [], events = [];
     // His decisions, read once before planning: the Monday ask's answer and the approved plans both come from here.
     let decisionsRead = null;
     try { decisionsRead = await cc.decisions(new Date(Date.parse(started_at) - 30 * DAY).toISOString()); }
@@ -564,6 +586,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
           const expectedDigest = decision.amended === true ? decision.amended_sha256 : decision.payload_sha256;
           if (receipt?.receipt?.state !== 'verified' || !receipt.receipt.provider_id || receipt.receipt.payload_sha256 !== expectedDigest) throw new Error('Receipt not verified');
           activity.push(`Approved external action ${decision.proposal_id} has an independently verified provider receipt.`);
+          events.push({ event: 'external_action_verified', proposal_id: decision.proposal_id, at, evidence_url: null });
           mapped.proposals = mapped.proposals.filter(p=>p.proposal_id !== decision.proposal_id);
           outcome.sends++;
         } catch { holds.push({ reason: 'external_action_unverified', detail: 'The connector is blocked, the exact approval no longer matches, or delivery needs reconciliation. No resend or completion is assumed.' }); }
@@ -612,9 +635,14 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       activity.push(goodMeetingsLine({ answer, lastWeekOf: lastWeek.start, lastTarget: ladderTarget(ladder, lastWeek.start), thisTarget, targetSource, northStar: directive.north_star }));
       if (tapped) activity.push(`Held meetings: served at 1.10.0 but not usable this run (${tapped.reason}), so the Monday ask stands in.`);
       goodObjective = goodMeetingsObjective({ answer, lastWeek, thisWeek, midnight: londonMidnight, timezone: TIMEZONE });
+      // His Monday answer, counted, closes the Monday ask (N02).
+      if (answer === viaAsk && answer.state === 'counted') events.push({ event: 'good_meetings_counted', proposal_id: `${STOPGAP_PREFIX}${lastWeek.start}`, at, evidence_url: null });
     }
+    // A row whose words he called off more than once lately goes to the weekly review (N06).
+    if (suppliedContext) for (const r of pitchOffReviews(suppliedContext.feedback, at)) mapped.proposals.unshift(doctrineProposal({ ...r, weekOf: thisWeek.start, expiresAt: londonMidnight(thisWeek.end) }));
     // The spec in force, and his ask to sign this week's while it is not signed: one Monday ask.
     if (week.post) mapped.proposals.unshift(week.post);
+    if (week.source === 'signed') events.push({ event: 'week_spec_signed', proposal_id: `${SPEC_PREFIX}${thisWeek.start}`, at, evidence_url: null });
     holds.push(...week.holds); activity.push(...week.lines);
     if (week.spec) activity.push(...compiledDrift(week.spec, { northStarSha, weekGoalsSha: payloadDigest(directive.week_goals) }));
     const booked = suppliedContext ? bookings({ context: suppliedContext, at, weekStart: thisWeek.start, londonDate, addDays }) : null;
@@ -622,7 +650,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // Traffic to mindmake.co: a supporting reading beside the number, never the number (Phase 1b).
     activity.push(...trafficLines({ web: directive.web, hosts: suppliedContext ? bookedHosts(suppliedContext) : new Set() }));
     // 1.6.0: the five rows on his home screen, after everything else, in the room a report has left.
-    let schema_version = SCHEMA_VERSION;
+    let schema_version = SCHEMA_VERSION, rowsRun = null;
     if (suppliedContext && capabilities?.features?.rows === true && Array.isArray(capabilities.schema_versions) && capabilities.schema_versions.includes(ROWS_VERSION)) {
       phase = 'rows';
       // 1.7.0 and 1.8.0 only where Control Center serves them; an older one gets the rows without what it cannot read.
@@ -639,6 +667,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       if (shown.length > room) holds.push({ reason: 'row_cap', detail: `${shown.length - room} more row actions wait for a later run; a report carries at most 40.` });
       holds.push(...rows.holds); activity.push(...rows.activity);
       outcome.rows = rows.counts;
+      rowsRun = rows;
     }
     // Plans Control Center can never run, because the Advisory record each rests on is gone, are taken back (1.10.0).
     let withdrawn = capabilities?.features?.withdrawn === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes(MEETINGS_VERSION) && suppliedContext
@@ -660,17 +689,31 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const current = new Map(mapped.proposals.map(p => [p.proposal_id, p.payload_sha256]));
     const approved = directive.decisions_since.filter(d => d.decision === 'approved');
     activity.push(`Control Center returned ${directive.decisions_since.length} decisions from the last seven days: ${approved.length} approved, ${directive.decisions_since.length - approved.length} declined; ${approved.filter(d => d.payload_sha256 && current.get(d.proposal_id) === d.payload_sha256).length} approvals match a payload in this report.`);
-    activity.push('Preparation used the existing daily dispatch. External actions require exact approval, a supported connector and independently verified receipts. Native drafts and human edits remain with their owners.');
+    // A live run that read work and prepared nothing, with no hold to say why, is held by name, never a quiet success (F48).
+    const served = n => Array.isArray(n) && n.length > 0;
+    const pitchesServed = [ROWS_VERSION, BRIEF_VERSION, CARD_VERSION, PITCH_VERSION].every(v => capabilities?.schema_versions?.includes(v));
+    const rowWork = rowsRun && (served(suppliedContext.amplifier_candidates) || served(suppliedContext.quiet_ties) || (pitchesServed && (served(suppliedContext.records?.visibility) || served(suppliedContext.records?.guests))));
+    if (mode === 'live' && rowWork && !rowsRun.proposals.length && !rowsRun.holds.length) {
+      holds.push({ reason: 'nothing_prepared', detail: 'Control Center served people and stages to work on, and this run prepared nothing and held nothing, so it says so rather than reading as done.' });
+    }
     const observed_at = clock();
+    const objectives = [
+      goodObjective,
+      ...bookingObjectives({ booked, thisWeek, at, midnight: londonMidnight, addDays, londonDate, timezone: TIMEZONE }),
+      ...(outcomes ? outcomeScorecard(outcomes, observed_at) : objectiveReadings({ at: observed_at, activatedOn }))
+    ].slice(0, 20);
+    // The crew, in shadow until the switch (plan section 3): each specialist's lint and measured check, counted and reported, nothing held or hidden.
+    const crew = crewShadow({ proposals: mapped.proposals, context: suppliedContext, canon: rowsRun?.canon ?? null, research: rowsRun?.research ?? null, at, caps: week.caps, constraints: c, objectives, activity, origin_candidates, taps, lastWeek, londonDate });
+    activity.push(...crew.lines);
+    activity.push('Preparation used the existing daily dispatch. External actions require exact approval, a supported connector and independently verified receipts. Native drafts and human edits remain with their owners.');
     const report = buildReport({
       run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.some(h => !STANDING_HOLDS.has(h.reason)) ? 'held' : 'ready',
       source: strategicSource ?? { revision: snapshot && snapshot.source_revision.length <= 128 ? snapshot.source_revision : revision, captured_at: snapshot?.generated_at ?? observed_at },
-      objectives: [
-        goodObjective,
-        ...bookingObjectives({ booked, thisWeek, at, midnight: londonMidnight, addDays, londonDate, timezone: TIMEZONE }),
-        ...(outcomes ? outcomeScorecard(outcomes, observed_at) : objectiveReadings({ at: observed_at, activatedOn }))
-      ].slice(0, 20), activity, proposals: mapped.proposals, holds, schema_version, origin_candidates, withdrawn
+      objectives, activity, proposals: mapped.proposals, events: events.slice(0, 40), holds, schema_version, origin_candidates, withdrawn
     });
+    // A live run that read nothing to plan from is held by its class (F48): the report says degraded, and the attempt says why, never succeeded.
+    // A synthetic run is a harness for one path, so it keeps reporting how the protocol went.
+    outcome.held = mode !== 'live' ? null : !snapshot && !strategic ? (capabilities?.features?.context ? 'context_unread' : 'nothing_read') : holds.some(h => h.reason === 'nothing_prepared') ? 'nothing_prepared' : null;
     outcome.report = { status: report.status, payload_sha256: report.payload_sha256, proposals: report.proposals.length, walled: report.proposals.filter(p => p.wall !== 'none').length, holds: report.holds.map(h => h.reason), objectives: report.objectives.map(o => ({ key: o.key, availability: o.availability })), replayed: null };
     phase = 'report';
     let ack = null;
@@ -699,7 +742,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       declined: decisions.filter(d => d.decision === 'declined').length,
       done: decisions.filter(d => d.decision === 'done').length
     };
-    return await finish('succeeded', null);
+    return await finish(outcome.held ? 'failed' : 'succeeded', outcome.held);
   } catch (error) {
     return await finish('failed', errorCode(error, phase));
   }

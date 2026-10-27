@@ -1,0 +1,29 @@
+{
+  "id": "curious-prompt",
+  "fix": "F44",
+  "what": "A hook asking what someone was curious about.",
+  "synthetic": true,
+  "field": "why.0",
+  "line": "Moved the whole sales team onto AI tools, curious what changed for the managers.",
+  "records": [
+    "Moved the whole sales team onto AI tools, curious what changed for the managers."
+  ],
+  "card": {
+    "who": "Chief Marketing Officer at Example Retail.",
+    "known": "Known since 2019, through your LinkedIn connections.",
+    "why": [
+      "Moved the whole sales team onto AI tools, curious what changed for the managers."
+    ],
+    "gain": [
+      "One introduction puts you in front of a leader who decides."
+    ],
+    "angles": [
+      {
+        "title": "Build your AI brain",
+        "line": "The brain door, in the site's words: \"Your taste, standards and judgement.\""
+      }
+    ],
+    "sources": []
+  },
+  "expect": "prompt"
+}

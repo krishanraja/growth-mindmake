@@ -1,0 +1,29 @@
+{
+  "id": "judge-note",
+  "fix": "F32",
+  "what": "A judge's note on what it could not find, shown as a reason.",
+  "synthetic": true,
+  "field": "why.0",
+  "line": "There is no recent public signal in the provided data.",
+  "records": [
+    "There is no recent public signal in the provided data."
+  ],
+  "card": {
+    "who": "Chief Marketing Officer at Example Retail.",
+    "known": "Known since 2019, through your LinkedIn connections.",
+    "why": [
+      "There is no recent public signal in the provided data."
+    ],
+    "gain": [
+      "One introduction puts you in front of a leader who decides."
+    ],
+    "angles": [
+      {
+        "title": "Build your AI brain",
+        "line": "The brain door, in the site's words: \"Your taste, standards and judgement.\""
+      }
+    ],
+    "sources": []
+  },
+  "expect": "judge_note"
+}
