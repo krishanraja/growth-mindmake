@@ -2,20 +2,165 @@
   "version": 1,
   "note": "The declared mutations scripts/mutate.mjs applies, one at a time, to a copy of the repository (N07). Each breaks one rule the card grammar, the pitches or a crew gate owns; the tests it names must fail. A survivor is a rule no test holds. Run with npm run mutate.",
   "mutations": [
-    { "id": "fact-test-judge-note", "what": "the fact test lets a judge's note through", "file": "src/stages/rows.mjs", "find": "  if (JUDGE_NOTE.test(t)) return { ok: false, reason: 'judge_note' };", "replace": "", "tests": ["tests/crew.test.mjs"] },
-    { "id": "fact-test-prompt", "what": "the fact test lets an interviewer's prompt through", "file": "src/stages/rows.mjs", "find": "  if (PROMPT_CUT.test(t)) return { ok: false, reason: 'prompt' };", "replace": "", "tests": ["tests/crew.test.mjs"] },
-    { "id": "grammar-fragment", "what": "card grammar stops catching a line cut mid-phrase", "file": "src/crew/lints/grammar.mjs", "find": "if (!endsWhole(s)) { flag(field, 'fragment'); continue; }", "replace": "if (false) { flag(field, 'fragment'); continue; }", "tests": ["tests/crew.test.mjs"] },
-    { "id": "grammar-dash", "what": "card grammar stops catching a dash", "file": "src/crew/lints/grammar.mjs", "find": "    if (/[\\u2014\\u2013]/.test(open)) flag(field, 'dash');", "replace": "", "tests": ["tests/crew.test.mjs"] },
-    { "id": "grammar-record-sentence", "what": "card grammar stops reading a whole record sentence against the fact test", "file": "src/crew/lints/grammar.mjs", "find": "if (n.includes(r.n)) {", "replace": "if (false && n.includes(r.n)) {", "tests": ["tests/crew.test.mjs"] },
-    { "id": "pitch-own-show", "what": "a podcast pitch to his own show is no longer held", "file": "src/stages/pitches.mjs", "find": "  if ([t.title, t.organizer].some(x => typeof x === 'string' && OWN_SHOW.test(x))) return 'own_show';\n  const days = sinceLatest(t, at);", "replace": "  const days = sinceLatest(t, at);", "tests": ["tests/pitches.test.mjs"] },
-    { "id": "pitch-quiet-show", "what": "a show with no episode in 120 days is pitched", "file": "src/stages/pitches.mjs", "find": "if (days === null || days > QUIET_AFTER_DAYS) return 'quiet_show';", "replace": "if (days === null || days > QUIET_AFTER_DAYS * 10) return 'quiet_show';", "tests": ["tests/pitches.test.mjs"] },
-    { "id": "pitch-ruled-title", "what": "pitches stop calling him by the title he ruled", "file": "src/stages/rows.mjs", "find": "export const KRISH_TITLE = 'Executive Host of Signal & Noise';", "replace": "export const KRISH_TITLE = 'a host';", "tests": ["tests/pitches.test.mjs"] },
-    { "id": "lint-one-link", "what": "the Visibility Producer stops counting links", "file": "src/crew/lints/visibility.mjs", "find": "if (linksIn(a?.body ?? '').length > 1)", "replace": "if (linksIn(a?.body ?? '').length > 9)", "tests": ["tests/crew.test.mjs"] },
-    { "id": "lint-tag-placement", "what": "a tag off a public placement is no longer caught", "file": "src/crew/lints/measurement.mjs", "find": "if (!placement) out.push(", "replace": "if (false) out.push(", "tests": ["tests/crew.test.mjs"] },
-    { "id": "lint-quiet-tie", "what": "the Network Steward takes a tie in touch last month as quiet", "file": "src/crew/lints/network.mjs", "find": "Date.parse(ctx.at) - last < 90 * DAY", "replace": "Date.parse(ctx.at) - last < 9 * DAY", "tests": ["tests/crew.test.mjs"] },
-    { "id": "shadow-drops-a-proposal", "what": "the crew in shadow removes a proposal", "file": "src/crew/shadow.mjs", "find": "  const ctx = crewContext({ context, canon, research, at });", "replace": "  proposals.pop();\n  const ctx = crewContext({ context, canon, research, at });", "tests": ["tests/crew.test.mjs"] },
-    { "id": "golden-strips-more", "what": "the golden test leaves out more than the crew's two lines", "file": "src/crew/shadow.mjs", "find": "export const CREW_LINE = /^Crew (?:lints|checks), /;", "replace": "export const CREW_LINE = /^(?:Crew (?:lints|checks), |Constraints)/;", "tests": ["tests/golden.test.mjs"] },
-    { "id": "silent-success", "what": "a live run that read nothing journals success again (F48)", "file": "src/dispatch.mjs", "find": "return await finish(outcome.held ? 'failed' : 'succeeded', outcome.held);", "replace": "return await finish('succeeded', null);", "tests": ["tests/regression/f48-silent-success.test.mjs"] },
-    { "id": "library-second-pdf", "what": "the library check stops counting a second PDF in a Current", "file": "src/crew/library.mjs", "find": "if (n > taxonomy.current.max_pdf) counts.current_over_one_pdf++;", "replace": "if (n > 9) counts.current_over_one_pdf++;", "tests": ["tests/library.test.mjs"] }
+    {
+      "id": "fact-test-judge-note",
+      "what": "the fact test lets a judge's note through",
+      "file": "src/stages/rows.mjs",
+      "find": "  if (JUDGE_NOTE.test(t)) return { ok: false, reason: 'judge_note' };",
+      "replace": "",
+      "tests": [
+        "tests/crew.test.mjs"
+      ]
+    },
+    {
+      "id": "fact-test-prompt",
+      "what": "the fact test lets an interviewer's prompt through",
+      "file": "src/stages/rows.mjs",
+      "find": "  if (PROMPT_CUT.test(t)) return { ok: false, reason: 'prompt' };",
+      "replace": "",
+      "tests": [
+        "tests/crew.test.mjs"
+      ]
+    },
+    {
+      "id": "grammar-fragment",
+      "what": "card grammar stops catching a line cut mid-phrase",
+      "file": "src/crew/lints/grammar.mjs",
+      "find": "if (!endsWhole(s)) { flag(field, 'fragment'); continue; }",
+      "replace": "if (false) { flag(field, 'fragment'); continue; }",
+      "tests": [
+        "tests/crew.test.mjs"
+      ]
+    },
+    {
+      "id": "grammar-dash",
+      "what": "card grammar stops catching a dash",
+      "file": "src/crew/lints/grammar.mjs",
+      "find": "    if (/[\\u2014\\u2013]/.test(open)) flag(field, 'dash');",
+      "replace": "",
+      "tests": [
+        "tests/crew.test.mjs"
+      ]
+    },
+    {
+      "id": "grammar-record-sentence",
+      "what": "card grammar stops reading a whole record sentence against the fact test",
+      "file": "src/crew/lints/grammar.mjs",
+      "find": "if (n.includes(r.n)) {",
+      "replace": "if (false && n.includes(r.n)) {",
+      "tests": [
+        "tests/crew.test.mjs"
+      ]
+    },
+    {
+      "id": "pitch-own-show",
+      "what": "a podcast pitch to his own show is no longer held",
+      "file": "src/stages/pitches.mjs",
+      "find": "  if ([t.title, t.organizer].some(x => typeof x === 'string' && OWN_SHOW.test(x))) return 'own_show';\n  const days = sinceLatest(t, at);",
+      "replace": "  const days = sinceLatest(t, at);",
+      "tests": [
+        "tests/pitches.test.mjs"
+      ]
+    },
+    {
+      "id": "pitch-quiet-show",
+      "what": "a show with no episode in 120 days is pitched",
+      "file": "src/stages/pitches.mjs",
+      "find": "if (days === null || days > QUIET_AFTER_DAYS) return 'quiet_show';",
+      "replace": "if (days === null || days > QUIET_AFTER_DAYS * 10) return 'quiet_show';",
+      "tests": [
+        "tests/pitches.test.mjs"
+      ]
+    },
+    {
+      "id": "pitch-ruled-title",
+      "what": "pitches stop calling him by the title he ruled",
+      "file": "src/stages/rows.mjs",
+      "find": "export const KRISH_TITLE = 'Executive Host of Signal & Noise';",
+      "replace": "export const KRISH_TITLE = 'a host';",
+      "tests": [
+        "tests/pitches.test.mjs"
+      ]
+    },
+    {
+      "id": "lint-one-link",
+      "what": "the Visibility Producer stops counting links",
+      "file": "src/crew/lints/visibility.mjs",
+      "find": "if (linksIn(a?.body ?? '').length > 1)",
+      "replace": "if (linksIn(a?.body ?? '').length > 9)",
+      "tests": [
+        "tests/crew.test.mjs"
+      ]
+    },
+    {
+      "id": "lint-tag-placement",
+      "what": "a tag off a public placement is no longer caught",
+      "file": "src/crew/lints/measurement.mjs",
+      "find": "if (!placement) out.push(",
+      "replace": "if (false) out.push(",
+      "tests": [
+        "tests/crew.test.mjs"
+      ]
+    },
+    {
+      "id": "lint-quiet-tie",
+      "what": "the Network Steward takes a tie in touch last month as quiet",
+      "file": "src/crew/lints/network.mjs",
+      "find": "Date.parse(ctx.at) - last < 90 * DAY",
+      "replace": "Date.parse(ctx.at) - last < 9 * DAY",
+      "tests": [
+        "tests/crew.test.mjs"
+      ]
+    },
+    {
+      "id": "shadow-drops-a-proposal",
+      "what": "the crew in shadow removes a proposal",
+      "file": "src/crew/shadow.mjs",
+      "find": "  const ctx = crewContext({ context, canon, research, at });",
+      "replace": "  proposals.pop();\n  const ctx = crewContext({ context, canon, research, at });",
+      "tests": [
+        "tests/crew.test.mjs"
+      ]
+    },
+    {
+      "id": "golden-strips-more",
+      "what": "the golden test leaves out more than the crew's two lines",
+      "file": "src/crew/shadow.mjs",
+      "find": "export const CREW_LINE = /^Crew (?:lints|checks), /;",
+      "replace": "export const CREW_LINE = /^(?:Crew (?:lints|checks), |Constraints)/;",
+      "tests": [
+        "tests/golden.test.mjs"
+      ]
+    },
+    {
+      "id": "silent-success",
+      "what": "a live run that read nothing journals success again (F48)",
+      "file": "src/dispatch.mjs",
+      "find": "return await finish(outcome.held ? 'failed' : 'succeeded', outcome.held);",
+      "replace": "return await finish('succeeded', null);",
+      "tests": [
+        "tests/regression/f48-silent-success.test.mjs"
+      ]
+    },
+    {
+      "id": "library-second-pdf",
+      "what": "the library check stops counting a second PDF in a Current",
+      "file": "src/crew/library.mjs",
+      "find": "if (n > taxonomy.current.max_pdf) counts.current_over_one_pdf++;",
+      "replace": "if (n > 9) counts.current_over_one_pdf++;",
+      "tests": [
+        "tests/library.test.mjs"
+      ]
+    },
+    {
+      "id": "fact-post-without-page",
+      "what": "a post fact is shown on a card with no page to check it on",
+      "file": "src/stages/rows.mjs",
+      "find": "if (!quote || typeof f.source_url !== 'string' || !/^https:\\/\\/\\S+$/.test(f.source_url) || NOT_A_SOURCE.test(f.source_url)) return '';",
+      "replace": "if (!quote) return '';",
+      "tests": [
+        "tests/rows.test.mjs"
+      ]
+    }
   ]
 }
