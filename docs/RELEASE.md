@@ -1,5 +1,9 @@
 # Release state
 
+## Control Center registers the number, 27 October 2026
+
+Control Center side, merged and applied live (krishanraja/control-center#580, migration `20261112120000`). Mindmake's registry row now holds `good_meetings` (20 a week by 30 November), `podcasts_booked` (2 a week) and `stages_confirmed` (1 a fortnight) beside its five earlier objectives, read back from production; no other engine changed. Control Center's next action now weighs the gap on the keys this engine already reports, instead of treating them as unknown. Step 1 of protocol 1.10.0; the held meetings and his good tap are next. The Control Center change that retired its "already grows Mindmake" rule (krishanraja/control-center#579) is deployed to production.
+
 ## Stage forms give mindmake.co, and a PDF hashes as bytes, 27 October 2026
 
 Built and tested; merged just after a 05:10 UTC run, because pitches.mjs is a word file and a merge stales the rows on his phone. Ruling (Krish, 2026-10-27): "mindmake.co for all mindmake venture things". A stage form's website field is now `https://mindmake.co`, and so is a company website field, which the engine used to leave blank; `https://krishraja.com` is given only where the field's own label asks for his personal or speaker site. `blobSha` hashes raw bytes when given bytes, so the one-sheet PDF can be named by the SHA git gives it (N17, closed). Each change was broken on purpose and failed one test.
