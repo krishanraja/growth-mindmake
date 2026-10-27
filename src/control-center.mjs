@@ -5,6 +5,13 @@ import { parseReport } from '../contracts/reporting.ts';
 import { parseEngineContext, parseWorkBatch, semanticWorkBatch } from '../contracts/engine.ts';
 
 const CODE = /^[a-z][a-z0-9_]{0,63}$/;
+/**
+ * The most a Control Center answer may carry: Vercel's own response ceiling,
+ * so the engine never refuses what Control Center can send. It was 2,000,000
+ * until 2026-10-27, when the context grew past it once Krish's own stages
+ * (171 with no product) joined Mindmake's two, and every run read no context.
+ */
+export const RESPONSE_BUDGET = 4_500_000;
 /** One bounded HTTPS transport for every Control Center route: no redirects, 20 s, JSON only, no retries. */
 function httpsOrigin(base) {
   const origin = new URL(base);
@@ -21,7 +28,7 @@ async function transport({ origin, token, fetcher, method, path, body, headers =
   }
   if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('Control Center returned a non-JSON response');
   const text = await response.text();
-  if (text.length > 2_000_000) throw new Error('Control Center response exceeded the byte budget');
+  if (text.length > RESPONSE_BUDGET) { const over = new Error(`Control Center response of ${text.length} characters exceeded the ${RESPONSE_BUDGET} budget`); over.code = 'response_over_budget'; throw over; }
   try { return JSON.parse(text); } catch { throw new Error('Control Center returned invalid JSON'); }
 }
 

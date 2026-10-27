@@ -247,6 +247,48 @@ him to speak, the same way he pitches him to podcasts.
   drafts it into Jonny's Gmail; Jonny sends. Its reach is the audience size
   Nova recorded, with the stage's page and when it was read; unknown otherwise.
 
+## Forms on his tap (Ruling, Krish, 2026-10-26)
+
+"A form is filled for him and his tap submits it; when it cannot be, the most
+automated next best route."
+
+- **Which stages.** Stages to speak on (events) and podcasts or shows
+  (visibility) whose own page links a speaker call or guest form that Control
+  Center has read (`cfp_url`, https, with its `form_fields`), open (sourced or
+  queued), before their deadline and their date, not applied, rejected or
+  buried, never his own shows, never pitched or answered before, with no form
+  already sent to that page (or sent with no answer from the browser), and not
+  like anything he said No to. A show known to be quiet for 120 days is left
+  out. A form drawn in script (no fields read) is left alone.
+- **The answers.** Each field by its own label: his name (Krish Raja, or Krish
+  and Raja), his public business address `hello@krishraja.com` and no other,
+  Mindmake, the title the run uses for him, `https://krishraja.com`, a bio and
+  an abstract in whole sentences from the canon and his own site's record read
+  this run (within any limit the label states), the talk title, and a format or
+  a track only from the field's own options (a talk, or a panel seat where the
+  stage says panel; a track named for AI, then one for the stage's topic).
+  Never a phone, an address, a payment, a password, a date of birth, a
+  demographic question, someone else's details, a number or a date, and never a
+  box or a choice ticked for him. The canon names no LinkedIn profile and no
+  city today, so those stay empty.
+- **When it cannot be.** A required field the run is not sure of, a required
+  terms box (ticking one is a legal yes in his name), no email to answer him
+  on, or labels so alike that Control Center's runner would put an answer in
+  the wrong field ("Name" and "Company name"): no form is written, the hold is
+  counted (`form_unanswerable`, `form_terms`, `form_no_email`,
+  `form_labels_overlap`), and the stage falls to its Jonny pitch where its page
+  gives an address for speakers. A try that sent nothing (`forms`, `not_sent`)
+  is routed again: a CAPTCHA, a login, a payment or a terms box holds the form
+  (`form_blocked`, `form_terms`); what was missing is answered now, or it holds
+  and falls to the pitch.
+- **Who does what.** A row action on events or visibility, channel `form`, no
+  recipient and no mailbox, about the stage (`target:<id>`), closing on
+  `form_submitted`. At most two a row, and they lead it: the people the engine
+  ranked on that row come after them, and so do the cold pitches. A form is his
+  press, not a Jonny draft, so it is outside the ten pitches, and its stage is
+  not pitched as well. His Submit fills it in a browser and sends it only when
+  nothing on the page is his alone; the engine never sends it.
+
 ## Guests for his own shows (Rulings, Krish, 2026-10-27 and 2026-10-20)
 
 Krish, 2026-10-27: guests for Signal & Noise and Make Your Mind Up are part of
