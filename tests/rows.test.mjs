@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, readCanon, CanonError } from '../src/stages/canon.mjs';
-import { kindsOf, reachOf, countIn, lessons, refusedBy, amplifierRows, rankRows, score, fitTitle, channelOf, servesOf, fitHold, cleanName, lastContact, caseFor, titleFor, fitTitleWithin, FIT_FLOOR, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX_BRIEF } from '../src/stages/rows.mjs';
+import { kindsOf, reachOf, countIn, lessons, refusedBy, amplifierRows, rankRows, score, fitTitle, channelOf, servesOf, fitHold, cleanName, lastContact, caseFor, titleFor, fitTitleWithin, endsWhole, firstSentence, titleCase, wholeRole, wholeSentence, JOINERS, FIT_FLOOR, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX_BRIEF } from '../src/stages/rows.mjs';
 import { icpOf, signalRequests, signalRows, isoWeek } from '../src/stages/signals.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
@@ -310,7 +310,7 @@ test('NETWORK: quiet ties come first, last contact is the later of a touch and a
 
 test('every row says who they are, how he knows them and why them, inside its limits, and names lose their emoji', () => {
   const ctx = ampContext();
-  ctx.amplifier_candidates.push(host(51, { followers: 60000, known_since: '2021-03-02', email_last: '2024-06-02', hook: 'Hosts a weekly show for media operators, plus a live event each spring.', contacts: { ...host(51).contacts, full_name: 'Jess Example⚡️', company: 'Spark Media⚡️' }, current_company: 'Spark Media⚡️' }));
+  ctx.amplifier_candidates.push(host(51, { followers: 60000, known_since: '2021-03-02', email_last: '2024-06-02', hook: 'Hosts a weekly show for media operators. A live event follows each spring.', contacts: { ...host(51).contacts, full_name: 'Jess Example⚡️', company: 'Spark Media⚡️' }, current_company: 'Spark Media⚡️' }));
   ctx.routes[id(51)] = route();
   ctx.routes[id(9)] = route('none', { whatsapp: true });
   const r = amplifierRows({ context: ctx, weekGoals: GOALS, canon, files: FILES, at: NOW });
@@ -375,7 +375,7 @@ test('the card line is two lines at most and always whole; a 1.7.0 title is 56 a
   const told = caseFor({ c: long, name: 'Bartholomew Longname-Example', company: long.current_company, ask: 'partner', kind: 'investor', reach: { band: 'unknown' }, fit: 80, serves: null });
   assert.ok(told.because.length <= BECAUSE_MAX, told.because);
   assert.equal(told.because.includes('...'), false, 'never an ellipsis');
-  assert.match(told.because, /^Built and sold two regional broadcasting groups\. Known since 2018\.$/, 'why them stays whole; the known line shortens');
+  assert.equal(told.because, 'Chief Executive Officer and Founding Partner. Known since 2018.', 'a story that will not fit whole is skipped, never cut; the role stands whole and the known line shortens');
   for (const c of [{ ...long, hook: null }, { network_tier: '3_known_network' }, { ...long, hook: 'x'.repeat(300) }]) {
     const b = caseFor({ c, name: 'Bartholomew Longname-Example', company: long.current_company, ask: 'introduce', kind: 'connector', reach: { band: 'unknown' }, fit: 80, serves: null }).because;
     assert.ok(b.length >= 1 && b.length <= BECAUSE_MAX && !b.includes('...') && /[.!?]$/.test(b), b);
@@ -386,4 +386,59 @@ test('the card line is two lines at most and always whole; a 1.7.0 title is 56 a
   assert.equal(titleFor('partner', 'investor', 'Ann Lee', 'Acme', TITLE_MAX_BRIEF), 'Offer Ann Lee a session for their leaders', 'the company is left to the line under it even when it would fit');
   assert.equal(titleFor('partner', 'investor', 'Hugo Example', 'Climate Example'), 'Offer Hugo Example at Climate Example a session for their leaders', '1.6.0 keeps the company');
   assert.equal(fitTitleWithin(20, 'Ask Maximiliana Extraordinarily for one introduction'), 'Ask Maximiliana', 'cut at a word, never an ellipsis');
+});
+
+// Synthetic people shaped like the lines the first live 1.7.0 run cut mid-phrase.
+const CUT_LIVE = [
+  { current_title: 'SVP of Data, AI & Analytics, Example Retail Group', current_company: 'Example Retail Group International' },
+  { current_title: 'Managing Director of Example Lab & Head of Open Innovation for Europe, Middle East and Africa', current_company: 'Example Beauty Group' },
+  { current_title: 'chief marketing officer at u.s. example bank' },
+  { current_title: 'Commercial Director & Co-Founder at Example Games Studio Holdings', current_company: 'Example Games Studio Holdings' },
+  { current_title: 'Partner', hook: 'His Privacy Act Review submissions were cited four times by the Example Law Reform Commission in its final report.' },
+  { current_title: 'Founder', hook: 'Building the first agentic full-stack gaming advertising platform for mid-size studios across Asia and Europe.' },
+  { current_title: 'Chairman', hook: 'Co-founder of Example TV and the executive producer behind three long-running music shows across two decades.' },
+  { current_title: 'Head of Growth', hook: 'Led the U.S. launch of a streaming service that reached two million homes.' },
+  { current_title: 'Creator', why_them: "She's a high-reach creator in the audience builder_economy wants to reach." },
+  { current_title: 'Creator', why_them: 'Reaches the audience builder_economy wants.' },
+  { current_title: 'Director of Partnerships for the', current_company: 'Example Group' },
+  { current_title: 'VP, Strategy & Operations | Board Member | Advisor to Example Ventures and Example Capital Partners LLP' },
+];
+
+test('a card line is built only from whole pieces: never ending on a joiner, an initial or a slug, never cut mid-name, 80 at most', () => {
+  for (const [i, extra] of CUT_LIVE.entries()) {
+    for (const ask of ['introduce', 'partner', 'appear', 'relationship']) {
+      const c = { network_tier: '2_core_network', known_since: '2020-05-01', email_last: i % 2 ? '2025-02-01' : null, ...extra };
+      const { because } = caseFor({ c, name: 'Avery Example', company: c.current_company ?? '', ask, kind: 'connector', reach: { band: 'unknown' }, fit: 60, serves: null });
+      assert.ok(because.length >= 1 && because.length <= BECAUSE_MAX, because);
+      assert.equal(because.includes('...'), false, because);
+      for (const piece of because.split(/(?<=\.) (?=[A-Z])/)) {
+        const last = piece.replace(/[.,;:!?]+$/, '').split(' ').at(-1);
+        assert.equal(JOINERS.has(last.toLowerCase()), false, `ends on "${last}": ${because}`);
+        assert.equal(/^\p{L}$/u.test(last), false, `ends on an initial: ${because}`);
+      }
+      assert.equal(/_/.test(because), false, `an internal slug: ${because}`);
+      assert.equal(/\bu\.s\./.test(because), false, `raw lower-case data: ${because}`);
+      for (const bad of ['four times by.', 'gaming advertising.', 'the executive.', 'Led the U.', 'Studio.', 'Head.', 'for the.']) assert.equal(because.includes(bad), false, `${bad} in ${because}`);
+    }
+  }
+  assert.equal(endsWhole('cited four times by'), false);
+  assert.equal(endsWhole('Commercial Director & Co-Founder at'), false);
+  assert.equal(endsWhole('Led the U'), false);
+  assert.equal(endsWhole('Chief Marketing Officer'), true);
+  assert.equal(firstSentence('Led the U.S. launch of Example Inc. and its partners. Then more.'), 'Led the U.S. launch of Example Inc. and its partners');
+  assert.equal(titleCase('chief marketing officer at u.s. example bank'), 'Chief Marketing Officer at U.S. Example Bank');
+  assert.equal(titleCase('VP of Sales at eBay'), 'VP of Sales at eBay', 'a title with any capital is left as written');
+  assert.equal(firstSentence('Led the U.S. Senate inquiry into data brokers. Then more.'), 'Led the U.S. Senate inquiry into data brokers', 'an initial is no sentence end');
+  assert.equal(firstSentence('Works with Dr. Example on media law. Then more.'), 'Works with Dr. Example on media law', 'nor an abbreviation');
+  assert.equal(wholeSentence('Reaches the audience builder_economy wants.', 62), '', 'an internal slug is never his');
+  assert.equal(wholeRole('Director of Partnerships for the', '', 62), '', 'a whole field that itself ends on a joiner is dropped');
+  assert.equal(caseFor({ c: { network_tier: '2_core_network', known_since: '2020-05-01', current_title: 'Director of Partnerships for the' }, name: 'Avery Example', company: '', ask: 'introduce', kind: 'connector', reach: { band: 'unknown' }, fit: 60, serves: null }).because, 'Known since 2020, no email on record.', 'the known line alone is better than a broken one');
+  assert.equal(wholeRole('VP, Strategy & Operations | Board Member | Advisor to Example Ventures and Example Capital Partners LLP', '', 62), 'VP, Strategy & Operations.', 'the title up to its first separator, the shortest whole piece');
+});
+
+test('a signal\'s line names who they are as a whole, readable piece too', () => {
+  const research = [{ request_id: 'engagers:x', kind: 'post_engagers', status: 'answered', answered_at: NOW, evidence: [engager('long-exec', 'Lee Long', 'chief operating officer, example media group holdings and three subsidiaries across europe', 'My board asked what AI means for our managers. I had no good answer.', id(23))] }];
+  const p = signalRows({ context: { routes: { [id(23)]: route() }, feedback: [] }, research, weekGoals: GOALS, canon, files: FILES, at: NOW }).rows[0].proposal;
+  assert.equal(p.because, 'Chief Operating Officer. Worried in public about AI and their job.');
+  assert.ok(p.because.length <= BECAUSE_MAX);
 });

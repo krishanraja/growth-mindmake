@@ -102,7 +102,14 @@ channels with mass audiences on growing with AI. In the protocol these are
   title on his card, at most 80 characters (two lines): who they are and why
   them in one clause (Control Center's hook or why_them), then how he knows
   them (known since a year, last email a month, or no email on record); when
-  both will not fit, why them stays whole and the known line shortens. The
+  both will not fit, why them stays whole and the known line shortens. It is
+  built only from whole pieces (Krish's first live cards ended on "by.",
+  "at." and "u.s."): the first sentence of the hook or why_them only if it
+  fits whole, else "title at company", the title, or the title up to its
+  first separator; a piece that would end on a joiner (at, of, by, and, the
+  and the like), an initial or an internal slug is dropped, and the known
+  line alone is better than a broken one. Raw lower-case titles are
+  title-cased. The
   title is then at most 56 characters and leaves the company to that line. `brief` is what a tap opens,
   two to six lines: who, how he knows them, why them, the ask and the goal it
   serves, reach with its basis, and the fit. Written in code from what

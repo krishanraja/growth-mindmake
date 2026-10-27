@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { clean } from '../guards.mjs';
-import { lessons, refusedBy, channelOf, servesOf, seniorityOf, actionFor, rowProposal, fitTitleWithin, clause, wholeClause, cleanName, cutClean, monthYear, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
+import { lessons, refusedBy, channelOf, servesOf, seniorityOf, actionFor, rowProposal, fitTitleWithin, clause, wholeRole, titleCase, cleanName, cutClean, monthYear, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
 
 /**
  * Signals from his buyers (playbook 11, "Signals").
@@ -148,7 +148,7 @@ export const SIGNAL_WORDS = [
 export function signalCase({ name, headline, author, quote, published, serves }) {
   // Where they said it is in the brief; the card line has room for who and what.
   const where = 'Worried in public about AI and their job.';
-  const who = headline ? wholeClause(headline, BECAUSE_MAX - where.length - 1) : '';
+  const who = headline ? wholeRole(titleCase(headline), '', BECAUSE_MAX - where.length - 1) : '';
   const seen = monthYear(published);
   return {
     because: who ? `${who} ${where}` : where,
