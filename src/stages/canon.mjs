@@ -62,7 +62,133 @@ export function parseCanon({ northStar, canon }) {
       answer,
       revenue: revenueLabel && revenueLine ? { label: revenueLabel, line: revenueLine } : null,
     },
+    // Plan section 12, M6 and M12: who buys and what is offered, read here so no
+    // stage restates them. Each is null when the canon no longer carries it; a
+    // null is never a reason to hold a row, only a reason the shadow says so.
+    buyer: parseBuyer({ northStar, canon }),
+    offer: parseOffer({ northStar, canon }),
   };
+}
+
+// ── Who buys and what is offered (plan section 12, M6, M9 and M12) ─────────
+// Control Center wrote its own buyer and offer into code: FACE and DOOR in
+// api/_mission.ts, the seed's INDUSTRY list in api/pilot-deals/seed.ts, the
+// Mindmake angle in api/_venturePositioning.ts and the pinned offer copy in
+// api/_mindmakeGrowthContract.ts. Here they are read from Mindmake's canon as
+// it is this run, in its own words, and nothing is kept from memory.
+
+const STOP = new Set(['or', 'whoever', 'owns', 'leader', 'leaders', 'the', 'a', 'an', 'of', 'who', 'and']);
+/** A title's usual long form, used only when the canon names the short one. Language, not strategy: it adds no buyer the canon does not name. */
+export const TITLE_LONG_FORMS = Object.freeze({ ceo: 'chief executive', cro: 'chief revenue', cfo: 'chief financial', coo: 'chief operating', cmo: 'chief marketing' });
+const sentences = s => flat(s).split(/(?<=[.!?])\s+/).map(x => x.replace(/[.!?]+$/, '').trim()).filter(Boolean);
+const section = (text, heading) => {
+  const m = new RegExp(`^## ${heading}\\s*$`, 'm').exec(text);
+  if (!m) return '';
+  const rest = text.slice(m.index + m[0].length);
+  const end = /^##\s/m.exec(rest);
+  return end ? rest.slice(0, end.index) : rest;
+};
+const bullets = (text, label) => {
+  const at = text.indexOf(label);
+  if (at < 0) return [];
+  const out = [];
+  for (const line of text.slice(at + label.length).split('\n').slice(1)) {
+    if (/^- /.test(line)) out.push(line.slice(2));
+    else if (/^\s{2,}\S/.test(line) && out.length) out[out.length - 1] += ` ${line.trim()}`;
+    else if (out.length) break;
+  }
+  return out.map(flat).filter(Boolean);
+};
+const listWords = s => s.split(/,\s*|\s+(?:and|or)\s+/).map(w => w.trim().toLowerCase()).filter(w => /^[a-z][a-z-]{1,30}$/.test(w));
+
+/**
+ * Who buys, from 01_CANON.md "Who buys" and the Horizon in 00_NORTH_STAR.md.
+ * The groups are the buyer; their words are the terms a title is matched on.
+ * The sales wedge is the canon's own "internal only" sectors: they may rank
+ * work and are never written in a message. Null when no buyer group is read.
+ */
+export function parseBuyer({ northStar = '', canon = '' }) {
+  const who = section(canon, 'Who buys');
+  const groupsText = /\*\*Buyer groups\.\*\*\s+([^\n]+(?:\n(?!\n)[^\n]+)*)/.exec(who)?.[1];
+  // 00_NORTH_STAR.md "Who this is for": "A founder, principal, ... or senior commercial leader who can move a decision on their own".
+  const forWhom = /^A ([a-z ,]{10,200}?) who can move a decision/.exec(flat(section(northStar, 'Who this is for')))?.[1];
+  const terms = s => s.toLowerCase().split(/[^a-z]+/).filter(w => w.length > 1 && !STOP.has(w));
+  // A group is met by any of its alternatives ("CRO, or whoever owns revenue"), and an alternative by all of its words ("portfolio owner").
+  const group = (label, from) => ({ label, from, alternatives: label.split(/,\s*or\s+|\s+or\s+/).map(terms).filter(t => t.length) });
+  const groups = [
+    ...(groupsText ? sentences(groupsText).map(l => group(l, '01_CANON.md')) : []),
+    ...(forWhom ? forWhom.split(/,\s*|\s+or\s+/).map(s => s.trim()).filter(Boolean).map(l => group(l, '00_NORTH_STAR.md')) : []),
+  ].filter(g => g.alternatives.length);
+  if (!groups.length) return null;
+  const gate = /\*\*The gate\.\*\*\s+([\s\S]+?)(?:\n\n|$)/.exec(who)?.[1];
+  const poor = /\*\*Poor fit\.\*\*\s+([\s\S]+?)(?:\n\n|$)/.exec(who)?.[1];
+  const wedge = /\*\*Sales wedge[^*]*\*\*\s+([\s\S]+?)(?:\n\n|$)/.exec(who)?.[1] ?? '';
+  const internal = [...flat(wedge).matchAll(/([A-Z][a-z]+(?:,\s*[a-z]+)*(?:\s+and\s+[a-z]+)?)\s+businesses/g)].flatMap(m => listWords(m[1]));
+  const horizon = /^## Horizon\s+> ([^\n]{20,400})/m.exec(northStar)?.[1] ?? '';
+  const pub = /backed ([a-z]+(?:,\s*[a-z]+)*(?:\s+(?:or|and)\s+[a-z]+)?)\s+leader/i.exec(horizon);
+  return {
+    groups,
+    gate: gate ? flat(gate) : null,
+    moments: bullets(who, '**Best-fit moments.**'),
+    poor_fit: poor ? sentences(poor) : [],
+    sectors: { public: pub ? listWords(pub[1]) : [], internal: [...new Set(internal)] },
+  };
+}
+
+/** Whether a title is one of the canon's buyer groups: every word of one of a group's alternatives, each as a whole word or, for a short title, its long form. Null when either is missing. Pure. */
+export function canonBuyerTitle(title, buyer) {
+  if (!buyer?.groups?.length || typeof title !== 'string' || !title.trim()) return null;
+  const t = ` ${title.toLowerCase().replace(/[^a-z]+/g, ' ')} `;
+  const has = w => t.includes(` ${w} `) || Boolean(TITLE_LONG_FORMS[w] && t.includes(` ${TITLE_LONG_FORMS[w]} `));
+  return buyer.groups.some(g => g.alternatives.some(words => words.every(has)));
+}
+
+/**
+ * What is offered, from 00_NORTH_STAR.md "What we sell" and 01_CANON.md "Do
+ * not reintroduce": the offer's own noun, the one public duration and where
+ * it may appear, whether the price is private, the retired offers, and the
+ * revenue door's line in the plain account. Null when the offer is not read.
+ */
+export function parseOffer({ northStar = '', canon = '' }) {
+  const noun = /Both lead to \*\*one ([a-z ]{3,40})\*\*/.exec(northStar)?.[1];
+  if (!noun) return null;
+  const days = /public shape is (\d{1,3}) days/.exec(flat(northStar))?.[1] ?? /the (\d{1,3})-day shape/.exec(flat(canon))?.[1] ?? null;
+  const ladder = bullets(section(canon, 'Do not reintroduce'), 'One list, so it does not have to be repeated:').find(b => /offer ladder/i.test(b)) ?? '';
+  const retired = ladder.replace(/[.]$/, '').split(/,\s*(?:or\s+)?|\s+or\s+/).map(x => x.replace(/^(?:the|any other)\s+/i, '').trim()).filter(x => x && !/offer ladder/i.test(x));
+  const revenue = /^- \*\*Build your AI revenue engine\*\* \(`[^`]+`\): ([\s\S]+?\.)\s*$/m.exec(northStar)?.[1];
+  return {
+    noun: flat(noun),
+    public_days: days ? Number(days) : null,
+    price_private: /\bprice is (?:agreed )?private(?:ly)?\b|Entirely private\. No number appears anywhere public/.test(flat(`${northStar} ${canon}`)),
+    retired,
+    revenue_line: revenue ? flat(revenue) : null,
+  };
+}
+
+const NUMBER_WORD = '(?:\\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten|twelve|fourteen|twenty|thirty)';
+const DURATION = new RegExp(`\\b${NUMBER_WORD}[- ](?:day|week|month)s?\\b|\\bmatter of (?:days|weeks|months)\\b`, 'i');
+const PRICE = /[$£€]\s?\d|\b(?:fixed |flat )?fees?\b|\bprice[ds]?\b|\bdiscounts?\b|\brate card\b/i;
+const OTHER_OFFER = /\b(?:pilot|sprint|strategy day|workshop|retainer|programme|bootcamp)s?\b/i;
+
+/**
+ * What a line about the offer says that the canon does not support, as codes,
+ * never the words: a retired offer by name (retired_offer), a delivery length
+ * outside the two door pages the canon allows it on (duration_promise), a
+ * price or fee (price_terms, the canon keeps every figure private), and the
+ * offer called something other than its own noun (offer_named_otherwise; the
+ * canon's only pilot is a CTRL pilot conversation Krish offers in person).
+ * An empty list is a line the canon supports. Pure.
+ */
+export function offerFindings(text, offer) {
+  if (typeof text !== 'string' || !text.trim() || !offer) return [];
+  const t = flat(text), out = [];
+  const heads = offer.retired.flatMap(r => [r, r.split(/\s+/).at(-1)]).filter(w => w && w.length > 3);
+  if (heads.some(w => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(t))) out.push('retired_offer');
+  if (DURATION.test(t)) out.push('duration_promise');
+  if (offer.price_private && PRICE.test(t)) out.push('price_terms');
+  const other = OTHER_OFFER.exec(t)?.[0]?.toLowerCase();
+  if (other && !(other.startsWith('pilot') && /\bCTRL\b/.test(t)) && !t.toLowerCase().includes(offer.noun.toLowerCase())) out.push('offer_named_otherwise');
+  return out;
 }
 
 /** Both files from the default branch, their blob SHAs and what they say. */

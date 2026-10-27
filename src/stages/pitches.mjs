@@ -1,6 +1,7 @@
 import { seal, clean, DAY } from '../guards.mjs';
 import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
 import { showNoteRows } from './shownotes.mjs';
+import { shadowLine } from './visibility.mjs';
 
 /**
  * Podcast pitches, written in Jonny's voice for Krish (protocol 1.9.0, playbook 11).
@@ -993,4 +994,111 @@ export function jonnyDraftsToday(context, at) {
     if (d?.mailbox === 'jonny' && Number.isFinite(t) && t <= now && londonDay(t) === today) n++;
   }
   return n;
+}
+
+// ── Mindmake's outreach angle and the People briefs (plan section 12, M9) ──
+//
+// Moved out of Control Center (Ruling, Krish, 2026-10-27). Ported from:
+//   api/_peopleDraft.ts subjectPart and subjectFor: the subject is set by code,
+//     never by a model, a plain invitation and never a teaser (Ruling, Krish,
+//     2026-10-21), one line cut at a word.
+//   api/_peopleDraft.ts forGuest, forTarget and forRoom: which approach may be
+//     drafted at all (a guest still proposed for a show of his; a stage that
+//     cleared the standard, take or stretch; a room not archived, to someone
+//     in the network with a name), and the rules each brief hands its model.
+//   api/_venturePositioning.ts, the Mindmake entry: not ported. Its offer is
+//     out of date against the canon: offerFindings in canon.mjs finds a
+//     retired offer, a duration promise and the offer named otherwise. The
+//     engine's angle is the canon's own ask, read live.
+// What stays in Control Center: the model call that writes a People draft,
+// the Gmail draft in the right box, people_drafts and its record of each.
+
+/** api/_peopleDraft.ts subjectPart: one line, no doubled spaces, cut at a word past the twentieth character, trailing punctuation off. Pure. */
+export function ccSubjectPart(v, max = 60) {
+  const one = String(v || '').replace(/\s+/g, ' ').trim();
+  if (one.length <= max) return one;
+  const cut = one.slice(0, max);
+  return cut.slice(0, cut.lastIndexOf(' ') > 20 ? cut.lastIndexOf(' ') : max).replace(/[\s,;:.-]+$/, '');
+}
+
+/** api/_peopleDraft.ts subjectFor: the subject Control Center sets for a guest invite, a stage pitch or a room note. Pure. */
+export function ccSubjectFor(job, facts = {}) {
+  if (job === 'guests') return `Podcast invitation: ${ccSubjectPart(facts.show) || 'a conversation'} with Krish Raja`;
+  if (job === 'booked') {
+    const stage = ccSubjectPart(facts.stage);
+    const idea = facts.stageType === 'podcast' ? 'Guest idea' : 'Speaker idea';
+    return stage ? `${idea} for ${stage}: Krish Raja` : `${idea}: Krish Raja`;
+  }
+  const event = ccSubjectPart(facts.event);
+  return event ? `Are you going to ${event}?` : 'Are you going?';
+}
+
+/** api/_peopleDraft.ts forGuest's gate: a guest still proposed, for one of his two shows. Pure. */
+export const ccGuestGate = g => g?.invite_state === 'proposed' && g.invite_show in INVITE_SHOWS;
+/** api/_peopleDraft.ts forTarget's gate: only a stage the standard took or stretched for. Pure. */
+export const ccTargetGate = t => t?.verdict === 'take' || t?.verdict === 'stretch';
+/** api/_peopleDraft.ts forRoom's gate: a room not archived, to someone in the network with a name. Pure. */
+export const ccRoomGate = (e, person) => Boolean(e && !e.archived_at && typeof person?.full_name === 'string' && person.full_name.trim());
+
+/** The rules each People brief hands its model (api/_peopleDraft.ts), by job; the path a guest is reached on changes the guest's. */
+export function briefRules(job, { path = null } = {}) {
+  if (job === 'guests') return path === 'rich'
+    ? 'Krish has not met them. Write only from the evidence above, never pretend familiarity, and ask for one short conversation.'
+    : 'A warm, specific invitation for one recorded conversation. Do not pitch anything else.';
+  if (job === 'booked') return 'A short, specific pitch for one slot. No attachments, no promises, nothing invented about the show or its audience.';
+  return 'Two or three warm sentences between people who know each other. No pitch.';
+}
+
+/**
+ * The People briefs in shadow. For every stage and guest the context serves,
+ * whether Control Center's gate would let it be drafted, beside whether the
+ * engine's own pitch or invite stage would write it on its standard alone
+ * (its lessons and what was already pitched left aside, so only the two
+ * standards are compared), and, where both would, whether the subjects are
+ * the same words. Counts and codes only. Nothing is held, hidden or
+ * changed. Pure.
+ */
+export function briefsShadow({ context, canon = null, at }) {
+  const none = new Set(), L = lessons([], at), routes = context?.routes ?? {};
+  const differ = {}, apart = {}, verdicts = [], seen = new Set();
+  let agree = 0, both = 0, same = 0, read = 0;
+  const bumpIn = (o, k) => { o[k] = (o[k] ?? 0) + 1; };
+  for (const t of Array.isArray(context?.records?.visibility) ? context.records.visibility : []) {
+    if (typeof t?.id !== 'string' || seen.has(`t:${t.id}`)) continue;
+    seen.add(`t:${t.id}`); read++;
+    const kind = stageKind(t);
+    const theirs = ccTargetGate(t);
+    let code = null;
+    if (!kind) { code = 'not_a_pitch_kind'; bumpIn(apart, code); verdicts.push({ subject_ref: `target:${t.id}`, code, agrees: null }); continue; }
+    const hold = kind === 'podcast' ? pitchHold(t, { L, pitched: none, at }) : speakHold(t, { L, pitched: none, at });
+    const mine = hold === null;
+    if (mine === theirs) agree++;
+    else { code = mine ? 'engine_pitches_unjudged' : `engine_${hold}`; bumpIn(differ, code); }
+    if (mine && theirs && canon?.publication) {
+      both++;
+      const show = cleanName(t.title), topic = showTopic(t);
+      const ours = kind === 'podcast' ? pitchWords({ show, host: null, topic, canon }).subject : speakWords({ event: show, host: null, ask: speakingAsk(t), talk: talkTitle(t, topic), canon }).subject;
+      if (ours === ccSubjectFor('booked', { stage: t.title, stageType: t.type })) same++;
+    }
+    verdicts.push({ subject_ref: `target:${t.id}`, engine: mine, control_center: theirs, agrees: code === null, code });
+  }
+  for (const g of Array.isArray(context?.records?.guests) ? context.records.guests : []) {
+    const key = typeof g?.contact_id === 'string' ? `contact:${g.contact_id}` : typeof g?.id === 'string' ? `guest:${g.id}` : null;
+    if (!key || seen.has(key)) continue;
+    seen.add(key); read++;
+    const theirs = ccGuestGate(g);
+    const hold = inviteHold(g, { L, invited: none, routes, at });
+    const mine = hold === null;
+    let code = null;
+    if (mine === theirs) agree++;
+    else { code = mine ? 'engine_invites_unproposed' : `engine_${hold}`; bumpIn(differ, code); }
+    if (mine && theirs && canon?.publication) {
+      both++;
+      const show = inviteShow(g.invite_show, canon);
+      if (inviteWords({ name: guestName(g), show, page: null }).subject === ccSubjectFor('guests', { show: show.name })) same++;
+    }
+    verdicts.push({ subject_ref: key, engine: mine, control_center: theirs, agrees: code === null, code });
+  }
+  const tail = canon?.publication ? ` Subjects: ${both} both would write, ${same} in the same words.` : ' Subjects: the canon was not read this run, so none were compared.';
+  return { verdicts, line: shadowLine('Outreach briefs', ['stage or guest', 'stages and guests'], { read, agree, differ, apart }) + tail, source_revision: Array.isArray(canon?.files) ? canon.files : [] };
 }

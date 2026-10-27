@@ -23,6 +23,9 @@ import { crewShadow } from './crew/shadow.mjs';
 import { guestsShadow } from './stages/guests.mjs';
 import { visibilityShadow } from './stages/visibility.mjs';
 import { roomsShadow } from './stages/rooms.mjs';
+import { pilotsShadow } from './stages/pilots.mjs';
+import { briefsShadow } from './stages/pitches.mjs';
+import { qualifyShadow } from './stages/qualify.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
@@ -715,7 +718,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     activity.push(...crew.lines);
     // Plan section 12, M3 to M5: the guest standard, the visibility standard and room scoring, ported from Control
     // Center, in shadow beside its own verdicts: one counted line each, nothing held or changed. A fault here never fails the run.
-    if (suppliedContext) for (const shadow of [guestsShadow, visibilityShadow, roomsShadow]) {
+    // Plan section 12, M6, M9 and M12: the pilot machine, the outreach briefs and the legacy ingest gate, the same way.
+    if (suppliedContext) for (const shadow of [guestsShadow, visibilityShadow, roomsShadow, pilotsShadow, briefsShadow, qualifyShadow]) {
       try { const { line } = shadow({ context: suppliedContext, canon: rowsRun?.canon ?? null, at }); if (typeof line === 'string' && line) activity.push(line); }
       catch { activity.push(`${shadow.name}: could not be read this run, so it says nothing rather than a guess.`); }
     }

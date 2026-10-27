@@ -1,4 +1,7 @@
-import { fresh, ageDays } from '../guards.mjs';
+import { fresh, ageDays, DAY } from '../guards.mjs';
+import { canonBuyerTitle } from './canon.mjs';
+import { pinnedCanonDrift, templateAskCurrent } from './draft.mjs';
+import { shadowLine } from './visibility.mjs';
 
 // Evidence makes a prospect relevant. Only a human can qualify a held conversation.
 export function analyse(snapshot, policy, at, { warm_contexts = new Map() } = {}) {
@@ -61,4 +64,125 @@ export function analyse(snapshot, policy, at, { warm_contexts = new Map() } = {}
   const selected = [], recipients = new Set();
   for (const c of eligible) { const recipient = c.mode === 'intro' ? c.contact.connector.contact_id : c.contact.id; if (recipients.has(recipient)) { held.push({ contact_id: c.contact.id, reason: 'recipient_already_selected' }); continue; } recipients.add(recipient); selected.push(c); }
   return { eligible: selected.slice(0, policy.limits.recommendations_per_run), held, research, deferred_by_budget: Math.max(0, selected.length - policy.limits.recommendations_per_run) };
+}
+
+// ── The legacy ingest gate's strategy (plan section 12, M12) ───────────────
+// Moved out of Control Center (Ruling, Krish, 2026-10-27). Ported from:
+//   api/_mindmakeGrowth.ts contactEvidence: what counts as a buying moment.
+//     A published post (a LinkedIn post or update, or an X status) whose
+//     stance scores 65 or more in api/_intent.ts STANCE_VALUE, inside 30
+//     days; anything else it says about the person or the company inside 90
+//     days. The engine keeps the source and the windows, and counts as a
+//     buying moment only a stance one of the canon's best-fit moments
+//     supports (buyingStances), read live.
+//   api/_mindmakeGrowth.ts prepare: the buyer-title rules. Control Center
+//     matches a title against product_icp's buyer titles and its "who not"
+//     line (ccBuyerTitle, ported for the comparison); the engine's buyer is
+//     the canon's own groups (canonBuyerTitle in canon.mjs). analyse() above
+//     already holds every other gate prepare() rechecks.
+//   api/_mindmakeGrowthContract.ts APPROVED_CANON: the offer copy, checked
+//     against the canon in draft.mjs (pinnedCanonDrift).
+// What stays in Control Center: the records and their snapshot, the consent
+// and suppression walls, the warm-path richness check (knowsEnough), the
+// stance classifier that reads each post, product_icp, which Krish edits,
+// and the ingest route itself.
+
+/** api/_intent.ts STANCE_VALUE: how much each published stance says about a live need. */
+export const CC_STANCE_VALUE = Object.freeze({ asking: 90, struggling: 85, hiring: 70, evaluating: 65, building: 55, teaching: 35, commenting: 12, selling: 8 });
+/** api/_mindmakeGrowth.ts contactEvidence: a stance at or above this is a buying moment. */
+export const CC_TRIGGER_FLOOR = 65;
+/** api/_mindmakeGrowth.ts contactEvidence: a published post, as its source must look. */
+export const PUBLIC_POST = /^https:\/\/(?:www\.)?(?:linkedin\.com\/(?:posts|feed\/update)|(?:x|twitter)\.com\/[^/]+\/status)\//i;
+/** api/_mindmakeGrowth.ts recent: a buying moment is current for 30 days, other evidence for 90. */
+export const MOMENT_DAYS = 30;
+export const EVIDENCE_DAYS = 90;
+/** Each stance, and the canon best-fit moment that would make it a reason to write now. A stance with none is never a buying moment for the engine. */
+const STANCE_MOMENT = Object.freeze({
+  asking: /\bknows something is wrong\b|\bholding it back\b/i,
+  struggling: /\bknows something is wrong\b/i,
+  evaluating: /\bAI has changed\b/i,
+});
+
+/** api/_mindmakeGrowth.ts recent: inside the window and not in the future. Pure. */
+export function recentEnough(posted, at, days) {
+  const t = Date.parse(posted ?? ''), now = Date.parse(at);
+  return Number.isFinite(t) && t <= now && now - t <= days * DAY;
+}
+
+/** Control Center's rule as it is (api/_mindmakeGrowth.ts contactEvidence): a post's stance at the floor or above, from a published post, inside 30 days. Pure. */
+export function ccBuyingMoment({ stance, url, posted }, at) {
+  return typeof url === 'string' && PUBLIC_POST.test(url) && recentEnough(posted, at, MOMENT_DAYS) && (CC_STANCE_VALUE[stance] ?? 0) >= CC_TRIGGER_FLOOR;
+}
+
+/** The stances the canon's best-fit moments support today, read live. Pure. */
+export function buyingStances(buyer) {
+  const moments = Array.isArray(buyer?.moments) ? buyer.moments : [];
+  return Object.keys(STANCE_MOMENT).filter(s => moments.some(m => STANCE_MOMENT[s].test(m)));
+}
+
+/** The engine's rule: Control Center's source and window, and a stance one of the canon's moments supports. Null when the canon's buyer is not read. Pure. */
+export function buyingMoment({ stance, url, posted }, { at, buyer }) {
+  if (!buyer) return null;
+  return typeof url === 'string' && PUBLIC_POST.test(url) && recentEnough(posted, at, MOMENT_DAYS) && buyingStances(buyer).includes(stance);
+}
+
+/**
+ * api/_mindmakeGrowth.ts prepare, its buyer rules: with no buyer defined (no
+ * "who" line or no titles) nothing passes; a title must contain one of the
+ * defined titles; a title or company containing the "who not" line is
+ * excluded. Returns Control Center's hold code, or null when it passes. Pure.
+ */
+export function ccBuyerTitle(contact, icp) {
+  const titles = Array.isArray(icp?.buyer_titles) ? icp.buyer_titles.filter(t => typeof t === 'string' && t.trim()) : [];
+  const who = icp?.definition ?? icp?.who;
+  if (icp?.defined !== true || typeof who !== 'string' || !who.trim() || !titles.length) return 'buyer_definition_or_context_unavailable';
+  const title = String(contact?.title ?? '').toLowerCase();
+  if (!titles.some(t => title.includes(t.toLowerCase()))) return 'buyer_title_outside_current_definition';
+  const not = (Array.isArray(icp.exclusions) ? icp.exclusions : [icp.who_not]).filter(x => typeof x === 'string' && x.trim()).map(x => x.trim().toLowerCase());
+  if (not.some(x => `${contact?.title ?? ''} ${contact?.company ?? ''}`.toLowerCase().includes(x))) return 'buyer_excluded_by_current_definition';
+  return null;
+}
+
+const bump = (o, k) => { o[k] = (o[k] ?? 0) + 1; };
+
+/**
+ * The legacy ingest gate in shadow, over the snapshot Control Center builds
+ * for it (the context's work_context): for every contact, whether the canon's
+ * buyer groups agree with Control Center's buyer titles; how many buying
+ * moments Control Center calls current and how many of those keep their
+ * source and window this run (the stance itself is not served); and how
+ * many pinned offer fields the canon still supports. Counts and codes only.
+ * Nothing is held, hidden or changed. Pure.
+ */
+export function qualifyShadow({ context, canon = null, at }) {
+  const snap = context?.work_context?.snapshot ?? null;
+  const contacts = [], seen = new Set();
+  for (const c of Array.isArray(snap?.contacts) ? snap.contacts : []) {
+    if (typeof c?.id !== 'string' || seen.has(c.id)) continue;
+    seen.add(c.id);
+    contacts.push(c);
+  }
+  const buyer = canon?.buyer ?? null, differ = {}, apart = {}, verdicts = [];
+  let agree = 0, moments = 0, kept = 0;
+  for (const c of contacts) {
+    const reason = ccBuyerTitle(c, snap.icp);
+    const mine = c.title && c.title !== 'Role not recorded' ? canonBuyerTitle(c.title, buyer) : null;
+    let code = null;
+    if (reason === 'buyer_definition_or_context_unavailable') code = 'icp_not_defined';
+    else if (!buyer) code = 'buyer_not_in_canon';
+    else if (mine === null) code = 'title_not_served';
+    if (code) bump(apart, code);
+    else if (mine === (reason === null)) agree++;
+    else { code = mine ? (reason === 'buyer_excluded_by_current_definition' ? 'canon_buyer_excluded_by_icp' : 'canon_buyer_outside_icp_titles') : 'icp_title_outside_canon_groups'; bump(differ, code); }
+    const m = c.buying_moment;
+    if (m) { moments++; if (typeof m.url === 'string' && PUBLIC_POST.test(m.url) && recentEnough(m.observed_at, at, MOMENT_DAYS)) kept++; }
+    verdicts.push({ subject_ref: `contact:${c.id}`, canon_buyer: mine, control_center: reason === null, agrees: code === null ? true : code in differ ? false : null, code });
+  }
+  const stances = buyer ? buyingStances(buyer) : null;
+  const drift = pinnedCanonDrift(snap?.canon ?? null, canon);
+  const ask = templateAskCurrent(canon);
+  const tail = ` Buying moments: Control Center calls ${moments} current, ${kept} keep their source and window this run (the stance is not served)${stances ? `; the canon supports ${stances.length} of the ${Object.keys(CC_STANCE_VALUE).filter(s => CC_STANCE_VALUE[s] >= CC_TRIGGER_FLOOR).length} stances it counts` : ''}.`
+    + (drift === null ? ' Pinned offer copy: not compared this run.' : ` Pinned offer copy: ${4 - drift.length} of 4 fields match the canon read live${drift.length ? ` (${drift.join(', ')})` : ''}${ask === false ? "; the outreach template's ask is not the canon's" : ''}.`);
+  const line = shadowLine('Ingest gate', ['contact', 'contacts'], { read: contacts.length, agree, differ, apart }) + tail;
+  return { verdicts, line, source_revision: Array.isArray(canon?.files) ? canon.files : [] };
 }
