@@ -156,6 +156,13 @@ export function engineClient(base, token, { fetcher = fetch, slug = ENGINE_SLUG,
       if (!value || value.accepted !== true || value.run_id !== runId || typeof value.payload_sha256 !== 'string') throw new Error('Control Center returned no stored report');
       return value;
     },
+    /** 1.10.0 (`features.recent_reports`): this engine's own latest live reports, newest first, each { run_id, accepted_at, status, activity }. */
+    async recentReports(n) {
+      if (!Number.isInteger(n) || n < 1 || n > 10) throw new Error('recentReports takes 1 to 10');
+      const value = await call('GET', `reports?recent=${n}`);
+      if (!value || value.ok !== true || !Array.isArray(value.reports)) throw new Error('Control Center returned no recent reports');
+      return value.reports;
+    },
     /** 1.6.0: bounded lookups Control Center runs for this engine (ENGINE-PROTOCOL.md, "The research desk").
      *  A LinkedIn read takes up to a minute and a half, so this one call waits longer. Each request_id is
      *  answered once; a lost response is safe to send again under the same ids. */

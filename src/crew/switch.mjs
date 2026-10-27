@@ -52,12 +52,23 @@ export const PROOF_MARK = 'in shadow beside the old route at engine revision ';
 /** Why past proof runs are unknown today: what the protocol serves, and what the engine will not do instead. */
 export const PROOF_RUNS_UNREADABLE = "Control Center serves no list of this engine's past reports, and each run id ends in a workflow run number a later run cannot know, so past proof runs are not read and no ledger of the engine's own is kept";
 
+/** Why past proof runs are unknown when Control Center does not list them yet. */
+export const PROOF_RUNS_NOT_SERVED = "Control Center does not list this engine's recent reports yet (features.recent_reports), and the engine keeps no ledger of its own";
+
 /**
- * The default reader of past proof runs: unknown, with its reason. A reader
- * that Control Center can serve (newest report first, each as
- * `GET .../reports/<run_id>` returns it) passes its list to proofRunsFrom.
+ * The default reader of past proof runs. Where Control Center lists this
+ * engine's latest live reports (`GET .../reports?recent=<n>`, 1.10.0,
+ * `features.recent_reports`), it reads them, newest first, and counts with
+ * proofRunsFrom; otherwise unknown, with its reason. A synthetic run reads
+ * nothing. The run in progress is not stored yet, so the list is the runs
+ * before it.
  */
-export async function readProofRuns() { return { count: null, reason: PROOF_RUNS_UNREADABLE }; }
+export async function readProofRuns({ cc, revision, mode, capabilities } = {}) {
+  if (mode !== 'live') return { count: null, reason: 'a synthetic run counts no proof runs' };
+  if (capabilities?.features?.recent_reports !== true || typeof cc?.recentReports !== 'function') return { count: null, reason: PROOF_RUNS_NOT_SERVED };
+  const listed = await cc.recentReports(Math.min(10, PROOF_RUNS_NEEDED + 1));
+  return proofRunsFrom(listed.map(r => ({ mode: 'live', report: { mode: 'live', status: r?.status ?? null, activity: Array.isArray(r?.activity) ? r.activity : [] } })), { revision });
+}
 
 const CREW = [/^Crew lints, /, /^Crew checks, /];
 const lineOf = a => (typeof a === 'string' ? a : a?.line ?? '');

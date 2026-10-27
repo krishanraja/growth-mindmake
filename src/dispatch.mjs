@@ -713,7 +713,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // The Phase 5 switch (src/crew/switch.mjs): one readiness line every run. Only this week's signed spec with
     // `enabled: true`, five proof runs, the shadow lines and the number measured make the crew hold what it finds.
     let proofRuns;
-    try { proofRuns = await proofReader({ cc, run_id, revision, mode }); } catch { proofRuns = { count: null, reason: 'the past reports could not be read' }; }
+    try { proofRuns = await proofReader({ cc, run_id, revision, mode, capabilities }); } catch { proofRuns = { count: null, reason: 'the past reports could not be read' }; }
     const readyNow = readiness({ week, objectives, activity, proofRuns });
     activity.push(readinessLine(readyNow));
     const way = route(readyNow, { mode, revision });

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { readiness, readinessLine, route, enforce, proofRunsFrom, isProofRun, proofRevision, oldRouteErrors, oldRouteRemovableFrom, readProofRuns, PROOF_RUNS_NEEDED, OLD_ROUTE_DAYS, SWITCHED_ON, SWITCH_LINE, PROOF_MARK, PROOF_RUNS_UNREADABLE } from '../src/crew/switch.mjs';
+import { readiness, readinessLine, route, enforce, proofRunsFrom, isProofRun, proofRevision, oldRouteErrors, oldRouteRemovableFrom, readProofRuns, PROOF_RUNS_NEEDED, OLD_ROUTE_DAYS, SWITCHED_ON, SWITCH_LINE, PROOF_MARK, PROOF_RUNS_NOT_SERVED } from '../src/crew/switch.mjs';
 import { crewShadow, lintLineFor } from '../src/crew/shadow.mjs';
 import { compile, WEEK_SCHEMA } from '../src/crew/compile.mjs';
 import { runDispatch, payloadDigest, schemaErrors } from '../src/dispatch.mjs';
@@ -54,7 +54,7 @@ const five = async () => ({ count: PROOF_RUNS_NEEDED, reason: null });
 test('the default spec reports one readiness line and nothing else changes: no route line, no hold, no proposal left out', async () => {
   const policyRun = await capsReport({ runDispatch, directiveFixture, parseCanon, blobSha, parseRecord, policy });
   const switchLines = lines(policyRun.report).filter(l => SWITCH_LINE.test(l));
-  assert.deepEqual(switchLines, [`Switch readiness: signed spec no; proof runs unknown of 5 (${PROOF_RUNS_UNREADABLE}); shadow reported yes; number measured no.`]);
+  assert.deepEqual(switchLines, [`Switch readiness: signed spec no; proof runs unknown of 5 (${PROOF_RUNS_NOT_SERVED}); shadow reported yes; number measured no.`]);
   assert.match(lines(policyRun.report).find(l => l.startsWith('Crew lints')), /Nothing is held by them until the switch/);
   assert.equal(policyRun.report.proposals.length, 22, 'every proposal the crew read is still reported');
   assert.equal(policyRun.report.holds.some(h => h.reason.includes('.') || h.reason === 'card_grammar'), false, 'no crew hold');
@@ -144,7 +144,17 @@ test('proof runs: consecutive live runs at one engine revision, read from stored
   assert.deepEqual(proofRunsFrom([stored(), stored({ status: 'degraded' }), stored()], { revision: REV }), { count: 1, reason: null });
   assert.deepEqual(proofRunsFrom([stored()], { revision: 'unrecorded' }), { count: 0, reason: 'this run has no recorded engine revision' });
   assert.equal(proofRunsFrom(null, { revision: REV }).count, null);
-  assert.deepEqual(await readProofRuns(), { count: null, reason: PROOF_RUNS_UNREADABLE });
+  // Read through Control Center's list where it is served (1.10.0, features.recent_reports), never otherwise.
+  const listed = [stored(), stored(), stored({ rev: 'ddddddd' })].map(x => ({ run_id: 'r', accepted_at: AT, status: x.report.status, activity: x.report.activity }));
+  let asked = null;
+  const cc = { async recentReports(n) { asked = n; return listed; } };
+  assert.deepEqual(await readProofRuns({ cc, revision: REV, mode: 'live', capabilities: { features: { recent_reports: true } } }), { count: 2, reason: null });
+  assert.equal(asked, PROOF_RUNS_NEEDED + 1, 'one more than the switch needs, so the count can reach five');
+  asked = null;
+  assert.deepEqual(await readProofRuns({ cc, revision: REV, mode: 'live', capabilities: { features: {} } }), { count: null, reason: PROOF_RUNS_NOT_SERVED });
+  assert.deepEqual(await readProofRuns({ cc, revision: REV, mode: 'synthetic', capabilities: { features: { recent_reports: true } } }), { count: null, reason: 'a synthetic run counts no proof runs' });
+  assert.equal(asked, null, 'nothing is read unless served, and never on a synthetic run');
+  assert.equal((await readProofRuns()).count, null);
 });
 
 test('enabled by his signed version but not ready: the crew stays in shadow, says why, and the report keeps every proposal', async () => {
@@ -154,7 +164,7 @@ test('enabled by his signed version but not ready: the crew stays in shadow, say
   assert.equal(result.status, 'succeeded');
   const l = lines(report);
   assert.match(l.find(x => x.startsWith('Week spec')), /signed by his version/);
-  assert.equal(l.find(x => x.startsWith('Switch readiness')), `Switch readiness: signed spec yes, route enabled; proof runs unknown of 5 (${PROOF_RUNS_UNREADABLE}); shadow reported yes; number measured yes.`);
+  assert.equal(l.find(x => x.startsWith('Switch readiness')), `Switch readiness: signed spec yes, route enabled; proof runs unknown of 5 (${PROOF_RUNS_NOT_SERVED}); shadow reported yes; number measured yes.`);
   assert.equal(l.find(x => x.startsWith('Switch route')), `Switch route: the signed spec enables it, but readiness is not met (proof runs unknown), so the crew stays ${PROOF_MARK}ccccccc.`);
   assert.match(l.find(x => x.startsWith('Crew lints')), /Nothing is held by them until the switch/);
   const rows = rep => rep.proposals.filter(p => p.row).map(p => p.proposal_id).sort();

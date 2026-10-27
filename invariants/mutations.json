@@ -251,6 +251,16 @@
       "tests": [
         "tests/switch.test.mjs"
       ]
+    },
+    {
+      "id": "proof-runs-read-unserved",
+      "what": "past proof runs are read when Control Center does not serve the list",
+      "file": "src/crew/switch.mjs",
+      "find": "if (capabilities?.features?.recent_reports !== true || typeof cc?.recentReports !== 'function') return { count: null, reason: PROOF_RUNS_NOT_SERVED };",
+      "replace": "if (typeof cc?.recentReports !== 'function') return { count: null, reason: PROOF_RUNS_NOT_SERVED };",
+      "tests": [
+        "tests/switch.test.mjs"
+      ]
     }
   ]
 }
