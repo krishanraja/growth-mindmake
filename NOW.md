@@ -2,7 +2,7 @@
 repo: krishanraja/growth-mindmake
 product: Mindmake growth engine
 as_of: 2026-10-27
-head: fd2b8fd
+head: 3efa517
 lifecycle: building
 production_url: none
 state_doc: README.md
@@ -24,7 +24,7 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 ## Where it is right now (as of 2026-10-27)
 
-<!-- north-star-state {"week_of": "2026-10-26", "week_target": 2, "current": null, "current_as_of": null, "current_source": null, "urgency": 4, "urgency_reason": "not measured yet"} --> **North Star number: U4, far behind.** Qualified leader conversations a week, every one from a warm path or a room: not measured yet, against 2 this week, on the way to 20 by 30 November 2026. A bold swing every day; work that does not move the number waits.
+<!-- north-star-state {"week_of": "2026-10-26", "week_target": 2, "current": null, "current_as_of": null, "current_source": null, "urgency": 4, "urgency_reason": "not measured yet"} --> **North Star number: U4, far behind.** Good meetings a week, each marked good by Krish after it and traced to where it came from: not measured yet, against 2 this week, on the way to 20 by 30 November 2026. A bold swing every day; work that does not move the number waits.
 
 Lifecycle: building. The detail is in `README.md`.
 
@@ -32,6 +32,8 @@ This session's trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What changed recently
 
+- 2026-10-27 **Traffic to mindmake.co joins the plan (version 3).** Krish asked for as much traffic to mindmake.co as possible, measured with Google Analytics, as part of the Measurement Specialist. Rulings (Krish, 2026-10-27): Analytics is read through Control Center, never directly; after one of Jonny's pitches to someone else's show or stage is booked, Jonny asks the host for the brief link in the show notes or event page; once the one-sheet exists it replaces the show link in pitches; traffic counts stay in Control Center. Traffic is a supporting reading that only breaks ties between levers, never the number or an objective, and every reading says it counts only visitors who press Allow. A read-only check found Plausible on the site but unread by his 2 October ruling, Vercel Web Analytics off, and no visit source kept by the site. The version 3 copy, a regenerated READ ME and a new Growth index are filed in Drive's 03_Growth at commit 28dabaa, each checked word for word; version 2 and the first READ ME and index sit in Growth archive with superseded titles. Nothing in the engine is built yet.
+- 2026-10-27 **A plan for a bulletproof engine, with Canva in it.** Krish answered the plan's questions and the plan is filed for his go (`docs/briefs/2026-10-27-bulletproof-growth-engine.md`): one week spec he signs on Monday, a crew of nine specialists as code (a lint before acting, a measured check after, a card and a lens each), every past fix kept as a test, a session pack of 36 KB or less, Codex task cards behind an allowance guard, and a phased build measured against this repo's own baseline. Rulings (Krish, 2026-10-27): any good meeting counts toward the number, traced to where it came from (`docs/NORTH_STAR.md`); rooms are guest seats only; two podcasts booked a week and one stage a fortnight; a new Mindmake brand kit in Canva first, then the speaker and guest one-sheet with Jonny's box as its contact; every asset and strategy in Drive, mind/make > 03_Growth (`docs/DRIVE.md`). Version 2 of the plan folds in both review rounds. Its Drive copy, the Cowork prompt's, the library's READ ME and its Growth index are filed there, each copy naming the commit it came from and matching it word for word. Nothing in the engine is built yet.
 - 2026-10-27 **A name beside a company name is answered.** Control Center's form runner now takes the closest label (krishanraja/control-center#576), so the engine predicts that pick and no longer holds such a form; a form still holds when an answer would fill a field left empty on purpose or tick a box.
 - 2026-10-27 **The context fits again, and a failed read says why.** The live run `mindmake:2026-10-27:manual-24` read no context and prepared nothing. The likeliest cause, inferred and not yet measured, is that Control Center's context grew past the engine's 2,000,000-character budget once Krish's own stages (171 with no product) joined Mindmake's two; the hold did not say. The budget is now 4,500,000, Control Center's own response ceiling, and a context or outcomes hold names its class (the status Control Center answered, over budget, not JSON, or a plan the engine could not make), never a body.
 - 2026-10-27 **Trusted-distribution session handed over.** Added a dated, sanitised closeout reachable from README.md and GET-GOING.md: accepted strategy, completed release and canary, prepared warm and institutional routes, current readback discrepancies, authority changes and the exact continuation point. No runtime, dispatch, private record or external action changed in this documentation work.
@@ -50,8 +52,9 @@ This session's trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
+- Krish approved the whole plan on 27 October and asked the session to merge its own pull requests; the brand kit is built. Build order: kit check, Phase 0, Phase 1, Control Center 1.10.0, Phase 1b, then Phases 2 to 5 and the visibility track. Control Center owes protocol 1.10.0 (first the held meetings, the one-tap good prompt and `origin_candidates` that wire the number, then the web part and the show-notes kind), and three approved mindmake-repository changes follow: Analytics events for the brief (marking them as key events is his own change in the Analytics property), tags kept until a visitor answers the banner, and the brief recording its `growth-*` source with the site's privacy page updated. Merging that site change publishes it, so it waits for his yes at the time.
+- North Star check (2026-10-27, the plan): holds. Wiring the number by path comes first, and the one-sheet aims the visibility rows at bookings; traffic to mindmake.co is a supporting reading that never moves the number; the number is still unmeasured.
 - **Next:** read today's directive, context, decisions and latest report, then reconcile the earlier pending route plans with their current native lifecycle records. Preserve amendments and rejection reasons; refresh wanted routes under current canon and human-action rules. The earlier plan approvals are still outstanding; no old prepared action window can be reused. Do not recreate records or ask Krish to repeat the brief.
-- North Star check (2026-10-27): holds.
 
 ### Existing integration gates to retain
 
