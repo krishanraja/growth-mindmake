@@ -657,11 +657,69 @@ const within = (line, max = CARD_LINE_MAX) => line && line.length <= max ? line 
 const AI_WORDS = /\b(ai|a\.i\.|artificial intelligence|genai|agents?|agentic|machine learning|llms?)\b/i;
 const DAYS = 86400000;
 
+// ── Typed facts (protocol 1.10.0) ──────────────────────────────────────────
+// Control Center serves what it holds about each person as facts[], each
+// { kind, text, source_url, observed_at }, never its own prose. A card line is
+// the engine's whole sentence around one fact; a fact Control Center had to
+// clip, or one with a dash, is never shown cut. How he knows them (the known
+// line) already says the emails and since when, so those kinds are not
+// repeated here.
+
+/** The fact kinds a why line is built from, in the order they are used. */
+export const FACT_LINE_KINDS = ['post', 'role_change', 'shared_employer'];
+/** At most this many why lines come from facts, so the record's best reason still has room. */
+export const FACT_LINES_MAX = 2;
+// The raw text is checked: clean() would turn a dash or an ellipsis into something that reads whole.
+const factText = f => (f && typeof f.text === 'string' && FACT_LINE_KINDS.includes(f.kind) && !/\.{3}|\u2026|[\u2013\u2014]/.test(f.text) ? clean(f.text) : '');
+
+/** One fact as a whole card sentence to him, or '' when it cannot be said whole. Pure. */
+export function factLine(f) {
+  const t = factText(f);
+  if (!t) return '';
+  let line = '';
+  if (f.kind === 'post') {
+    // A post is only said with the page it can be checked on.
+    const quote = /^Posted: "(.+)"$/.exec(t)?.[1]?.replace(/[.!?]+$/, '');
+    if (!quote || typeof f.source_url !== 'string' || !/^https:\/\/\S+$/.test(f.source_url) || NOT_A_SOURCE.test(f.source_url)) return '';
+    const when = monthYear(f.observed_at);
+    line = `They posted${when ? ` in ${when}` : ''}: "${quote}."`;
+  } else if (f.kind === 'role_change') {
+    line = `They ${lower1(t.replace(/[.!?]+$/, ''))}.`;
+  } else {
+    // shared_employer: Control Center says it about Krish; the card speaks to him.
+    line = `${t.replace(/^Works at /, 'They work at ').replace(/^Has worked at /, 'They have worked at ').replace(/\bwhere Krish also worked\b/, 'where you also worked').replace(/[.!?]+$/, '')}.`;
+    if (!/^They /.test(line)) return '';
+  }
+  return line.length <= CARD_LINE_MAX && endsWhole(line.replace(/"[^"]*"/g, 'quoted')) ? line : '';
+}
+
+/** The why lines from a person's facts, in FACT_LINE_KINDS order, at most FACT_LINES_MAX. Pure. */
+export function factLines(facts) {
+  const list = Array.isArray(facts) ? facts : [];
+  const out = [];
+  for (const kind of FACT_LINE_KINDS) for (const f of list) {
+    if (out.length >= FACT_LINES_MAX) return out;
+    if (f?.kind !== kind) continue;
+    const l = factLine(f);
+    if (l && !out.includes(l)) out.push(l);
+  }
+  return out;
+}
+
+/** Each post a fact line names, as a card source: the post's own page. Pure. */
+export function factSources(facts) {
+  return (Array.isArray(facts) ? facts : [])
+    .filter(f => f?.kind === 'post' && factLine(f))
+    .map(f => ({ label: `Their post${monthYear(f.observed_at) ? `, ${monthYear(f.observed_at)}` : ''}`, url: f.source_url }));
+}
+
 /** Why them, and why now: whole sentences from the record, the most specific first. */
 export function whyLines(c, { ask, quietSince, company, profile, at }) {
   const lines = [];
   const add = s => { if (s && s.length <= CARD_LINE_MAX && !lines.some(l => l.slice(0, 40).toLowerCase() === s.slice(0, 40).toLowerCase())) lines.push(s); };
   if (ask === 'relationship' && quietSince) add(`A close tie, and nothing between you since ${quietSince}.`);
+  // What Control Center holds as facts comes before its prose (1.10.0).
+  for (const l of factLines(c?.facts)) add(l);
   add(leadFacts(c?.hook, CARD_LINE_MAX));
   add(leadFacts(c?.why_them, CARD_LINE_MAX));
   if (company?.why_now) add(leadFacts(company.why_now, CARD_LINE_MAX));
@@ -808,7 +866,7 @@ export function cardFor({ c, id, name, title, company, ask, kind, reach, fit, se
   if (!angles.length) return null;
   return {
     who, known: knownWords(c), why, gain, angles,
-    sources: sourceLinks({ reach, research, id, domain: c?.contacts?.company_domain, company, extra: extraSources }),
+    sources: sourceLinks({ reach, research, id, domain: c?.contacts?.company_domain, company, extra: [...factSources(c?.facts), ...extraSources] }),
   };
 }
 

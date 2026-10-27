@@ -7,6 +7,8 @@ import { icpOf, signalRequests, signalRows, isoWeek } from '../src/stages/signal
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
 import { golden } from './support/golden.mjs';
+import { factLine, factLines, factSources, FACT_LINES_MAX } from '../src/stages/rows.mjs';
+import { cardGrammar } from '../src/crew/lints/grammar.mjs';
 
 // Synthetic only: fictional people, .test addresses, example links.
 const NOW = '2026-10-26T09:00:00.000Z';
@@ -847,4 +849,52 @@ test('a topic is what this one is about, or null: one "Not my topic" never refus
   const fb = [{ state: 'declined', decided_at: NOW, row: 'visibility', subject_ref: `contact:${id(150)}`, reason_code: 'not_my_topic', amplifier_kind: 'broadcaster', features: { sector: null, topic: 'finance', seniority: 'other' } }];
   const after = amplifierRows({ context: ctx(fb), weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
   assert.deepEqual(after.rows.filter(x => x.proposal.row === 'visibility').map(x => x.proposal.target), [id(151)], 'another show on another topic stays');
+});
+
+// ── Typed facts (protocol 1.10.0) ──────────────────────────────────────────
+const FACTS = [
+  { kind: 'role', text: 'CEO at Harbour Foods', source_url: null, observed_at: '2026-10-01T00:00:00Z' },
+  { kind: 'post', text: 'Posted: "Boards are asking what AI should decide, not what it can do."', source_url: 'https://example.org/post/1', observed_at: '2026-09-14T00:00:00Z' },
+  { kind: 'role_change', text: 'Changed role: was COO at Harbour Foods, now CEO at Harbour Foods', source_url: null, observed_at: '2026-08-02T00:00:00Z' },
+  { kind: 'shared_employer', text: 'Has worked at Example Media as Producer, where Krish also worked', source_url: null, observed_at: null },
+  { kind: 'email', text: '3 emails from them and 2 to them', source_url: null, observed_at: null },
+];
+
+test('a fact becomes one whole sentence to him, or nothing', () => {
+  assert.equal(factLine(FACTS[1]), 'They posted in Sep 2026: "Boards are asking what AI should decide, not what it can do."');
+  assert.equal(factLine(FACTS[2]), 'They changed role: was COO at Harbour Foods, now CEO at Harbour Foods.');
+  assert.equal(factLine(FACTS[3]), 'They have worked at Example Media as Producer, where you also worked.');
+  assert.equal(factLine(FACTS[0]), '', 'a role is the who line, never a why line');
+  assert.equal(factLine(FACTS[4]), '', 'emails are the known line, never repeated');
+  assert.equal(factLine({ ...FACTS[1], text: 'Posted: "Boards are asking what AI should..."' }), '', 'a clipped fact is never shown cut');
+  assert.equal(factLine({ ...FACTS[1], source_url: null }), '', 'a post is said only with its page');
+  assert.equal(factLine({ ...FACTS[1], source_url: 'https://www.linkedin.com/in/someone' }), '', 'a profile is never a source');
+  assert.equal(factLine({ ...FACTS[2], text: 'Changed role \u2014 was COO' }), '', 'a dash is never shown');
+  assert.equal(factLine({ kind: 'post', text: 42 }), '');
+});
+
+test('fact lines keep their order, stop at the cap, and name each post as a source', () => {
+  assert.deepEqual(factLines(FACTS), [factLine(FACTS[1]), factLine(FACTS[2])]);
+  assert.equal(factLines(FACTS).length, FACT_LINES_MAX);
+  assert.deepEqual(factLines(null), []);
+  assert.deepEqual(factSources(FACTS), [{ label: 'Their post, Sep 2026', url: 'https://example.org/post/1' }]);
+});
+
+test('a card reads its facts before the record\'s prose, cites the post, and passes card grammar', () => {
+  const c = { contact_id: id(91), who: 'Chief executive of Harbour Foods.', hook: 'Harbour Foods doubled its stores in two years.', facts: FACTS };
+  const card = cardOf(c);
+  assertCard(card, 'with facts');
+  assert.equal(card.why[0], factLine(FACTS[1]));
+  assert.equal(card.why[1], factLine(FACTS[2]));
+  assert.ok(card.sources.some(s => s.url === 'https://example.org/post/1'));
+  assert.deepEqual(cardGrammar(card, { records: [c.who, c.hook] }), []);
+  // No facts served: the card is what it was.
+  const { facts, ...bare } = c;
+  assert.deepEqual(cardOf(bare).why, whyLines(bare, { ask: 'partner', at: NOW }));
+});
+
+test('facts can carry a card the record\'s prose alone could not', () => {
+  const thin = { contact_id: id(92), who: 'Partner at Example Capital.', hook: 'There is no recent news for Example Capital to indicate a need.' };
+  assert.equal(cardOf(thin), null);
+  assert.ok(cardOf({ ...thin, facts: [FACTS[1]] })?.why.includes(factLine(FACTS[1])));
 });

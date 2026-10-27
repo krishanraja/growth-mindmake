@@ -1,5 +1,9 @@
 # Release state
 
+## Card lines from typed facts, 27 October 2026
+
+Built and tested; not live until krishanraja/control-center#586 deploys and serves `facts[]` (`features.facts`). `factLines` in src/stages/rows.mjs turns at most two facts (a post with its own page, a role change, a shared employer) into whole sentences to Krish, read before the record's prose in the card's why lines; each post is also a card source. A role is the who line and emails are the known line, so neither is repeated; a fact Control Center clipped, a dash, a post with no page or a profile link is never shown. Card grammar passes on a facts-built card, the golden reports are unchanged (no fixture serves facts), and a new mutation proves a post is never shown without its page.
+
 ## The crew as code (plan Phase 3), 27 October 2026
 
 Built and tested; not live. Every new hold runs in shadow until the Phase 5 switch, so no proposal on his list changes because of it.
