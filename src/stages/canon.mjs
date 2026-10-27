@@ -44,11 +44,24 @@ export function parseCanon({ northStar, canon }) {
   const brain = one(northStar, /^- \*\*Build your AI brain\.\*\* ([\s\S]{10,200}?\.)\s*$/m, 'brain_door_unreadable');
   const horizon = one(northStar, /^## Horizon\s+> ([^\n]{20,400})/m, 'horizon_unreadable');
   const publicationName = one(pub[1], /Subscribe to (.+)$/, 'publication_unreadable')[1];
+  // Protocol 1.8.0, the angles on the full card: the locked site copy in the
+  // canon's own table. Each is optional; a line the canon no longer carries is
+  // simply not offered as an angle, never written from memory.
+  const cell = label => { const m = new RegExp(`^\\| ${label} \\| ([^|\\n]{3,200}) \\|\\s*$`, 'm').exec(canon); return m ? flat(m[1]) : null; };
+  const revenueLabel = cell('Revenue engine door'), revenueLine = cell('Revenue engine door explanation');
+  const problem = cell('Homepage section 1 \\(the problem\\)'), answer = cell('Homepage section 2 \\(how it works\\)');
+  const headline = cell('Homepage headline \\(first, and the h1\\)');
   return {
     ask: { label: flat(ask[1]), url: ask[2], description: flat(describe[1]) },
     publication: { name: flat(publicationName), url: pub[2] },
     brain: flat(brain[1]),
     horizon: flat(horizon[1]),
+    site: {
+      headline,
+      problem,
+      answer,
+      revenue: revenueLabel && revenueLine ? { label: revenueLabel, line: revenueLine } : null,
+    },
   };
 }
 

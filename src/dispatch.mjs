@@ -121,11 +121,13 @@ export function objectiveReadings({ at, activatedOn = null }) {
 
 const intOrNull = v => Number.isInteger(v) && v >= 0 ? v : null;
 const part = (v, keys) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(keys.map(k => [k, intOrNull(v[k])])) : null;
-/** The version this engine sends: 1.2.0 for subject_ref, 1.6.0 once Control Center reads rows, 1.7.0 once it shows their reasons. */
+/** The version this engine sends: 1.2.0 for subject_ref, 1.6.0 once Control Center reads rows, 1.7.0 once it shows their reasons, 1.8.0 once it opens the full card. */
 export const SCHEMA_VERSION = '1.2.0';
 export const ROWS_VERSION = '1.6.0';
 /** 1.7.0: each row carries the line under its title (because) and the brief a tap opens. */
 export const BRIEF_VERSION = '1.7.0';
+/** 1.8.0: each row carries the full card a tap opens: who, how he knows them, why, what he gets, the angles. */
+export const CARD_VERSION = '1.8.0';
 /** The engine files row words are written from, named in every row's source_revision. */
 export const ENGINE_REPO = 'krishanraja/growth-mindmake';
 export const WORD_FILES = ['src/stages/rows.mjs', 'src/stages/signals.mjs'];
@@ -330,7 +332,8 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   let research = Array.isArray(ctx.research) ? [...ctx.research] : [];
   const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax });
   if (mode === 'live' && capabilities?.features?.research === true) {
-    let pending = [...signalRequests({ voices: ctx.voices, research, at }), ...amplifiersFirst.research].slice(0, 10);
+    // The engine's own asks first (a cited reach, a profile for a card too thin to show), then the signals' collection.
+    let pending = [...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, 10);
     for (let round = 0; round < 2 && pending.length; round++) {
       try {
         const got = await cc.research(pending);
@@ -492,11 +495,12 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     let schema_version = SCHEMA_VERSION;
     if (suppliedContext && capabilities?.features?.rows === true && Array.isArray(capabilities.schema_versions) && capabilities.schema_versions.includes(ROWS_VERSION)) {
       phase = 'rows';
-      // 1.7.0 only where Control Center serves it; an older one gets the rows without their reasons.
+      // 1.7.0 and 1.8.0 only where Control Center serves them; an older one gets the rows without what it cannot read.
       const briefs = capabilities.schema_versions.includes(BRIEF_VERSION);
-      schema_version = briefs ? BRIEF_VERSION : ROWS_VERSION;
+      const cards = briefs && capabilities.schema_versions.includes(CARD_VERSION);
+      schema_version = cards ? CARD_VERSION : briefs ? BRIEF_VERSION : ROWS_VERSION;
       const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, briefs });
-      const shown = briefs ? rows.proposals : rows.proposals.map(({ because, brief, ...p }) => p);
+      const shown = cards ? rows.proposals : briefs ? rows.proposals.map(({ card, ...p }) => p) : rows.proposals.map(({ because, brief, card, ...p }) => p);
       const room = Math.max(0, 40 - mapped.proposals.length);
       mapped.proposals.push(...shown.slice(0, room));
       if (shown.length > room) holds.push({ reason: 'row_cap', detail: `${shown.length - room} more row actions wait for a later run; a report carries at most 40.` });

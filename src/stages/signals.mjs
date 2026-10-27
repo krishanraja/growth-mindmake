@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { clean } from '../guards.mjs';
-import { lessons, refusedBy, channelOf, servesOf, seniorityOf, actionFor, rowProposal, fitTitleWithin, clause, wholeRole, titleCase, cleanName, cutClean, monthYear, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
+import { lessons, refusedBy, channelOf, servesOf, seniorityOf, actionFor, rowProposal, fitTitleWithin, clause, wholeRole, titleCase, cleanName, cutClean, monthYear, leadSentences, gainLines, angleLines, sourceLinks, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX, CARD_WHO_MAX, CARD_LINE_MAX } from './rows.mjs';
 
 /**
  * Signals from his buyers (playbook 11, "Signals").
@@ -145,12 +145,24 @@ export const SIGNAL_WORDS = [
  * person_route filed. Ranked by how clearly they are his buyer.
  */
 /** What he reads before he decides on a signal (protocol 1.7.0): who they are, what they said in public and why that makes them his buyer. */
-export function signalCase({ name, headline, author, quote, published, serves }) {
+export function signalCase({ name, headline, author, quote, published, serves, known = false, url = null, canon = null }) {
   // Where they said it is in the brief; the card line has room for who and what.
   const where = 'Worried in public about AI and their job.';
   const who = headline ? wholeRole(titleCase(headline), '', BECAUSE_MAX - where.length - 1) : '';
   const seen = monthYear(published);
+  // 1.8.0: the full card. Who they are is their own headline, whole; a signal with none is too thin to show.
+  const said = `They wrote${author ? ` on ${author}'s post` : ''}${seen ? ` in ${seen}` : ''}: "${quote}"`;
+  const whoCard = headline ? leadSentences(titleCase(headline), CARD_WHO_MAX, 2) || wholeRole(titleCase(headline), '', CARD_WHO_MAX) : '';
+  const card = canon && whoCard ? {
+    who: whoCard,
+    known: known ? 'Already in your contacts. Control Center found them again through their public comment.' : 'You do not know them yet. Control Center found them through their public comment.',
+    why: [said.length <= CARD_LINE_MAX ? said : `They wrote${author ? ` on ${author}'s post` : ''}${seen ? ` in ${seen}` : ''} about AI and their job.`, 'An executive with the problem, not an AI person or someone selling an answer.'],
+    gain: gainLines({ ask: 'signal', kind: null, name, reach: null, fit: null, serves }),
+    angles: angleLines({ ask: 'signal', kind: null, name, c: {}, company: '', canon }),
+    sources: sourceLinks({ extra: url ? [{ label: `Their comment${author ? ` on ${author}'s post` : ''}`, url }] : [] }),
+  } : null;
   return {
+    card,
     because: who ? `${who} ${where}` : where,
     brief: [
       clause(`${name}${headline ? `, ${headline}` : ''}`, BRIEF_LINE_MAX),
@@ -187,11 +199,14 @@ export function signalRows({ context, research, weekGoals, canon, files, at, tit
       const quote = quoteOf(e.snippet);
       const variant = (L.pitchOff.get('reach_out') ?? 0) % SIGNAL_WORDS.length;
       const serves = servesOf('reach_out', weekGoals);
+      const told = signalCase({ name, headline: cleanName(p.headline), author, quote, published: e.published, serves, known: !!p.contact_id, url: e.url, canon });
+      // A card that cannot say who they are is held, not shown (protocol 1.8.0).
+      if (!told.card) { held.push('thin_card'); continue; }
       out.push({ score: 4 * icp.strength * ch.weight * (serves ? 1.25 : 1), proposal: rowProposal({
         row: 'reach_out', ask: 'signal', contactId: id, name, at, files,
-        title: fitTitleWithin(titleMax, `${name} worried about AI on ${author ?? 'LinkedIn'}`, `${name} worried about AI in public`, `${first(name)} worried about AI in public`),
+        title: fitTitleWithin(titleMax, ...(author ? [`${name} worried about AI on ${author}'s post`, `${first(name)} worried about AI on ${author}'s post`] : []), `${name} worried about AI in public`, `${first(name)} worried about AI in public`),
         why: `${name}, ${clean(p.headline)}, commented${author ? ` on ${author}'s post` : ''}: "${quote}" An executive with the problem, not an AI person.`,
-        ...signalCase({ name, headline: cleanName(p.headline), author, quote, published: e.published, serves }),
+        ...told,
         action: actionFor(ch.channel, id, name, SIGNAL_WORDS[variant]({ author, quote }, canon)),
         reach: { value: null, band: 'unknown', basis: 'a buyer showing a signal, not an amplifier', source_url: null, as_of: null },
         kind: null, features, serves,
