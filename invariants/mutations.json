@@ -291,6 +291,97 @@
       "tests": [
         "tests/rooms.test.mjs"
       ]
+    },
+    {
+      "id": "pilot-monday-takes-hunter-cards",
+      "what": "the Monday five takes a hunter's door-in card, overwriting its checked opening line",
+      "file": "src/stages/pilots.mjs",
+      "find": ".filter(r => r?.state === 'listed' && PIPELINE_ASK_KINDS.includes(r.ask_kind) && !isHunterCard(r.notes))",
+      "replace": ".filter(r => r?.state === 'listed' && PIPELINE_ASK_KINDS.includes(r.ask_kind))",
+      "tests": [
+        "tests/pilots.test.mjs"
+      ]
+    },
+    {
+      "id": "pilot-stale-quote-is-news",
+      "what": "a stored quote older than 90 days is still offered as the reason to write this week",
+      "file": "src/stages/pilots.mjs",
+      "find": "if (!Number.isFinite(age) || age > INTENT_LIVE_DAYS * DAY) return null;",
+      "replace": "if (!Number.isFinite(age)) return null;",
+      "tests": [
+        "tests/pilots.test.mjs"
+      ]
+    },
+    {
+      "id": "offer-pilot-passes",
+      "what": "the offer called a pilot, or anything but the canon's own noun, passes the canon",
+      "file": "src/stages/canon.mjs",
+      "find": "out.push('offer_named_otherwise');",
+      "replace": "void 0;",
+      "tests": [
+        "tests/pilots.test.mjs",
+        "tests/briefs.test.mjs"
+      ]
+    },
+    {
+      "id": "brief-unjudged-stage",
+      "what": "Control Center's People gate is ported as letting an unjudged or rejected stage be drafted",
+      "file": "src/stages/pitches.mjs",
+      "find": "export const ccTargetGate = t => t?.verdict === 'take' || t?.verdict === 'stretch';",
+      "replace": "export const ccTargetGate = t => Boolean(t);",
+      "tests": [
+        "tests/briefs.test.mjs"
+      ]
+    },
+    {
+      "id": "brief-subject-teaser",
+      "what": "the ported People subject stops naming who is writing and why",
+      "file": "src/stages/pitches.mjs",
+      "find": "return stage ? `${idea} for ${stage}: Krish Raja` : `${idea}: Krish Raja`;",
+      "replace": "return stage || idea;",
+      "tests": [
+        "tests/briefs.test.mjs"
+      ]
+    },
+    {
+      "id": "ingest-hiring-is-a-moment",
+      "what": "a hiring post counts as a buying moment though no canon moment names it",
+      "file": "src/stages/qualify.mjs",
+      "find": "  evaluating: /\\bAI has changed\\b/i,\n});",
+      "replace": "  evaluating: /\\bAI has changed\\b/i,\n  hiring: /./,\n});",
+      "tests": [
+        "tests/ingest-gate.test.mjs"
+      ]
+    },
+    {
+      "id": "ingest-no-exclusion",
+      "what": "Control Center's \"who not\" exclusion is dropped from the ported buyer-title rule",
+      "file": "src/stages/qualify.mjs",
+      "find": "  if (not.some(x => `${contact?.title ?? ''} ${contact?.company ?? ''}`.toLowerCase().includes(x))) return 'buyer_excluded_by_current_definition';\n",
+      "replace": "",
+      "tests": [
+        "tests/ingest-gate.test.mjs"
+      ]
+    },
+    {
+      "id": "canon-buyer-any-word",
+      "what": "a title is a buyer when it shares any one word with a group, so a portfolio analyst reads as a portfolio owner",
+      "file": "src/stages/canon.mjs",
+      "find": "return buyer.groups.some(g => g.alternatives.some(words => words.every(has)));",
+      "replace": "return buyer.groups.some(g => g.alternatives.some(words => words.some(has)));",
+      "tests": [
+        "tests/pilots.test.mjs"
+      ]
+    },
+    {
+      "id": "pinned-copy-not-checked",
+      "what": "the pinned brief link is never checked against the canon's",
+      "file": "src/stages/draft.mjs",
+      "find": "  if (pinned.brief_url !== canon.ask.url) out.push('brief_url_moved');\n",
+      "replace": "",
+      "tests": [
+        "tests/ingest-gate.test.mjs"
+      ]
     }
   ]
 }

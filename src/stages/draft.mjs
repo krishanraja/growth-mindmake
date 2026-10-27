@@ -86,3 +86,41 @@ export async function judgingPrompt(name, options = {}) {
   if (Object.keys(options).some(k => k !== 'input')) throw new Error('A judging prompt never takes voice rules');
   return [await promptText('README'), await promptText(name), inputBlock(options.input)].join('\n\n');
 }
+
+// ── The pinned offer copy against the canon (plan section 12, M12) ─────────
+// Control Center's legacy ingest gate pins Mindmake's offer words in code
+// (api/_mindmakeGrowthContract.ts APPROVED_CANON, vendored byte for byte as
+// contracts/growth.ts), and prepare() above writes from that pinned copy.
+// The canon read live is the authority (Ruling, Krish, 2026-10-26), so each
+// pinned field is checked against it here, as codes, and nothing is ported
+// that the canon no longer says. The frozen contract and prepare()'s words
+// are not changed by this check.
+
+/** The words prepare() names the main ask with; tests/qualify.test.mjs holds them to prepare()'s own output. */
+export const TEMPLATE_ASK = 'the free AI brief';
+
+const leadWords = s => String(s ?? '').trim().toLowerCase().replace(/^(?:your|their|the)\s+/, '').replace(/\s+/g, ' ');
+
+/**
+ * Which pinned offer fields the canon read this run no longer supports:
+ * brief_url_moved, publication_url_moved, brain_line_changed and
+ * revenue_line_changed (the revenue line is compared without its leading
+ * "your" or "their", since the canon's plain account speaks of the leader).
+ * Null when either side is not there to compare. Pure.
+ */
+export function pinnedCanonDrift(pinned, canon) {
+  if (!pinned || typeof pinned !== 'object' || !canon?.ask) return null;
+  const out = [];
+  if (pinned.brief_url !== canon.ask.url) out.push('brief_url_moved');
+  if (pinned.publication_url !== canon.publication?.url) out.push('publication_url_moved');
+  if (leadWords(pinned.brain_description) !== leadWords(canon.brain)) out.push('brain_line_changed');
+  if (!canon.offer?.revenue_line || leadWords(pinned.revenue_description) !== leadWords(canon.offer.revenue_line)) out.push('revenue_line_changed');
+  return out;
+}
+
+/** Whether prepare()'s name for the main ask is still the canon's: each of its words inside the canon's ask label. Null when the canon is not read. Pure. */
+export function templateAskCurrent(canon) {
+  if (!canon?.ask?.label) return null;
+  const label = canon.ask.label.toLowerCase();
+  return TEMPLATE_ASK.replace(/^the\s+/, '').split(/\s+/).every(w => label.includes(w.toLowerCase()));
+}
