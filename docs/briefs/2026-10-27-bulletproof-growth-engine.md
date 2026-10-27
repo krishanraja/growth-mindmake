@@ -640,7 +640,45 @@ Krish: "make sure all the old growth machinery from control-center is brought in
 
 - **The split.** This engine owns every Mindmake growth decision: who, rank, scores, standards, the next move, the words and the learning. Control Center keeps collection, records, his one list, the widget, the research desk runner, and the drafting and sending executor.
 - **How each piece moves.** One pull request per piece, in two halves. Here, the logic is ported with its tests and reached through the protocol. In Control Center, the Mindmake path is retired in the same change, and other ventures keep what they use. Nothing is retired before this engine's version has run live.
-- **The inventory** of every piece, its classification and its order is filled in by the next change, from a read-only pass over Control Center.
+- **The inventory** below comes from a read-only pass over Control Center at 2965e73 on 27 October. "Live" means wired to a cron, a route or a screen. For n8n workflows, "active" is the flag in the exported mirror, so each one is checked live before it is touched. Control Center's own ADR-041 already lists several of these moves, but none of them has happened yet.
+
+**Strategy that moves here, in this order** (what collides with the engine first, then what moves the number):
+
+| # | Piece (in Control Center) | What it decides | State | Engine home |
+|---|---|---|---|---|
+| M1 | The `in_house` rule text (`IN_HOUSE_RULE`, `inHouseDrivers`) | Tells the engine Control Center already grows Mindmake, so it should propose into Control Center's lanes | live in every directive | The counts stay as context data. The rule text and its framing are retired on Control Center's side, since they contradict this ruling |
+| M2 | Nova and Nell n8n lanes (`nova-closed-loop-pr-engine`, `nova-podchaser-visibility-outbound`, `nova-visibility-sweeper`, `nell-guest-scout`, `nell-guest-pitch-draft`) | Rank shows and guests, and write their own pitches, which collide with this engine's pitches in Jonny's box | active | `pitches.mjs`. Their search nodes become research-desk kinds. Their scoring, tiering and pitch writing are retired |
+| M3 | Guest standard and show weighting (`_guestStandard.ts`, `shows.ts`, `approaches.ts`, `_approaches.ts`, `discover-guest-scout.ts`, `_judgmentLens.ts`, `_guestPath.ts`, and the `check-visibility-standard` guard) | Who is worth a show, the 70/30 split, the queue order, and the scout's search terms | live | A new `src/stages/guests.mjs`, with the guard moved alongside. Control Center keeps collecting guests and serves them raw |
+| M4 | Visibility standard (`_visibilityScore.ts`, `visibilityStandard.ts`, `visibilityScale.ts`, `visibility-targets/score.ts`) | Which stage, podcast or press is worth pitching | live, cron 07:30 | `pitches.mjs` and a new `src/stages/visibility.mjs` |
+| M5 | Room scoring (`_eventScore.ts`, `events/score.ts`) | Which event to attend, anchored to the buyer | live, cron 07:00 | `src/stages/rooms.mjs`. `events/discover.ts` stays as collection |
+| M6 | The pilot machine: `FACE` and `DOOR` in `_mission.ts`, the pilot seed's `INDUSTRY`, `_pilotDeals` `findTrigger` and `draftApproach`, `pilot-deals/monday.ts`, and `PILOT_PLAN_ASKS` in `surfaceMoves.ts` | Who the buyer is, what is offered, which five people a week, why now, and the words | live | The canon read live (`canon.mjs`), plus the rows and campaigns stages. Krish's purpose lines in `_mission.ts` stay as canon |
+| M7 | Focus playbooks for Mindmake (`_focus.ts` `PLAYBOOKS`, `pickApproach`, `roomRank`, `selectRooms`, `selectStages`, `fillFocus`) | Which play, which person and which path, three drafts a day | live, hourly | The rows stage. The family registry and the focus rule stay, as they serve every venture |
+| M8 | Stall-check "three moves" prompt (`growth/stall-check.ts`) | Hard-codes Mindmake's order of optimisation | live, cron 07:00 | The weekly review, which learns from his Nos and the bookings |
+| M9 | Mindmake's outreach angle (`_venturePositioning.ts`) and the `_peopleDraft` briefs (`forGuest`, `forTarget`, `forRoom`) | The words and asks Control Center hands its model | live | `pitches.mjs` and the canon. The Mindmake entry ("Strategy Day sprint") is out of date |
+| M10 | The amplifier taxonomy and `ROWS_RULE`, and the widget's `answeredLike` copy of the engine's suppression rules | Row doctrine and No suppression | live | The engine owns them: it sends its taxonomy and a suppression list, and Control Center keeps schema checks only |
+| M11 | Maya and Agatha lanes (`maya-closed-loop-revenue-engine`, the sweepers, `agatha-portfolio-pipeline-triage`) and the ICP lane scorer (`_icpScore.ts`) | A whole prospecting and learning strategy, partly on retired Apollo | mixed: Maya active, the ICP scorer dormant | Retired for Mindmake. Buyer prospecting is the signals and rows stages |
+| M12 | The legacy ingest gate's strategy (`_mindmakeGrowth.ts` trigger and buyer-title rules, and `_mindmakeGrowthContract.ts` offer copy) | What counts as a trigger, and the offer words | live route | The engine's own qualify and draft stages. Control Center's record, consent and suppression walls stay |
+| M13 | Places, GEO and AEO question choice (`growth_touchpoints` decisions, `geo-probe.ts` Mindmake domains, `growthModel.ts` `nextMoves`) | Where Mindmake's buyers are and which questions to probe | live | The engine's weekly review. The AEO content itself is the AEO-Engine repository's |
+
+**Shared pieces.** Mindmake's use moves here; the rest stays for other ventures:
+- the strategist and the daily move: Mindmake's pilot doctrine leaves their prompts;
+- the growth council: it already skips engine-owned products; CTRL and Pulse are checked;
+- network reach priority (`networkScore.ts`);
+- `chooseNextAction`: its rule order is scheduling and stays; the urgency intensity rules are harness doctrine and stay.
+
+**Stays in Control Center:**
+- collection and records: `pilot_deals`, `people_drafts`, `guests`, `visibility_targets`, `events`, the snapshot and web insights, and `product_icp`, which Krish edits;
+- warm-path indexing and Rule 2's wall;
+- the research desk runner;
+- the pitch, draft and form executors;
+- the widget plumbing and the one list;
+- the scorecard tally;
+- the protocol itself.
+
+**How a piece moves.** Each `M` is one pull request here and one in Control Center:
+1. Here: port the logic with its tests, read its inputs from the context, and report its output in the rows or holds. It runs in shadow beside Control Center's version for one live run, and both outputs are reported.
+2. In Control Center: once the engine's version has run live, turn off the Mindmake path, keep collection, and amend the docs and ADRs that name it (ADR-041, -039, -038, -026, -028 and -016; the AGENTS.md house-system rows; `docs/handoff/growth-engines/mindmake.md`, whose "Control Center already grows Mindmake" is superseded; and the `docs/app/growth`, `people`, `everywhere` and `focus` pages).
+3. An n8n workflow is turned off only after its live state is read back, and its mirror is updated in the same change.
 
 ## Verification of this filing
 
