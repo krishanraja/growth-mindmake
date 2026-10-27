@@ -410,7 +410,7 @@ const CONTRAST = /,\s+(?:though|although|but|however|while|yet)\s+|;\s+/i;
 /** An instruction to whoever writes the note, never a fact about them. */
 export const INSTRUCTION = /\b(reference a specific|if one is known|if known|if any is known)\b/i;
 /** Where a fact turns into a prompt for the interviewer: "…, worth asking him to unpack on the podcast." */
-export const PROMPT_CUT = /,?\s+(?:which is\s+)?(?:worth\s+(?:asking|comparing|referencing|discussing|exploring|raising|mentioning|probing|digging)|could make for a good|would make (?:for )?a good|makes for a good|ask(?:ing)?\s+(?:him|her|them)\b)/i;
+export const PROMPT_CUT = /,?\s+(?:which is\s+)?(?:curious\s+(?:what|how|whether|about|to)|worth\s+(?:asking|comparing|referencing|discussing|exploring|raising|mentioning|probing|digging)|could make for a good|would make (?:for )?a good|makes for a good|ask(?:ing)?\s+(?:him|her|them)\b)/i;
 
 /** One sentence as a fact he can read: the part before a prompt, or '' for a judge's note, an instruction, a slug or a fragment that ends on a joiner. */
 export function factOf(sentence) {
@@ -502,11 +502,13 @@ const SHOW_NAMES = [
   { re: new RegExp(String.raw`(?:^|[^\p{L}])(${NAME_RUN}?)\s+(${MEDIA_NOUN})\b`, 'u'), noun: true },
   { re: new RegExp(String.raw`\b(?:hosts|co-hosts|hosted|co-hosted|hosting|co-hosting|presents|presented)\s+(${NAME_RUN})`, 'u') },
 ];
-const LEADING = /^(?:(?:His|Her|Their|Its|Our|My|A|An|He|She|They|And|Of|For|On|In)\s+)+/;
+const LEADING = /^(?:(?:His|Her|Their|Its|Our|My|A|An|He|She|They|And|Of|For|On|In|(?:Co-)?[Hh]osts|Runs|Presents|Publishes|Edits|Writes)\s+(?:the\s+)?)+/;
 const TRAILING = /(?:\s+(?:&|and|of|the|for|on|in))+$/i;
 /** A channel's name as written, or '' when the words are no name: a sentence opener, a pronoun, a lone word. */
 function showName(raw, noun = '') {
   const n = clean(String(raw ?? '')).replace(LEADING, '').replace(TRAILING, '').replace(/[.,;:]+$/, '');
+  // One word before a lower-case "podcast" is a kind of podcast ("B2B podcast advertising"), not its name.
+  if (noun && !/^\p{Lu}/u.test(noun) && n.split(' ').length < 2) return '';
   const named = noun && /^\p{Lu}/u.test(noun) && !new RegExp(`\\b${noun}$`, 'i').test(n) ? `${n} ${noun}` : n;
   return named.length >= 3 && named.length <= 60 && /\p{Lu}|\d/u.test(named.charAt(0)) && !/^(?:The|This|That|Their|His|Her)$/.test(named) ? named : '';
 }
