@@ -15,7 +15,8 @@ import { validateStrategicRead, strategicPlan, outcomeScorecard } from './strate
 import { readVoice } from './stages/draft.mjs';
 import { amplifierRows, rankRows, ROWS, TITLE_MAX, TITLE_MAX_BRIEF } from './stages/rows.mjs';
 import { signalRequests, signalRows } from './stages/signals.mjs';
-import { readCanon, blobSha, CanonError } from './stages/canon.mjs';
+import { readCanon, readRecord, blobSha, CanonError } from './stages/canon.mjs';
+import { pitchRows } from './stages/pitches.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
 export const PRODUCT_SLUG = 'mindmake';
@@ -121,16 +122,18 @@ export function objectiveReadings({ at, activatedOn = null }) {
 
 const intOrNull = v => Number.isInteger(v) && v >= 0 ? v : null;
 const part = (v, keys) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(keys.map(k => [k, intOrNull(v[k])])) : null;
-/** The version this engine sends: 1.2.0 for subject_ref, 1.6.0 once Control Center reads rows, 1.7.0 once it shows their reasons, 1.8.0 once it opens the full card. */
+/** The version this engine sends: 1.2.0 for subject_ref, 1.6.0 once Control Center reads rows, 1.7.0 once it shows their reasons, 1.8.0 once it opens the full card, 1.9.0 once it drafts Jonny's pitches. */
 export const SCHEMA_VERSION = '1.2.0';
 export const ROWS_VERSION = '1.6.0';
 /** 1.7.0: each row carries the line under its title (because) and the brief a tap opens. */
 export const BRIEF_VERSION = '1.7.0';
 /** 1.8.0: each row carries the full card a tap opens: who, how he knows them, why, what he gets, the angles. */
 export const CARD_VERSION = '1.8.0';
+/** 1.9.0: a visibility pitch may name Jonny's box; Control Center drafts it there each day with no press. */
+export const PITCH_VERSION = '1.9.0';
 /** The engine files row words are written from, named in every row's source_revision. */
 export const ENGINE_REPO = 'krishanraja/growth-mindmake';
-export const WORD_FILES = ['src/stages/rows.mjs', 'src/stages/signals.mjs'];
+export const WORD_FILES = ['src/stages/rows.mjs', 'src/stages/signals.mjs', 'src/stages/pitches.mjs'];
 const repoRoot = new URL('../', import.meta.url);
 export async function engineFiles() {
   return Promise.all(WORD_FILES.map(async path => ({ repo: ENGINE_REPO, path, sha: blobSha(await readFile(new URL(path, repoRoot), 'utf8')) })));
@@ -176,6 +179,8 @@ export function inHouseLines(inHouse) {
   ];
 }
 
+/** A pitch for Jonny's box (1.9.0), which Control Center drafts itself. */
+const isPitch = p => { try { return JSON.parse(p.exact_payload ?? '').mailbox === 'jonny'; } catch { return false; } };
 const cut = (text, max) => { const s = String(text).replace(/\s+/g, ' ').trim(); return s.length <= max ? s : `${s.slice(0, max - 3).trimEnd()}...`; };
 function finishProposal(p) {
   const proposal = { amount_usd: null, channel: null, objective_key: null, exact_payload: null, evidence: [], expires_at: null, ...p };
@@ -188,7 +193,8 @@ function finishProposal(p) {
   }
   // A note names its recipient by the Control Center contact id it came with, so his list
   // keeps Advisory's, People's or Visibility's copy when they already hold that person.
-  if (proposal.wall === 'send' && typeof proposal.target === 'string' && CONTACT.test(proposal.target)) proposal.subject_ref = `contact:${proposal.target}`;
+  // A pitch is about the show it names (target:<id>), not the address it goes to.
+  if (proposal.wall === 'send' && typeof proposal.target === 'string' && CONTACT.test(proposal.target) && !proposal.subject_ref) proposal.subject_ref = `contact:${proposal.target}`;
   delete proposal.target;
   return proposal;
 }
@@ -318,7 +324,7 @@ const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.s
  * collect (at most two rounds of ten, inside its daily caps); a synthetic run
  * asks for nothing. Counts only leave this function for the printed outcome.
  */
-export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, briefs = false }) {
+export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false }) {
   // 1.7.0: the title shares the card with the line under it, so it is shorter.
   const titleMax = briefs ? TITLE_MAX_BRIEF : TITLE_MAX;
   const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0 };
@@ -356,12 +362,18 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax });
   const { kept, dropped } = rankRows([...amplifiers.rows, ...signals.rows]);
   const proposals = kept.map(finishProposal);
+  // 1.9.0: podcast pitches for Jonny's box, after the rows he presses himself. An older Control Center gets none.
+  const pitched = pitches ? pitchRows({ context: ctx, weekGoals: directive.week_goals, canon, record: await recordReader(), files, at, titleMax }) : { proposals: [], held: [] };
+  proposals.push(...pitched.proposals.map(finishProposal));
+  counts.pitches = pitched.proposals.length;
   counts.prepared = proposals.length;
+  for (const [reason, count] of tally(pitched.held)) holds.push({ reason: holdCode('pitch', reason), detail: `${count} podcast${count === 1 ? '' : 's'} not pitched today: ${reason.replace(/_/g, ' ')}.` });
   const held = [...amplifiers.held, ...signals.held];
   counts.held = held.length;
   for (const [reason, count] of tally(held)) holds.push({ reason: holdCode('row', reason), detail: `${count} possible row action${count === 1 ? '' : 's'} held: ${reason.replace(/_/g, ' ')}.` });
   if (dropped) holds.push({ reason: 'row_per_row_cap', detail: `${dropped} more row action${dropped === 1 ? '' : 's'} ranked below the six a row shows.` });
-  activity.push(`Rows from Mindmake's canon as it is today (${canon.files.map(f => f.sha.slice(0, 7)).join(', ')}): ${ROWS.map(r => `${proposals.filter(p => p.row === r).length} ${r.replace('_', ' ')}`).join(', ')}.`);
+  activity.push(`Rows from Mindmake's canon as it is today (${canon.files.map(f => f.sha.slice(0, 7)).join(', ')}): ${ROWS.map(r => `${proposals.filter(p => p.row === r && !isPitch(p)).length} ${r.replace('_', ' ')}`).join(', ')}.`);
+  if (pitches) activity.push(`Podcast pitches for Jonny's Gmail: ${counts.pitches}.`);
   if (counts.research_asked) activity.push(`Asked Control Center for ${counts.research_asked} lookups; ${counts.research_answered} answered.`);
   return { proposals, holds, activity, counts };
 }
@@ -371,7 +383,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
  * resolves `{ snapshot }` or `{ hold }`. `context` is an engine context, supplied only for a
  * synthetic run, because the protocol retired the live work-context route.
  */
-export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles }) {
+export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord }) {
   if (!['live','synthetic'].includes(mode) || !/^[a-z][a-z0-9-]{0,40}$/.test(kind) || !/^gma-[A-Za-z0-9-]{8,80}$/.test(attemptId)) throw new Error('Invalid dispatch options');
   const started_at = clock();
   const run_id = `${SLUG}:${londonDate(started_at)}:${kind}`;
@@ -498,8 +510,10 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       // 1.7.0 and 1.8.0 only where Control Center serves them; an older one gets the rows without what it cannot read.
       const briefs = capabilities.schema_versions.includes(BRIEF_VERSION);
       const cards = briefs && capabilities.schema_versions.includes(CARD_VERSION);
-      schema_version = cards ? CARD_VERSION : briefs ? BRIEF_VERSION : ROWS_VERSION;
-      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, briefs });
+      const pitches = cards && capabilities.schema_versions.includes(PITCH_VERSION);
+      schema_version = pitches ? PITCH_VERSION : cards ? CARD_VERSION : briefs ? BRIEF_VERSION : ROWS_VERSION;
+      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches });
+      if (!pitches) holds.push({ reason: 'pitch_needs_1_9_0', detail: "Control Center does not yet take pitches for Jonny's Gmail (protocol 1.9.0), so none were written." });
       const shown = cards ? rows.proposals : briefs ? rows.proposals.map(({ card, ...p }) => p) : rows.proposals.map(({ because, brief, card, ...p }) => p);
       const room = Math.max(0, 40 - mapped.proposals.length);
       mapped.proposals.push(...shown.slice(0, room));

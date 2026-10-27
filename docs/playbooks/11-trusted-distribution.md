@@ -192,6 +192,34 @@ channels with mass audiences on growing with AI. In the protocol these are
   words, and a repeat is for the weekly review to put to him as a doctrine
   change.
 
+## Podcast pitches in Jonny's voice (Rulings, Krish, 2026-10-27)
+
+Krish: pitch him to as many podcasts as possible from Jonny's Gmail, "Drafted
+daily, no press", "For visibility Jonny sends"; the goal is one podcast a
+week. Ruling (Krish, 2026-10-27): pitches call him Executive Host of Signal &
+Noise.
+
+- **Which shows.** Podcasts Control Center holds with an address the show
+  publishes for itself (`booking_contact_id`, read from its own feed), with an
+  episode in the last 120 days, not applied, rejected or buried, never his own
+  shows, never pitched before (a draft or an answer on its pitch), and not like
+  anything he said No to. Best first: Nova's verdict, how recently it
+  published, whether it is about a room his buyer is in, and how long it has
+  run. Ten a run at most; Control Center drafts ten a day at most.
+- **The words.** Jonny's, for Krish: the point first (Krish as a guest on one
+  topic tied to the show), who Krish is, one ask, signed Jonny. Who Krish is
+  comes only from what the run reads: his ruled title, his publication and the
+  brain door from Mindmake's canon (quoted whole), and his track record from
+  krishraja.com's own repository (`src/content/receipts.ts`), each named by
+  blob SHA. A record that does not read is left out, never written from
+  memory. A host is greeted by first name only when the stage names one
+  person; otherwise "Hi there".
+- **Who does what.** The engine writes the pitch as a visibility row naming
+  Jonny's box (protocol 1.9.0). Control Center drafts it into Jonny's Gmail
+  with no press and follows it to sent, replied, booked, recorded and
+  published; Jonny sends. The engine never drafts or sends, and learns from
+  which shows answer.
+
 ## Signals from his buyers (Rulings, Krish, 2026-10-26)
 
 Shown a LinkedIn post ("AI's next job casualty could be your boss"), Krish

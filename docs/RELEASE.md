@@ -1,8 +1,12 @@
 # Release state
 
+## Podcast pitches for Jonny's Gmail (protocol 1.9.0), 27 October 2026
+
+Built and tested locally; a pull request. Up to ten pitches a run to podcasts Control Center holds with an address the show publishes for itself, each a 1.9.0 visibility row naming Jonny's box and the show (`target:<id>`), in Jonny's voice for Krish, from the canon and krishraja.com's own receipts read live; a show already drafted or answered, quiet for 120 days, applied, rejected, buried, his own, or ruled out by a No is held and counted. Reported only where Control Center serves 1.9.0 (`pitch_needs_1_9_0` otherwise), so merging before Control Center deploys changes nothing. Control Center drafts them into Jonny's Gmail; the engine never drafts or sends. Also the round-2 leftovers: no honorific in a title, a partner email names who they back, no false "no email on record", the `signal_noise` slug. Live once Control Center serves 1.9.0 and the next run reports.
+
 ## Card words round 2, 27 October 2026
 
-Built and tested locally; a pull request, not merged or deployed. After the second live 1.8.0 run (`mindmake:2026-10-27:manual-21`): a first name is never a title, a fit verdict or a judge's clause never reaches the card, partner angles name the company, an appearance names its show and is never on Krish's own shows (`own_show`; an unnamed channel is held and asked about once a month), what he gets names the show, topics are specific or null, and appearance pitches call him Executive Host of Signal & Noise (Ruling, Krish, 2026-10-27). Live once merged and the next run reports.
+Merged (krishanraja/growth-mindmake#15 and #16) and live from run `mindmake:2026-10-27:manual-23`. After the second live 1.8.0 run (`mindmake:2026-10-27:manual-21`): a first name is never a title, a fit verdict or a judge's clause never reaches the card, partner angles name the company, an appearance names its show and is never on Krish's own shows (`own_show`; an unnamed channel is held and asked about once a month), what he gets names the show, topics are specific or null, and appearance pitches call him Executive Host of Signal & Noise (Ruling, Krish, 2026-10-27).
 
 ## Card words are facts, not notes, 27 October 2026
 
