@@ -114,6 +114,35 @@ channels with mass audiences on growing with AI. In the protocol these are
   two to six lines: who, how he knows them, why them, the ask and the goal it
   serves, reach with its basis, and the fit. Written in code from what
   Control Center holds, never invented.
+- **The full card** (protocol 1.8.0; Ruling, Krish, 2026-10-27: every
+  suggestion opens a full card: who they are, how he knows them, why them
+  now, what he gets, and the angles to take, each from the record with its
+  source; a card that cannot say these is held, not shown). A tap opens:
+  - *who*: Control Center's own sentence about them and their organisation,
+    one or two whole sentences, else their title at their company;
+  - *known*: since when and through what (his Gmail, LinkedIn connections,
+    phone contacts, Instagram, Facebook; enrichment is never where he knows
+    someone from), then the emails each way. "Each other" only when both
+    wrote; "not written back" only on a counted zero; never "no email" when
+    emails are counted. The brief's known line is the same sentence;
+  - *why*: whole sentences, at most three: a close tie gone quiet and since
+    when, the hook, why them, their company's why now, and a public post
+    about AI in the last 120 days (never one selling AI);
+  - *gain*: what a yes gets him by the ask, a number only with its source,
+    ending on the goal it serves word for word;
+  - *angles*: one to three, each titled in the canon's own words this run
+    (the brain door, the revenue engine door, the homepage's intern to chief
+    of staff line, Make Your Mind Up, the main ask) and tied to their record.
+    A line the canon no longer carries is not offered;
+  - *sources*: the pages the facts came from, at most six; never a profile,
+    an address or a number.
+
+  A card that cannot say who they are and why them is held as `thin_card`,
+  and the engine asks Control Center once a month who they are (a `profile:`
+  question inside the research caps); the answer fills the card next run.
+  Going on someone's channel needs a channel they own named in their record
+  (a podcast, newsletter, show or publication): followers alone are an
+  audience, not a channel, and such a person is held as `no_channel`.
 - **The ask decides the row.** Partner (investors, AI-minded capital, AI
   trainers) is PARTNERS; an introduction (connectors) and a signal from a
   buyer are REACH OUT; an appearance (broadcasters) is VISIBILITY; a session

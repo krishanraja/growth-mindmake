@@ -30,6 +30,7 @@ Lifecycle: building. The detail is in `README.md`.
 
 ## What changed recently
 
+- 2026-10-27 **Every suggestion opens a full card (protocol 1.8.0).** Krish: "I need to be fully in the know as to who they are, why I'm getting in touch with them, what benefit I would have, and what angles to take." Each row carries `card`: who they are, how he knows them (emails each way, never contradicted), why them now, what he gets, one to three angles in the canon's own words, and its sources. A card too thin to say who and why is held (`thin_card`) and a profile question asked; VISIBILITY needs a channel the person owns. Reported as 1.8.0 only once Control Center serves it; until then 1.7.0 without the card. Built and tested; a pull request, not merged.
 - 2026-10-27 **Card lines are whole.** The first live 1.7.0 run cut lines mid-phrase ("cited four times by.", "Co-Founder at.", "u.s."). A line is now built only from a whole first sentence, a whole title or the title up to its first separator; anything ending on a joiner, an initial or an internal slug is dropped, and raw lower-case titles are title-cased.
 - 2026-10-27 **Every row says who, how he knows them and why them, and ranks by Mindmake fit (protocol 1.7.0).** The card line is at most 80 characters and the title 56, both whole. Ruling (Krish, 2026-10-27): every row suggestion says who the person is, how he knows them and why them, ranked by Control Center's Mindmake fit, never by followers alone; competitors and fit under 40 are left out. NETWORK reads the last email (Control Center never recorded a touch, so the row was empty). Built and tested; waits on Control Center serving 1.7.0.
 - 2026-10-26 **The five rows on Krish's home screen are built here (protocol 1.6.0).** Amplifiers ranked by how far a yes travels (investors, connectors, AI-minded capital, mass AI trainers, student and CEO educators, broadcasters), close ties gone quiet, and worried executives who commented on posts about AI and their jobs, each a prepared send he carries out himself. Words come from Mindmake's canon read live each run, never the pinned copy, which had already gone stale (the main ask changed on 24 October). Every No and its reason is kept for good. Reports stay 1.2.0 until Control Center serves 1.6.0. Rulings: AGENTS.md, "The five rows and signals".
@@ -38,11 +39,12 @@ Lifecycle: building. The detail is in `README.md`.
 
 ## What is next and what is waiting on Krish
 
-- After Control Center serves 1.7.0, run the dispatch once and read back each row's `because` against the person's record.
+- After Control Center serves 1.8.0 (krishanraja/control-center#571), merge the full card, run the dispatch once and read back each row's card against the person's record: who, the email counts, the angles' canon words and the sources.
 - Measure the North Star number and record it on the first line under "Where it is right now".
 - After Control Center's 1.6.0 is live, read the first live report with rows and spot-check ten reach figures against their sources.
 - The pinned `APPROVED_CANON` in `contracts/growth.ts` no longer matches Mindmake's canon and its 30-day review lapses on 15 November; the snapshot path needs Krish's review of the current canon before then.
 - North Star check (2026-10-26): holds. Rows aim every suggestion at a conversation through someone who multiplies trust or a buyer who raised the subject in public; the number is still unmeasured.
+- North Star check (2026-10-27, full card): holds. A suggestion he can understand in full is one he can act on, so more presses become conversations; the number is still unmeasured.
 - North Star check (2026-10-27): holds. Fit-first rows spend his presses on people likely to become a qualified leader conversation, not on the biggest following; the number is still unmeasured.
 
 ## Read next

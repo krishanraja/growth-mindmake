@@ -1,5 +1,9 @@
 # Release state
 
+## The full card (protocol 1.8.0), 27 October 2026
+
+Built and tested locally; a pull request, not merged or deployed. Every row proposal carries `card` (who, known, why, gain, angles, sources) at 1.8.0 only, mirroring Control Center's `parseCard` (krishanraja/control-center#571); a 1.7.0 Control Center gets the line and the brief without the card, and the brief's known line now says the same as the card's. A card that cannot say who and why is held as `thin_card` with a monthly profile question; an appear ask needs a channel the person owns. Schemas copied from control-center `4766118d`. Live only once Control Center serves 1.8.0 and a run reports with it; a card he reads and acts on is the outcome, not this record.
+
 ## Whole card lines, 27 October 2026
 
 Built and tested locally; a pull request, not merged or deployed. The first live 1.7.0 run (`mindmake:2026-10-27:manual-18`) showed `because` lines cut mid-phrase. A line is now built only from whole pieces, never cut at a word, and raw lower-case titles are title-cased. Live once merged and the next run reports.

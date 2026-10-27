@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, readCanon, CanonError } from '../src/stages/canon.mjs';
-import { kindsOf, reachOf, countIn, lessons, refusedBy, amplifierRows, rankRows, score, fitTitle, channelOf, servesOf, fitHold, cleanName, lastContact, caseFor, titleFor, fitTitleWithin, endsWhole, firstSentence, titleCase, wholeRole, wholeSentence, JOINERS, FIT_FLOOR, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX_BRIEF } from '../src/stages/rows.mjs';
+import { kindsOf, reachOf, countIn, lessons, refusedBy, amplifierRows, rankRows, score, fitTitle, channelOf, servesOf, fitHold, cleanName, lastContact, caseFor, titleFor, fitTitleWithin, endsWhole, firstSentence, titleCase, wholeRole, wholeSentence, JOINERS, FIT_FLOOR, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX_BRIEF, cardFor, knownWords, knownLine, knownShort, mailWords, whyLines, gainLines, angleLines, openerOf, sourceLinks, leadSentences, hasChannel, plain, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX } from '../src/stages/rows.mjs';
 import { icpOf, signalRequests, signalRows, isoWeek } from '../src/stages/signals.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
@@ -16,7 +16,8 @@ const FILES = [...canon.files, { repo: 'krishanraja/growth-mindmake', path: 'src
 const GOALS = ['Send the Mindmake one-pagers and offers to warm leads', 'Have a clear plan for driving partnerships and visibility for Mindmake'];
 
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-const person = (n, title, extra = {}) => ({ contact_id: id(n), network_tier: '2_core_network', current_title: title, followers: null, plays: [], roles: [], mindmake_fit: 60, sells_competing_services: false, contacts: { id: id(n), full_name: `Avery Example${n}`, title, company: `Company ${n}`, company_domain: `c${n}.test`, status: 'active' }, ...extra });
+// Every synthetic person carries a reason on record (protocol 1.8.0: a card that cannot say why them is held); it names no kind.
+const person = (n, title, extra = {}) => ({ contact_id: id(n), network_tier: '2_core_network', current_title: title, followers: null, plays: [], roles: [], mindmake_fit: 60, sells_competing_services: false, hook: 'Took two media software companies through a sale.', contacts: { id: id(n), full_name: `Avery Example${n}`, title, company: `Company ${n}`, company_domain: `c${n}.test`, status: 'active' }, ...extra });
 const route = (email = 'verified', extra = {}) => ({ email, x: false, linkedin: true, instagram: false, whatsapp: false, ...extra });
 
 test('canon is read from the venture as it is today: the main ask, its link, the brain door and the Horizon, named by blob SHA', async () => {
@@ -231,7 +232,7 @@ test('a dispatch run against Control Center 1.6.0: the rows reach the report, re
   assert.equal(result.status, 'succeeded');
   const report = reports[0];
   assert.equal(report.schema_version, '1.6.0');
-  assert.deepEqual(asked, [['posts', 'posts', 'posts', 'question', 'question', 'question', 'question'], ['post_engagers']], 'round one finds posts, round two reads who argued');
+  assert.deepEqual(asked, [['question', 'question', 'question', 'question', 'posts', 'posts', 'posts'], ['post_engagers']], 'round one asks the engine\'s own questions first, then finds posts; round two reads who argued');
   assert.equal(contextReads, 1, 'no person was filed in these two rounds, so no second context read');
   const rows = report.proposals.filter(p => p.row);
   assert.deepEqual(rows.map(p => p.row).sort(), ['events', 'partners', 'reach_out', 'visibility'], 'one amplifier on each of four rows; the tie with no route waits');
@@ -241,7 +242,7 @@ test('a dispatch run against Control Center 1.6.0: the rows reach the report, re
   const printed = JSON.stringify(result);
   assert.equal(/Avery|Robin|Sam|Pat/.test(printed), false, 'the printed outcome carries counts, never a name');
   assert.equal(result.rows.prepared, rows.length);
-  assert.ok(rows.every(p => !('because' in p) && !('brief' in p)), 'a 1.6.0 Control Center gets the rows without their reasons');
+  assert.ok(rows.every(p => !('because' in p) && !('brief' in p) && !('card' in p)), 'a 1.6.0 Control Center gets the rows without their reasons or their cards');
 
   // Before Control Center reads rows, the engine reports as it always has.
   const older = []; const cc2 = { ...cc, capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, features: { context: true } }), postReport: async r => { older.push(r); return { replayed: false }; }, readReport: async () => older.at(-1) };
@@ -441,4 +442,175 @@ test('a signal\'s line names who they are as a whole, readable piece too', () =>
   const p = signalRows({ context: { routes: { [id(23)]: route() }, feedback: [] }, research, weekGoals: GOALS, canon, files: FILES, at: NOW }).rows[0].proposal;
   assert.equal(p.because, 'Chief Operating Officer. Worried in public about AI and their job.');
   assert.ok(p.because.length <= BECAUSE_MAX);
+});
+
+// ── The full card (protocol 1.8.0, Krish, 2026-10-27) ───────────────────────
+// "I need to be fully in the know as to who they are, why I'm getting in touch
+// with them, what benefit I would have, and what angles to take."
+
+const SITE_CANON = CANON + '\n| Homepage headline (first, and the h1) | Promote your AI from intern to chief of staff. |\n| Revenue engine door | Build your AI revenue engine |\n| Revenue engine door explanation | The pricing, positioning and team you\'ll need. |\n| Homepage section 1 (the problem) | Right now, your AI is an intern. |\n| Homepage section 2 (how it works) | A chief of staff knows how you think. |\n';
+const fullCanon = { ...parseCanon({ northStar: NORTH_STAR, canon: SITE_CANON }), files: canon.files };
+const EM = String.fromCharCode(8212);
+const cardOf = (c, over = {}) => cardFor({ c, id: c.contact_id ?? id(90), name: 'Avery Example', title: c.current_title ?? '', company: c.current_company ?? '', ask: 'partner', kind: 'investor', reach: { value: null, band: 'unknown', basis: 'not yet researched', source_url: null, as_of: null }, fit: 70, serves: GOALS[1], canon: fullCanon, at: NOW, ...over });
+const assertCard = (card, where) => {
+  assert.ok(card, where);
+  assert.ok(card.who.length >= 1 && card.who.length <= CARD_WHO_MAX, `who ${where}`);
+  assert.ok(card.known.length >= 1 && card.known.length <= CARD_LINE_MAX, `known ${where}`);
+  for (const k of ['why', 'gain']) assert.ok(card[k].length >= 1 && card[k].length <= 3 && card[k].every(l => l.length >= 1 && l.length <= CARD_LINE_MAX), `${k} ${where}`);
+  assert.ok(card.angles.length >= 1 && card.angles.length <= 3 && card.angles.every(a => a.title.length <= 60 && a.line.length <= CARD_LINE_MAX && a.title && a.line), `angles ${where}`);
+  assert.ok(card.sources.length <= 6 && card.sources.every(s => /^https:\/\/\S+$/.test(s.url) && !NOT_A_SOURCE.test(s.url) && s.label.length <= 80), `sources ${where}`);
+  const text = JSON.stringify(card);
+  assert.equal(text.includes(EM), false, `no em dash ${where}`);
+  assert.equal(/@[a-z]|\+\d{6}/i.test(text), false, `never an address or a number ${where}`);
+  assert.deepEqual(Object.keys(card).sort(), ['angles', 'gain', 'known', 'sources', 'who', 'why']);
+};
+
+test('who they are: the record\'s own sentence, whole, then the role; nothing known is a card too thin to show', () => {
+  const who = 'Co-founder and CEO of Example Board, a sports and entertainment media and venture company. Based in New York. Also on two boards.';
+  assert.equal(cardOf({ who, hook: 'Moved the company into a members club this year.' }).who, 'Co-founder and CEO of Example Board, a sports and entertainment media and venture company. Based in New York.', 'two whole sentences at most');
+  assert.equal(cardOf({ who: 'chief marketing officer of example bank, a top-10 lender.', hook: 'Ran a turnaround.' }).who, 'Chief Marketing Officer of Example Bank, a Top-10 Lender.');
+  assert.equal(cardOf({ who: 'Reaches the audience builder_economy wants.', current_title: 'Partner', current_company: 'Example Capital', hook: 'Ran a turnaround.' }).who, 'Partner at Example Capital.', 'an internal slug is never his: the role stands');
+  assert.equal(cardOf({ hook: 'Ran a turnaround.' }), null, 'no who and no role: held');
+  assert.equal(leadSentences('x'.repeat(400), CARD_WHO_MAX), '', 'a sentence that will not fit whole is skipped, never cut');
+});
+
+test('how he knows them: every combination of emails each way reads true, and the live contradiction cannot happen', () => {
+  const counts = [undefined, null, 0, 1, 2, 23];
+  for (const inn of counts) for (const out of counts) for (const last of [null, '2026-06-02']) for (const since of [null, '2020-03-01']) {
+    const c = { email_inbound: inn, email_outbound: out, email_last: last, known_since: since, source_list: ['gmail_krish_mindmaker', 'apify', 'linkedin_export'] };
+    const k = knownWords(c);
+    const where = JSON.stringify(c);
+    assert.ok(k.length >= 1 && k.length <= CARD_LINE_MAX && !k.includes(EM), where);
+    const i = Number.isInteger(inn) ? inn : null, o = Number.isInteger(out) ? out : null;
+    if (/each other/.test(k)) assert.ok(i > 0 && o > 0, `each other only when both wrote: ${k}`);
+    if (/not written back/.test(k)) assert.ok((/They have written/.test(k) ? o : i) === 0, `"not written back" only on a counted zero: ${k}`);
+    if (/No email/.test(k)) assert.ok(!(i > 0) && !(o > 0), `no email only when none is counted: ${k}`);
+    if (since) assert.match(k, /^Known since 2020, through your Gmail and your LinkedIn connections\./, 'since when and through what; enrichment sources are not where he knows them from');
+    for (const line of [knownLine(c), knownShort(c)]) if (i > 0 || o > 0) assert.equal(/no email on record/i.test(line), false, `the card line never says no email when emails are counted: ${line}`);
+  }
+  assert.equal(mailWords({ email_inbound: 23, email_outbound: 9, email_last: '2026-09-14' }), 'You have emailed each other 32 times (they wrote 23, you wrote 9); the last was Sep 2026.');
+  assert.equal(mailWords({ email_inbound: 0, email_outbound: 2 }), 'You have written to them twice, and they have not written back.');
+  assert.equal(mailWords({ email_inbound: 0, email_outbound: 0 }), 'No emails between you yet.');
+  // The live card said "You have written to each other before" and "no email on record" together.
+  const raph = { contact_id: id(91), network_tier: '1_reciprocated', known_since: '2025-01-01', email_last: null, email_inbound: 2, email_outbound: 1, current_title: 'Founding Growth', current_company: 'Example Growth Co', hook: 'Built growth at two AI marketing startups.' };
+  const told = caseFor({ c: raph, name: 'Ray Example', company: raph.current_company, ask: 'appear', kind: 'broadcaster', reach: { band: 'unknown' }, fit: 58, serves: null });
+  const all = [told.because, ...told.brief, cardOf(raph).known].join(' | ');
+  assert.equal(/no email on record/i.test(all), false, all);
+  assert.equal(/written to each other before/i.test(all), false, all);
+  assert.ok(told.brief.includes(cardOf(raph).known), 'the brief says what the card says');
+});
+
+test('why them, why now: whole sentences from the record, the quiet tie first, a recent AI post but never selling AI', () => {
+  const c = { hook: `Chairs the industry AI taskforce ${EM} worth asking what is landing.`, why_them: 'Reaches the audience builder_economy wants.', intent_summary: `building a team ${EM} Active job posting for an AI platform role.`, last_post_at: '2026-09-10T00:00:00Z' };
+  const why = whyLines(c, { ask: 'relationship', quietSince: 'Jun 2025', company: { why_now: 'Raised a growth round in September.' }, at: NOW });
+  assert.deepEqual(why, ['A close tie, and nothing between you since Jun 2025.', 'Chairs the industry AI taskforce, worth asking what is landing.', 'Raised a growth round in September.'], 'no em dash, no slug, at most three');
+  assert.ok(whyLines({ ...c, hook: null }, { ask: 'partner', at: NOW }).includes('They posted in Sep 2026: Active job posting for an AI platform role.'));
+  assert.deepEqual(whyLines({ intent_summary: `selling AI ${EM} Pitching AI services to agencies.`, last_post_at: '2026-10-01T00:00:00Z' }, { ask: 'partner', at: NOW }), [], 'selling AI is not his buyer\'s signal');
+  assert.deepEqual(whyLines({ intent_summary: `commenting ${EM} Asked about AI pricing.`, last_post_at: '2026-03-01T00:00:00Z' }, { ask: 'partner', at: NOW }), [], 'an old post is no reason now');
+  assert.equal(cardOf({ who: 'Partner at Example Capital.' }), null, 'no reason on record: held');
+  assert.equal(plain(`A ${EM} B – C ,  D`), 'A, B, C, D');
+});
+
+test('what he gets: by the ask, numbers only with their source, ending on the goal it serves word for word', () => {
+  const cited = { value: 35000, band: '10k_100k', basis: 'chief executives, from a cited answer', source_url: 'https://example.org/forum', as_of: NOW };
+  assert.deepEqual(gainLines({ ask: 'teach', kind: 'ceo_educator', name: 'Avery Example', reach: cited, fit: 70, serves: GOALS[1] }), ['A session in front of their leaders: 35,000 chief executives, from a cited answer.', `It serves this week's goal: ${GOALS[1]}.`]);
+  assert.deepEqual(gainLines({ ask: 'appear', name: 'Avery Example', reach: { value: null, band: '10k_100k', basis: 'followers on their profile, as Control Center last read it' }, serves: null }), ['A guest spot in front of their audience: 10,000 to 100,000 followers on their profile, as Control Center last read it.']);
+  assert.deepEqual(gainLines({ ask: 'appear', name: 'Avery Example', reach: { value: null, band: 'unknown', basis: 'not yet researched' }, serves: null }), ['A guest spot in front of their audience.'], 'an unknown reach is not said as a number');
+  assert.match(gainLines({ ask: 'relationship', name: 'Avery Example', fit: 92, serves: GOALS[0] })[0], /scores 92 of 100 for Mindmake fit; it can turn into an advisory conversation\.$/);
+  assert.match(gainLines({ ask: 'introduce', name: 'Avery Example', reach: { band: 'unknown' }, serves: null })[0], /^One introduction from Avery puts you in front of a leader/);
+  for (const ask of ['introduce', 'relationship', 'appear', 'teach', 'partner', 'signal']) assert.ok(gainLines({ ask, name: 'Avery Example', reach: cited, fit: 60, serves: GOALS[1] }).at(-1).startsWith("It serves this week's goal: "), ask);
+});
+
+test('the angles: titled in the canon\'s own words this run, tied to this person, and only what the canon still says', () => {
+  const c = { hook: 'His Data Driven newsletter and two board seats, worth asking what patterns he sees.', current_company: 'Example Capital' };
+  const partner = angleLines({ ask: 'partner', kind: 'investor', name: 'Avery Example', c, company: 'Example Capital', canon: fullCanon });
+  assert.deepEqual(partner.map(a => a.title), ['Build your AI revenue engine', 'Build your AI brain']);
+  assert.equal(partner[1].line, `Open on his Data Driven newsletter and two board seats. Then the brain door, in the site's words: "${fullCanon.brain}"`);
+  assert.ok(partner[0].line.includes(`"The pricing, positioning and team you'll need."`), 'the revenue door quoted, not paraphrased');
+  assert.deepEqual(angleLines({ ask: 'relationship', name: 'Avery Example', c, company: '', canon: fullCanon }).map(a => a.title), ['Promote your AI from intern to chief of staff', 'Build your AI brain']);
+  assert.deepEqual(angleLines({ ask: 'appear', name: 'Avery Example', c, company: '', canon: fullCanon }).map(a => a.title), ['Make Your Mind Up', 'Build your AI brain']);
+  assert.deepEqual(angleLines({ ask: 'partner', kind: 'investor', name: 'Avery Example', c, company: '', canon }).map(a => a.title), ['Build your AI brain'], 'a door the canon no longer carries is not offered');
+  assert.equal(openerOf({ hook: 'Built a fund. Then more.' }, 'Example Capital'), 'Built a fund');
+  assert.equal(openerOf({}, 'Example Capital'), 'their work at Example Capital');
+});
+
+test('sources are public pages about them: a profile, an address or a number is never one, and there are six at most', () => {
+  const research = [{ request_id: `profile:${id(92)}:2026-10`, kind: 'question', status: 'answered', subject_ref: `contact:${id(92)}`, answered_at: NOW, evidence: [{ url: 'https://example.org/interview', title: 'An interview' }, { url: 'https://www.linkedin.com/in/someone' }] },
+    { request_id: 'other', kind: 'question', status: 'answered', subject_ref: `contact:${id(93)}`, evidence: [{ url: 'https://example.org/not-them' }] }];
+  const s = sourceLinks({ reach: { basis: 'listeners a month, from a cited answer', source_url: 'https://example.org/show', as_of: NOW }, research, id: id(92), domain: 'example-capital.test', company: 'Example Capital',
+    extra: [{ label: 'Mail', url: 'mailto:a@b.test' }, { label: 'Chat', url: 'https://wa.me/123' }, { label: 'Call', url: 'tel:+100' }, { label: 'Again', url: 'https://example.org/show' }] });
+  assert.deepEqual(s.map(x => x.url), ['https://example.org/show', 'https://example.org/interview', 'https://example-capital.test']);
+  assert.equal(s[0].label, 'Reach: listeners a month, from a cited answer, 2026-10-26');
+  assert.ok(sourceLinks({ extra: Array.from({ length: 9 }, (_, i) => ({ label: `Page ${i}`, url: `https://example.org/${i}` })) }).length === 6);
+});
+
+test('a card too thin to show is held and asks once a month who they are; the answer fills it on the next run', () => {
+  const thin = person(94, 'Partner, Example Ventures', { hook: null, followers: 30000 });
+  const ctx = { amplifier_candidates: [thin], routes: { [id(94)]: route() }, feedback: [], research: [] };
+  const first = amplifierRows({ context: ctx, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
+  assert.equal(first.rows.length, 0);
+  assert.deepEqual(first.held, ['thin_card']);
+  const ask = first.research.find(r => r.request_id === `profile:${id(94)}:2026-10`);
+  assert.ok(ask && ask.kind === 'question' && ask.subject_ref === `contact:${id(94)}` && ask.query.length <= 400);
+  assert.equal(amplifierRows({ context: { ...ctx, research: [{ ...ask, status: 'requested' }] }, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW }).research.some(r => r.request_id === ask.request_id), false, 'asked once a month');
+  const answered = { ...ask, status: 'answered', answered_at: NOW, answer: 'General partner at Example Ventures, an early-stage fund backing media software. Led the fund\'s AI investments in 2026.', evidence: [{ url: 'https://example.org/fund', title: 'Fund page' }] };
+  const next = amplifierRows({ context: { ...ctx, research: [answered] }, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
+  const card = next.rows[0]?.proposal.card;
+  assertCard(card, 'filled by the profile answer');
+  assert.equal(card.who, 'General partner at Example Ventures, an early-stage fund backing media software.');
+  assert.ok(card.why.includes("Led the fund's AI investments in 2026."));
+  assert.ok(card.sources.some(s => s.url === 'https://example.org/fund'));
+});
+
+test('VISIBILITY needs a channel they own: followers alone are an audience, not a channel', () => {
+  const pm = person(95, 'Head of AI Product Management, Example Software', { is_influencer: true, followers: 40000, who: 'Heads AI product management for an enterprise software line and coaches professionals on their careers.' });
+  const hostP = person(96, 'Host of Example Show', { followers: 40000 });
+  const ctx = { amplifier_candidates: [pm, hostP], routes: { [id(95)]: route(), [id(96)]: route() }, feedback: [], research: [] };
+  const r = amplifierRows({ context: ctx, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
+  assert.deepEqual(r.rows.filter(x => x.proposal.row === 'visibility').map(x => x.proposal.target), [id(96)]);
+  assert.ok(r.held.includes('no_channel'));
+  assert.equal(hasChannel(pm), false);
+  assert.equal(hasChannel({ hook: 'Writes a weekly newsletter for media operators.' }), true);
+});
+
+test('every row in a run carries a whole card within its limits, and a signal\'s card is said from what they wrote', () => {
+  const ctx = ampContext();
+  ctx.amplifier_candidates.forEach((c, i) => Object.assign(c, { email_inbound: i % 3, email_outbound: (i + 1) % 2, source_list: ['gmail_krish_mindmaker', 'phone_address_book'], known_since: '2021-02-01' }));
+  const r = amplifierRows({ context: ctx, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
+  assert.ok(r.rows.length >= 3);
+  for (const x of r.rows) assertCard(x.proposal.card, x.proposal.title);
+  const research = [{ request_id: 'engagers:x', kind: 'post_engagers', status: 'answered', answered_at: NOW, evidence: [engager('known-exec', 'Kim Known', 'COO, Example Media', 'My board asked what AI means for our managers. I had no good answer.', id(21))] }];
+  const posts = [{ request_id: 'posts:x', kind: 'posts', status: 'answered', answered_at: NOW, evidence: [{ url: POST_URL, title: 'Pat Writer: Founder' }] }];
+  const sig = signalRows({ context: { routes: { [id(21)]: route() }, feedback: [] }, research: [...research, ...posts], weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW }).rows[0].proposal;
+  assertCard(sig.card, 'signal');
+  assert.equal(sig.title, "Kim Known worried about AI on Pat Writer's post", 'never "on Pat Writer", always whose post');
+  assert.equal(sig.card.known, 'Already in your contacts. Control Center found them again through their public comment.');
+  assert.ok(sig.card.why[0].startsWith('They wrote on Pat Writer\'s post'));
+  assert.deepEqual(sig.card.sources, [{ label: "Their comment on Pat Writer's post", url: POST_URL }]);
+});
+
+test('a dispatch run reports 1.8.0 with the full card only where Control Center serves it, and 1.7.0 without it otherwise', async () => {
+  const policy = JSON.parse(await readFile(new URL('../config/policy.json', import.meta.url)));
+  for (const [served, expected] of [[['1.6.0', '1.7.0', '1.8.0'], '1.8.0'], [['1.6.0', '1.7.0'], '1.7.0']]) {
+    const reports = [];
+    const cc = { recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: served.at(-1), week_goals: GOALS }),
+      capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true } }),
+      context: async () => ({ ok: true, context: { schema_version: served.at(-1), engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }], records: { advisory: [] }, ...ampContext() } }),
+      decisions: async () => [], postReport: async rep => { reports.push(rep); return { replayed: false }; }, readReport: async () => reports.at(-1) };
+    const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: `gma-card-${expected.replace(/\./g, '')}-1234`, clock: () => NOW,
+      canonReader: async () => fullCanon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/rows.mjs', sha: 'b'.repeat(40) }] });
+    assert.equal(result.status, 'succeeded', expected);
+    assert.equal(reports[0].schema_version, expected);
+    const rows = reports[0].proposals.filter(p => p.row);
+    assert.ok(rows.length >= 3);
+    if (expected === '1.8.0') for (const p of rows) assertCard(p.card, p.title);
+    else assert.ok(rows.every(p => !('card' in p) && p.because && p.brief), '1.7.0 keeps the line and the brief and leaves the card off');
+  }
+});
+
+test('a signal whose headline cannot say who they are, whole, is held as a thin card', () => {
+  const research = [{ request_id: 'engagers:y', kind: 'post_engagers', status: 'answered', answered_at: NOW, evidence: [engager('thin-exec', 'Tam Thin', 'Chief of', 'My board asked what AI means for our managers. I had no good answer.', id(24))] }];
+  const r = signalRows({ context: { routes: { [id(24)]: route() }, feedback: [] }, research, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
+  assert.equal(r.rows.length, 0);
+  assert.deepEqual(r.held, ['thin_card']);
 });

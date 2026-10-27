@@ -1,4 +1,4 @@
-# The growth engine protocol, version 1.7.0
+# The growth engine protocol, version 1.8.0
 
 Every growth engine reports into Control Center through this one protocol, and Control Center pushes each engine its next move through it ([ADR-038](../../DECISIONS/038-one-protocol-for-growth-engines.md)). It replaces the per-engine receivers the handoffs asked for. The engines are:
 
@@ -19,7 +19,7 @@ Control Center only ever adds within 1.x: a new minor version adds fields, never
 
 - **Accept any 1.x** in what Control Center serves (the directive, capabilities, decisions), and ignore a field you do not know. Never require an exact version back.
 - **Send the version you speak.** `capabilities.schema_versions` lists every version Control Center takes; check that yours is in it.
-- **Raise yours only for a field you use.** 1.1.0 adds a proposal's `stage` and `parent_proposal_id`; 1.2.0 adds its `subject_ref`; 1.4.0 adds the North Star number and urgency to the directive (below), and nothing to the report. 1.5.0 adds `taste`, Krish's approved voice rules, to the directive (below), and nothing to the report. 1.6.0 adds a proposal's `row`, `rank`, `reach`, `amplifier_kind`, `features`, `serves` and `source_revision`, a version 2 action, 40 proposals a report, `week_goals` and `rows_rule` in the directive, `carried_out` and `reason_code` in a decision, and the research desk (below). 1.7.0 adds a row proposal's `because` and `brief`, which a row then carries, and `mindmake_fit`, `sells_competing_services`, `known_since`, `email_last` and `quiet_ties` in the context (the five rows, below).
+- **Raise yours only for a field you use.** 1.1.0 adds a proposal's `stage` and `parent_proposal_id`; 1.2.0 adds its `subject_ref`; 1.4.0 adds the North Star number and urgency to the directive (below), and nothing to the report. 1.5.0 adds `taste`, Krish's approved voice rules, to the directive (below), and nothing to the report. 1.6.0 adds a proposal's `row`, `rank`, `reach`, `amplifier_kind`, `features`, `serves` and `source_revision`, a version 2 action, 40 proposals a report, `week_goals` and `rows_rule` in the directive, `carried_out` and `reason_code` in a decision, and the research desk (below). 1.7.0 adds a row proposal's `because` and `brief`, which a row then needs, and the context's `mindmake_fit`, `sells_competing_services`, `known_since`, `email_last` and `quiet_ties` (below). 1.8.0 adds a row proposal's `card`, the full card a tap opens, which a row then needs, and the context's `email_inbound`, `email_outbound`, `source_list` and `last_post_at` (below).
 
 On 2026-10-19 Control Center began serving 1.1.0. Legibility required exactly 1.0.0 back from capabilities, and Mindmake from the directive, so both stopped on every run (`receiver_contract_mismatch`, `directive_invalid`) and reported nothing for two days. That is why this rule exists.
 
@@ -37,6 +37,7 @@ Each run, every engine does these five things, in this order:
 - Every day around 06:10 in London (the cron is `/api/growth/engines-dispatch` at 05:10 UTC), Control Center writes each active engine's directive.
 - Where dispatch is on, it also wakes the engine's repository with one `repository_dispatch` of type `cc-growth-directive`. The payload is `{ directive_id, engine_id }`, nothing else, and the engine pulls the rest with its own bearer.
 - An engine that does not run on GitHub Actions just pulls the directive at the start of its own run. The directive is the same either way.
+- Control Center may wake an engine again later the same day with the same payload (growth-mindmake, when a row of his widget runs low; at most once an hour). An engine treats it as another run of the same day: it pulls the directive again and reports with a new `run_id`.
 
 ## Auth
 
@@ -168,6 +169,28 @@ A proposal for his home screen carries, on top of 1.2.0:
 | `serves` | One of `week_goals`, word for word, or null |
 | `source_revision` | 1 to 8 `{ repo, path, sha }`: every file the words were written from, by its git blob SHA on the default branch. Before he acts, Control Center reads each SHA again; a file that moved or went makes the action stale (it shows the next one, and you write it again), and a repository it cannot read acts on nothing. It holds no venture fact itself |
 
+**Why him, why them (1.7.0).** Krish, 2026-10-27: "I have no idea whether I want to do those things or not. Or why I should do those things." At 1.7.0 a row proposal also carries, and needs:
+
+| Field | Meaning |
+|---|---|
+| `because` | 1 to 80 characters, the line under the title on his card (two lines of it): who they are and why them, so he can decide from the card alone ("Hosts a 6-year tech podcast. Known since 2021, last email Jun 2024."). With it, a 1.7.0 row's title is at most 56 characters, so both fit beside the presses whole |
+| `brief` | 2 to 6 lines of at most 200 characters, what he reads when he taps the card: who they are, how he knows them, why them, what a yes gets him (the goal), the reach and its basis, and the Mindmake fit. Control Center shows it above the exact words a press would carry out |
+
+A 1.6.0 row is still taken without them; its `why` stands in for the case.
+
+**The full card (1.8.0).** Krish, 2026-10-27: "I need to be fully in the know as to who they are, why I'm getting in touch with them, what benefit I would have, and what angles to take." At 1.8.0 a row proposal also carries, and needs, `card`, which a tap on the card opens in parts (the phone shows the 1.7.0 `brief` to an older app, so keep both, saying the same facts):
+
+| Part | Meaning |
+|---|---|
+| `who` | 1 to 320 characters: who they are and what their organisation does, from the record's `who` or their title and company |
+| `known` | 1 to 240: how he knows them, plainly: since when, through what (Gmail, LinkedIn connections, phone contacts), the emails each way and the last one. Never a claim the counts contradict ("You have written to each other" needs mail both ways) |
+| `why` | 1 to 3 whole sentences of at most 240: why them, and why now (their hook, their company's moment, a recent public post) |
+| `gain` | 1 to 3 whole sentences of at most 240: what he gets if they say yes, tied to the week goal it serves, a number only with its source |
+| `angles` | 1 to 3 `{ title, line }`: the angle to take, its title (at most 60) from the venture's own canon, its line (at most 240) tying that theme to this person |
+| `sources` | 0 to 6 `{ label, url }`: the public https pages the facts came from. Never a way to reach them: a LinkedIn profile, `mailto:`, `wa.me` or `tel:` link is refused |
+
+A card that cannot say who, why and what he gets is not one he can decide on: hold the suggestion and ask for the research that would fill it, rather than send a thin one. A 1.7.0 row is still taken without a card; the phone shows its brief.
+
 A row proposal is a prepared `send`, `stage: null` (Krish carries it out himself, so it is never a go-live the executor could send), with `subject_ref` set and `channel` equal to its action's. Its `title` is the line he reads on his phone, shown whole, so it is at most 72 characters of plain words. Its `exact_payload` is a **version 2 action**, with no address and no number: Control Center reads those from its own records when he presses.
 
 ```json
@@ -176,11 +199,13 @@ A row proposal is a prepared `send`, `stage: null` (Krish carries it out himself
 
 `channel` is `email` (a subject, up to 7,000 characters), `x_message` or `whatsapp` (up to 1,000, opened for him with the words typed), or `form` (`recipient_contact_id` null, `form: { url, answers: [{ label, value }] }`, 1 to 40 answers). The recipient may differ from `subject_ref`: an introduction goes to the mutual and is about the person they introduce. A 1.6.0 report may carry 40 proposals, a ranked queue for each row.
 
-**His answer.** From his home screen, Clear says how he carried it out (`carried_out`: `draft`, a Gmail draft he sends himself; `message`, a message app opened with the words typed; `submit`, a form submitted on his tap). Never send or submit a proposal he carried out; the shared executor refuses it (`carried_out_by_krish`), and Control Center reports the closing event when it sees it. Purge carries `reason_code` (`wrong_person`, `not_now`, `already_in_touch`, `too_small`, `wrong_audience`, `not_my_topic`, `pitch_off`, `other`) and his own words in `reason_text`: offer better, and do not offer that person, or anything like it on that reason, again. The context's `feedback` carries every past answer with the row, subject, `amplifier_kind`, `features` and `reach` it was about, so a reason can be applied to what is like it and what he taught is never forgotten.
+**His answer.** From his home screen widget, or from Clear on his one list (Krish, 2026-10-26: Clear on Home makes the draft too), the press carries it out and records how (`carried_out`: `draft`, a Gmail draft he sends himself; `message`, a message app opened with the words typed; `submit`, a form submitted on his tap). Never send or submit a proposal he carried out; the shared executor refuses it (`carried_out_by_krish`), and Control Center reports the closing event when it sees it. Purge carries `reason_code` (`wrong_person`, `not_now`, `already_in_touch`, `too_small`, `wrong_audience`, `not_my_topic`, `pitch_off`, `other`) and his own words in `reason_text`: offer better, and do not offer that person, or anything like it on that reason, again. The context's `feedback` carries every past answer with the row, subject, `amplifier_kind`, `features` and `reach` it was about, so a reason can be applied to what is like it and what he taught is never forgotten.
 
 **Context, 1.6.0** (Mindmake). On top of 1.3.0, `GET .../context` adds `amplifier_candidates` (up to 300 people on tiers 1 to 4 who read as reaching many, up to 200 close ties first and then 100 from the wider network, each by followers: a title tagged amplifier or multiplier, 5,000 followers or more, or a creator or influencer badge; a wide net, you judge), `routes` (per contact id, `{ email: verified|unchecked|none, x, linkedin, instagram, whatsapp }`, never the address; X only once the person's numeric X id is on file, since X's message link needs it; WhatsApp only for someone close), `companies` (`company_intel` for their domains), `research` (below; anyone a research row names, by `subject_ref` or as a commenter he already has, gets `routes` too) and `voices` (the people he follows for inspiration, as the content engine keeps them in `content_creators`: `{ slug, name, linkedin_url, why, last_post_url, last_post_at }`; who gathers under them is yours to find). Each part has its coverage line; a part that cannot be read says so and is never sent empty.
 
-**Reasons, 1.7.0** (Mindmake). Ruling (Krish, 2026-10-27): every row suggestion says who the person is, how he knows them and why them, ranked by Control Center's Mindmake fit, never by followers alone. At 1.7.0 a row proposal's `title` is at most 56 characters (two lines beside the presses; 72 at 1.6.0), and it carries `because` (1 to 80 characters, two lines of about 40 under the title, shown whole: who they are and why them in one clause, then how he knows them, never a cut word or an ellipsis) and `brief` (2 to 6 lines of at most 200 characters, the case a tap on the card opens: who they are, how he knows them, why them, what a yes gets him, reach with its basis, the Mindmake fit). Both are written from what Control Center holds; nothing is invented. The context adds, on `amplifier_candidates` and `network` rows, `mindmake_fit` (0 to 100 or null, Control Center's own score), `sells_competing_services`, `known_since` and `email_last`, and `quiet_ties`: close ties whose last email is over 90 days old, best fit first, up to 100, with their routes. Control Center ranks nothing: the engine leaves out a competitor and anyone under its fit floor.
+**Context, 1.7.0.** Every row of `network`, `amplifier_candidates` and the new `quiet_ties` carries `mindmake_fit` (Control Center's own read of how well the person fits Mindmake, 0 to 100, or null when unscored, never another venture's score), `sells_competing_services` (true when they sell what Mindmake sells), `known_since` and `email_last` (the date of the last email between them, the one record of contact Control Center keeps: `last_touch_at` is never written). `quiet_ties` is up to 100 close ties (`1_reciprocated`, `2_core_network`) whose last email is more than 90 days old, best fit first, with their `routes`. Control Center ranks none of it; which are worth his time is yours.
+
+**Context, 1.8.0.** The same rows also carry what the full card is written from: `email_inbound` and `email_outbound` (how many emails each way), `source_list` (where he knows them from, by source name: `gmail_*`, `linkedin_export`, `phone_address_book`, `instagram_export`, `meta_export`; never an address), `last_post_at`, and `intent_summary` on every row (it was on `amplifier_candidates` only). `who`, `why_them` and `hook` were there already.
 
 ### The research desk (1.6.0)
 
@@ -330,6 +355,6 @@ The states are `inactive`, `never_reported`, `healthy`, `held`, `degraded`, `fai
 | Each accepted live report | One `workflow_runs` row (`workflow_id` = `engine_id`, `agent_id` from the registry), so fleet health sees it |
 | A walled proposal | Home's one list, source `engine`, one per engine at a time and never beside Control Center's own copy of the same subject. Clear approves exactly that payload, Purge declines, Bump keeps it off until his next day (`api/_verbs.ts`, `actOnEngine`) |
 | An unwalled proposal | Growth > Engines, where he can pick it as tomorrow's push |
-| A row proposal (1.6.0) | His home screen widget, in the engine's rank within its row, and his one list like any walled proposal. What he carries out from the widget is recorded as `carried_out`; his No as `reason_code` |
+| A row proposal (1.6.0) | His home screen widget, in the engine's rank within its row, and his one list like any walled proposal. On either, the press carries it out (`api/_rowPress.ts`): a Gmail draft in his box, or a message app opened with the words typed, recorded as `carried_out`. His No is recorded with its `reason_code` |
 | Objectives, activity, holds | Growth > Engines |
 | Media and copy to review | Growth > Packs, until packs join this protocol |

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://controlcenter.krishraja.com/schemas/engine-report-1.0.0.json",
-  "title": "Growth engine report, protocol 1.7.0 (ADR-038)",
+  "title": "Growth engine report, protocol 1.8.0 (ADR-038)",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -25,9 +25,10 @@
         "1.4.0",
         "1.5.0",
         "1.6.0",
-        "1.7.0"
+        "1.7.0",
+        "1.8.0"
       ],
-      "description": "1.1.0 adds a proposal's stage and parent_proposal_id, 1.2.0 its subject_ref; an older report carrying a newer field is refused. 1.3.0 adds scoped context/outcome reads and exact action execution without changing report fields. 1.4.0 and 1.5.0 change only the directive. 1.6.0 adds a proposal's row, rank, reach, amplifier_kind, features, serves and source_revision, and allows 40 proposals (ENGINE-PROTOCOL.md, The five rows). 1.7.0 adds a row proposal's because and brief, which a row proposal then carries (ENGINE-PROTOCOL.md, The five rows)."
+      "description": "1.1.0 adds a proposal's stage and parent_proposal_id, 1.2.0 its subject_ref; an older report carrying a newer field is refused. 1.3.0 adds scoped context/outcome reads and exact action execution without changing report fields. 1.4.0 and 1.5.0 change only the directive. 1.6.0 adds a proposal's row, rank, reach, amplifier_kind, features, serves and source_revision, and allows 40 proposals (ENGINE-PROTOCOL.md, The five rows). 1.7.0 adds a row proposal's because and brief, which a row then needs. 1.8.0 adds a row proposal's card, the full card a tap opens, which a row then needs."
     },
     "engine_id": {
       "type": "string",
@@ -184,8 +185,7 @@
           },
           "title": {
             "type": "string",
-            "maxLength": 160,
-            "description": "On a row proposal: at most 72 characters at 1.6.0 and at most 56 at 1.7.0, where it sits beside the presses on two lines and the line under it says who they are."
+            "maxLength": 160
           },
           "why": {
             "type": "string",
@@ -482,7 +482,7 @@
             ],
             "minLength": 1,
             "maxLength": 80,
-            "description": "1.7.0: the line under the title on Krish's card, two lines of about 40 characters, shown whole: who they are and why them in one clause, then how he knows them. Never a cut word or an ellipsis. Required on a row proposal at 1.7.0."
+            "description": "1.7.0: the line under the title on his card, two lines of it: who they are and why them, in plain words. Required with row at 1.7.0, when the row's title is at most 56 characters."
           },
           "brief": {
             "type": [
@@ -496,7 +496,110 @@
               "minLength": 1,
               "maxLength": 200
             },
-            "description": "1.7.0: the case a tap on the card opens: who they are, how he knows them, why them, what a yes gets him, reach with its basis and the Mindmake fit. Required on a row proposal at 1.7.0."
+            "description": "1.7.0: the case he reads when he taps the card: who they are, how he knows them, why them, what a yes gets him, the reach and its basis. Required with row at 1.7.0."
+          },
+          "card": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "who",
+              "known",
+              "why",
+              "gain",
+              "angles",
+              "sources"
+            ],
+            "properties": {
+              "who": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 320,
+                "description": "Who they are and what their organisation does."
+              },
+              "known": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240,
+                "description": "How he knows them: since when, through what, the emails each way and the last one. Never a claim the counts contradict."
+              },
+              "why": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 3,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 240
+                },
+                "description": "Why them, and why now: whole sentences."
+              },
+              "gain": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 3,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 240
+                },
+                "description": "What he gets if they say yes, tied to the week goal it serves: whole sentences, numbers only with their source."
+              },
+              "angles": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 3,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "title",
+                    "line"
+                  ],
+                  "properties": {
+                    "title": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "line": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 240
+                    }
+                  }
+                },
+                "description": "The angles to take, each a short name from the venture's own canon and a line tying it to this person."
+              },
+              "sources": {
+                "type": "array",
+                "maxItems": 6,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "label",
+                    "url"
+                  ],
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "url": {
+                      "type": "string",
+                      "pattern": "^https://\\S+$",
+                      "maxLength": 2000
+                    }
+                  }
+                },
+                "description": "The public pages the facts came from. Never a profile or an address: a LinkedIn profile, mailto:, wa.me or tel: link is refused."
+              }
+            },
+            "description": "1.8.0: the full card a tap opens: who they are, how he knows them, why them now, what he gets and the angles to take, with the pages the facts came from (Krish, 2026-10-27). Required with row at 1.8.0."
           }
         }
       },
