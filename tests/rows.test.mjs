@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, readCanon, CanonError } from '../src/stages/canon.mjs';
-import { kindsOf, reachOf, countIn, lessons, refusedBy, amplifierRows, rankRows, score, fitTitle, channelOf, servesOf } from '../src/stages/rows.mjs';
+import { kindsOf, reachOf, countIn, lessons, refusedBy, amplifierRows, rankRows, score, fitTitle, channelOf, servesOf, fitHold, cleanName, lastContact, caseFor, titleFor, fitTitleWithin, FIT_FLOOR, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX_BRIEF } from '../src/stages/rows.mjs';
 import { icpOf, signalRequests, signalRows, isoWeek } from '../src/stages/signals.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
@@ -16,7 +16,7 @@ const FILES = [...canon.files, { repo: 'krishanraja/growth-mindmake', path: 'src
 const GOALS = ['Send the Mindmake one-pagers and offers to warm leads', 'Have a clear plan for driving partnerships and visibility for Mindmake'];
 
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-const person = (n, title, extra = {}) => ({ contact_id: id(n), network_tier: '2_core_network', current_title: title, followers: null, plays: [], roles: [], contacts: { id: id(n), full_name: `Avery Example${n}`, title, company: `Company ${n}`, company_domain: `c${n}.test`, status: 'active' }, ...extra });
+const person = (n, title, extra = {}) => ({ contact_id: id(n), network_tier: '2_core_network', current_title: title, followers: null, plays: [], roles: [], mindmake_fit: 60, sells_competing_services: false, contacts: { id: id(n), full_name: `Avery Example${n}`, title, company: `Company ${n}`, company_domain: `c${n}.test`, status: 'active' }, ...extra });
 const route = (email = 'verified', extra = {}) => ({ email, x: false, linkedin: true, instagram: false, whatsapp: false, ...extra });
 
 test('canon is read from the venture as it is today: the main ask, its link, the brain door and the Horizon, named by blob SHA', async () => {
@@ -80,7 +80,7 @@ const ampContext = extra => ({
     person(7, 'Host of Another Podcast'),
   ],
   routes: { [id(1)]: route(), [id(2)]: route('unchecked'), [id(3)]: route('none', { x: true }), [id(4)]: route(), [id(7)]: route('none') },
-  network: [{ contact_id: id(9), network_tier: '1_reciprocated', current_title: 'COO', contacts: { full_name: 'Robin Sample', status: 'active', last_touch_at: '2026-05-01T00:00:00Z' } }],
+  network: [{ contact_id: id(9), network_tier: '1_reciprocated', current_title: 'COO', mindmake_fit: 60, contacts: { full_name: 'Robin Sample', status: 'active', last_touch_at: '2026-05-01T00:00:00Z' } }],
   companies: [{ domain: 'c1.test', kind: 'Media' }],
   feedback: [], research: [], ...extra,
 });
@@ -241,6 +241,7 @@ test('a dispatch run against Control Center 1.6.0: the rows reach the report, re
   const printed = JSON.stringify(result);
   assert.equal(/Avery|Robin|Sam|Pat/.test(printed), false, 'the printed outcome carries counts, never a name');
   assert.equal(result.rows.prepared, rows.length);
+  assert.ok(rows.every(p => !('because' in p) && !('brief' in p)), 'a 1.6.0 Control Center gets the rows without their reasons');
 
   // Before Control Center reads rows, the engine reports as it always has.
   const older = []; const cc2 = { ...cc, capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, features: { context: true } }), postReport: async r => { older.push(r); return { replayed: false }; }, readReport: async () => older.at(-1) };
@@ -258,4 +259,131 @@ test('a canon that cannot be read holds every row and says why', async () => {
   await runDispatch({ cc, source: async () => ({}), policy, registry: {}, attemptId: 'gma-canon-held-1234', clock: () => NOW, canonReader: async () => { throw new CanonError('main_ask_unreadable'); } });
   assert.equal(reports[0].proposals.some(p => p.row), false);
   assert.ok(reports[0].holds.some(h => h.reason === 'main_ask_unreadable'));
+});
+
+// ── Reasons and fit (protocol 1.7.0, Ruling, Krish, 2026-10-27) ─────────────
+
+const host = (n, extra = {}) => person(n, `Host of Example Show ${n}`, extra);
+
+test('a competitor, and anyone under the fit floor or with no fit, is left out; fit outranks a bigger following', () => {
+  const ctx = { amplifier_candidates: [
+    host(31, { followers: 900000, mindmake_fit: FIT_FLOOR + 1 }),
+    host(32, { followers: 12000, mindmake_fit: 90 }),
+    host(33, { followers: 500000, sells_competing_services: true }),
+    host(34, { followers: 500000, mindmake_fit: FIT_FLOOR - 1 }),
+    host(35, { followers: 500000, mindmake_fit: null }),
+  ], routes: Object.fromEntries([31, 32, 33, 34, 35].map(n => [id(n), route()])), feedback: [], research: [] };
+  const r = amplifierRows({ context: ctx, weekGoals: GOALS, canon, files: FILES, at: NOW });
+  const ranked = rankRows(r.rows).kept.filter(p => p.row === 'visibility');
+  assert.deepEqual(ranked.map(p => p.target), [id(32), id(31)], 'fit 90 with 12,000 followers above fit 41 with 900,000');
+  assert.deepEqual(r.held.filter(h => h === 'competitor' || h === 'low_fit').sort(), ['competitor', 'low_fit', 'low_fit']);
+  assert.equal(fitHold({ mindmake_fit: FIT_FLOOR }), null, 'the floor itself is in');
+  assert.equal(fitHold({ mindmake_fit: 95, sells_competing_services: true }), 'competitor', 'a competitor is out whatever its fit');
+});
+
+test('who someone is also reads Control Center\'s hook and why_them, but a passing university is no teaching post', () => {
+  assert.deepEqual(kindsOf(person(61, 'Founder', { hook: 'Has run her own tech podcast for six years.' })), ['broadcaster']);
+  assert.deepEqual(kindsOf(person(62, 'Founder', { why_them: 'Met at Example University; now runs a retail group.' })), []);
+});
+
+test('NETWORK: quiet ties come first, last contact is the later of a touch and an email, and a tie with no date is skipped', () => {
+  const tie = (n, extra = {}, contacts = {}) => ({ contact_id: id(n), network_tier: '1_reciprocated', current_title: 'COO', current_company: `Example Co ${n}`, mindmake_fit: 70, known_since: '2019-05-01', email_last: null, ...extra, contacts: { full_name: `Robin Sample${n}`, status: 'active', last_touch_at: null, ...contacts } });
+  const ctx = {
+    quiet_ties: [tie(41, { email_last: '2025-03-04' }), tie(47, { email_last: '2025-01-10' })],
+    network: [
+      tie(47, { email_last: '2025-01-10' }),
+      tie(42, { email_last: '2026-10-01' }),
+      tie(43),
+      tie(44, { email_last: '2024-01-01' }, { last_touch_at: '2026-10-20T00:00:00Z' }),
+      tie(45, { email_last: '2024-01-01', mindmake_fit: 20 }),
+    ],
+    routes: Object.fromEntries([41, 42, 43, 44, 45, 47].map(n => [id(n), route()])), feedback: [], research: [],
+  };
+  const r = amplifierRows({ context: ctx, weekGoals: GOALS, canon, files: FILES, at: NOW });
+  const net = r.rows.filter(x => x.proposal.row === 'network').map(x => x.proposal);
+  assert.deepEqual(net.map(p => p.target).sort(), [id(41), id(47)], 'from quiet_ties, each once; recent, undated and a later touch are not quiet');
+  assert.ok(r.held.includes('low_fit'), 'a quiet tie under the floor is held');
+  assert.match(net.find(p => p.target === id(41)).because, /^A close tie gone quiet since Mar 2025\. COO at Example Co 41\.$/);
+  assert.equal(lastContact({ email_last: '2024-01-01', contacts: { last_touch_at: '2026-10-20T00:00:00Z' } }), Date.parse('2026-10-20T00:00:00Z'));
+  assert.equal(lastContact({ contacts: {} }), null);
+});
+
+test('every row says who they are, how he knows them and why them, inside its limits, and names lose their emoji', () => {
+  const ctx = ampContext();
+  ctx.amplifier_candidates.push(host(51, { followers: 60000, known_since: '2021-03-02', email_last: '2024-06-02', hook: 'Hosts a weekly show for media operators, plus a live event each spring.', contacts: { ...host(51).contacts, full_name: 'Jess Example⚡️', company: 'Spark Media⚡️' }, current_company: 'Spark Media⚡️' }));
+  ctx.routes[id(51)] = route();
+  ctx.routes[id(9)] = route('none', { whatsapp: true });
+  const r = amplifierRows({ context: ctx, weekGoals: GOALS, canon, files: FILES, at: NOW });
+  assert.ok(r.rows.length >= 5);
+  for (const p of r.rows.map(x => x.proposal)) {
+    assert.ok(typeof p.because === 'string' && p.because.length >= 1 && p.because.length <= BECAUSE_MAX, p.because);
+    assert.ok(Array.isArray(p.brief) && p.brief.length >= 2 && p.brief.length <= 6, JSON.stringify(p.brief));
+    for (const line of [p.because, ...p.brief]) {
+      assert.ok(line.length <= BRIEF_LINE_MAX);
+      assert.equal(line.includes(String.fromCharCode(8212)), false, 'no em dash');
+      assert.equal(/@|\+\d{6}/.test(line), false, 'never an address or a number');
+    }
+    assert.ok(p.brief.some(l => /^Mindmake fit \d+ of 100/.test(l)), 'the fit is said');
+    assert.ok(p.brief.some(l => /Known since|email/.test(l)), 'how he knows them is said');
+  }
+  const jess = r.rows.find(x => x.proposal.target === id(51)).proposal;
+  assert.equal(jess.because, 'Hosts a weekly show for media operators. Known since 2021, last email Jun 2024.');
+  assert.equal(/\p{Extended_Pictographic}/u.test(jess.title + JSON.parse(jess.exact_payload).body + jess.because), false, 'no emoji in the title, the words or the line');
+  assert.match(JSON.parse(jess.exact_payload).body, /^Hi Jess,/);
+  assert.equal(cleanName('Avery Example⚡️ '), 'Avery Example');
+  const told = caseFor({ c: { network_tier: '2_core_network' }, name: 'Avery Example', company: '', ask: 'introduce', kind: 'connector', reach: { band: 'unknown' }, fit: 50, serves: GOALS[0] });
+  assert.equal(told.because, 'No email on record.', 'with nothing else held, it says only what is known');
+  assert.ok(told.brief.includes(`The ask: one introduction to a leader working out what AI should do for them. It serves this week's goal: ${GOALS[0]}.`));
+});
+
+test('signal rows carry their reasons too: who they are and what they said in public', () => {
+  const research = [{ request_id: 'engagers:x', kind: 'post_engagers', status: 'answered', answered_at: NOW, evidence: [engager('known-exec', 'Kim Known', 'COO, Example Media', 'My board asked what AI means for our managers. I had no good answer.', id(21))] }];
+  const r = signalRows({ context: { routes: { [id(21)]: route() }, feedback: [] }, research, weekGoals: GOALS, canon, files: FILES, at: NOW });
+  const p = r.rows[0].proposal;
+  assert.equal(p.because, 'COO, Example Media. Worried in public about AI and their job.');
+  assert.ok(p.brief.some(l => l.startsWith("They wrote on ") || l.startsWith('They wrote in ')));
+  assert.ok(p.brief.length >= 2 && p.brief.every(l => l.length <= BRIEF_LINE_MAX));
+  assert.ok(p.brief.some(l => l.startsWith('They wrote in Oct 2026: "My board asked')));
+});
+
+test('a dispatch run against Control Center 1.7.0 reports 1.7.0, and every row carries its line and its brief', async () => {
+  const policy = JSON.parse(await readFile(new URL('../config/policy.json', import.meta.url)));
+  const reports = [];
+  const cc = { recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: '1.7.0', week_goals: GOALS }),
+    capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: ['1.6.0', '1.7.0'], features: { context: true, rows: true } }),
+    context: async () => ({ ok: true, context: { schema_version: '1.7.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }], records: { advisory: [] }, ...ampContext() } }),
+    decisions: async () => [], postReport: async r => { reports.push(r); return { replayed: false }; }, readReport: async () => reports.at(-1) };
+  const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-rows-17-123456', clock: () => NOW,
+    canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/rows.mjs', sha: 'b'.repeat(40) }] });
+  assert.equal(result.status, 'succeeded');
+  assert.equal(reports[0].schema_version, '1.7.0');
+  const rows = reports[0].proposals.filter(p => p.row);
+  assert.ok(rows.length >= 3);
+  assert.ok(rows.every(p => p.because && p.because.length <= BECAUSE_MAX && Array.isArray(p.brief) && p.brief.length >= 2 && p.brief.length <= 6));
+  assert.ok(rows.every(p => p.title.length <= TITLE_MAX_BRIEF && !p.title.includes('...')), 'at 1.7.0 a title fits two lines beside the presses');
+  assert.equal(/Avery|Robin/.test(JSON.stringify(result)), false, 'the printed outcome carries counts, never a name');
+});
+
+test('the card line is two lines at most and always whole; a 1.7.0 title is 56 at most and leaves the company to it', () => {
+  assert.equal(BECAUSE_MAX, 80);
+  assert.equal(TITLE_MAX_BRIEF, 56);
+  const long = {
+    current_title: 'Chief Executive Officer and Founding Partner', current_company: 'Example International Media Holdings Group',
+    network_tier: '2_core_network', known_since: '2018-04-01', email_last: '2025-09-09',
+    hook: 'Built and sold two regional broadcasting groups, then founded a network of executive dinners across eleven cities, which most of the leaders he would want now attend.',
+  };
+  const told = caseFor({ c: long, name: 'Bartholomew Longname-Example', company: long.current_company, ask: 'partner', kind: 'investor', reach: { band: 'unknown' }, fit: 80, serves: null });
+  assert.ok(told.because.length <= BECAUSE_MAX, told.because);
+  assert.equal(told.because.includes('...'), false, 'never an ellipsis');
+  assert.match(told.because, /^Built and sold two regional broadcasting groups\. Known since 2018\.$/, 'why them stays whole; the known line shortens');
+  for (const c of [{ ...long, hook: null }, { network_tier: '3_known_network' }, { ...long, hook: 'x'.repeat(300) }]) {
+    const b = caseFor({ c, name: 'Bartholomew Longname-Example', company: long.current_company, ask: 'introduce', kind: 'connector', reach: { band: 'unknown' }, fit: 80, serves: null }).because;
+    assert.ok(b.length >= 1 && b.length <= BECAUSE_MAX && !b.includes('...') && /[.!?]$/.test(b), b);
+  }
+  const title = titleFor('partner', 'investor', 'Bartholomew Longname-Example', long.current_company, TITLE_MAX_BRIEF);
+  assert.ok(title.length <= TITLE_MAX_BRIEF && !title.includes('...') && !title.includes(long.current_company), title);
+  assert.equal(titleFor('partner', 'investor', 'Hugo Example', 'Climate Example', TITLE_MAX_BRIEF), 'Offer Hugo Example a session for their leaders');
+  assert.equal(titleFor('partner', 'investor', 'Ann Lee', 'Acme', TITLE_MAX_BRIEF), 'Offer Ann Lee a session for their leaders', 'the company is left to the line under it even when it would fit');
+  assert.equal(titleFor('partner', 'investor', 'Hugo Example', 'Climate Example'), 'Offer Hugo Example at Climate Example a session for their leaders', '1.6.0 keeps the company');
+  assert.equal(fitTitleWithin(20, 'Ask Maximiliana Extraordinarily for one introduction'), 'Ask Maximiliana', 'cut at a word, never an ellipsis');
 });

@@ -88,14 +88,33 @@ channels with mass audiences on growing with AI. In the protocol these are
   guess.
 - **Rank.** `log10(reach) x fit x route x goal x closeness`: a million-strong
   channel ranks above a thousand-strong one by its logarithm, not by a
-  factor of a thousand. Fit is how directly the kind reaches leaders who
-  decide; route is the channel a note can take; goal is a match to one of his
-  week's goals, named word for word in `serves`.
+  factor of a thousand. Fit is Control Center's own Mindmake fit for the
+  person (0 to 100, `mindmake_fit`), never a guess from their title; route is
+  the channel a note can take; goal is a match to one of his week's goals,
+  named word for word in `serves`.
+- **Fit first** (Ruling, Krish, 2026-10-27: "I have no idea whether I want
+  to do those things or not. Or why I should do those things"). Anyone who
+  sells what Mindmake sells is left out, and so is anyone whose fit is under
+  40 (`FIT_FLOOR`) or not yet scored. The first live rows were ranked by
+  followers alone and put a 0-fit creator top of VISIBILITY and someone
+  Control Center itself called "not a buyer" top of PARTNERS.
+- **Every row says why** (protocol 1.7.0). `because` is the line under the
+  title on his card, at most 80 characters (two lines): who they are and why
+  them in one clause (Control Center's hook or why_them), then how he knows
+  them (known since a year, last email a month, or no email on record); when
+  both will not fit, why them stays whole and the known line shortens. The
+  title is then at most 56 characters and leaves the company to that line. `brief` is what a tap opens,
+  two to six lines: who, how he knows them, why them, the ask and the goal it
+  serves, reach with its basis, and the fit. Written in code from what
+  Control Center holds, never invented.
 - **The ask decides the row.** Partner (investors, AI-minded capital, AI
   trainers) is PARTNERS; an introduction (connectors) and a signal from a
   buyer are REACH OUT; an appearance (broadcasters) is VISIBILITY; a session
   (CEO and student educators) is EVENTS; a close tie gone quiet for 90 days is
-  NETWORK. Six a row at most, one person once.
+  NETWORK, read from Control Center's `quiet_ties` and its network, where the
+  last contact is the later of a recorded touch and the last email (Control
+  Center never wrote the touch, so NETWORK was empty until it read the
+  email). Six a row at most, one person once.
 - **Words.** One ask, in Krish's own name, British English, no invented
   familiarity, no em dash, and Mindmake only in its canon's own words. The
   canon is read live from `krishanraja/mindmake` on every run

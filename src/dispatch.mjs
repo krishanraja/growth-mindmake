@@ -13,7 +13,7 @@ import { plan } from './orchestrator.mjs';
 import { enginePlan } from './engine.mjs';
 import { validateStrategicRead, strategicPlan, outcomeScorecard } from './strategy.mjs';
 import { readVoice } from './stages/draft.mjs';
-import { amplifierRows, rankRows, ROWS } from './stages/rows.mjs';
+import { amplifierRows, rankRows, ROWS, TITLE_MAX, TITLE_MAX_BRIEF } from './stages/rows.mjs';
 import { signalRequests, signalRows } from './stages/signals.mjs';
 import { readCanon, blobSha, CanonError } from './stages/canon.mjs';
 
@@ -121,9 +121,11 @@ export function objectiveReadings({ at, activatedOn = null }) {
 
 const intOrNull = v => Number.isInteger(v) && v >= 0 ? v : null;
 const part = (v, keys) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(keys.map(k => [k, intOrNull(v[k])])) : null;
-/** The version this engine sends: 1.2.0 for subject_ref, and 1.6.0 once Control Center reads rows. */
+/** The version this engine sends: 1.2.0 for subject_ref, 1.6.0 once Control Center reads rows, 1.7.0 once it shows their reasons. */
 export const SCHEMA_VERSION = '1.2.0';
 export const ROWS_VERSION = '1.6.0';
+/** 1.7.0: each row carries the line under its title (because) and the brief a tap opens. */
+export const BRIEF_VERSION = '1.7.0';
 /** The engine files row words are written from, named in every row's source_revision. */
 export const ENGINE_REPO = 'krishanraja/growth-mindmake';
 export const WORD_FILES = ['src/stages/rows.mjs', 'src/stages/signals.mjs'];
@@ -314,7 +316,9 @@ const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.s
  * collect (at most two rounds of ten, inside its daily caps); a synthetic run
  * asks for nothing. Counts only leave this function for the printed outcome.
  */
-export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles }) {
+export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, briefs = false }) {
+  // 1.7.0: the title shares the card with the line under it, so it is shorter.
+  const titleMax = briefs ? TITLE_MAX_BRIEF : TITLE_MAX;
   const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0 };
   let canon, files;
   try { canon = await canonReader(); files = [...canon.files, ...await wordFiles()]; }
@@ -324,7 +328,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   }
   let ctx = context;
   let research = Array.isArray(ctx.research) ? [...ctx.research] : [];
-  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at });
+  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax });
   if (mode === 'live' && capabilities?.features?.research === true) {
     let pending = [...signalRequests({ voices: ctx.voices, research, at }), ...amplifiersFirst.research].slice(0, 10);
     for (let round = 0; round < 2 && pending.length; round++) {
@@ -345,8 +349,8 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
       catch { holds.push({ reason: 'context_reread_unavailable', detail: 'People found this run get their row on the next run.' }); }
     }
   }
-  const amplifiers = ctx === context ? amplifiersFirst : amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at });
-  const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at });
+  const amplifiers = ctx === context ? amplifiersFirst : amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax });
+  const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax });
   const { kept, dropped } = rankRows([...amplifiers.rows, ...signals.rows]);
   const proposals = kept.map(finishProposal);
   counts.prepared = proposals.length;
@@ -488,11 +492,14 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     let schema_version = SCHEMA_VERSION;
     if (suppliedContext && capabilities?.features?.rows === true && Array.isArray(capabilities.schema_versions) && capabilities.schema_versions.includes(ROWS_VERSION)) {
       phase = 'rows';
-      schema_version = ROWS_VERSION;
-      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles });
+      // 1.7.0 only where Control Center serves it; an older one gets the rows without their reasons.
+      const briefs = capabilities.schema_versions.includes(BRIEF_VERSION);
+      schema_version = briefs ? BRIEF_VERSION : ROWS_VERSION;
+      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, briefs });
+      const shown = briefs ? rows.proposals : rows.proposals.map(({ because, brief, ...p }) => p);
       const room = Math.max(0, 40 - mapped.proposals.length);
-      mapped.proposals.push(...rows.proposals.slice(0, room));
-      if (rows.proposals.length > room) holds.push({ reason: 'row_cap', detail: `${rows.proposals.length - room} more row actions wait for a later run; a report carries at most 40.` });
+      mapped.proposals.push(...shown.slice(0, room));
+      if (shown.length > room) holds.push({ reason: 'row_cap', detail: `${shown.length - room} more row actions wait for a later run; a report carries at most 40.` });
       holds.push(...rows.holds); activity.push(...rows.activity);
       outcome.rows = rows.counts;
     }

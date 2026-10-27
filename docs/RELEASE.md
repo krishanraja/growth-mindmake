@@ -1,5 +1,9 @@
 # Release state
 
+## Rows he can decide on (protocol 1.7.0), 27 October 2026
+
+Built and tested locally; a pull request, not merged or deployed. Rows rank by Control Center's Mindmake fit, leave out competitors and anyone under fit 40, and fill NETWORK from the last email. Every row carries `because` (at most 80 characters, whole) and `brief` at 1.7.0 only, with a title of at most 56; an older Control Center gets the rows without them. Live only once Control Center serves 1.7.0 and a run reports with it; a card he acts on is the outcome, not this record.
+
 ## Trusted distribution implementation, 22 October 2026
 
 Built locally across the producer and Control Center shared protocol. Adds
