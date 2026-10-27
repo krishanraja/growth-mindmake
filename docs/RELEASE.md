@@ -1,8 +1,12 @@
 # Release state
 
+## Speaking pitches on EVENTS for Jonny's Gmail (protocol 1.9.0), 27 October 2026
+
+Built and tested locally; a pull request. Stages to speak on (conferences, calls for papers, speaking slots, webinars and panels) whose own page gives an address for speakers, open and before their deadline, become 1.9.0 events rows naming Jonny's box and the stage (`target:<id>`), one ask (a talk or a panel seat) with one talk title, in Jonny's voice from the same live reads as a podcast pitch. Ten a run between podcasts and stages; stages keep up to four. Holds are counted as `speak_<reason>`. Needs Control Center's 1.9.0 with Jonny on events (krishanraja/control-center#575); until it serves 1.9.0 nothing is written. No live run yet.
+
 ## Podcast pitches for Jonny's Gmail (protocol 1.9.0), 27 October 2026
 
-Built and tested locally; a pull request. Up to ten pitches a run to podcasts Control Center holds with an address the show publishes for itself, each a 1.9.0 visibility row naming Jonny's box and the show (`target:<id>`), in Jonny's voice for Krish, from the canon and krishraja.com's own receipts read live; a show already drafted or answered, quiet for 120 days, applied, rejected, buried, his own, or ruled out by a No is held and counted. Reported only where Control Center serves 1.9.0 (`pitch_needs_1_9_0` otherwise), so merging before Control Center deploys changes nothing. Control Center drafts them into Jonny's Gmail; the engine never drafts or sends. Also the round-2 leftovers: no honorific in a title, a partner email names who they back, no false "no email on record", the `signal_noise` slug. Live once Control Center serves 1.9.0 and the next run reports.
+Merged (krishanraja/growth-mindmake#17). Up to ten pitches a run to podcasts Control Center holds with an address the show publishes for itself, each a 1.9.0 visibility row naming Jonny's box and the show (`target:<id>`), in Jonny's voice for Krish, from the canon and krishraja.com's own receipts read live; a show already drafted or answered, quiet for 120 days, applied, rejected, buried, his own, or ruled out by a No is held and counted. Reported only where Control Center serves 1.9.0 (`pitch_needs_1_9_0` otherwise), so merging before Control Center deploys changes nothing. Control Center drafts them into Jonny's Gmail; the engine never drafts or sends. Also the round-2 leftovers: no honorific in a title, a partner email names who they back, no false "no email on record", the `signal_noise` slug. Live once Control Center serves 1.9.0 and the next run reports.
 
 ## Card words round 2, 27 October 2026
 
