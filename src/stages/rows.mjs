@@ -366,8 +366,56 @@ export const CARD_ANGLE_TITLE_MAX = 60;
 export const CARD_SOURCES = 6;
 /** A card never carries a way to reach someone: Control Center refuses a profile, an address or a number. */
 export const NOT_A_SOURCE = /linkedin\.com\/in\/|mailto:|wa\.me\/|tel:/i;
-/** A channel someone owns, named in their own record. Followers alone are an audience, not a channel. */
-export const CHANNEL = /\b(podcasts?|newsletters?|youtube|substack|tv show|radio show|show|shows|publication|magazine|blog|column|columnist|editor|editor-in-chief|host of|hosts|presenter|anchor|journalist)\b/i;
+// ── Facts, not notes (the first live 1.8.0 run, 2026-10-27) ─────────────────
+// The record's prose was written for other jobs: Control Center's judge left
+// notes on what it could not find and on whether someone is a buyer or a
+// vendor, and the guest scout wrote hooks as prompts for an interviewer. A card
+// he decides from says only the facts: a judge's note or an instruction is
+// dropped, and a prompt is cut back to the fact before it.
+
+/** Control Center's own judging prose, not a reason: what is missing, or whether they are a buyer, partner or vendor. */
+export const JUDGE_NOTE = /\b(there (?:is|are) no|no recent|in the provided data|not available|no readable|rather than an?\b|prospective (?:partner|vendor|client|buyer)|potential (?:technology )?partner|direct client|primary buyer|partner or vendor)/i;
+/** An instruction to whoever writes the note, never a fact about them. */
+export const INSTRUCTION = /\b(reference a specific|if one is known|if known|if any is known)\b/i;
+/** Where a fact turns into a prompt for the interviewer: "…, worth asking him to unpack on the podcast." */
+export const PROMPT_CUT = /,?\s+(?:which is\s+)?(?:worth\s+(?:asking|comparing|referencing|discussing|exploring|raising|mentioning|probing|digging)|could make for a good|would make (?:for )?a good|makes for a good|ask(?:ing)?\s+(?:him|her|them)\b)/i;
+
+/** One sentence as a fact he can read: the part before a prompt, or '' for a judge's note, an instruction, a slug or a fragment that ends on a joiner. */
+export function factOf(sentence) {
+  const t = plain(sentence).replace(/[.!?]+$/, '');
+  if (!t || JUDGE_NOTE.test(t) || INSTRUCTION.test(t) || SLUG.test(t)) return '';
+  const fact = t.split(PROMPT_CUT)[0].replace(/[,;:\s]+$/, '');
+  return fact.length >= 12 && endsWhole(fact) ? fact : '';
+}
+/** Up to `n` facts from a text, in order, that fit `max` together, each a whole sentence with its full stop; a note or an instruction is passed over. */
+export function leadFacts(value, max, n = 1) {
+  const out = [];
+  for (const s of sentences(value)) {
+    const f = factOf(s);
+    if (!f) continue;
+    const next = [...out, `${f}.`].join(' ');
+    if (next.length > max) break;
+    out.push(`${f}.`);
+    if (out.length === n) break;
+  }
+  return out.join(' ');
+}
+
+// A channel someone owns, named in their own record. Followers alone are an
+// audience, not a channel, and a hook that says "worth asking on the podcast"
+// means his podcast, not theirs: only a record saying they host, run, write or
+// present it counts (the first live run offered a CMO with a profile following
+// because "podcast" and "shows up" appeared in prompts).
+const MEDIA = '(?:podcasts?|newsletters?|youtube channel|youtube|substack|(?:a|the|own|weekly|daily|tv|radio|talk)\\s+shows?|publications?|magazines?|blogs?|columns?|vodcasts?|webcasts?|video series)';
+/** The ways a record says someone owns a channel. */
+export const OWNS_CHANNEL = [
+  new RegExp(`\\b(?:hosts?|hosted|co-hosts?|co-hosted|runs|ran|presents|presented|publishes|published|writes|wrote|edits|edited|founded|launched|produces|produced|started)\\b[^.|]{0,60}?\\b${MEDIA}\\b`, 'i'),
+  new RegExp(`\\b(?:his|her|their)\\s+(?:own\\s+|weekly\\s+|daily\\s+|monthly\\s+)?(?:${MEDIA}|shows?)\\b`, 'i'),
+  /\b(?:[Hh]ost|[Cc]o-host|[Pp]resenter|[Ee]ditor|[Ee]ditor-in-chief|[Pp]ublisher|[Cc]olumnist|[Jj]ournalist|[Aa]nchor)\s+(?:of|at)\s+(?:[Tt]he\s+)?\p{Lu}/u,
+  /\b(?:[Rr]uns|[Ff]ounded|[Ll]aunched|[Pp]ublishes|[Ee]dits|[Hh]osts)\s+(?:The\s+)?\p{Lu}[\w'&-]*(?:\s+\p{Lu}[\w'&-]*)*\s+(?:Weekly|Daily|Report|Review|Journal|Times|Post|Show|Podcast|Newsletter|Digest|Brief|Letter)\b/u,
+];
+/** A role that is itself a channel: their title says they host, present, edit or report. */
+const MEDIA_ROLE = /\b(host|co-host|presenter|editor|editor-in-chief|columnist|journalist|anchor|podcaster|broadcaster)\b/i;
 
 /** Record prose as he reads it: no em or en dash, no space before a comma, no doubled commas. */
 export function plain(value) {
@@ -397,9 +445,11 @@ export function leadSentences(value, max, n = 1) {
   }
   return out.join(' ');
 }
-/** Whether their record names a channel they own (a podcast, newsletter, show, publication). */
+/** Whether their record names a channel they own (a podcast, newsletter, show, publication), read only from the facts before any prompt. */
 export function hasChannel(c) {
-  return CHANNEL.test([c?.who, c?.hook, c?.why_them, c?.headline, c?.current_title, c?.contacts?.title].filter(x => typeof x === 'string').join(' | '));
+  const facts = [c?.who, c?.hook, c?.why_them].filter(x => typeof x === 'string').flatMap(t => sentences(t).map(x => x.split(PROMPT_CUT)[0]));
+  const titles = [c?.current_title, c?.contacts?.title, c?.headline].filter(x => typeof x === 'string');
+  return facts.some(f => OWNS_CHANNEL.some(re => re.test(f))) || titles.some(t => MEDIA_ROLE.test(t) || OWNS_CHANNEL.some(re => re.test(t)));
 }
 const countOf = v => Number.isInteger(v) && v >= 0 ? v : null;
 const times = n => n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`;
@@ -448,44 +498,65 @@ export function whyLines(c, { ask, quietSince, company, profile, at }) {
   const lines = [];
   const add = s => { if (s && s.length <= CARD_LINE_MAX && !lines.some(l => l.slice(0, 40).toLowerCase() === s.slice(0, 40).toLowerCase())) lines.push(s); };
   if (ask === 'relationship' && quietSince) add(`A close tie, and nothing between you since ${quietSince}.`);
-  add(leadSentences(c?.hook, CARD_LINE_MAX));
-  add(leadSentences(c?.why_them, CARD_LINE_MAX));
-  if (company?.why_now) add(leadSentences(company.why_now, CARD_LINE_MAX));
+  add(leadFacts(c?.hook, CARD_LINE_MAX));
+  add(leadFacts(c?.why_them, CARD_LINE_MAX));
+  if (company?.why_now) add(leadFacts(company.why_now, CARD_LINE_MAX));
   // A recent public post about AI is a reason now; selling AI is not his buyer's signal.
   const [stance, ...rest] = String(c?.intent_summary ?? '').split(/\s+[\u2014\u2013-]\s+/);
   const posted = Date.parse(c?.last_post_at ?? '');
   if (rest.length && AI_WORDS.test(c.intent_summary) && !/^selling\b/i.test(stance.trim()) && Number.isFinite(posted) && Date.parse(at) - posted <= 120 * DAYS) {
-    const said = leadSentences(rest.join(' - '), CARD_LINE_MAX - 30);
+    const said = leadFacts(rest.join(' - '), CARD_LINE_MAX - 30);
     if (said) add(`They posted in ${monthYear(c.last_post_at)}: ${said}`);
   }
-  for (const s of sentences(profile).slice(1)) add(endsWhole(s) && !SLUG.test(s) ? `${s}.` : '');
+  for (const s of sentences(profile).slice(1)) { const f = factOf(s); add(f ? `${f}.` : ''); }
   return lines.slice(0, CARD_LINES);
 }
 
-/** What a yes gets him, by the ask, then the goal it serves word for word. Numbers only where sourced. */
-export function gainLines({ ask, kind, name, reach, fit, serves }) {
+/** A reach that counts the people a session would be for: members, a portfolio, attendees, learners. */
+export const GATHERED = /\b(members?|portfolio|compan(?:y|ies)|founders?|attendees?|leaders?|chief executives|ceos?|executives?|students?|learners?|alumni|delegates?)\b/i;
+/** A reach that counts a channel's audience: listeners, subscribers, viewers, readers. */
+export const AUDIENCE = /\b(listeners?|subscribers?|viewers?|readers?|downloads?|audience)\b/i;
+/** Their reach in its own words, never as the room a yes puts him in: "Example Board reaches 52,000,000 people…", "Avery has 1,000 to 10,000 followers…". */
+export function reachSentence(reach, name, company) {
+  const rp = reachPhrase(reach);
+  if (!rp) return '';
+  return within(/\bfollowers?\b/i.test(reach?.basis ?? '') ? `${first(name)} has ${rp}.` : `${company || first(name)} reaches ${rp}.`);
+}
+
+/** What a yes gets him, by the ask, then the goal it serves word for word. Numbers only where sourced, and each said as what it is. */
+export function gainLines({ ask, kind, name, reach, fit, serves, company = '' }) {
   const rp = reachPhrase(reach);
   const f = first(name);
+  const basis = reach?.basis ?? '';
+  const theirs = reachSentence(reach, name, company);
+  // A number goes in the line only when it counts that room; otherwise it is its own sentence.
+  const room = (line, counts) => rp && counts.test(basis) ? [within(`${line}: ${rp}.`) || `${line}.`] : [`${line}.`, theirs];
   const lead = {
-    introduce: () => [`One introduction from ${f} puts you in front of a leader working out what AI should do for them, the buyer Mindmake serves.`, rp ? `Their network: ${rp}.` : ''],
+    introduce: () => [`One introduction from ${f} puts you in front of a leader working out what AI should do for them, the buyer Mindmake serves.`, theirs],
     relationship: () => [`A warm catch-up with a close tie Control Center scores ${fit} of 100 for Mindmake fit; it can turn into an advisory conversation.`],
-    appear: () => [within(`A guest spot in front of their audience${rp ? `: ${rp}` : ''}.`) || 'A guest spot in front of their audience.'],
-    teach: () => { const who = kind === 'student_educator' ? 'students' : 'leaders'; return [within(`A session in front of their ${who}${rp ? `: ${rp}` : ''}.`) || `A session in front of their ${who}.`]; },
+    appear: () => rp && AUDIENCE.test(basis) && !/\bfollowers?\b/i.test(basis) ? room('A guest spot in front of their audience', AUDIENCE) : ['A guest spot on their channel.', theirs],
+    teach: () => room(`A session in front of their ${kind === 'student_educator' ? 'students' : 'leaders'}`, GATHERED),
     partner: () => kind === 'ai_trainer'
-      ? [within(`A partner in front of the people they train${rp ? `: ${rp}` : ''}.`) || 'A partner in front of the people they train.']
-      : [within(`A working session in front of the leaders they back or gather${rp ? `: ${rp}` : ''}.`) || 'A working session in front of the leaders they back or gather.'],
+      ? room('A partner in front of the people they train', GATHERED)
+      : room(`A working session for the leaders ${company ? `${company} backs or gathers` : 'they back or gather'}`, GATHERED),
     signal: () => ['A reply to someone who has said in public they have the problem Mindmake works on.'],
   }[ask]?.() ?? [];
   const goal = serves ? within(`It serves this week's goal: ${serves.replace(/[.!?]+$/, '')}.`) : '';
   return [...lead.map(l => within(l)).filter(Boolean).slice(0, CARD_LINES - (goal ? 1 : 0)), ...(goal ? [goal] : [])];
 }
 
-/** What he can open on, from their record: the fact before a "worth asking", lower-cased only where it starts with a pronoun or an article. */
-export function openerOf(c, company) {
-  const s = sentences(c?.hook ?? c?.why_them)[0] ?? '';
-  const fact = s.split(/,?\s+(?:worth|which is worth|ask(?:ing)?\s+(?:him|her|them)\b)/i)[0].replace(/[,;:\s]+$/, '');
-  if (fact && fact.length <= 140 && endsWhole(fact) && !SLUG.test(fact)) return /^(His|Her|Their|The|A|An|Its)\b/.test(fact) ? lower1(fact) : fact;
-  return company ? `their work at ${company}` : '';
+/** The fact from their record he can open with: the first one before any prompt, or '' when the record has none. */
+export function openerOf(c) {
+  for (const s of [...sentences(c?.hook), ...sentences(c?.why_them)]) {
+    const f = factOf(s);
+    if (f && f.length <= 160) return f;
+  }
+  return '';
+}
+/** How to open, as a sentence that always reads: the fact quoted whole, else their work at the company, else nothing. */
+export function openLine(c, company) {
+  const fact = openerOf(c);
+  return fact ? `Open with what you know: ${fact}.` : company ? `Open with their work at ${company}.` : '';
 }
 
 /**
@@ -495,9 +566,10 @@ export function openerOf(c, company) {
  */
 export function angleLines({ ask, kind, name, c, company, canon }) {
   const f = first(name);
-  const open = openerOf(c, company);
+  const open = openLine(c, company);
   const site = canon?.site ?? {};
-  const brain = { title: 'Build your AI brain', line: within(`${open ? `Open on ${open}. ` : ''}Then the brain door, in the site's words: "${canon.brain}"`) || `The brain door, in the site's words: "${canon.brain}"` };
+  // The fact to open with matters more than the quote: when both will not fit, the quote gives way.
+  const brain = { title: 'Build your AI brain', line: within(`${open ? `${open} ` : ''}Then the brain door, in the site's words: "${canon.brain}"`) || (open ? within(`${open} Then the brain door.`) : '') || `The brain door, in the site's words: "${canon.brain}"` };
   const intern = site.headline && site.problem && site.answer ? { title: site.headline.replace(/[.!?]+$/, ''), line: within(`Ask how ${f} uses AI today, then the site's two lines: "${site.problem}" "${site.answer}"`) } : null;
   const revenue = site.revenue ? { title: site.revenue.label, line: within(`For the companies they back or run, in the site's words: "${site.revenue.line}"`) } : null;
   const publication = { title: canon.publication.name, line: within(`Point them to ${canon.publication.name} first, at ${canon.publication.url}, so they know what you write before they say yes.`) };
@@ -519,6 +591,10 @@ export function angleLines({ ask, kind, name, c, company, canon }) {
   return out.slice(0, CARD_LINES);
 }
 
+/** At most this many research pages on one card. */
+export const RESEARCH_PAGES = 4;
+/** A page's site as he would say it: "example.org". */
+export function hostOf(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } }
 /** Where the card's facts came from: public pages only, deduped, never a profile or an address. */
 export function sourceLinks({ reach, research = [], id, domain, company, extra = [] }) {
   const out = [];
@@ -528,8 +604,15 @@ export function sourceLinks({ reach, research = [], id, domain, company, extra =
     if (l) out.push({ label: l, url });
   };
   if (reach?.source_url) add(`Reach: ${reach.basis}${reach.as_of ? `, ${reach.as_of.slice(0, 10)}` : ''}`, reach.source_url);
+  // Each research page by its own title, else its site: "Research, 2026-10-27" five times told him nothing.
+  let pages = 0;
   for (const r of research.filter(r => r?.subject_ref === `contact:${id}` && r.status === 'answered')) {
-    for (const e of Array.isArray(r.evidence) ? r.evidence : []) add(e?.title ? `Research: ${e.title}` : `Research, ${String(r.answered_at ?? '').slice(0, 10)}`, e?.url);
+    for (const e of Array.isArray(r.evidence) ? r.evidence : []) {
+      if (pages >= RESEARCH_PAGES) break;
+      const before = out.length;
+      add(typeof e?.title === 'string' && e.title.trim() ? e.title : hostOf(e?.url), e?.url);
+      if (out.length > before) pages += 1;
+    }
   }
   for (const e of extra) add(e.label, e.url);
   if (typeof domain === 'string' && /^(?=.{4,253}$)([a-z0-9-]+\.)+[a-z]{2,}$/i.test(domain)) add(`${company || domain} website`, `https://${domain.toLowerCase()}`);
@@ -547,9 +630,9 @@ export function profileOf(research, id) {
  */
 export function cardFor({ c, id, name, title, company, ask, kind, reach, fit, serves, canon, research = [], companyRow = null, quietSince = null, at, extraSources = [] }) {
   const profile = profileOf(research, id);
-  const who = leadSentences(titleCase(plain(c?.who)), CARD_WHO_MAX, 2) || leadSentences(profile?.answer, CARD_WHO_MAX, 1) || wholeRole(title, company, CARD_WHO_MAX);
+  const who = leadSentences(titleCase(plain(c?.who)), CARD_WHO_MAX, 2) || leadFacts(profile?.answer, CARD_WHO_MAX, 1) || wholeRole(title, company, CARD_WHO_MAX);
   const why = whyLines(c, { ask, quietSince, company: companyRow, profile: profile?.answer, at });
-  const gain = gainLines({ ask, kind, name, reach, fit, serves });
+  const gain = gainLines({ ask, kind, name, reach, fit, serves, company });
   if (!who || !why.length || !gain.length) return null;
   const angles = angleLines({ ask, kind, name, c, company, canon });
   if (!angles.length) return null;
