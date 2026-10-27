@@ -184,7 +184,8 @@
           },
           "title": {
             "type": "string",
-            "maxLength": 160
+            "maxLength": 160,
+            "description": "On a row proposal: at most 72 characters at 1.6.0 and at most 56 at 1.7.0, where it sits beside the presses on two lines and the line under it says who they are."
           },
           "why": {
             "type": "string",
@@ -480,8 +481,8 @@
               "null"
             ],
             "minLength": 1,
-            "maxLength": 140,
-            "description": "1.7.0: the line under the title on Krish's card, shown whole: who they are, why them and how he knows them, from what Control Center holds. Required on a row proposal at 1.7.0."
+            "maxLength": 80,
+            "description": "1.7.0: the line under the title on Krish's card, two lines of about 40 characters, shown whole: who they are and why them in one clause, then how he knows them. Never a cut word or an ellipsis. Required on a row proposal at 1.7.0."
           },
           "brief": {
             "type": [

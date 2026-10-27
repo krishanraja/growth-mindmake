@@ -21,8 +21,10 @@ export const PER_ROW = 6;
 export const TITLE_MAX = 72;
 /** Ruling (Krish, 2026-10-27): ranked by Control Center's Mindmake fit (0 to 100), never by followers alone; under this, or unknown, is left out. */
 export const FIT_FLOOR = 40;
-/** The line under the title on his card (protocol 1.7.0), and the lines of the brief a tap opens. */
-export const BECAUSE_MAX = 140;
+/** The line under the title on his card (protocol 1.7.0, two lines of about 40 characters), and the lines of the brief a tap opens. */
+export const BECAUSE_MAX = 80;
+/** At 1.7.0 the title sits beside the presses on two serif lines, and the line under it says who they are. */
+export const TITLE_MAX_BRIEF = 56;
 export const BRIEF_LINE_MAX = 200;
 
 /** The ask decides the row. */
@@ -180,6 +182,14 @@ const cutAt = (s, max) => { const t = clean(s); if (t.length <= max) return t; c
 const lower1 = s => s.charAt(0).toLowerCase() + s.slice(1);
 /** The first title that fits his phone whole. */
 export function fitTitle(...options) { return options.map(clean).find(t => t && t.length <= TITLE_MAX) ?? cutAt(options.at(-1), TITLE_MAX); }
+/** The first title within `max`, else the last one cut at a word, never mid-word and never with an ellipsis. */
+export function fitTitleWithin(max, ...options) {
+  const found = options.map(clean).find(t => t && t.length <= max);
+  if (found) return found;
+  const last = clean(options.at(-1) ?? '');
+  const room = last.slice(0, max + 1);
+  return room.length <= max ? room : room.slice(0, room.lastIndexOf(' ') > 0 ? room.lastIndexOf(' ') : max).replace(/[\s,;:'-]+$/, '');
+}
 
 /** A name or company as he would write it: no emoji, pictographs or symbols ("Jess Ramos⚡️" is Jess Ramos). */
 export function cleanName(value) {
@@ -204,6 +214,17 @@ export function clause(value, max) {
   const at = Math.max(...[', ', '; ', ' and ', ' plus ', ' with ', ' who ', ' which '].map(m => room.lastIndexOf(m)));
   return at >= 30 ? `${room.slice(0, at).replace(/[,;:]+$/, '')}.` : cutAt(sentence, max);
 }
+/** Like clause, but whole: a sentence or a part of one ending at a comma, "and" or a word, with a full stop and never an ellipsis. Empty when nothing of at least 15 characters fits. */
+export function wholeClause(value, max) {
+  const t = clean(value ?? '');
+  if (!t || max < 16) return '';
+  const sentence = (t.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? t).replace(/[.!?]+$/, '');
+  if (sentence.length + 1 <= max) return `${sentence}.`;
+  const room = sentence.slice(0, max - 1);
+  const at = Math.max(...[', ', '; ', ' and ', ' plus ', ' with ', ' who ', ' which '].map(m => room.lastIndexOf(m)));
+  const cut = at >= 15 ? at : room.lastIndexOf(' ');
+  return cut >= 15 ? `${room.slice(0, cut).replace(/[\s,;:'-]+$/, '')}.` : '';
+}
 /** The last word on a line he reads: never longer than its place allows. */
 export function cutClean(value, max) { return cutAt(value, max); }
 const TIE_WORDS = { '1_reciprocated': 'You have written to each other before', '2_core_network': 'In your core network', '3_known_network': 'In your wider network', '4_owned_network': 'On one of your own lists' };
@@ -212,6 +233,11 @@ export function knownLine(c) {
   const since = yearOf(c?.known_since), last = monthYear(c?.email_last);
   const email = last ? `last email ${last}` : 'no email on record';
   return since ? `Known since ${since}, ${email}.` : `${email.charAt(0).toUpperCase()}${email.slice(1)}.`;
+}
+/** The known line when room is short: "Known since 2021.", else "Last email Jun 2024.", else "No email on record." */
+export function knownShort(c) {
+  const since = yearOf(c?.known_since), last = monthYear(c?.email_last);
+  return since ? `Known since ${since}.` : last ? `Last email ${last}.` : 'No email on record.';
 }
 const ASK_WORDS = {
   introduce: () => 'one introduction to a leader working out what AI should do for them',
@@ -238,14 +264,16 @@ export function caseFor({ c, name, company, ask, kind, reach, fit, serves }) {
   if (ask === 'relationship') {
     const last = monthYear(c?.email_last) ?? monthYear(c?.contacts?.last_touch_at);
     const head = `A close tie gone quiet${last ? ` since ${last}` : ''}.`;
-    because = role ? `${head} ${clause(role, BECAUSE_MAX - head.length - 1)}` : head;
+    const who = role ? wholeClause(role, BECAUSE_MAX - head.length - 1) : '';
+    because = who ? `${head} ${who}` : head;
   } else {
-    // Who they are, then why them, then how he knows them; the role gives way when both will not fit.
-    const room = BECAUSE_MAX - known.length - 1;
-    const who = role ? clause(role, room) : '';
-    const both = who && story && room - who.length - 1 >= 45 ? clause(story, room - who.length - 1) : '';
-    const lead = both && !both.endsWith('...') ? `${who} ${both}` : story ? clause(story, room) : who;
-    because = lead ? `${lead} ${known}` : known;
+    // Who they are and why them in one clause, then how he knows them. When both will not fit,
+    // why them stays whole and the known line shortens; never a cut word, never an ellipsis.
+    const short = knownShort(c);
+    const lead = story || role;
+    const why = lead ? wholeClause(lead, BECAUSE_MAX - short.length - 1) : '';
+    because = !why ? (known.length <= BECAUSE_MAX ? known : short)
+      : why.length + 1 + known.length <= BECAUSE_MAX ? `${why} ${known}` : `${why} ${short}`;
   }
   const askLine = `The ask: ${ASK_WORDS[ask]?.(kind) ?? 'one note'}.${serves ? ` It serves this week's goal: ${serves.replace(/[.!?]+$/, '')}.` : ''}`;
   const brief = [
@@ -256,7 +284,7 @@ export function caseFor({ c, name, company, ask, kind, reach, fit, serves }) {
     ...(ask === 'relationship' ? [] : [clause(`Reach: ${reachWords(reach)}`, BRIEF_LINE_MAX)]),
     `Mindmake fit ${fit} of 100, as Control Center scores it.`,
   ].filter(Boolean);
-  return { because: cutClean(because, BECAUSE_MAX), brief: brief.slice(0, 6).map(l => cutClean(l, BRIEF_LINE_MAX)) };
+  return { because, brief: brief.slice(0, 6).map(l => cutClean(l, BRIEF_LINE_MAX)) };
 }
 
 /**
@@ -344,7 +372,7 @@ export function rowProposal({ row, ask, contactId, name, title, why, because, br
     expires_at: new Date(Date.parse(at) + 14 * DAY).toISOString(), stage: null, parent_proposal_id: null,
     row, reach, amplifier_kind: kind, features, serves, source_revision: files.slice(0, 8), name,
     // 1.7.0: the line under the title and the brief a tap opens. Dispatch drops both for an older Control Center.
-    ...(because ? { because: cutClean(because, BECAUSE_MAX) } : {}),
+    ...(because && because.length <= BECAUSE_MAX ? { because } : {}),
     ...(Array.isArray(brief) && brief.length ? { brief: brief.map(l => cutClean(l, BRIEF_LINE_MAX)).filter(Boolean).slice(0, 6) } : {}),
   };
 }
@@ -359,7 +387,7 @@ const KIND_NOUN = { investor: 'portfolio', ai_capital: 'investments', connector:
  * and from close ties gone quiet (network). Also the reach questions worth
  * asking: the top few with no cited figure, once a month each.
  */
-export function amplifierRows({ context, weekGoals, canon, files, at }) {
+export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX }) {
   const L = lessons(context.feedback, at);
   const research = Array.isArray(context.research) ? context.research : [];
   const routes = context.routes ?? {};
@@ -397,7 +425,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at }) {
     const told = caseFor({ c, name, company, ask: best.ask, kind: best.kind, reach, fit, serves: best.serves, at });
     out.push({ score: best.s, proposal: rowProposal({
       row: best.row, ask: best.ask, contactId: id, name, at, files,
-      title: titleFor(best.ask, best.kind, name, company),
+      title: titleFor(best.ask, best.kind, name, company, titleMax),
       why: `${name}${company ? ` (${company})` : ''} reads as ${best.kind.replace('_', ' ')}: ${clean(c.current_title ?? c.headline ?? c.contacts?.title ?? '')}. Reach: ${reach.band === 'unknown' ? 'not yet known' : reach.band.replace('_', ' ')} (${reach.basis}). Mindmake fit ${fit} of 100. One ask: ${best.ask}.`,
       because: told.because, brief: told.brief,
       action: actionFor(best.ch.channel, id, name, words), reach, kind: best.kind, features: best.features, serves: best.serves,
@@ -430,7 +458,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at }) {
     const told = caseFor({ c: n, name, company: cleanName(n.current_company ?? n.contacts?.company ?? ''), ask: 'relationship', kind: null, reach, fit, serves, at });
     out.push({ score: (score({ band: 'unknown', value: null }, fit / 100, ch.weight, serves, true) + Math.min(2, (Date.parse(at) - last) / (365 * DAY))) * fit / 100, proposal: rowProposal({
       row: 'network', ask: 'relationship', contactId: id, name, at, files,
-      title: fitTitle(`Catch up with ${name}`, `Catch up with ${first(name)}`),
+      title: fitTitleWithin(titleMax, `Catch up with ${name}`, `Catch up with ${first(name)}`),
       why: `${name} is a close tie with nothing on record for ${Math.round((Date.parse(at) - last) / DAY)} days. Mindmake fit ${fit} of 100.`,
       because: told.because, brief: told.brief,
       action: actionFor(ch.channel, id, name, WORDS.relationship[variant]()), reach,
@@ -446,15 +474,18 @@ export function amplifierRows({ context, weekGoals, canon, files, at }) {
   return { rows: out, held, research: research_requests };
 }
 
-function titleFor(ask, kind, name, company) {
+/** The title on his phone. At 1.7.0 (max 56) the line under it says who they are, so the company is left off. */
+export function titleFor(ask, kind, name, company, max = TITLE_MAX) {
   const f = first(name);
+  const at = max < TITLE_MAX ? '' : company;
+  const fit = (...options) => fitTitleWithin(max, ...options);
   if (ask === 'partner') return kind === 'ai_trainer'
-    ? fitTitle(`Pair Mindmake with ${name}'s AI training`, `Pair Mindmake with ${f}'s AI training`)
-    : fitTitle(`Offer ${name}${company ? ` at ${company}` : ''} a session for their leaders`, `Offer ${name} a session for their leaders`, `Offer ${f} a session for their leaders`);
-  if (ask === 'introduce') return fitTitle(`Ask ${name} for one introduction`, `Ask ${f} for one introduction`);
-  if (ask === 'appear') return fitTitle(`Ask to go on ${name}'s channel`, `Ask to go on ${f}'s channel`);
-  if (ask === 'teach') return fitTitle(`Offer ${name} a session for their ${kind === 'student_educator' ? 'students' : 'leaders'}`, `Offer ${f} a session`);
-  return fitTitle(`Reach out to ${name}`, `Reach out to ${f}`);
+    ? fit(`Pair Mindmake with ${name}'s AI training`, `Pair Mindmake with ${f}'s AI training`)
+    : fit(`Offer ${name}${at ? ` at ${at}` : ''} a session for their leaders`, `Offer ${name} a session for their leaders`, `Offer ${f} a session for their leaders`, `Offer ${f} a session`);
+  if (ask === 'introduce') return fit(`Ask ${name} for one introduction`, `Ask ${f} for one introduction`);
+  if (ask === 'appear') return fit(`Ask to go on ${name}'s channel`, `Ask to go on ${f}'s channel`);
+  if (ask === 'teach') return fit(`Offer ${name} a session for their ${kind === 'student_educator' ? 'students' : 'leaders'}`, `Offer ${f} a session for their ${kind === 'student_educator' ? 'students' : 'leaders'}`, `Offer ${f} a session`);
+  return fit(`Reach out to ${name}`, `Reach out to ${f}`);
 }
 
 /** Rank inside each row, keep PER_ROW a row, and drop the engine's own field that names the person. */

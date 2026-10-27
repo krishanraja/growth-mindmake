@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { clean } from '../guards.mjs';
-import { lessons, refusedBy, channelOf, servesOf, seniorityOf, actionFor, rowProposal, fitTitle, clause, cleanName, cutClean, monthYear, BECAUSE_MAX, BRIEF_LINE_MAX } from './rows.mjs';
+import { lessons, refusedBy, channelOf, servesOf, seniorityOf, actionFor, rowProposal, fitTitleWithin, clause, wholeClause, cleanName, cutClean, monthYear, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
 
 /**
  * Signals from his buyers (playbook 11, "Signals").
@@ -146,21 +146,22 @@ export const SIGNAL_WORDS = [
  */
 /** What he reads before he decides on a signal (protocol 1.7.0): who they are, what they said in public and why that makes them his buyer. */
 export function signalCase({ name, headline, author, quote, published, serves }) {
-  const where = `Worried in public about AI and their job${author ? `, on ${author}'s post` : ''}.`;
-  const who = headline ? clause(headline, BECAUSE_MAX - where.length - 1) : '';
+  // Where they said it is in the brief; the card line has room for who and what.
+  const where = 'Worried in public about AI and their job.';
+  const who = headline ? wholeClause(headline, BECAUSE_MAX - where.length - 1) : '';
   const seen = monthYear(published);
   return {
     because: who ? `${who} ${where}` : where,
     brief: [
       clause(`${name}${headline ? `, ${headline}` : ''}`, BRIEF_LINE_MAX),
-      cutClean(`They wrote${seen ? ` in ${seen}` : ''}: "${quote}"`, BRIEF_LINE_MAX),
+      cutClean(`They wrote${author ? ` on ${author}'s post` : ''}${seen ? ` in ${seen}` : ''}: "${quote}"`, BRIEF_LINE_MAX),
       'An executive with the problem, not an AI person or someone selling an answer.',
       `The ask: a reply to their comment, with the one Mindmake link.${serves ? ` It serves this week's goal: ${serves.replace(/[.!?]+$/, '')}.` : ''}`,
     ],
   };
 }
 
-export function signalRows({ context, research, weekGoals, canon, files, at }) {
+export function signalRows({ context, research, weekGoals, canon, files, at, titleMax = TITLE_MAX }) {
   const L = lessons(context.feedback, at);
   const routes = context.routes ?? {};
   const authorOf = new Map(research.filter(r => r.kind === 'posts').flatMap(r => r.evidence ?? []).map(e => [e.url, clean(String(e.title ?? '').split(':')[0])]));
@@ -188,7 +189,7 @@ export function signalRows({ context, research, weekGoals, canon, files, at }) {
       const serves = servesOf('reach_out', weekGoals);
       out.push({ score: 4 * icp.strength * ch.weight * (serves ? 1.25 : 1), proposal: rowProposal({
         row: 'reach_out', ask: 'signal', contactId: id, name, at, files,
-        title: fitTitle(`${name} worried about AI on ${author ?? 'LinkedIn'}`, `${name} worried about AI in public`, `${first(name)} worried about AI in public`),
+        title: fitTitleWithin(titleMax, `${name} worried about AI on ${author ?? 'LinkedIn'}`, `${name} worried about AI in public`, `${first(name)} worried about AI in public`),
         why: `${name}, ${clean(p.headline)}, commented${author ? ` on ${author}'s post` : ''}: "${quote}" An executive with the problem, not an AI person.`,
         ...signalCase({ name, headline: cleanName(p.headline), author, quote, published: e.published, serves }),
         action: actionFor(ch.channel, id, name, SIGNAL_WORDS[variant]({ author, quote }, canon)),

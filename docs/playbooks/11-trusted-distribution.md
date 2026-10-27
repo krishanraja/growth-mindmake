@@ -99,9 +99,11 @@ channels with mass audiences on growing with AI. In the protocol these are
   followers alone and put a 0-fit creator top of VISIBILITY and someone
   Control Center itself called "not a buyer" top of PARTNERS.
 - **Every row says why** (protocol 1.7.0). `because` is the line under the
-  title on his card, at most 140 characters: who they are, why them (Control
-  Center's hook or why_them), and how he knows them (known since a year,
-  last email a month, or no email on record). `brief` is what a tap opens,
+  title on his card, at most 80 characters (two lines): who they are and why
+  them in one clause (Control Center's hook or why_them), then how he knows
+  them (known since a year, last email a month, or no email on record); when
+  both will not fit, why them stays whole and the known line shortens. The
+  title is then at most 56 characters and leaves the company to that line. `brief` is what a tap opens,
   two to six lines: who, how he knows them, why them, the ask and the goal it
   serves, reach with its basis, and the fit. Written in code from what
   Control Center holds, never invented.

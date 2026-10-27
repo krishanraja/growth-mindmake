@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, readCanon, CanonError } from '../src/stages/canon.mjs';
-import { kindsOf, reachOf, countIn, lessons, refusedBy, amplifierRows, rankRows, score, fitTitle, channelOf, servesOf, fitHold, cleanName, lastContact, caseFor, FIT_FLOOR, BECAUSE_MAX, BRIEF_LINE_MAX } from '../src/stages/rows.mjs';
+import { kindsOf, reachOf, countIn, lessons, refusedBy, amplifierRows, rankRows, score, fitTitle, channelOf, servesOf, fitHold, cleanName, lastContact, caseFor, titleFor, fitTitleWithin, FIT_FLOOR, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX_BRIEF } from '../src/stages/rows.mjs';
 import { icpOf, signalRequests, signalRows, isoWeek } from '../src/stages/signals.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
@@ -327,7 +327,7 @@ test('every row says who they are, how he knows them and why them, inside its li
     assert.ok(p.brief.some(l => /Known since|email/.test(l)), 'how he knows them is said');
   }
   const jess = r.rows.find(x => x.proposal.target === id(51)).proposal;
-  assert.equal(jess.because, 'Host of Example Show 51 at Spark Media. Hosts a weekly show for media operators. Known since 2021, last email Jun 2024.');
+  assert.equal(jess.because, 'Hosts a weekly show for media operators. Known since 2021, last email Jun 2024.');
   assert.equal(/\p{Extended_Pictographic}/u.test(jess.title + JSON.parse(jess.exact_payload).body + jess.because), false, 'no emoji in the title, the words or the line');
   assert.match(JSON.parse(jess.exact_payload).body, /^Hi Jess,/);
   assert.equal(cleanName('Avery Example⚡️ '), 'Avery Example');
@@ -341,6 +341,7 @@ test('signal rows carry their reasons too: who they are and what they said in pu
   const r = signalRows({ context: { routes: { [id(21)]: route() }, feedback: [] }, research, weekGoals: GOALS, canon, files: FILES, at: NOW });
   const p = r.rows[0].proposal;
   assert.equal(p.because, 'COO, Example Media. Worried in public about AI and their job.');
+  assert.ok(p.brief.some(l => l.startsWith("They wrote on ") || l.startsWith('They wrote in ')));
   assert.ok(p.brief.length >= 2 && p.brief.every(l => l.length <= BRIEF_LINE_MAX));
   assert.ok(p.brief.some(l => l.startsWith('They wrote in Oct 2026: "My board asked')));
 });
@@ -359,5 +360,30 @@ test('a dispatch run against Control Center 1.7.0 reports 1.7.0, and every row c
   const rows = reports[0].proposals.filter(p => p.row);
   assert.ok(rows.length >= 3);
   assert.ok(rows.every(p => p.because && p.because.length <= BECAUSE_MAX && Array.isArray(p.brief) && p.brief.length >= 2 && p.brief.length <= 6));
+  assert.ok(rows.every(p => p.title.length <= TITLE_MAX_BRIEF && !p.title.includes('...')), 'at 1.7.0 a title fits two lines beside the presses');
   assert.equal(/Avery|Robin/.test(JSON.stringify(result)), false, 'the printed outcome carries counts, never a name');
+});
+
+test('the card line is two lines at most and always whole; a 1.7.0 title is 56 at most and leaves the company to it', () => {
+  assert.equal(BECAUSE_MAX, 80);
+  assert.equal(TITLE_MAX_BRIEF, 56);
+  const long = {
+    current_title: 'Chief Executive Officer and Founding Partner', current_company: 'Example International Media Holdings Group',
+    network_tier: '2_core_network', known_since: '2018-04-01', email_last: '2025-09-09',
+    hook: 'Built and sold two regional broadcasting groups, then founded a network of executive dinners across eleven cities, which most of the leaders he would want now attend.',
+  };
+  const told = caseFor({ c: long, name: 'Bartholomew Longname-Example', company: long.current_company, ask: 'partner', kind: 'investor', reach: { band: 'unknown' }, fit: 80, serves: null });
+  assert.ok(told.because.length <= BECAUSE_MAX, told.because);
+  assert.equal(told.because.includes('...'), false, 'never an ellipsis');
+  assert.match(told.because, /^Built and sold two regional broadcasting groups\. Known since 2018\.$/, 'why them stays whole; the known line shortens');
+  for (const c of [{ ...long, hook: null }, { network_tier: '3_known_network' }, { ...long, hook: 'x'.repeat(300) }]) {
+    const b = caseFor({ c, name: 'Bartholomew Longname-Example', company: long.current_company, ask: 'introduce', kind: 'connector', reach: { band: 'unknown' }, fit: 80, serves: null }).because;
+    assert.ok(b.length >= 1 && b.length <= BECAUSE_MAX && !b.includes('...') && /[.!?]$/.test(b), b);
+  }
+  const title = titleFor('partner', 'investor', 'Bartholomew Longname-Example', long.current_company, TITLE_MAX_BRIEF);
+  assert.ok(title.length <= TITLE_MAX_BRIEF && !title.includes('...') && !title.includes(long.current_company), title);
+  assert.equal(titleFor('partner', 'investor', 'Hugo Example', 'Climate Example', TITLE_MAX_BRIEF), 'Offer Hugo Example a session for their leaders');
+  assert.equal(titleFor('partner', 'investor', 'Ann Lee', 'Acme', TITLE_MAX_BRIEF), 'Offer Ann Lee a session for their leaders', 'the company is left to the line under it even when it would fit');
+  assert.equal(titleFor('partner', 'investor', 'Hugo Example', 'Climate Example'), 'Offer Hugo Example at Climate Example a session for their leaders', '1.6.0 keeps the company');
+  assert.equal(fitTitleWithin(20, 'Ask Maximiliana Extraordinarily for one introduction'), 'Ask Maximiliana', 'cut at a word, never an ellipsis');
 });
