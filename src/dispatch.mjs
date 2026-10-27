@@ -398,6 +398,21 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
  * resolves `{ snapshot }` or `{ hold }`. `context` is an engine context, supplied only for a
  * synthetic run, because the protocol retired the live work-context route.
  */
+/**
+ * Why a read failed, as a class and never a body: the HTTP status and code
+ * Control Center answered, an answer over the byte budget, or a read that
+ * did not hold together. The run report carries it, so the next run's
+ * failure is named rather than guessed.
+ */
+export function failureClass(e) {
+  if (Number.isInteger(e?.status)) return `Control Center answered ${e.status}${typeof e.code === 'string' && /^[a-z][a-z0-9_]{0,63}$/.test(e.code) ? ` ${e.code}` : ''}`;
+  if (e?.code === 'response_over_budget') return 'the answer was larger than the byte budget';
+  if (e?.name === 'TimeoutError' || e?.name === 'AbortError') return 'Control Center did not answer in time';
+  if (/invalid JSON|non-JSON/.test(String(e?.message))) return 'the answer was not JSON';
+  if (/^Invalid (context|outcomes) read$/.test(String(e?.message))) return 'the answer did not hold together';
+  return 'the engine could not plan from it';
+}
+
 export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord }) {
   if (!['live','synthetic'].includes(mode) || !/^[a-z][a-z0-9-]{0,40}$/.test(kind) || !/^gma-[A-Za-z0-9-]{8,80}$/.test(attemptId)) throw new Error('Invalid dispatch options');
   const started_at = clock();
@@ -449,11 +464,11 @@ export async function runDispatch({ cc, source, context = null, policy, registry
         activity.push(`Weekly strategic review ${strategic.review.id}: ${strategic.review.experiment}`);
         for (const task of strategic.research) activity.push(`Network research ${task.contact_id}: verify a ${task.motion} route. This is research preparation, not outreach authority.`);
         if (!strategic.selected.length) holds.push({ reason: 'complete_campaign_needed', detail: 'No current complete campaign passed the route, proof and preparation gates. Native drafts stay preserved.' });
-      } catch { holds.push({ reason: 'context_read_unavailable', detail: 'The advertised cross-channel context could not be validated.' }); }
+      } catch (e) { holds.push({ reason: 'context_read_unavailable', detail: `The advertised cross-channel context could not be validated (${failureClass(e)}).` }); }
     }
     if (capabilities?.features?.outcomes) {
       try { outcomes = validateStrategicRead(await cc.outcomes(), 'outcomes', clock()); }
-      catch { holds.push({ reason: 'outcomes_read_unavailable', detail: 'Complete outcome windows could not be validated; no counts are assumed.' }); }
+      catch (e) { holds.push({ reason: 'outcomes_read_unavailable', detail: `Complete outcome windows could not be validated (${failureClass(e)}); no counts are assumed.` }); }
     }
     activity.push(`Read directive ${directive.directive_id}, chosen by ${directive.chosen_by === 'krish' ? 'Krish' : 'rule'}; its next action ${directive.next_proposal_id ? `names proposal ${directive.next_proposal_id}` : 'names no proposal'}.`);
     if (wakeDirectiveId && wakeDirectiveId !== directive.directive_id) activity.push(`The wake-up named directive ${wakeDirectiveId}; the directive read now is ${directive.directive_id}, and the run follows the one it read.`);

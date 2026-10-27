@@ -275,3 +275,23 @@ test('a report is sent as 1.2.0 and a note\'s subject passes the schema; an unwa
   assert.equal(report.schema_version, '1.2.0');
   assert.ok(proposals.filter(p => p.wall !== 'send').every(p => p.subject_ref === undefined));
 });
+
+test('a context read that fails says why, by class and never by body', async () => {
+  const { failureClass } = await import('../src/dispatch.mjs');
+  assert.equal(failureClass(Object.assign(new Error('x'), { status: 500, code: 'store_failed' })), 'Control Center answered 500 store_failed');
+  assert.equal(failureClass(Object.assign(new Error('x'), { status: 502, code: 'Not A Code' })), 'Control Center answered 502');
+  assert.equal(failureClass(Object.assign(new Error('x'), { code: 'response_over_budget' })), 'the answer was larger than the byte budget');
+  assert.equal(failureClass(Object.assign(new Error('x'), { name: 'TimeoutError' })), 'Control Center did not answer in time');
+  assert.equal(failureClass(new Error('Control Center returned invalid JSON')), 'the answer was not JSON');
+  assert.equal(failureClass(new Error('Invalid context read')), 'the answer did not hold together');
+  assert.equal(failureClass(new TypeError("Cannot read properties of undefined (reading 'secret')")), 'the engine could not plan from it', 'never the message of an unexpected error');
+});
+
+test('the byte budget is Control Center\'s own ceiling: a 2.5 MB context is read, one past the budget is refused', async () => {
+  const { RESPONSE_BUDGET } = await import('../src/control-center.mjs');
+  const answer = n => async () => new Response(JSON.stringify({ ok: true, context: { pad: 'x'.repeat(n) } }), { status: 200, headers: { 'content-type': 'application/json' } });
+  const token = `gen1_${'a'.repeat(43)}`;
+  const big = await engineClient('https://cc.example', token, { fetcher: answer(2_500_000) }).context();
+  assert.equal(big.context.pad.length, 2_500_000);
+  await assert.rejects(engineClient('https://cc.example', token, { fetcher: answer(RESPONSE_BUDGET) }).context(), e => e.code === 'response_over_budget' && /exceeded the 4500000 budget/.test(e.message));
+});
