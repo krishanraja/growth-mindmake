@@ -8,6 +8,7 @@ import { lessons, KRISH_TITLE, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, BECAUS
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture, violations, parseActionV2 } from './support/engine-protocol-service.mjs';
 import { golden } from './support/golden.mjs';
+import { STAGE } from './support/standard.mjs';
 
 // Synthetic only: invented stages and forms, example links, no live record.
 // The one address a form is given is his public business address (FORM_EMAIL).
@@ -236,7 +237,8 @@ test('a form sent, or one whose browser never answered, an applied stage and a p
   assert.equal(hold({ deadline_at: '2026-10-26T00:00:00Z' }), 'deadline_passed');
   assert.equal(hold({ deadline_at: null, event_start_at: '2026-10-01T00:00:00Z' }), 'event_passed');
   assert.equal(hold({ buried_at: '2026-10-01T00:00:00Z' }), 'buried');
-  assert.equal(hold({ verdict: 'rejected' }), 'rejected');
+  assert.equal(hold(STAGE.rejected), 'rejected', 'the visibility standard refuses it on its axes');
+  assert.equal(hold({ verdict: 'rejected' }), null, "Control Center's stored verdict is never read: the axes take it");
   assert.equal(hold({ status: 'dropped' }), 'not_open');
   assert.equal(hold({ title: 'Signal & Noise Live' }), 'own_show');
   const applied = run([summit(1, { status: 'applied' }), summit(2, { deadline_at: '2026-10-26T00:00:00Z' })]);
@@ -325,7 +327,7 @@ test('a podcast\'s or a show\'s guest form goes on visibility, ahead of the podc
 
 test('forms lead their row, at most two a row, outside the ten pitches; a form waiting its turn keeps its stage\'s pitch back', () => {
   const pods = Array.from({ length: 12 }, (_, i) => show(i + 1, { cfp_url: null }));
-  const stages = Array.from({ length: 3 }, (_, i) => summit(i + 30, { verdict: i === 2 ? 'take' : 'stretch' }));
+  const stages = Array.from({ length: 3 }, (_, i) => summit(i + 30, STAGE[i === 2 ? 'take' : 'stretch']));
   const r = run([...pods, ...stages]);
   const forms = r.proposals.filter(isForm);
   assert.equal(FORMS_PER_ROW, 2);

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { offerFindings } from '../src/stages/canon.mjs';
 import { ccSubjectFor, ccSubjectPart, ccGuestGate, ccTargetGate, ccRoomGate, briefRules, briefsShadow, pitchWords, inviteWords, inviteShow } from '../src/stages/pitches.mjs';
 import { canon, AT, id, daysAgo, CC_MINDMAKE_ANGLE } from './support/section12.mjs';
+import { STAGE, GUEST } from './support/standard.mjs';
 
 // Mindmake's outreach angle and the People briefs, ported from Control
 // Center (plan section 12, M9). Every person, show and id below is invented.
@@ -51,15 +52,15 @@ test("Control Center's Mindmake angle is out of date against the canon; the engi
   assert.equal(canon.ask.label, 'Start building your AI brain');
 });
 
-const stage = (n, extra = {}) => ({ id: id(n), title: `Example Show ${n}`, type: 'podcast', status: 'sourced', booking_contact_id: id(900 + n), latest_episode_at: daysAgo(5), episodes: 40, verdict: 'take', ...extra });
-const guest = (n, extra = {}) => ({ id: id(300 + n), contact_id: id(500 + n), name: `Avery Example${n}`, invite_show: 'makeyourmindup', invite_state: 'proposed', status: 'scouted', guest_verdict: 'take', ...extra });
+const stage = (n, extra = {}) => ({ id: id(n), title: `Example Show ${n}`, type: 'podcast', status: 'sourced', booking_contact_id: id(900 + n), latest_episode_at: daysAgo(5), episodes: 40, ...STAGE.take, ...extra });
+const guest = (n, extra = {}) => ({ id: id(300 + n), contact_id: id(500 + n), name: `Avery Example${n}`, invite_show: 'makeyourmindup', invite_state: 'proposed', status: 'scouted', ...GUEST.take, ...extra });
 
 test('in shadow: both gates, side by side, and whether the subjects are the same words, in counts only', () => {
   const context = {
     routes: { [id(501)]: { email: 'verified' }, [id(502)]: { email: 'none' }, [id(503)]: { email: 'verified' } },
     feedback: [],
     records: {
-      visibility: [stage(1), stage(2, { verdict: null }), stage(3, { latest_episode_at: daysAgo(400) }), stage(4, { type: 'conference', verdict: 'stretch' }), stage(5, { type: 'newsletter' }), stage(6, { verdict: 'rejected' }), stage(1)],
+      visibility: [stage(1), stage(2, { verdict: null, room_score: null, standing_score: null, only_him_score: null }), stage(3, { latest_episode_at: daysAgo(400) }), stage(4, { type: 'conference', ...STAGE.stretch }), stage(5, { type: 'newsletter' }), stage(6, STAGE.rejected), stage(1)],
       guests: [guest(1), guest(2), guest(3, { invite_state: 'drafted' }), guest(1)],
     },
   };

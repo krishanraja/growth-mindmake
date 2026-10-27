@@ -1,5 +1,6 @@
 import { lessons } from './rows.mjs';
-import { INVITE_SHOWS, SHOW_SHARES, inviteShow, inviteHold, invitedGuests } from './pitches.mjs';
+// pitches.mjs reads this file's verdict too, so nothing from it is read while this module loads: SHOW_ORDER lives there.
+import { SHOW_ORDER, SHOW_SHARES, inviteShow, inviteHold, invitedGuests } from './pitches.mjs';
 import { shadowLine } from './visibility.mjs';
 
 /**
@@ -47,8 +48,10 @@ import { shadowLine } from './visibility.mjs';
  * that judges a person (GUEST_JUDGMENT_FIELDS, GUEST_JUDGMENT_RULES, the
  * scout's system prompt and each show's mandate, which restate Mindmake's
  * shows in Control Center's own words and are not ported). The engine reads
- * each guest and its verdict from the context (records.guests) instead, and
- * judges again here only from what is served.
+ * each guest and its three axes from the context (records.guests) instead,
+ * judges again here only from what is served, and the invite stage acts on
+ * that verdict (guestVerdictOf); guestsShadow still counts it beside Control
+ * Center's stored one while Control Center writes it.
  *
  * Pure: no model, no network, no clock but the run's.
  */
@@ -67,8 +70,8 @@ export const GUEST_WEIGHTS = Object.freeze({
 export const GUEST_FLOORS = Object.freeze({ take: 60, stretchSeen: 40 });
 /** api/_guestStandard.ts GuestRejectReason: the one taxonomy (src/lib/servedSurfaces.ts, guests). */
 export const GUEST_REASONS = Object.freeze(['guest_not_senior', 'guest_not_visible', 'guest_boring', 'guest_wrong_show']);
-/** The two shows a guest is judged for (src/lib/shows.ts SHOW_ORDER), from the invite stage's own registry. */
-export const SHOW_ORDER = Object.freeze(Object.keys(INVITE_SHOWS));
+/** The two shows a guest is judged for (src/lib/shows.ts SHOW_ORDER), from the invite stage's own registry (pitches.mjs). */
+export { SHOW_ORDER };
 
 /** api/_guestStandard.ts clamp. */
 const clamp = n => (Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0);
@@ -156,6 +159,17 @@ export function standingFromAxes(g) {
   a.guest_score = Math.min(a.senior_score, a.seen_score, a.spark_score);
   return { ...a, ...verdictOnAxes(a) };
 }
+
+/**
+ * The engine's own verdict on a guest, the one the invite stage acts on
+ * (plan section 12, M3, "the engine's version acts"): the standard on the
+ * three axes Control Center serves (standingFromAxes). Axes not served, or
+ * none judged, read as unjudged, which is how a guest Control Center had
+ * not judged was treated: never invited. Control Center's own guest_verdict
+ * is never read here, so it never decides. The wrong show is not derivable
+ * from the axes, so a guest refused only for that reads on its axes. Pure.
+ */
+export const guestVerdictOf = g => standingFromAxes(g)?.guest_verdict ?? 'unjudged';
 
 // ── The shows' shares (src/lib/shows.ts) ────────────────────────────────────
 

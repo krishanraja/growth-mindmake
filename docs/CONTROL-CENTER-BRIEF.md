@@ -115,6 +115,7 @@ The full spec is `docs/control-center/ENGINE-PROTOCOL.md`, with the report and d
 
 ## Still owed by Control Center (named, not built)
 
+- The refusal flags its judges set but do not store or serve: a stage's `pay_to_play` and `generic_take`, and a guest's wrong-show judgment. The engine now judges stages and guests on their served axes alone (plan section 12, M3 to M5), so a stage or guest refused only on one of these flags is not refused by the engine; none was on record at the 27 October readback, and the shadow lines count such cases as `flag_not_served` and `show_fit_not_served`.
 - Global outcome reads from Control Center's own deals (qualified conversations, paid proofs), so you need not compute them from a page.
 - The Gmail draft readback close.
 - Done: a read of this engine's own latest live reports, newest first (`GET .../reports?recent=<n>`, `features.recent_reports`, krishanraja/control-center#589), each with only `run_id`, `accepted_at`, `status` and `activity`. The Phase 5 switch counts its proof runs from it (`readProofRuns` in src/crew/switch.mjs) and reads nothing where it is not served.

@@ -327,7 +327,7 @@
       "id": "brief-unjudged-stage",
       "what": "Control Center's People gate is ported as letting an unjudged or rejected stage be drafted",
       "file": "src/stages/pitches.mjs",
-      "find": "export const ccTargetGate = t => t?.verdict === 'take' || t?.verdict === 'stretch';",
+      "find": "export const ccTargetGate = t => ['take', 'stretch'].includes(ccStageVerdict(t));",
       "replace": "export const ccTargetGate = t => Boolean(t);",
       "tests": [
         "tests/briefs.test.mjs"
@@ -381,6 +381,73 @@
       "replace": "",
       "tests": [
         "tests/ingest-gate.test.mjs"
+      ]
+    },
+    {
+      "id": "stage-falls-back-to-cc-verdict",
+      "what": "with no axes served, a stage takes Control Center's stored verdict instead of reading as unjudged",
+      "file": "src/stages/visibility.mjs",
+      "find": "  return axesOf(t).overall === null ? 'unjudged' : verdictFromAxes(t, at).verdict;",
+      "replace": "  return axesOf(t).overall === null ? (t?.verdict ?? 'unjudged') : verdictFromAxes(t, at).verdict;",
+      "tests": [
+        "tests/pitches.test.mjs",
+        "tests/section12.test.mjs",
+        "tests/strategy.test.mjs"
+      ]
+    },
+    {
+      "id": "rejected-podcast-pitched",
+      "what": "a podcast the visibility standard refuses is pitched",
+      "file": "src/stages/pitches.mjs",
+      "find": "  if (stageVerdict(t, at) === 'rejected') return 'rejected';\n",
+      "replace": "",
+      "tests": [
+        "tests/pitches.test.mjs",
+        "tests/section12.test.mjs"
+      ]
+    },
+    {
+      "id": "rejected-stage-pitched",
+      "what": "a stage to speak on, or a form, that the visibility standard refuses is pitched",
+      "file": "src/stages/pitches.mjs",
+      "find": "const refusedByStandard = (t, at) => stageVerdict(t, at) === 'rejected' && !isDeadDate(t, at);",
+      "replace": "const refusedByStandard = () => false;",
+      "tests": [
+        "tests/pitches.test.mjs",
+        "tests/forms.test.mjs"
+      ]
+    },
+    {
+      "id": "stage-reads-cc-verdict",
+      "what": "a stage to speak on is held on Control Center's stored verdict rather than the engine's",
+      "file": "src/stages/pitches.mjs",
+      "find": "  if (refusedByStandard(t, at)) return 'rejected';\n",
+      "replace": "  if (t.verdict === 'rejected') return 'rejected';\n",
+      "tests": [
+        "tests/section12.test.mjs",
+        "tests/pitches.test.mjs"
+      ]
+    },
+    {
+      "id": "guest-falls-back-to-cc-verdict",
+      "what": "with no axes served, a guest takes Control Center's stored verdict and is invited",
+      "file": "src/stages/guests.mjs",
+      "find": "export const guestVerdictOf = g => standingFromAxes(g)?.guest_verdict ?? 'unjudged';",
+      "replace": "export const guestVerdictOf = g => standingFromAxes(g)?.guest_verdict ?? g?.guest_verdict ?? 'unjudged';",
+      "tests": [
+        "tests/pitches.test.mjs",
+        "tests/section12.test.mjs"
+      ]
+    },
+    {
+      "id": "stage-axes-any-version",
+      "what": "a stage's rank and verdict read axes judged under another score version",
+      "file": "src/stages/visibility.mjs",
+      "find": "  if (!row || int(row.score_version) !== VISIBILITY_SCORE_VERSION) return none;",
+      "replace": "  if (!row) return none;",
+      "tests": [
+        "tests/pitches.test.mjs",
+        "tests/section12.test.mjs"
       ]
     }
   ]

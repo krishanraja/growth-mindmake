@@ -1,6 +1,7 @@
 /** Portfolio and institution selection over scoped, dated Control Center reads.
  * This is preparation. Native records own people, words and lifecycle states. */
 import { qualified } from './stages/scorecard.mjs';
+import { stageVerdict } from './stages/visibility.mjs';
 
 const MOTIONS = ['multiplier', 'institution', 'visibility', 'direct'];
 const rank = c => c.access + c.authority + c.distribution + c.proof_strength + c.timing - c.effort;
@@ -56,7 +57,8 @@ export function strategicPlan(context, { at, capacity = 5, allocation = null } =
     if (row.state === 'not_now' || row.buried_at || ['declined','closed','done'].includes(c.state)) continue;
     if (!current(c.reviewed_at, at, 30) || !Array.isArray(c.sources) || !c.sources.length || c.sources.some(s => !current(s.observed_at, at) || !/^https:\/\//.test(s.url ?? ''))) { stop('campaign_evidence_stale'); continue; }
     const host = lane === 'visibility' ? row : row.visibility_target_id ? (context.records.visibility ?? []).find(t=>t.id===row.visibility_target_id) : null;
-    if ((lane === 'visibility' || c.motion === 'institution') && !(host?.score_version === 1 && ['take','stretch'].includes(host.verdict))) { stop('visibility_standard_held'); continue; }
+    // The visibility standard is the engine's own (plan section 12, M4): take or stretch on the axes served under the current version.
+    if ((lane === 'visibility' || c.motion === 'institution') && !['take','stretch'].includes(stageVerdict(host, at))) { stop('visibility_standard_held'); continue; }
     if (!c.argument || !c.commitment || !c.follow_through || !c.success_measure || !c.preparation || !c.first_action?.body || !c.first_action?.recipient_contact_id || JSON.stringify(c).length > 6000) { stop('campaign_incomplete'); continue; }
     const permissions = context.proof_permissions?.value?.assets;
     if (!Array.isArray(c.proof) || !c.proof.length || !Array.isArray(permissions) || c.proof.some(p => p.permission !== 'approved' || !p.source_url || !p.allowed_use || !permissions.some(a=>a.id===p.id && a.permission==='approved' && a.source_url===p.source_url && a.allowed_use===p.allowed_use))) { stop('proof_permission_missing'); continue; }

@@ -7,9 +7,14 @@
  * would pass them all; this one would not.
  *
  * Its report digest was recorded from the code before the week spec existed
- * (tests/golden/golden.json), so the modules it runs are passed in. Synthetic
+ * (tests/golden/golden.json), so the modules it runs are passed in. It was
+ * re-recorded once, when the engine's own verdicts began to act (plan section
+ * 12, M3 to M5): its guests carry the axes Control Center serves, and its
+ * stages still carry none, so the engine reads them as not yet judged. Synthetic
  * only: invented people, shows, ids and .example addresses.
  */
+import { GUEST } from './standard.mjs';
+
 export const AT = '2026-10-27T09:00:00.000Z';
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const NORTH_STAR = `# North Star\n\n## Horizon\n\n> By March 2027, Mindmake is the first name an example leader hears when they ask who can build an AI that knows them.\n\n## What we sell\n\n- **Build your AI brain.** Your taste, standards and judgement, running as a\n  system you own.\n`;
@@ -31,7 +36,7 @@ const summit = (n, form) => ({ id: id(600 + n), title: `The Example Summit ${n}`
   ...(form ? { form_fields: FIELDS, form_fields_at: '2026-10-26T06:00:00Z' } : {}) });
 const NAMES = ['Avery Sample', 'Sam Fixture', 'Jordan Placeholder', 'Riley Demo'];
 const guest = (n, show) => ({ contact_id: id(800 + n), name: NAMES[n - 1], status: 'enriched', invite_show: show, invite_state: null, scheduled_at: null,
-  guest_verdict: 'take', buried_at: null, recorded_at: null, published_at: null,
+  ...GUEST.take, buried_at: null, recorded_at: null, published_at: null,
   one_liner: 'Chief Marketing Officer at Example Retail, rebuilding a marketing team around AI', why_fit: 'Runs a marketing team that changed how it works with AI.',
   evidence: [{ url: `https://talks.example/guest-${n}`, label: 'How marketing teams change with AI', at: '2026-10-01T00:00:00Z', kind: 'talk' }] });
 

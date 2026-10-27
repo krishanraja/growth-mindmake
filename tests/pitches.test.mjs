@@ -8,6 +8,7 @@ import { lessons, titleFor, OWN_SHOW, WORDS, KRISH_TITLE, NOT_A_SOURCE, CARD_WHO
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture, violations } from './support/engine-protocol-service.mjs';
 import { golden } from './support/golden.mjs';
+import { STAGE, GUEST } from './support/standard.mjs';
 
 // Synthetic only: invented shows, .test and example addresses, no live record.
 const NOW = '2026-10-27T09:00:00.000Z';
@@ -60,7 +61,11 @@ test('only a live show with an address of its own, not pitched before and not ru
   assert.equal(hold({ booking_contact_id: null }), 'no_booking_address');
   assert.equal(hold({ booking_contact_id: 'not-an-id' }), 'no_booking_address');
   assert.equal(hold({ buried_at: '2026-10-01T00:00:00Z' }), 'buried');
-  assert.equal(hold({ verdict: 'rejected' }), 'rejected');
+  assert.equal(hold(STAGE.rejected), 'rejected', 'the visibility standard refuses it on its axes');
+  assert.equal(hold({ ...STAGE.rejected, verdict: 'take' }), 'rejected', "the engine's verdict decides, not Control Center's");
+  assert.equal(hold({ ...STAGE.take, verdict: 'rejected' }), null, "Control Center's stored verdict is never read");
+  assert.equal(hold({ verdict: 'rejected' }), null, 'with no axes served the engine has not judged it, and an unjudged show is pitched as before');
+  assert.equal(hold({ ...STAGE.take, event_start_at: '2026-10-01T00:00:00Z' }), 'rejected', 'the standard refuses a passed date');
   assert.equal(hold({ status: 'applied' }), 'applied');
   assert.equal(hold({ applied_at: '2026-10-01T00:00:00Z' }), 'applied');
   assert.equal(hold({ title: 'Signal & Noise' }), 'own_show', 'his own show is no booking');
@@ -84,16 +89,18 @@ test('a show with a draft, or an answer on its pitch, is pitched once', () => {
   assert.deepEqual([...pitched].sort(), [id(1), id(2)], 'a pending pitch may be written again with the same id; a contact is not a show');
 });
 
-test('shows rank by Nova\'s verdict, how recently they published, whether his buyer listens, and how long they have run', () => {
-  assert.ok(pitchScore(stage(1, { verdict: 'take' }), NOW) > pitchScore(stage(1, { verdict: 'stretch' }), NOW));
-  assert.ok(pitchScore(stage(1, { verdict: 'stretch' }), NOW) > pitchScore(stage(1), NOW));
+test('shows rank by the visibility standard\'s verdict, how recently they published, whether his buyer listens, and how long they have run', () => {
+  assert.ok(pitchScore(stage(1, STAGE.take), NOW) > pitchScore(stage(1, STAGE.stretch), NOW));
+  assert.ok(pitchScore(stage(1, STAGE.stretch), NOW) > pitchScore(stage(1), NOW));
+  assert.equal(pitchScore(stage(1, { verdict: 'take' }), NOW), pitchScore(stage(1), NOW), "Control Center's stored verdict alone ranks nothing");
+  assert.equal(pitchScore(stage(1, { ...STAGE.stretch, verdict: 'take' }), NOW), pitchScore(stage(1, STAGE.stretch), NOW), 'the axes rank it');
   assert.ok(pitchScore(stage(1), NOW) > pitchScore(stage(1, { latest_episode_at: '2026-08-01T00:00:00Z' }), NOW), 'recent first');
   assert.ok(pitchScore(stage(1), NOW) > pitchScore(stage(1, { title: 'The Gardening Hour', audience: 'Gardeners' }), NOW), 'a room his buyer is in');
   assert.ok(pitchScore(stage(1, { episodes: 400 }), NOW) > pitchScore(stage(1, { episodes: 10 }), NOW), 'by log of its run');
 });
 
 test('a pitch is a 1.9.0 visibility row for Jonny\'s box, in Jonny\'s words, about the show, with no address', () => {
-  const r = pitchRows({ context: ctx([stage(1, { verdict: 'take' }), stage(2), stage(3, { organizer: 'Example Media' })]), weekGoals: GOALS, canon, record: RECORD, files: FILES, at: NOW, titleMax: TITLE_MAX_BRIEF });
+  const r = pitchRows({ context: ctx([stage(1, STAGE.take), stage(2), stage(3, { organizer: 'Example Media' })]), weekGoals: GOALS, canon, record: RECORD, files: FILES, at: NOW, titleMax: TITLE_MAX_BRIEF });
   assert.equal(r.proposals.length, 3);
   const [p] = r.proposals;
   assert.equal(p.rank, 1);
@@ -140,10 +147,10 @@ test('a pitch is a 1.9.0 visibility row for Jonny\'s box, in Jonny\'s words, abo
 });
 
 test('at most ten a run, best first, and the rest counted', () => {
-  const many = Array.from({ length: 14 }, (_, i) => stage(i + 1, { verdict: i === 13 ? 'take' : 'unjudged' }));
+  const many = Array.from({ length: 14 }, (_, i) => stage(i + 1, i === 13 ? STAGE.take : {}));
   const r = pitchRows({ context: ctx(many), weekGoals: GOALS, canon, files: FILES, at: NOW });
   assert.equal(r.proposals.length, PITCHES_PER_RUN);
-  assert.equal(r.proposals[0].subject_ref, `target:${id(14)}`, 'the show Nova judged worth taking first');
+  assert.equal(r.proposals[0].subject_ref, `target:${id(14)}`, 'the show the visibility standard judged worth taking first');
   assert.deepEqual(r.proposals.map(p => p.rank), Array.from({ length: PITCHES_PER_RUN }, (_, i) => i + 1));
   assert.equal(r.held.filter(h => h === 'pitch_per_run_cap').length, 4);
   const mixed = pitchRows({ context: ctx([stage(1), stage(2, { type: 'conference' }), stage(3, { booking_contact_id: null })]), weekGoals: GOALS, canon, files: FILES, at: NOW });
@@ -222,7 +229,8 @@ test('only an open stage with an address for speakers, before its deadline, not 
   assert.equal(hold({ type: 'podcast' }), 'not_a_stage');
   assert.equal(hold({ booking_contact_id: null }), 'no_booking_address');
   assert.equal(hold({ buried_at: '2026-10-01T00:00:00Z' }), 'buried');
-  assert.equal(hold({ verdict: 'rejected' }), 'rejected');
+  assert.equal(hold(STAGE.rejected), 'rejected', 'the visibility standard refuses it on its axes');
+  assert.equal(hold({ verdict: 'rejected' }), null, "Control Center's stored verdict is never read: with no axes served it is unjudged, as before");
   assert.equal(hold({ status: 'applied' }), 'applied');
   assert.equal(hold({ applied_at: '2026-10-01T00:00:00Z' }), 'applied');
   assert.equal(hold({ status: 'dropped' }), 'not_open');
@@ -240,11 +248,13 @@ test('only an open stage with an address for speakers, before its deadline, not 
   assert.ok(answered.has(id(5)), 'an answer on a speaking pitch counts as pitched');
 });
 
-test('stages rank by Nova\'s verdict, its three scores, how soon the call closes, and whether his buyer is in the room', () => {
-  assert.ok(speakScore(summit(1, { verdict: 'take' }), NOW) > speakScore(summit(1, { verdict: 'stretch' }), NOW));
-  assert.ok(speakScore(summit(1, { verdict: 'stretch' }), NOW) > speakScore(summit(1), NOW));
-  assert.ok(speakScore(summit(1, { room_score: 90, standing_score: 85, only_him_score: 80 }), NOW) > speakScore(summit(1), NOW), 'a judged strong room first');
-  assert.ok(speakScore(summit(1, { room_score: 90, standing_score: 20, only_him_score: 80 }), NOW) < speakScore(summit(1), NOW), 'by its weakest score');
+test('stages rank by the visibility standard\'s verdict, its three axes, how soon the call closes, and whether his buyer is in the room', () => {
+  assert.ok(speakScore(summit(1, STAGE.take), NOW) > speakScore(summit(1, STAGE.stretch), NOW));
+  assert.ok(speakScore(summit(1, STAGE.stretch), NOW) > speakScore(summit(1), NOW));
+  assert.equal(speakScore(summit(1, { verdict: 'take' }), NOW), speakScore(summit(1), NOW), "Control Center's stored verdict alone ranks nothing");
+  assert.ok(speakScore(summit(1, { score_version: 1, room_score: 90, standing_score: 85, only_him_score: 80 }), NOW) > speakScore(summit(1), NOW), 'a judged strong room first');
+  assert.ok(speakScore(summit(1, { score_version: 1, room_score: 90, standing_score: 20, only_him_score: 80 }), NOW) < speakScore(summit(1), NOW), 'by its weakest axis');
+  assert.equal(speakScore(summit(1, { score_version: 0, room_score: 90, standing_score: 20, only_him_score: 80 }), NOW), speakScore(summit(1), NOW), 'axes judged under another version are not read');
   assert.ok(speakScore(summit(1, { deadline_at: '2026-11-05T00:00:00Z' }), NOW) > speakScore(summit(1, { deadline_at: '2027-01-30T00:00:00Z' }), NOW), 'a call closing soon first');
   assert.ok(speakScore(summit(1), NOW) > speakScore(summit(1, { title: 'The Gardening Summit', audience: 'Gardeners' }), NOW), 'a room his buyer is in');
 });
@@ -257,7 +267,7 @@ test('the talk is the one Nova suggested for the room, else one from its topic',
 });
 
 test('a speaking pitch is a 1.9.0 events row for Jonny\'s box, in Jonny\'s words, about the stage, with no address', () => {
-  const r = pitchRows({ context: ctx([summit(1, { verdict: 'take' }), summit(2, { title: 'The CMO Panel Example', deadline_at: null })]), weekGoals: [...GOALS, 'Speak at one event this month'], canon, record: RECORD, files: FILES, at: NOW, titleMax: TITLE_MAX_BRIEF });
+  const r = pitchRows({ context: ctx([summit(1, STAGE.take), summit(2, { title: 'The CMO Panel Example', deadline_at: null })]), weekGoals: [...GOALS, 'Speak at one event this month'], canon, record: RECORD, files: FILES, at: NOW, titleMax: TITLE_MAX_BRIEF });
   assert.equal(r.proposals.length, 2);
   const [p, q] = r.proposals;
   assert.equal(p.row, 'events');
@@ -338,7 +348,7 @@ test('a dispatch run at 1.9.0 reports speaking pitches on events and says why th
 
 const NAMES = ['Avery Example', 'Sam Sample', 'Jordan Test', 'Riley Placeholder', 'Casey Demo', 'Morgan Fixture'];
 const guest = (n, over = {}) => ({ contact_id: id(300 + n), name: NAMES[(n - 1) % NAMES.length], status: 'enriched', invite_show: 'makeyourmindup', invite_state: null, scheduled_at: null,
-  guest_verdict: 'take', buried_at: null, recorded_at: null, published_at: null,
+  ...GUEST.take, buried_at: null, recorded_at: null, published_at: null,
   one_liner: 'Chief Marketing Officer at Example Retail, rebuilding a marketing team around AI', why_fit: 'Runs a marketing team that changed how it works with AI.',
   evidence: [{ url: `https://talks.example/guest-${n}`, label: 'How marketing teams change with AI', at: '2026-10-01T00:00:00Z', kind: 'talk' }], ...over });
 const route = (...ns) => Object.fromEntries(ns.map(n => [id(300 + n), { email: 'verified' }]));
@@ -373,10 +383,13 @@ test('a guest is invited only when judged worth having, with an address, a full 
   assert.equal(hold({ status: 'booked' }), 'not_open');
   assert.equal(hold({ invite_state: 'proposed' }), null, 'proposed is not yet invited');
   for (const s of ['drafted', 'booked', 'declined']) assert.equal(hold({ invite_state: s }), 'already_invited', s);
-  assert.equal(hold({ guest_verdict: 'stretch' }), null, 'a stretch is worth asking');
-  assert.equal(hold({ guest_verdict: 'rejected' }), 'guest_rejected');
-  assert.equal(hold({ guest_verdict: 'unjudged' }), 'guest_not_judged');
-  assert.equal(hold({ guest_verdict: null }), 'guest_not_judged');
+  assert.equal(hold(GUEST.stretch), null, 'a stretch is worth asking');
+  assert.equal(hold(GUEST.rejected), 'guest_rejected', 'the guest standard refuses it on its axes');
+  assert.equal(hold({ ...GUEST.rejected, guest_verdict: 'take' }), 'guest_rejected', "the engine's verdict decides, not Control Center's");
+  assert.equal(hold({ guest_verdict: 'rejected' }), null, "Control Center's stored verdict is never read: the axes take them");
+  assert.equal(hold({ guest_verdict: 'unjudged', senior_score: null, seen_score: null, spark_score: null }), 'guest_not_judged');
+  const { senior_score, seen_score, spark_score, ...unserved } = guest(1);
+  assert.equal(inviteHold(unserved, { L, invited: new Set(), routes: route(1), at: NOW }), 'guest_not_judged', "axes not served: not judged, whatever Control Center's verdict says");
   assert.equal(hold({ name: 'Avery' }), 'no_name');
   assert.equal(hold({ name: 'Dr Avery' }), 'no_name', 'a title is not a surname');
   assert.equal(hold({ name: 'Krish Raja' }), 'krish_himself');
@@ -470,7 +483,7 @@ test('an invite\'s card says who the guest is, how Krish knows them, why them, w
   assert.ok(c.gain.some(l => l.startsWith('It serves this week\'s goal: Have a clear plan for driving partnerships and visibility')));
   assert.ok(c.angles.length === 2 && c.angles.every(a => a.title.length <= 60 && a.line.length <= CARD_LINE_MAX));
   assert.deepEqual(c.sources, [{ label: 'How marketing teams change with AI', url: 'https://talks.example/guest-1' }], 'a profile or a plain http page is never a source');
-  const stretch = inviteCard({ g: guest(2, { guest_verdict: 'stretch', invite_show: 'signal_noise' }), name: 'Sam Sample', show: inviteShow('signal_noise', canon), topic: null, canon, contact: { known_since: '2019-03-01', source_list: ['linkedin'] }, serves: null, weekly: false });
+  const stretch = inviteCard({ g: guest(2, { ...GUEST.stretch, invite_show: 'signal_noise' }), name: 'Sam Sample', show: inviteShow('signal_noise', canon), topic: null, canon, contact: { known_since: '2019-03-01', source_list: ['linkedin'] }, serves: null, weekly: false });
   assert.ok(stretch.why.includes('The guest standard judged them a stretch for Signal & Noise, worth asking.'));
   assert.ok(stretch.known.startsWith('Known since 2019'), 'a guest he knows says how');
   assert.ok(stretch.gain[0].startsWith('A guest for Signal & Noise,'));
@@ -478,7 +491,7 @@ test('an invite\'s card says who the guest is, how Krish knows them, why them, w
 });
 
 test('invites rank first on visibility, take their two from the run\'s ten, and leave the podcasts the rest', () => {
-  const guests = [guest(1, { guest_verdict: 'stretch' }), guest(2), guest(3), guest(4, { invite_show: 'signal_noise' }), guest(5, { invite_show: 'signal_noise', invite_state: 'drafted' }), guest(2)];
+  const guests = [guest(1, GUEST.stretch), guest(2), guest(3), guest(4, { invite_show: 'signal_noise' }), guest(5, { invite_show: 'signal_noise', invite_state: 'drafted' }), guest(2)];
   const r = pitchRows({ context: { ...ctx(Array.from({ length: 12 }, (_, i) => stage(i + 1))), records: { visibility: Array.from({ length: 12 }, (_, i) => stage(i + 1)), drafts: [], guests }, routes: route(1, 2, 3, 4, 5) }, weekGoals: GOALS, canon, record: RECORD, files: FILES, at: NOW, titleMax: TITLE_MAX_BRIEF });
   const invites = r.proposals.filter(p => p.close_condition.reference === 'visibility:invite');
   const pods = r.proposals.filter(p => p.close_condition.reference === 'visibility:pitch');
@@ -531,7 +544,7 @@ test('a dispatch run at 1.9.0 reports invites with the pitches, counts them, and
   const reports = [];
   const cc = { recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: '1.9.0', week_goals: GOALS }),
     capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true } }),
-    context: async () => ({ ok: true, context: { schema_version: '1.9.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }], records: { advisory: [], visibility: [stage(1)], drafts: [], guests: [guest(1), guest(2, { invite_state: 'booked' }), guest(3, { guest_verdict: 'rejected' })] }, amplifier_candidates: [], routes: route(1, 2, 3), feedback: [], research: [] } }),
+    context: async () => ({ ok: true, context: { schema_version: '1.9.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }], records: { advisory: [], visibility: [stage(1)], drafts: [], guests: [guest(1), guest(2, { invite_state: 'booked' }), guest(3, GUEST.rejected)] }, amplifier_candidates: [], routes: route(1, 2, 3), feedback: [], research: [] } }),
     decisions: async () => [], postReport: async rep => { reports.push(golden(rep)); return { replayed: false }; }, readReport: async () => reports.at(-1) };
   const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-invite-190-1234', clock: () => NOW,
     canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/pitches.mjs', sha: 'b'.repeat(40) }], recordReader: async () => RECORD });

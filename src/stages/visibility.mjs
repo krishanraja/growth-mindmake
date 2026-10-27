@@ -31,15 +31,19 @@ import { DAY } from '../guards.mjs';
  * roomsHeWants, podcastContext). Its prompt restates Mindmake's offer from
  * Control Center's own mission block; that copy is not ported. The engine
  * instead reads each stage, its three stored axes and its verdict from the
- * context (records.visibility) and judges them again here, in shadow
- * (visibilityShadow), until the switch.
+ * context (records.visibility) and judges them again here: the pitch and
+ * form stages act on that verdict (stageVerdict), and visibilityShadow
+ * still counts it beside Control Center's while Control Center writes its
+ * own.
  *
  * Where src/stages/pitches.mjs already holds the same rule: VERDICT_WEIGHT
  * reads only take and stretch and pitchHold and speakHold hold a rejected
  * stage (visibility_recommendable's verdict gate); speakScore ranks by the
  * minimum of the three axes (the conjunction); speakHold's deadline_passed and
- * event_passed are isDeadDate. pitchHold does not ask for the current score
- * version, which visibility_recommendable does.
+ * event_passed are isDeadDate. Since "the engine's version acts" (plan
+ * section 12, M4), every one of them reads the engine's own verdict
+ * (stageVerdict) and axes (stageStrength), under the current score version,
+ * and never Control Center's stored verdict.
  *
  * Pure: no model, no network, no clock but the run's.
  */
@@ -293,6 +297,34 @@ export function verdictFromAxes(row, at) {
   if (a.room_score === null || a.standing_score === null || a.only_him_score === null) return { verdict: 'unjudged', reject_reason: null };
   return gate(a, {}, { densities: false });
 }
+
+// ── The engine's version acts (plan section 12, M4) ───────────────────────
+
+/**
+ * The engine's own verdict on a stage, the one every stage acts on: take,
+ * stretch, rejected or unjudged. A passed date is refused; otherwise the
+ * gates run on the three axes Control Center serves, judged under the
+ * current version (axesOf, verdictFromAxes). Axes not served, or judged
+ * under another version, read as unjudged, which is how a stage Control
+ * Center had not judged was treated: ranked as unjudged and never held for
+ * it. Control Center's stored verdict is never read here, so it never
+ * decides. Pure.
+ */
+export function stageVerdict(t, at) {
+  if (isDeadDate(t, at)) return 'rejected';
+  return axesOf(t).overall === null ? 'unjudged' : verdictFromAxes(t, at).verdict;
+}
+
+/** The weakest of a stage's three axes out of 100, under the current version, or null when they are not served (axesOf). Pure. */
+export const stageStrength = t => axesOf(t).overall;
+
+/**
+ * Control Center's stored verdict on a stage, raw, as its own gates read it
+ * (api/_peopleDraft.ts forTarget reads it with no version). For the shadow
+ * lines only, which compare the engine's answer with Control Center's while
+ * Control Center still writes them; never a decision. Pure.
+ */
+export const ccStageVerdict = t => (typeof t?.verdict === 'string' ? t.verdict : null);
 
 // ── In shadow, beside Control Center's own verdicts ───────────────────────
 
