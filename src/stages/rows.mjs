@@ -19,6 +19,11 @@ export const ROWS = ['reach_out', 'network', 'visibility', 'events', 'partners']
 export const KINDS = ['investor', 'connector', 'ai_capital', 'ai_trainer', 'student_educator', 'ceo_educator', 'broadcaster'];
 export const PER_ROW = 6;
 export const TITLE_MAX = 72;
+/** Ruling (Krish, 2026-10-27): ranked by Control Center's Mindmake fit (0 to 100), never by followers alone; under this, or unknown, is left out. */
+export const FIT_FLOOR = 40;
+/** The line under the title on his card (protocol 1.7.0), and the lines of the brief a tap opens. */
+export const BECAUSE_MAX = 140;
+export const BRIEF_LINE_MAX = 200;
 
 /** The ask decides the row. */
 export const ASK_FOR = { investor: 'partner', ai_capital: 'partner', ai_trainer: 'partner', connector: 'introduce', broadcaster: 'appear', ceo_educator: 'teach', student_educator: 'teach' };
@@ -41,7 +46,11 @@ const AI = /\b(ai|artificial intelligence|genai|machine learning)\b/i;
 /** Which amplifier kinds a person reads as, from their own words, most specific first. */
 export function kindsOf(c) {
   const text = [c.current_title, c.headline, c.contacts?.title, c.who, ...(Array.isArray(c.roles) ? c.roles : [])].filter(x => typeof x === 'string').join(' | ');
-  const out = KIND_WORDS.filter(([, re]) => re.test(text)).map(([k]) => k);
+  // What Control Center already wrote about them (hook, why_them) says what they do too. A
+  // passing mention of a university in that prose is no teaching post, so it reads every kind
+  // but the student educator's.
+  const story = [c.hook, c.why_them].filter(x => typeof x === 'string').join(' | ');
+  const out = KIND_WORDS.filter(([k, re]) => re.test(text) || (k !== 'student_educator' && story && re.test(story))).map(([k]) => k);
   const plays = Array.isArray(c.plays) ? c.plays : [];
   if ((c.is_creator || c.is_influencer || (Number(c.followers) || 0) >= 50000) && !out.includes('broadcaster')) out.push('broadcaster');
   if ((plays.includes('multiplier') || plays.includes('amplifier')) && !out.length) out.push('connector');
@@ -129,7 +138,14 @@ export function refusedBy(L, { subject, row, kind, sector, topic, band }, at) {
 // ── Rank, goals, channels ───────────────────────────────────────────────────
 
 /** How well each kind reaches his buyer: leaders who decide (playbook 11). */
-export const FIT = { ceo_educator: 1.3, connector: 1.2, investor: 1.15, ai_capital: 1.1, broadcaster: 1.0, ai_trainer: 0.9, student_educator: 0.75 };
+/** Control Center's Mindmake fit for a person, 0 to 100, or null when it has none. */
+export function fitOf(c) { const f = c?.mindmake_fit; return typeof f === 'number' && Number.isFinite(f) && f >= 0 && f <= 100 ? Math.round(f) : null; }
+/** Why a person is left out before any ask: they sell what Mindmake sells, or their fit is under the floor or unknown. */
+export function fitHold(c) {
+  if (c?.sells_competing_services === true) return 'competitor';
+  const f = fitOf(c);
+  return f === null || f < FIT_FLOOR ? 'low_fit' : null;
+}
 const ROUTE = { email_verified: 1, email_unchecked: 0.85, whatsapp: 0.9, x_message: 0.6 };
 const GOAL_WORDS = { partners: /partner/i, visibility: /visib|audience|podcast|media|stage/i, events: /event|speak|talk|stage|room/i, reach_out: /warm lead|one-?pager|offer|lead|intro/i, network: /warm|network|relationship|reconnect/i };
 
@@ -164,6 +180,84 @@ const cutAt = (s, max) => { const t = clean(s); if (t.length <= max) return t; c
 const lower1 = s => s.charAt(0).toLowerCase() + s.slice(1);
 /** The first title that fits his phone whole. */
 export function fitTitle(...options) { return options.map(clean).find(t => t && t.length <= TITLE_MAX) ?? cutAt(options.at(-1), TITLE_MAX); }
+
+/** A name or company as he would write it: no emoji, pictographs or symbols ("Jess Ramos⚡️" is Jess Ramos). */
+export function cleanName(value) {
+  return clean(String(value ?? '').normalize('NFKC').replace(/[\p{Extended_Pictographic}\p{So}\p{Sk}\u200d\ufe0e\ufe0f\u20e3]/gu, ' ')).replace(/\s+([,.])/g, '$1');
+}
+/** The later of a touch Control Center recorded and the last email, as a time, or null when neither is known. */
+export function lastContact(n) {
+  const times = [n?.contacts?.last_touch_at, n?.email_last].map(t => Date.parse(t ?? '')).filter(Number.isFinite);
+  return times.length ? Math.max(...times) : null;
+}
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** "Jun 2024", or null. */
+export function monthYear(value) { const t = Date.parse(value ?? ''); if (!Number.isFinite(t)) return null; const d = new Date(t); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; }
+const yearOf = value => { const t = Date.parse(value ?? ''); return Number.isFinite(t) ? new Date(t).getUTCFullYear() : null; };
+/** A whole sentence that fits, ending on a clause rather than mid-thought: the first sentence, cut at a comma, "and" or "plus" when it is long. */
+export function clause(value, max) {
+  const t = clean(value ?? '');
+  if (!t) return '';
+  const sentence = (t.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? t).replace(/[.!?]+$/, '');
+  if (sentence.length + 1 <= max) return `${sentence}.`;
+  const room = sentence.slice(0, max);
+  const at = Math.max(...[', ', '; ', ' and ', ' plus ', ' with ', ' who ', ' which '].map(m => room.lastIndexOf(m)));
+  return at >= 30 ? `${room.slice(0, at).replace(/[,;:]+$/, '')}.` : cutAt(sentence, max);
+}
+/** The last word on a line he reads: never longer than its place allows. */
+export function cutClean(value, max) { return cutAt(value, max); }
+const TIE_WORDS = { '1_reciprocated': 'You have written to each other before', '2_core_network': 'In your core network', '3_known_network': 'In your wider network', '4_owned_network': 'On one of your own lists' };
+/** How he knows them: "Known since 2021, last email Jun 2024." or "No email on record." */
+export function knownLine(c) {
+  const since = yearOf(c?.known_since), last = monthYear(c?.email_last);
+  const email = last ? `last email ${last}` : 'no email on record';
+  return since ? `Known since ${since}, ${email}.` : `${email.charAt(0).toUpperCase()}${email.slice(1)}.`;
+}
+const ASK_WORDS = {
+  introduce: () => 'one introduction to a leader working out what AI should do for them',
+  appear: () => 'a guest spot on their channel',
+  partner: kind => kind === 'ai_trainer' ? 'a short call on pairing their AI training with Mindmake' : 'a working session for the leaders they back',
+  teach: kind => `a session for their ${kind === 'student_educator' ? 'students' : 'leaders'}`,
+  relationship: () => 'a catch-up call, nothing more',
+  signal: () => 'a reply to their comment, with the one Mindmake link',
+};
+const BAND_WORDS = { under_1k: 'under 1,000', '1k_10k': '1,000 to 10,000', '10k_100k': '10,000 to 100,000', '100k_1m': '100,000 to 1 million', over_1m: 'over 1 million', unknown: 'not yet known' };
+const reachWords = r => r?.value ? `${r.value.toLocaleString('en-GB')}, ${r.basis}` : `${BAND_WORDS[r?.band] ?? 'not yet known'}${r?.band && r.band !== 'unknown' ? `, ${r.basis}` : ''}`;
+
+/**
+ * What he reads before he decides (protocol 1.7.0): the line under the title
+ * (who they are and why them, and how he knows them) and the brief a tap opens.
+ * Written in code from what Control Center holds about them; nothing invented.
+ */
+export function caseFor({ c, name, company, ask, kind, reach, fit, serves }) {
+  const title = cleanName(c?.current_title ?? c?.contacts?.title ?? c?.headline ?? '');
+  const role = title && company ? `${title} at ${company}` : title || company || '';
+  const known = knownLine(c);
+  const story = c?.hook || c?.why_them || '';
+  let because;
+  if (ask === 'relationship') {
+    const last = monthYear(c?.email_last) ?? monthYear(c?.contacts?.last_touch_at);
+    const head = `A close tie gone quiet${last ? ` since ${last}` : ''}.`;
+    because = role ? `${head} ${clause(role, BECAUSE_MAX - head.length - 1)}` : head;
+  } else {
+    // Who they are, then why them, then how he knows them; the role gives way when both will not fit.
+    const room = BECAUSE_MAX - known.length - 1;
+    const who = role ? clause(role, room) : '';
+    const both = who && story && room - who.length - 1 >= 45 ? clause(story, room - who.length - 1) : '';
+    const lead = both && !both.endsWith('...') ? `${who} ${both}` : story ? clause(story, room) : who;
+    because = lead ? `${lead} ${known}` : known;
+  }
+  const askLine = `The ask: ${ASK_WORDS[ask]?.(kind) ?? 'one note'}.${serves ? ` It serves this week's goal: ${serves.replace(/[.!?]+$/, '')}.` : ''}`;
+  const brief = [
+    clause(`${name}${role ? `, ${role}` : ''}`, BRIEF_LINE_MAX),
+    `${TIE_WORDS[c?.network_tier] ?? 'Someone Control Center holds'}. ${known}`,
+    ...(story ? [clause(story, BRIEF_LINE_MAX)] : []),
+    askLine,
+    ...(ask === 'relationship' ? [] : [clause(`Reach: ${reachWords(reach)}`, BRIEF_LINE_MAX)]),
+    `Mindmake fit ${fit} of 100, as Control Center scores it.`,
+  ].filter(Boolean);
+  return { because: cutClean(because, BECAUSE_MAX), brief: brief.slice(0, 6).map(l => cutClean(l, BRIEF_LINE_MAX)) };
+}
 
 /**
  * The words for each ask, in Krish's own name from his own mailbox (krish-voice,
@@ -241,7 +335,7 @@ export function actionFor(channel, contactId, name, words) {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** One row proposal, shaped as dispatch's finishProposal expects. */
-export function rowProposal({ row, ask, contactId, name, title, why, action, reach, kind, features, serves, files, evidence, at }) {
+export function rowProposal({ row, ask, contactId, name, title, why, because, brief, action, reach, kind, features, serves, files, evidence, at }) {
   return {
     proposal_id: `gmw-${seal({ subject: contactId, row, ask }).slice(0, 32)}`,
     title, why: clean(why).slice(0, 1000), kind: 'prepared', wall: 'send', channel: action.channel, amount_usd: 0,
@@ -249,6 +343,9 @@ export function rowProposal({ row, ask, contactId, name, title, why, action, rea
     evidence: evidence.slice(0, 12), close_condition: { event: 'outreach_sent', reference: `${row}:${ask}` },
     expires_at: new Date(Date.parse(at) + 14 * DAY).toISOString(), stage: null, parent_proposal_id: null,
     row, reach, amplifier_kind: kind, features, serves, source_revision: files.slice(0, 8), name,
+    // 1.7.0: the line under the title and the brief a tap opens. Dispatch drops both for an older Control Center.
+    ...(because ? { because: cutClean(because, BECAUSE_MAX) } : {}),
+    ...(Array.isArray(brief) && brief.length ? { brief: brief.map(l => cutClean(l, BRIEF_LINE_MAX)).filter(Boolean).slice(0, 6) } : {}),
   };
 }
 
@@ -275,9 +372,12 @@ export function amplifierRows({ context, weekGoals, canon, files, at }) {
     seen.add(id);
     const kinds = kindsOf(c);
     if (!kinds.length) continue;
+    const unfit = fitHold(c);
+    if (unfit) { held.push(unfit); continue; }
+    const fit = fitOf(c);
     const reach = reachOf(c, research);
     const sector = sectorOf.get(c.contacts?.company_domain) ?? null;
-    const name = clean(c.contacts?.full_name ?? '');
+    const name = cleanName(c.contacts?.full_name ?? '');
     if (!name.includes(' ')) { held.push('no_full_name'); continue; }
     const subject = `contact:${id}`;
     const close = CLOSE.has(c.network_tier);
@@ -287,42 +387,53 @@ export function amplifierRows({ context, weekGoals, canon, files, at }) {
       const ch = channelOf(routes[id], row);
       const features = { sector, topic: 'ai_leadership', seniority: seniorityOf(c.current_title ?? c.contacts?.title) };
       const refused = refusedBy(L, { subject, row, kind, sector, topic: features.topic, band: reach.band }, at);
-      return { kind, ask, row, ch, features, refused, serves: servesOf(row, weekGoals), s: ch ? score(reach, FIT[kind], ch.weight, servesOf(row, weekGoals), close) : 0 };
+      return { kind, ask, row, ch, features, refused, serves: servesOf(row, weekGoals), s: ch ? score(reach, fit / 100, ch.weight, servesOf(row, weekGoals), close) : 0 };
     }).sort((a, b) => b.s - a.s);
     const best = options.find(o => o.ch && !o.refused);
     if (!best) { held.push(options.find(o => o.refused)?.refused ?? 'no_route'); continue; }
     const variant = (L.pitchOff.get(best.row) ?? 0) % WORDS[best.ask].length;
     const words = WORDS[best.ask][variant]({ kind: best.kind }, canon);
-    const company = clean(c.current_company ?? c.contacts?.company ?? '');
+    const company = cleanName(c.current_company ?? c.contacts?.company ?? '');
+    const told = caseFor({ c, name, company, ask: best.ask, kind: best.kind, reach, fit, serves: best.serves, at });
     out.push({ score: best.s, proposal: rowProposal({
       row: best.row, ask: best.ask, contactId: id, name, at, files,
       title: titleFor(best.ask, best.kind, name, company),
-      why: `${name}${company ? ` (${company})` : ''} reads as ${best.kind.replace('_', ' ')}: ${clean(c.current_title ?? c.headline ?? c.contacts?.title ?? '')}. Reach: ${reach.band === 'unknown' ? 'not yet known' : reach.band.replace('_', ' ')} (${reach.basis}). One ask: ${best.ask}.`,
+      why: `${name}${company ? ` (${company})` : ''} reads as ${best.kind.replace('_', ' ')}: ${clean(c.current_title ?? c.headline ?? c.contacts?.title ?? '')}. Reach: ${reach.band === 'unknown' ? 'not yet known' : reach.band.replace('_', ' ')} (${reach.basis}). Mindmake fit ${fit} of 100. One ask: ${best.ask}.`,
+      because: told.because, brief: told.brief,
       action: actionFor(best.ch.channel, id, name, words), reach, kind: best.kind, features: best.features, serves: best.serves,
       evidence: reach.source_url ? [{ label: clean(`Reach: ${reach.basis}, as of ${reach.as_of.slice(0, 10)}`).slice(0, 500), url: reach.source_url }] : [],
     }) });
     // Rank by a cited figure where it is worth one question: the strongest without one.
     if (reach.value === null && asks.length < 4) asks.push({ c, kind: best.kind, name, company, score: best.s });
   }
-  for (const n of Array.isArray(context.network) ? context.network : []) {
+  // Close ties gone quiet: Control Center's quiet_ties (1.7.0) first, then its network read.
+  const ties = [...(Array.isArray(context.quiet_ties) ? context.quiet_ties : []), ...(Array.isArray(context.network) ? context.network : [])];
+  for (const n of ties) {
     const id = n.contact_id;
     if (typeof id !== 'string' || !UUID.test(id) || seen.has(id) || !CLOSE.has(n.network_tier) || ['do_not_contact', 'closed'].includes(n.contacts?.status)) continue;
-    const last = Date.parse(n.contacts?.last_touch_at ?? '');
-    // Gone quiet: a real relationship, nothing for 90 days.
-    if (!Number.isFinite(last) || Date.parse(at) - last < 90 * DAY) continue;
+    // The last time they spoke is the later of a touch Control Center recorded and their last email.
+    const last = lastContact(n);
+    // Gone quiet: a real relationship, nothing for 90 days. With no date at all, quiet is unknown.
+    if (last === null || Date.parse(at) - last < 90 * DAY) continue;
     seen.add(id);
-    const name = clean(n.contacts?.full_name ?? '');
+    const unfit = fitHold(n);
+    if (unfit) { held.push(unfit); continue; }
+    const fit = fitOf(n);
+    const name = cleanName(n.contacts?.full_name ?? '');
     const subject = `contact:${id}`;
     const ch = channelOf(routes[id], 'network');
     const refused = refusedBy(L, { subject, row: 'network', kind: null, sector: null, topic: null, band: 'unknown' }, at);
     if (!name.includes(' ') || !ch || refused) { held.push(refused ?? (ch ? 'no_full_name' : 'no_route')); continue; }
     const serves = servesOf('network', weekGoals);
     const variant = (L.pitchOff.get('network') ?? 0) % WORDS.relationship.length;
-    out.push({ score: score({ band: 'unknown', value: null }, 1, ch.weight, serves, true) + Math.min(2, (Date.parse(at) - last) / (365 * DAY)), proposal: rowProposal({
+    const reach = { value: null, band: 'unknown', basis: 'a relationship, not an audience', source_url: null, as_of: null };
+    const told = caseFor({ c: n, name, company: cleanName(n.current_company ?? n.contacts?.company ?? ''), ask: 'relationship', kind: null, reach, fit, serves, at });
+    out.push({ score: (score({ band: 'unknown', value: null }, fit / 100, ch.weight, serves, true) + Math.min(2, (Date.parse(at) - last) / (365 * DAY))) * fit / 100, proposal: rowProposal({
       row: 'network', ask: 'relationship', contactId: id, name, at, files,
       title: fitTitle(`Catch up with ${name}`, `Catch up with ${first(name)}`),
-      why: `${name} is a close tie with nothing on record for ${Math.round((Date.parse(at) - last) / DAY)} days.`,
-      action: actionFor(ch.channel, id, name, WORDS.relationship[variant]()), reach: { value: null, band: 'unknown', basis: 'a relationship, not an audience', source_url: null, as_of: null },
+      why: `${name} is a close tie with nothing on record for ${Math.round((Date.parse(at) - last) / DAY)} days. Mindmake fit ${fit} of 100.`,
+      because: told.because, brief: told.brief,
+      action: actionFor(ch.channel, id, name, WORDS.relationship[variant]()), reach,
       kind: null, features: { sector: null, topic: 'relationship', seniority: seniorityOf(n.current_title ?? n.contacts?.title) }, serves, evidence: [],
     }) });
   }
