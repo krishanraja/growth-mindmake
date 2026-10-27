@@ -776,6 +776,9 @@ test('an appearance names its show, and his own shows are never one', () => {
   assert.equal(showIn('Host of Example Show 9'), 'Example Show 9');
   assert.equal(showIn('His podcast and public commentary on ad infrastructure.'), '', 'a podcast with no name names nothing');
   assert.equal(showIn('Founder of Example Media, a studio.'), '', 'a company someone founded is not a show');
+  assert.equal(showIn('Leads the region, and has seen B2B podcast advertising shift.'), '', 'one word before a lower-case podcast is a kind of podcast, not its name');
+  assert.equal(showIn('Hosts the Example Podcast every week.'), 'Example Podcast', 'a capitalised noun is part of the name');
+  assert.equal(factOf('Leading Example Audio for over 9 years, curious what he has seen shift in podcast advertising.'), 'Leading Example Audio for over 9 years', 'a "curious what" prompt is cut back to the fact');
   assert.equal(showIn('His story is worth asking about on The Example Show.'), '', 'a prompt names his show, not theirs');
   // A co-host of his own show is never asked to have him on it, and may still be a tie to catch up with.
   const cohost = person(130, 'Co-host, Signal & Noise', { followers: 5000, hook: 'Co-hosts the Signal & Noise podcast, a weekly show on AI and media.' });
