@@ -1,5 +1,9 @@
 # Get going
 
+## Current continuation, 27 October 2026
+
+Start with [NOW.md](../NOW.md) and the [dated trusted-distribution session handoff](history/2026-10-27-growth-session-handoff.md), then read today's Control Center directive, context, decisions and latest report. The 19 October checklist below is historical and is not evidence that later merged capabilities are still unimplemented. Current AGENTS.md rulings, the North Star ladder and negotiated protocol capabilities take precedence. Reconcile the earlier pending route plans with current lifecycle records before reusing their drafts; their prepared action windows have expired. Do not re-interview Krish or recreate missing records from this document.
+
 When Krish opens this repository and says "Get going", this is the work. AGENTS.md says how to use it; this file says what to do. Written 2026-10-19 by Control Center, from this engine's first live reports.
 
 ## What "Get going" does
