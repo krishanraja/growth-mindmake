@@ -1,5 +1,9 @@
 # Release state
 
+## The register of every past fix (plan Phase 0, part), 27 October 2026
+
+Merged by the session. `invariants/register.json` holds 48 fixes (F01 to F48: 40 guarded by a named test, 4 partly, 4 with a reason and a phase) and findings N01 to N19 (7 closed). tests/register.test.mjs checks ids, sources and phases, that every named test exists by its name, and that no unguarded fix is marked done; four deliberate breakages each failed one test. Ids the plan names keep their meaning; the others are numbered in the order their fix landed. Plan section 12 now carries the Control Center migration inventory (M1 to M13). 275 tests.
+
 ## Each wake is its own run (N01), 27 October 2026
 
 Merged by the session; not live until Control Center's next wake. The daily and refill wakes run `dispatch --kind dispatch-<run number>`, so a same-day refill reports new rows under its own run id instead of replaying the morning's report; a re-run of the same wake keeps its number and reuses its report (F15 unchanged). OPERATIONS.md states the dispatch job's ten-minute timeout (F22). tests/workflow.test.mjs pins both. The seven repository checks pass.

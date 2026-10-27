@@ -1,0 +1,672 @@
+{
+  "version": 1,
+  "as_of": "2026-10-27",
+  "note": "Phase 0 register (docs/briefs/2026-10-27-bulletproof-growth-engine.md, sections 0, 4 and 8). The review's list of 48 fixes was never committed, so this list is rebuilt from evidence: every commit body on main at d40b54c (56 commits), the descriptions of the 26 merged pull requests, docs/RELEASE.md, NOW.md, docs/history/2026-10-27-growth-session-handoff.md and the plan. A fix is a correction of earlier behaviour: a bug, a wrong word shape on a card, a protocol mismatch or a doc that said something untrue. The evidence gives 48. The ids the plan names keep their meaning (F03 replay, F06, F14 and F16 duplicates and priority, F08, F09, F10, F11 and F12 retired routes, F13 protocol drift, F15, F18, F20, F21, F22, F23 and F25 ranking by vanity, F27 to F45 card words with F30 and F45 unknown versus zero, F48). The other ids are this file's own, numbered in the order the fixing change landed, so they may not match the review's private numbering one for one. Judgement calls: F01 to F06 are the six corrections the 2.0.0 independent review records in docs/RELEASE.md, in its order; F07 is the earlier nested global-provenance regression the same record names; F17 is the first review fix in PR #9; F19 and F20 split the stale canon into the row words (fixed) and the pinned snapshot copy (still stale); the timeout raise in PR #10 is told inside F22, the doc that lagged it; the round-2 leftovers in PR #17 are folded into the PR #15 fixes they finish (F38, F40, F41). Not counted: the failed live runs of 19 October (attempt_unconfirmed, fixed on Control Center's side, not here) and the N findings closed by PRs #24 to #26, which are listed under findings. Every guard names a test in tests/ whose text holds the quoted name, checked by tests/register.test.mjs.",
+  "fixes": [
+    {
+      "id": "F01",
+      "what": "A valid but oversized research input aborted unrelated work in the same engine cycle; it is now held while independent work persists.",
+      "source": "56a13d1",
+      "guard": {
+        "kind": "test",
+        "where": "tests/engine-http.test.mjs: oversized valid research is held while an independent inbound artifact persists",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F02",
+      "what": "Two prepared items could be acknowledged against one aliased destination record; persistence now rejects an aliased, missing or truncated record.",
+      "source": "56a13d1",
+      "guard": {
+        "kind": "test",
+        "where": "tests/engine-http.test.mjs: work persistence rejects a false acknowledgement, missing item and truncated consumed artifact",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F03",
+      "what": "A first commit could be flagged as a replay; the replay flag now comes from the write receipt and a first run reads as not replayed.",
+      "source": "56a13d1",
+      "guard": {
+        "kind": "test",
+        "where": "tests/engine-http.test.mjs: complete engine cycle uses one shared capacity and replays without replacing prior work",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F04",
+      "what": "A speaking pitch could take a date the programme's own page did not ground; a new input date can no longer freshen an old or unrelated programme.",
+      "source": "56a13d1",
+      "guard": {
+        "kind": "test",
+        "where": "tests/motions.test.mjs: a new input date cannot freshen an old or unrelated first-party programme",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F05",
+      "what": "An artifact could be routed to a closure event that did not belong to its kind; the batch parser now rejects a mismatched closure.",
+      "source": "56a13d1",
+      "guard": {
+        "kind": "test",
+        "where": "tests/engine.test.mjs: batch parser rejects concealed authority, missing dispositions and false reporting",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F06",
+      "what": "Commercial decisions lost priority to new acquisition in the weekly review; decided proposals and held qualification now come before new research.",
+      "source": "56a13d1",
+      "guard": {
+        "kind": "test",
+        "where": "tests/learning.test.mjs: actual proposal decisions and held qualification take priority over new prospect research",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F07",
+      "what": "A weekly recommendation could lose its nested global scope and source revision; the parser now refuses a forged scope, revision or population.",
+      "source": "9bedf7c",
+      "guard": {
+        "kind": "test",
+        "where": "tests/operations-http.test.mjs: a weekly recommendation must retain its global scope, exact source revision and examined population",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F08",
+      "what": "The runner read secret and variable names that did not exist; operate.yml now binds the shared managed growth secret and the Control Center origin variable.",
+      "source": "d894012, 37edf0d",
+      "guard": {
+        "kind": "none",
+        "where": null,
+        "reason": "No test parses .github/workflows/operate.yml for the secret and variable names it binds; the plan adds that regression test in Phase 3."
+      },
+      "phase": "3"
+    },
+    {
+      "id": "F09",
+      "what": "The operating docs let an app promote before its additive schema was verified; they now order schema verification first.",
+      "source": "5a9b800, 4ec8d06",
+      "guard": {
+        "kind": "none",
+        "where": null,
+        "reason": "The order is prose in docs/OPERATIONS.md and the handoff, for a deploy that happens in another repository; only the Phase 3 drift check over claims in docs can hold it."
+      },
+      "phase": "3"
+    },
+    {
+      "id": "F10",
+      "what": "The copied protocol doc linked to a path outside this repository; the copy named the ADR in words instead.",
+      "source": "PR #4",
+      "guard": {
+        "kind": "none",
+        "where": null,
+        "reason": "No link check exists, though docs/RELEASE.md says one ran, and the fault is live again in docs/control-center/ENGINE-PROTOCOL.md at lines 3, 157 and 300. The local link check in scripts/check.mjs is Phase 3."
+      },
+      "phase": "3"
+    },
+    {
+      "id": "F11",
+      "what": "The protocol retired the live work-context route; a live dispatch now holds the full cycle with a named reason instead of calling it.",
+      "source": "PR #2",
+      "guard": {
+        "kind": "test",
+        "where": "tests/dispatch.test.mjs: a live run before activation is refused as engine_inactive, and a live run with no source credential reports degraded",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F12",
+      "what": "The daily dispatch depended on the retired snapshot credential; it now runs on shared context and outcomes and never calls the snapshot route.",
+      "source": "PR #7",
+      "guard": {
+        "kind": "test",
+        "where": "tests/strategy.test.mjs: daily dispatch consumes shared context and full outcomes without the retired snapshot credential",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F13",
+      "what": "Dispatch runs stopped on directive_invalid because the engine required protocol 1.0.0 exactly; any 1.x directive is now read.",
+      "source": "PR #6",
+      "guard": {
+        "kind": "test",
+        "where": "tests/dispatch.test.mjs: any 1.x directive is read, since Control Center only adds within 1.x",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F14",
+      "what": "His list could show a second copy of a person another lane already held; each send proposal now names its person as subject_ref so one copy is kept.",
+      "source": "PR #6",
+      "guard": {
+        "kind": "test",
+        "where": "tests/dispatch.test.mjs: a report is sent as 1.2.0 and a note's subject passes the schema",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F15",
+      "what": "A restarted live run could prepare new bytes under an accepted run id; it now reuses the accepted report and stops on recovery_report_mismatch.",
+      "source": "PR #7",
+      "guard": {
+        "kind": "partial",
+        "where": "tests/dispatch.test.mjs: one dispatch run journals started then one terminal state, reports, reads back and reads decisions",
+        "reason": "Only the synthetic replay is tested; the live report-reuse branch and recovery_report_mismatch in src/dispatch.mjs have no test. Phase 3 adds them."
+      },
+      "phase": "3"
+    },
+    {
+      "id": "F16",
+      "what": "New outreach could go ahead of replies and reach one person from two lanes; selection now honours replies first and deduplicates recipients.",
+      "source": "PR #7",
+      "guard": {
+        "kind": "test",
+        "where": "tests/strategy.test.mjs: strategic selection reserves 70 percent for access, honours replies and deduplicates recipients across native lanes",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F17",
+      "what": "Voice rules could reach the copy doctrine's quality gate; drafting packets now leave the gate out and fail closed if any gate text remains.",
+      "source": "PR #9",
+      "guard": {
+        "kind": "test",
+        "where": "tests/voice.test.mjs: a packet that carries voice rules never carries the quality gate rubric",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F18",
+      "what": "Docs and the report said the voice rules shaped today's drafts, which come from fixed templates; they now say the rules reach only a model drafting step's packets.",
+      "source": "PR #9",
+      "guard": {
+        "kind": "partial",
+        "where": "tests/voice.test.mjs: a dispatch run reads taste, reports only a count, and keeps it out of every proposal",
+        "reason": "The report's activity line is pinned; the same claim in NOW.md and prompts/README.md rule 10 is not checked. Phase 3 adds the regression test."
+      },
+      "phase": "3"
+    },
+    {
+      "id": "F19",
+      "what": "Row words came from a stored copy of the canon carrying a retired main ask; they are now read live from Mindmake's repository each run and named by blob SHA.",
+      "source": "PR #10",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: canon is read from the venture as it is today",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F20",
+      "what": "The pinned APPROVED_CANON used by the snapshot path no longer matches Mindmake's canon.",
+      "source": "PR #10",
+      "guard": {
+        "kind": "partial",
+        "where": "tests/rows.test.mjs: amplifier rows: the ask decides the row, the words are the canon of today",
+        "reason": "The rows path is guarded against the retired ask; the pinned copy in contracts/growth.ts is still stale and its review lapses on 15 November (N12). Phase 3 adds a CI warning 14 days before."
+      },
+      "phase": "3"
+    },
+    {
+      "id": "F21",
+      "what": "The engine's schema check ignored maximum, minLength and minItems, so an over-long field could pass locally and fail at Control Center; it now enforces them.",
+      "source": "PR #10",
+      "guard": {
+        "kind": "partial",
+        "where": "tests/dispatch.test.mjs: the report builder produces a schema-valid envelope, refuses unknown fields and names no private person",
+        "reason": "Exercised only through whole reports; no direct unit test for each bound. Phase 3 adds them."
+      },
+      "phase": "3"
+    },
+    {
+      "id": "F22",
+      "what": "PR #10 raised the dispatch job's timeout from five to ten minutes but OPERATIONS.md still said five; it now states ten.",
+      "source": "PR #26",
+      "guard": {
+        "kind": "test",
+        "where": "tests/workflow.test.mjs: OPERATIONS.md states the dispatch job's real timeout and run id (F22)",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F23",
+      "what": "Rows ranked by followers and a role guessed from a title, so a zero-fit person could top a row; they now rank by Control Center's Mindmake fit first.",
+      "source": "PR #11",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: fit outranks a bigger following",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F24",
+      "what": "NETWORK was empty because it read a last-touch date Control Center never writes; it now reads quiet ties and the later of a touch and the last email.",
+      "source": "PR #11",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: NETWORK: quiet ties come first, last contact is the later of a touch and an email",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F25",
+      "what": "People who sell competing services and people under fit 40 or unscored reached the rows; they are now left out.",
+      "source": "PR #11",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: a competitor, and anyone under the fit floor or with no fit, is left out",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F26",
+      "what": "Who someone is was guessed from a title alone; it now reads the record's hook and why_them, and a university mentioned in passing no longer makes someone a teacher.",
+      "source": "PR #11",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: but a passing university is no teaching post",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F27",
+      "what": "Card lines were cut mid-phrase and ended on a joiner or an initial; a line is now built only from whole pieces.",
+      "source": "PR #12",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: a card line is built only from whole pieces",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F28",
+      "what": "A sentence was ended at an abbreviation or initial; sentences are now read past them.",
+      "source": "PR #12",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: a card line is built only from whole pieces: never ending on a joiner, an initial or a slug",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F29",
+      "what": "Internal slugs and raw lower-case titles reached the card; a slug is dropped and an all lower-case title is title-cased.",
+      "source": "PR #12",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: a card line is built only from whole pieces: never ending on a joiner, an initial or a slug",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F30",
+      "what": "The known line could say both that they had written to each other and that no email was on record; it now follows the counts and says none only when none is counted.",
+      "source": "PR #13",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: how he knows them: every combination of emails each way reads true, and the live contradiction cannot happen",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F31",
+      "what": "An appear ask was offered on followers alone; VISIBILITY now needs a channel the person owns.",
+      "source": "PR #13",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: VISIBILITY needs a channel they own: followers alone are an audience, not a channel",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F32",
+      "what": "A judge's note about what was missing, or whether someone is a buyer, was shown as a reason; such notes and instructions are now dropped.",
+      "source": "PR #14",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: a judge's note or an instruction is never a reason",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F33",
+      "what": "Hooks written as prompts for an interviewer reached the card; a prompt is now cut back to the whole fact before it.",
+      "source": "PR #14",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: and a prompt is cut back to the fact before it",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F34",
+      "what": "The angle opener did not read as a sentence; it now quotes the fact whole, and the site's quote gives way when both do not fit.",
+      "source": "PR #14",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: the opener always reads as a sentence",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F35",
+      "what": "A profile following or a media audience was said as the room of leaders gathered; each reach is now said as what it is.",
+      "source": "PR #14",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: what he gets says what each number is",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F36",
+      "what": "VISIBILITY counted a channel because a word like podcast appeared inside a prompt; a channel now counts only where the record says they own it.",
+      "source": "PR #14",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: VISIBILITY counts a channel only where the record says they host, run, write or present it",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F37",
+      "what": "Sources were labelled by a generic research line repeated; each page is now named by its title or site, deduped, four at most.",
+      "source": "PR #14",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: each research page is named by its title or its site, deduped, four at most",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F38",
+      "what": "An honorific was used as a first name in greetings, card lines and titles; a first name is never a title (PR #17 finished it for titles).",
+      "source": "PR #15, PR #17",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: a first name is never a title",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F39",
+      "what": "A fit verdict or a judge's clause after a fact reached the card; verdicts are dropped and the clause is cut back to the fact.",
+      "source": "PR #15",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: a verdict on whether they fit is never a reason",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F40",
+      "what": "Every partner got the same generic angles and email; angles and the email now name their company or who they back (PR #17 finished the email).",
+      "source": "PR #15, PR #17",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: partner angles are tied to the person",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F41",
+      "what": "A co-host of his own show was offered a guest spot on it, and appearances named no show; an appearance now names its show and is never his own (PR #17 added the own-show slugs).",
+      "source": "PR #15, PR #17",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: an appearance names its show, and his own shows are never one",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F42",
+      "what": "Every broadcaster was tagged with one topic, so one Not my topic could refuse a whole row; a topic is now specific or null.",
+      "source": "PR #15",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: a topic is what this one is about, or null",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F43",
+      "what": "A kind of podcast was taken as a show's name; one word before a lower-case podcast is now read as a kind, not a name.",
+      "source": "PR #16",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: an appearance names its show, and his own shows are never one",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F44",
+      "what": "A hook asking what someone was curious about reached the card as a reason; curious what, how and whether are now prompts cut back to the fact.",
+      "source": "PR #16",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: an appearance names its show, and his own shows are never one",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F45",
+      "what": "A card could say no email on record where emails were not counted at all; it now says no emails between you on record, and never that when any are counted.",
+      "source": "PR #17",
+      "guard": {
+        "kind": "test",
+        "where": "tests/rows.test.mjs: how he knows them: every combination of emails each way reads true",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F46",
+      "what": "The context read failed once Control Center's context outgrew a 2,000,000-character budget, and the hold gave no reason; the budget is Control Center's own ceiling and a failed read names its class.",
+      "source": "PR #22",
+      "guard": {
+        "kind": "test",
+        "where": "tests/dispatch.test.mjs: a context read that fails says why, by class and never by body",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F47",
+      "what": "Forms with a name field beside a company name field were held though the runner picks the closest label; the engine now predicts that pick and answers them.",
+      "source": "PR #23",
+      "guard": {
+        "kind": "test",
+        "where": "tests/forms.test.mjs: the engine predicts the runner's pick, the closest label",
+        "reason": null
+      },
+      "phase": "done"
+    },
+    {
+      "id": "F48",
+      "what": "A run that reads no context still journals success (manual-24); PR #22 named the likely cause and raised the budget, but the silent success itself is not fixed.",
+      "source": "PR #22",
+      "guard": {
+        "kind": "none",
+        "where": null,
+        "reason": "Open: a run that reads no context, or prepares nothing while Control Center serves work, should be a held run with a named class. The regression test and the status read of empty output are Phase 3."
+      },
+      "phase": "3"
+    }
+  ],
+  "findings": [
+    {
+      "id": "N01",
+      "what": "A second Control Center wake on the same London day replayed the first report, though the protocol gives a later wake a new run_id. The per-day budget of pitch drafts stays Phase 2.",
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #26"
+    },
+    {
+      "id": "N02",
+      "what": "events[] is always empty, so closes are never reported.",
+      "phase": "3",
+      "state": "open",
+      "closed_by": null
+    },
+    {
+      "id": "N03",
+      "what": "The directive's north_star, urgency, constraints and rows_rule were read nowhere. PR #25 reads north_star, urgency and constraints; rows_rule is still unread.",
+      "phase": "2",
+      "state": "open",
+      "closed_by": null,
+      "partly_closed_by": "PR #25"
+    },
+    {
+      "id": "N04",
+      "what": "Policy fields voice, recognition, acquisition, pilot, venture and execution.* are never read, and row, fit and pitch caps and the 70/30 split are hard-coded.",
+      "phase": "2",
+      "state": "open",
+      "closed_by": null
+    },
+    {
+      "id": "N05",
+      "what": "The 1.9.0 pitch outcomes were read nowhere. PR #25 counts bookings from them; learning which shows answer is still missing.",
+      "phase": "3",
+      "state": "open",
+      "closed_by": null,
+      "partly_closed_by": "PR #25"
+    },
+    {
+      "id": "N06",
+      "what": "A repeated pitch_off No never reaches the weekly review as a doctrine change.",
+      "phase": "3",
+      "state": "open",
+      "closed_by": null
+    },
+    {
+      "id": "N07",
+      "what": "Mutation-kill claims in PRs #12 to #19 cannot be re-run: no harness is committed or run in CI.",
+      "phase": "3",
+      "state": "open",
+      "closed_by": null
+    },
+    {
+      "id": "N08",
+      "what": "Docs drift: NOW.md head lags, docs/history/LOG.md is named but missing, merged PRs are called unmerged, and the protocol header says 1.8.0 while documenting 1.9.0.",
+      "phase": "3",
+      "state": "open",
+      "closed_by": null
+    },
+    {
+      "id": "N09",
+      "what": "The trust-asset prompt's formats differ from contracts/motions.ts.",
+      "phase": "3",
+      "state": "open",
+      "closed_by": null
+    },
+    {
+      "id": "N10",
+      "what": "The founder_visibility_open hold was never recorded.",
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #25"
+    },
+    {
+      "id": "N11",
+      "what": "The registry target was a flat 5 against the ladder; good_meetings now reads the ladder from docs/NORTH_STAR.md.",
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #25"
+    },
+    {
+      "id": "N12",
+      "what": "The pinned canon review lapses on 15 November.",
+      "phase": "krish-review",
+      "state": "open",
+      "closed_by": null
+    },
+    {
+      "id": "N13",
+      "what": "The held prospects were never turned into one decision.",
+      "phase": "0",
+      "state": "open",
+      "closed_by": null
+    },
+    {
+      "id": "N14",
+      "what": "strategicPlan().digest is computed and never read.",
+      "phase": "2",
+      "state": "open",
+      "closed_by": null
+    },
+    {
+      "id": "N15",
+      "what": "The engine never recomputed amended_sha256 before acting on an amended decision.",
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #25"
+    },
+    {
+      "id": "N16",
+      "what": "A campaign plan over 8,000 characters failed the whole report instead of holding.",
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #25"
+    },
+    {
+      "id": "N17",
+      "what": "blobSha hashes decoded text, so it gives the wrong SHA for a binary file such as a PDF.",
+      "phase": "C2",
+      "state": "open",
+      "closed_by": null
+    },
+    {
+      "id": "N18",
+      "what": "Every approved stage plan decision was routed to prepare-action whatever its id; only gmc- campaign plans reach it now.",
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #25"
+    },
+    {
+      "id": "N19",
+      "what": "Plan version 2 said Vercel page views would measure the one-sheet, but Web Analytics is off for the project and a PDF runs no page tag; version 3 corrected it.",
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #24"
+    }
+  ]
+}
