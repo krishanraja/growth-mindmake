@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, parseRecord, readRecord, RECORD_REPO, RECORD_PATH } from '../src/stages/canon.mjs';
-import { pitchRows, pitchHold, pitchedStages, pitchScore, pitchWords, hostOf, showTopic, PITCHES_PER_RUN, QUIET_AFTER_DAYS } from '../src/stages/pitches.mjs';
+import { pitchRows, pitchHold, pitchedStages, pitchScore, pitchWords, hostOf, showTopic, stageKind, speakingAsk, speakHold, speakScore, speakWords, talkTitle, shares, PITCHES_PER_RUN, STAGE_SHARE, QUIET_AFTER_DAYS } from '../src/stages/pitches.mjs';
 import { lessons, titleFor, OWN_SHOW, WORDS, KRISH_TITLE, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, BECAUSE_MAX, TITLE_MAX_BRIEF } from '../src/stages/rows.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture, violations } from './support/engine-protocol-service.mjs';
@@ -193,4 +193,141 @@ test('a dispatch run reports pitches at 1.9.0 only where Control Center serves i
       assert.ok(rep.holds.some(h => h.reason === 'pitch_needs_1_9_0'));
     }
   }
+});
+
+// ── Speaking pitches on EVENTS (protocol 1.9.0, synthetic shapes) ───────────
+
+const summit = (n, over = {}) => ({ id: id(n), title: `The Example Summit ${n}`, type: 'conference', status: 'queued', verdict: 'unjudged', organizer: 'Example Events Ltd', buried_at: null, applied_at: null,
+  event_url: `https://summit.example/${n}`, cfp_url: null, deadline_at: '2026-11-20T00:00:00Z', event_start_at: '2027-03-10T00:00:00Z', location: 'London', booking_contact_id: id(200 + n), booking_source: 'stage_page',
+  audience: 'Marketing leaders at mid-size companies', angle: null, why_him: null, why_now: null, room_score: null, standing_score: null, only_him_score: null, ...over });
+
+test('a stage to speak on is a conference, a call for papers, a speaking slot, or anything that says webinar or panel; press never is', () => {
+  assert.equal(stageKind(stage(1)), 'podcast');
+  for (const type of ['conference', 'cfp', 'speaking']) assert.equal(stageKind({ type }), 'stage', type);
+  assert.equal(stageKind({ type: 'other', title: 'AI Leaders Webinar' }), 'stage');
+  assert.equal(stageKind({ type: 'other', format: 'Panel discussion' }), 'stage');
+  assert.equal(stageKind({ type: 'press_relationship', title: 'A panel of editors' }), null, 'press is a relationship, not a stage');
+  assert.equal(stageKind({ type: 'newsletter' }), null);
+  assert.equal(stageKind({ type: 'other', title: 'An award' }), null);
+  assert.equal(speakingAsk({ title: 'The CMO Panel' }), 'a panel seat');
+  assert.equal(speakingAsk({ title: 'The Example Summit' }), 'a talk');
+});
+
+test('only an open stage with an address for speakers, before its deadline, not pitched before and not ruled out, is pitched', () => {
+  const L = lessons([], NOW);
+  const hold = (over, extra = {}) => speakHold(summit(1, over), { L, pitched: new Set(), at: NOW, ...extra });
+  assert.equal(hold({}), null);
+  assert.equal(hold({ type: 'podcast' }), 'not_a_stage');
+  assert.equal(hold({ booking_contact_id: null }), 'no_booking_address');
+  assert.equal(hold({ buried_at: '2026-10-01T00:00:00Z' }), 'buried');
+  assert.equal(hold({ verdict: 'rejected' }), 'rejected');
+  assert.equal(hold({ status: 'applied' }), 'applied');
+  assert.equal(hold({ applied_at: '2026-10-01T00:00:00Z' }), 'applied');
+  assert.equal(hold({ status: 'dropped' }), 'not_open');
+  assert.equal(hold({ organizer: 'Signal & Noise' }), 'own_show');
+  assert.equal(hold({ deadline_at: '2026-10-26T00:00:00Z' }), 'deadline_passed');
+  assert.equal(hold({ deadline_at: null, event_start_at: '2026-10-01T00:00:00Z' }), 'event_passed');
+  assert.equal(hold({ deadline_at: null, event_start_at: null }), null, 'no date known is still open');
+  assert.equal(hold({}, { pitched: new Set([id(1)]) }), 'already_pitched');
+  const no = (reason_code, extra = {}) => lessons([{ state: 'declined', decided_at: NOW, row: 'events', subject_ref: `target:${id(9)}`, reason_code, amplifier_kind: 'ceo_educator', features: { sector: null, topic: 'marketing', seniority: null }, reach: { band: 'unknown' }, ...extra }], NOW);
+  assert.equal(speakHold(summit(9), { L: no(null), pitched: new Set(), at: NOW }), 'declined_on_row', 'a No on the stage is kept');
+  assert.equal(speakHold(summit(1), { L: no('not_my_topic'), pitched: new Set(), at: NOW }), 'not_my_topic', 'his reason reaches stages like it');
+  assert.equal(speakHold(summit(1), { L: no('wrong_audience'), pitched: new Set(), at: NOW }), 'wrong_audience');
+  assert.equal(speakHold(summit(1, { title: 'The Recruiting Summit', audience: null }), { L: no('not_my_topic'), pitched: new Set(), at: NOW }), null, 'another topic is not like it');
+  const answered = pitchedStages({ records: { drafts: [] }, feedback: [{ subject_ref: `target:${id(5)}`, row: 'events', state: 'declined' }] });
+  assert.ok(answered.has(id(5)), 'an answer on a speaking pitch counts as pitched');
+});
+
+test('stages rank by Nova\'s verdict, its three scores, how soon the call closes, and whether his buyer is in the room', () => {
+  assert.ok(speakScore(summit(1, { verdict: 'take' }), NOW) > speakScore(summit(1, { verdict: 'stretch' }), NOW));
+  assert.ok(speakScore(summit(1, { verdict: 'stretch' }), NOW) > speakScore(summit(1), NOW));
+  assert.ok(speakScore(summit(1, { room_score: 90, standing_score: 85, only_him_score: 80 }), NOW) > speakScore(summit(1), NOW), 'a judged strong room first');
+  assert.ok(speakScore(summit(1, { room_score: 90, standing_score: 20, only_him_score: 80 }), NOW) < speakScore(summit(1), NOW), 'by its weakest score');
+  assert.ok(speakScore(summit(1, { deadline_at: '2026-11-05T00:00:00Z' }), NOW) > speakScore(summit(1, { deadline_at: '2027-01-30T00:00:00Z' }), NOW), 'a call closing soon first');
+  assert.ok(speakScore(summit(1), NOW) > speakScore(summit(1, { title: 'The Gardening Summit', audience: 'Gardeners' }), NOW), 'a room his buyer is in');
+});
+
+test('the talk is the one Nova suggested for the room, else one from its topic', () => {
+  assert.equal(talkTitle({ suggested_talk_title: '"The org chart after AI."' }, 'marketing'), 'The org chart after AI');
+  assert.equal(talkTitle({ suggested_talk_title: 'x'.repeat(81) }, 'marketing'), 'AI for marketing leaders', 'too long for a subject');
+  assert.equal(talkTitle({ suggested_talk_title: 'Live from Signal & Noise' }, 'marketing'), 'AI for marketing leaders', 'never his own show as a talk');
+  assert.equal(talkTitle({}, null), 'An AI that knows the leader');
+});
+
+test('a speaking pitch is a 1.9.0 events row for Jonny\'s box, in Jonny\'s words, about the stage, with no address', () => {
+  const r = pitchRows({ context: ctx([summit(1, { verdict: 'take' }), summit(2, { title: 'The CMO Panel Example', deadline_at: null })]), weekGoals: [...GOALS, 'Speak at one event this month'], canon, record: RECORD, files: FILES, at: NOW, titleMax: TITLE_MAX_BRIEF });
+  assert.equal(r.proposals.length, 2);
+  const [p, q] = r.proposals;
+  assert.equal(p.row, 'events');
+  assert.equal(p.rank, 1);
+  assert.equal(q.rank, 2);
+  assert.equal(p.subject_ref, `target:${id(1)}`, 'about the stage');
+  assert.equal(p.target, id(201), 'to the address its page gives for speakers, by its contact id');
+  assert.equal(p.wall, 'send');
+  assert.equal(p.stage, null);
+  assert.equal(p.amplifier_kind, 'ceo_educator');
+  assert.equal(p.serves, 'Speak at one event this month');
+  assert.ok(Date.parse(p.expires_at) <= Date.parse('2026-11-20T00:00:00Z'), 'never outlives its call');
+  const a = JSON.parse(p.exact_payload);
+  assert.equal(a.mailbox, 'jonny');
+  assert.equal(a.recipient_contact_id, id(201));
+  assert.equal(a.subject, 'A speaker for The Example Summit 1: AI for marketing leaders');
+  assert.match(a.body, /^Hi there,\n\nI work with Krish Raja, and I'd like to put him forward for a talk at The Example Summit 1: "AI for marketing leaders"\./, 'a company is never greeted as a person');
+  assert.ok(a.body.includes(`He's ${KRISH_TITLE} and writes Make Your Mind Up (https://publication.example).`));
+  assert.ok(a.body.includes(RECORD.line));
+  assert.ok(a.body.endsWith('\n\nJonny'));
+  assert.equal((a.body.match(/\?/g) ?? []).length, 1, 'one ask');
+  assert.equal(/@|\+\d{6}/.test(a.body), false, 'never an address or a number');
+  assert.equal(a.body.includes(EM) || a.subject.includes(EM), false, 'no em dash');
+  assert.match(JSON.parse(q.exact_payload).body, /for a panel seat at The CMO Panel Example/);
+  assert.ok(p.title.length <= TITLE_MAX_BRIEF);
+  assert.equal(p.because, 'A stage in Mar 2027, call closes 20 Nov. Jonny pitches you.');
+  assert.ok(p.because.length <= BECAUSE_MAX);
+  const c = p.card;
+  assert.ok(c.who.startsWith('The Example Summit 1 is an event run by Example Events Ltd, in Mar 2027, London.') && c.who.length <= CARD_WHO_MAX);
+  assert.match(c.known, /You do not know them yet/);
+  assert.ok(c.why.some(l => l.includes('closes on 20 Nov')));
+  assert.ok(c.gain[0].startsWith('A talk at The Example Summit 1, in front of Marketing leaders'));
+  assert.ok(c.angles.length >= 1 && c.angles.every(x => x.title.length <= 60 && x.line.length <= CARD_LINE_MAX));
+  assert.deepEqual(c.sources.map(x => x.url), ['https://summit.example/1']);
+  assert.equal(/@[a-z]/i.test(JSON.stringify(c)), false);
+});
+
+test('podcasts and stages share the ten: each its share, and what one kind cannot fill goes to the other', () => {
+  assert.equal(STAGE_SHARE, 4);
+  assert.deepEqual(shares(14, 0), { podcasts: 10, stages: 0 });
+  assert.deepEqual(shares(14, 10), { podcasts: 6, stages: 4 });
+  assert.deepEqual(shares(2, 10), { podcasts: 2, stages: 8 });
+  assert.deepEqual(shares(8, 2), { podcasts: 8, stages: 2 });
+  assert.deepEqual(shares(0, 3), { podcasts: 0, stages: 3 });
+  const many = pitchRows({ context: ctx([...Array.from({ length: 8 }, (_, i) => stage(i + 1)), ...Array.from({ length: 6 }, (_, i) => summit(i + 20))]), weekGoals: GOALS, canon, files: FILES, at: NOW });
+  assert.equal(many.proposals.filter(p => p.row === 'visibility').length, 6);
+  assert.equal(many.proposals.filter(p => p.row === 'events').length, 4);
+  assert.equal(many.held.filter(h => h === 'pitch_per_run_cap').length, 2);
+  assert.equal(many.stageHeld.filter(h => h === 'pitch_per_run_cap').length, 2);
+  assert.deepEqual(many.proposals.filter(p => p.row === 'events').map(p => p.rank), [1, 2, 3, 4], 'ranks start at 1 within each row');
+  const mixed = pitchRows({ context: ctx([stage(1), summit(2, { booking_contact_id: null }), { ...summit(3), type: 'press_relationship' }]), weekGoals: GOALS, canon, files: FILES, at: NOW });
+  assert.deepEqual(mixed.held, [], 'a podcast\'s holds and a stage\'s are counted apart');
+  assert.deepEqual(mixed.stageHeld, ['no_booking_address'], 'press is not a stage and is not counted as one');
+});
+
+test('a dispatch run at 1.9.0 reports speaking pitches on events and says why the others were not pitched', async () => {
+  const policy = JSON.parse(await readFile(new URL('../config/policy.json', import.meta.url)));
+  const schema = JSON.parse(await readFile(new URL('../docs/control-center/engine-report.schema.json', import.meta.url), 'utf8'));
+  const served = ['1.6.0', '1.7.0', '1.8.0', '1.9.0'];
+  const reports = [];
+  const cc = { recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: '1.9.0', week_goals: GOALS }),
+    capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true } }),
+    context: async () => ({ ok: true, context: { schema_version: '1.9.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }], records: { advisory: [], visibility: [stage(1), summit(2), summit(3, { deadline_at: '2026-10-01T00:00:00Z' })], drafts: [] }, amplifier_candidates: [], routes: {}, feedback: [], research: [] } }),
+    decisions: async () => [], postReport: async rep => { reports.push(rep); return { replayed: false }; }, readReport: async () => reports.at(-1) };
+  const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-speak-190-1234', clock: () => NOW,
+    canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/pitches.mjs', sha: 'b'.repeat(40) }], recordReader: async () => RECORD });
+  assert.equal(result.status, 'succeeded');
+  const rep = reports[0];
+  assert.equal(rep.schema_version, '1.9.0');
+  const speaking = rep.proposals.filter(p => p.row === 'events' && JSON.parse(p.exact_payload).mailbox === 'jonny');
+  assert.equal(speaking.length, 1);
+  assert.equal(speaking[0].subject_ref, `target:${id(2)}`, 'the stage stays the subject, never the address\'s contact');
+  assert.ok(rep.holds.some(h => h.reason === 'speak_deadline_passed'));
+  assert.deepEqual(violations(schema, rep), []);
 });

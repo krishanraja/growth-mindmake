@@ -129,7 +129,7 @@ export const ROWS_VERSION = '1.6.0';
 export const BRIEF_VERSION = '1.7.0';
 /** 1.8.0: each row carries the full card a tap opens: who, how he knows them, why, what he gets, the angles. */
 export const CARD_VERSION = '1.8.0';
-/** 1.9.0: a visibility pitch may name Jonny's box; Control Center drafts it there each day with no press. */
+/** 1.9.0: a visibility pitch (a podcast) or an events pitch (a stage to speak on) may name Jonny's box; Control Center drafts it there each day with no press. */
 export const PITCH_VERSION = '1.9.0';
 /** The engine files row words are written from, named in every row's source_revision. */
 export const ENGINE_REPO = 'krishanraja/growth-mindmake';
@@ -362,18 +362,21 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax });
   const { kept, dropped } = rankRows([...amplifiers.rows, ...signals.rows]);
   const proposals = kept.map(finishProposal);
-  // 1.9.0: podcast pitches for Jonny's box, after the rows he presses himself. An older Control Center gets none.
-  const pitched = pitches ? pitchRows({ context: ctx, weekGoals: directive.week_goals, canon, record: await recordReader(), files, at, titleMax }) : { proposals: [], held: [] };
+  // 1.9.0: pitches for Jonny's box, after the rows he presses himself: podcasts
+  // on visibility, stages to speak on on events. An older Control Center gets none.
+  const pitched = pitches ? pitchRows({ context: ctx, weekGoals: directive.week_goals, canon, record: await recordReader(), files, at, titleMax }) : { proposals: [], held: [], stageHeld: [] };
   proposals.push(...pitched.proposals.map(finishProposal));
-  counts.pitches = pitched.proposals.length;
+  counts.pitches = pitched.proposals.filter(p => p.row === 'visibility').length;
+  counts.speaking_pitches = pitched.proposals.filter(p => p.row === 'events').length;
   counts.prepared = proposals.length;
   for (const [reason, count] of tally(pitched.held)) holds.push({ reason: holdCode('pitch', reason), detail: `${count} podcast${count === 1 ? '' : 's'} not pitched today: ${reason.replace(/_/g, ' ')}.` });
+  for (const [reason, count] of tally(pitched.stageHeld ?? [])) holds.push({ reason: holdCode('speak', reason), detail: `${count} stage${count === 1 ? '' : 's'} to speak on not pitched today: ${reason.replace(/_/g, ' ')}.` });
   const held = [...amplifiers.held, ...signals.held];
   counts.held = held.length;
   for (const [reason, count] of tally(held)) holds.push({ reason: holdCode('row', reason), detail: `${count} possible row action${count === 1 ? '' : 's'} held: ${reason.replace(/_/g, ' ')}.` });
   if (dropped) holds.push({ reason: 'row_per_row_cap', detail: `${dropped} more row action${dropped === 1 ? '' : 's'} ranked below the six a row shows.` });
   activity.push(`Rows from Mindmake's canon as it is today (${canon.files.map(f => f.sha.slice(0, 7)).join(', ')}): ${ROWS.map(r => `${proposals.filter(p => p.row === r && !isPitch(p)).length} ${r.replace('_', ' ')}`).join(', ')}.`);
-  if (pitches) activity.push(`Podcast pitches for Jonny's Gmail: ${counts.pitches}.`);
+  if (pitches) activity.push(`Pitches for Jonny's Gmail: ${counts.pitches} podcasts, ${counts.speaking_pitches} stages to speak on.`);
   if (counts.research_asked) activity.push(`Asked Control Center for ${counts.research_asked} lookups; ${counts.research_answered} answered.`);
   return { proposals, holds, activity, counts };
 }

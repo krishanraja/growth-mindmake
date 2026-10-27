@@ -220,6 +220,32 @@ Noise.
   published; Jonny sends. The engine never drafts or sends, and learns from
   which shows answer.
 
+## Speaking pitches on EVENTS (Krish, 2026-10-27)
+
+Krish: EVENTS was empty, and his EVENTS is events to pitch to. Jonny pitches
+him to speak, the same way he pitches him to podcasts.
+
+- **Which stages.** Conferences, calls for papers, speaking slots, and
+  anything whose title or format says webinar or panel (press is a
+  relationship, never a stage), open (sourced or queued), whose own page gives
+  an address for speakers (`booking_contact_id`, `booking_source:
+  stage_page`), before their deadline and their date, not applied, rejected or
+  buried, never his own shows, never pitched before, and not like anything he
+  said No to. Best first: Nova's verdict, the weakest of its room, standing
+  and only-him scores when judged, a call that closes soon, and whether his
+  buyer is in the room.
+- **The share.** Ten pitches a run between podcasts and stages: stages keep up
+  to four when podcasts could take them all, and what one kind cannot fill
+  goes to the other.
+- **The words.** Jonny's, for Krish, one ask: a talk, or a panel seat where
+  the stage says panel, with one talk title (the one Nova suggested for the
+  room, else one from its topic, never his own show's name). Who Krish is
+  comes from the same live reads as a podcast pitch. A speaking pitch expires
+  with its call.
+- **Who does what.** An events row naming Jonny's box (protocol 1.9.0, kind
+  `ceo_educator`, so a No's reason reaches stages like it). Control Center
+  drafts it into Jonny's Gmail; Jonny sends.
+
 ## Signals from his buyers (Rulings, Krish, 2026-10-26)
 
 Shown a LinkedIn post ("AI's next job casualty could be your boss"), Krish
