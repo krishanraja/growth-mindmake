@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { clean } from '../guards.mjs';
-import { lessons, refusedBy, channelOf, servesOf, seniorityOf, actionFor, rowProposal, fitTitleWithin, clause, wholeRole, titleCase, cleanName, cutClean, monthYear, leadSentences, gainLines, angleLines, sourceLinks, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX, CARD_WHO_MAX, CARD_LINE_MAX } from './rows.mjs';
+import { lessons, refusedBy, channelOf, servesOf, seniorityOf, actionFor, rowProposal, fitTitleWithin, clause, wholeRole, titleCase, cleanName, cutClean, monthYear, firstName, hasFullName, leadSentences, gainLines, angleLines, sourceLinks, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX, CARD_WHO_MAX, CARD_LINE_MAX } from './rows.mjs';
 
 /**
  * Signals from his buyers (playbook 11, "Signals").
@@ -120,7 +120,7 @@ export function signalRequests({ voices, research, at, max = 10 }) {
 
 // ── Rows ────────────────────────────────────────────────────────────────────
 
-const first = name => clean(name).split(' ')[0] || 'there';
+const first = firstName;
 const quoteOf = text => { const t = clean(text).replace(/"/g, "'"); if (t.length <= 160) return t; const c = t.slice(0, 157); return `${c.slice(0, Math.max(60, c.lastIndexOf(' ')))}...`; };
 const lower1 = s => s.charAt(0).toLowerCase() + s.slice(1);
 
@@ -194,7 +194,7 @@ export function signalRows({ context, research, weekGoals, canon, files, at, tit
       const ch = channelOf(routes[id], 'reach_out');
       if (refused || !ch) { held.push(refused ?? 'signal_no_route'); continue; }
       const name = cleanName(p.name);
-      if (!name.includes(' ')) { held.push('no_full_name'); continue; }
+      if (!hasFullName(name)) { held.push('no_full_name'); continue; }
       const author = authorOf.get(e.url) || null;
       const quote = quoteOf(e.snippet);
       const variant = (L.pitchOff.get('reach_out') ?? 0) % SIGNAL_WORDS.length;

@@ -1,5 +1,9 @@
 # Release state
 
+## Card words round 2, 27 October 2026
+
+Built and tested locally; a pull request, not merged or deployed. After the second live 1.8.0 run (`mindmake:2026-10-27:manual-21`): a first name is never a title, a fit verdict or a judge's clause never reaches the card, partner angles name the company, an appearance names its show and is never on Krish's own shows (`own_show`; an unnamed channel is held and asked about once a month), what he gets names the show, topics are specific or null, and appearance pitches call him Executive Host of Signal & Noise (Ruling, Krish, 2026-10-27). Live once merged and the next run reports.
+
 ## Card words are facts, not notes, 27 October 2026
 
 Built and tested locally; a pull request, not merged or deployed. After the first live 1.8.0 run: a judge's note or an instruction never reaches why, a prompt is cut back to the fact before it, the angle opens with the fact quoted whole (the quote gives way when both will not fit), each reach is said as what it is rather than as the room of leaders, VISIBILITY counts a channel only where the record says they own it, and research pages are named by title or site, four at most. No contract change (still 1.8.0). Live once merged and the next run reports.

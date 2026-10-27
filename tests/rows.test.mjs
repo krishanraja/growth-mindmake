@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, readCanon, CanonError } from '../src/stages/canon.mjs';
-import { kindsOf, reachOf, countIn, lessons, refusedBy, amplifierRows, rankRows, score, fitTitle, channelOf, servesOf, fitHold, cleanName, lastContact, caseFor, titleFor, fitTitleWithin, endsWhole, firstSentence, titleCase, wholeRole, wholeSentence, JOINERS, FIT_FLOOR, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX_BRIEF, cardFor, knownWords, knownLine, knownShort, mailWords, whyLines, gainLines, angleLines, openerOf, openLine, sourceLinks, leadSentences, leadFacts, factOf, reachSentence, hasChannel, plain, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, RESEARCH_PAGES } from '../src/stages/rows.mjs';
+import { kindsOf, reachOf, countIn, lessons, refusedBy, amplifierRows, rankRows, score, fitTitle, channelOf, servesOf, fitHold, cleanName, lastContact, caseFor, titleFor, fitTitleWithin, endsWhole, firstSentence, titleCase, wholeRole, wholeSentence, JOINERS, FIT_FLOOR, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX_BRIEF, cardFor, knownWords, knownLine, knownShort, mailWords, whyLines, gainLines, angleLines, openerOf, openLine, sourceLinks, leadSentences, leadFacts, factOf, reachSentence, hasChannel, plain, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, RESEARCH_PAGES, firstName, hasFullName, showIn, showOf, onOwnShow, topicOf, actionFor, KRISH_TITLE } from '../src/stages/rows.mjs';
 import { icpOf, signalRequests, signalRows, isoWeek } from '../src/stages/signals.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
@@ -702,4 +702,142 @@ test('a signal whose headline cannot say who they are, whole, is held as a thin 
   const r = signalRows({ context: { routes: { [id(24)]: route() }, feedback: [] }, research, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
   assert.equal(r.rows.length, 0);
   assert.deepEqual(r.held, ['thin_card']);
+});
+
+// ── The second live 1.8.0 run (2026-10-27): synthetic shapes of each fault ──
+
+test('a first name is never a title: "Hi Dr.," and "Dr. has" cannot be written', () => {
+  for (const n of ['Dr. Avery Example', 'dr Avery Example', 'DR. Avery Example', 'Prof. Avery Example', 'Professor Avery Example', 'Sir Avery Example', 'Mrs Avery Example', 'Mx. Avery Example', 'Rev Dr Avery Example']) {
+    assert.equal(firstName(n), 'Avery', n);
+    assert.equal(hasFullName(n), true, n);
+  }
+  assert.equal(hasFullName('Dr. Example'), false, 'a title and one name is no full name');
+  assert.equal(firstName('Drew Example'), 'Drew', 'a name that starts like a title is a name');
+  assert.match(actionFor('email', id(1), 'Dr. Avery Example', { subject: 'S', lines: ['One line.'] }).body, /^Hi Avery,/);
+  assert.equal(reachSentence({ band: '10k_100k', basis: 'followers on their profile' }, 'Dr. Avery Example', ''), 'Avery has 10,000 to 100,000 followers on their profile.');
+  const doc = person(120, 'General Partner, Example Ventures', { followers: 30000, contacts: { ...person(120, '').contacts, full_name: 'Dr. Avery Example' } });
+  const r = amplifierRows({ context: { amplifier_candidates: [doc], routes: { [id(120)]: route() }, feedback: [], research: [] }, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
+  const p = r.rows[0].proposal;
+  assert.match(JSON.parse(p.exact_payload).body, /^Hi Avery,/);
+  assert.equal(/\bDr\.? (has|reaches|uses)|Hi Dr/.test(JSON.stringify(p)), false, JSON.stringify(p.card.gain));
+  const sig = signalRows({ context: { routes: { [id(121)]: route(), [id(122)]: route() }, feedback: [] }, research: [{ request_id: 'engagers:d', kind: 'post_engagers', status: 'answered', answered_at: NOW, evidence: [
+    engager('dr-kim', 'Dr. Kim Known', 'COO, Example Media', 'My board asked what AI means for our managers.', id(121)),
+    engager('dr-only', 'Dr. Known', 'CFO, Example Group', 'Not sure what this means for my team.', id(122)),
+  ] }], weekGoals: GOALS, canon, files: FILES, at: NOW });
+  assert.match(JSON.parse(sig.rows[0].proposal.exact_payload).body, /^Hi Kim,/);
+  assert.ok(sig.held.includes('no_full_name'), 'a title and one name is held');
+  const short = signalRows({ context: { routes: { [id(121)]: route() }, feedback: [] }, research: [{ request_id: 'engagers:e', kind: 'post_engagers', status: 'answered', answered_at: NOW, evidence: [engager('dr-kim', 'Dr. Kim Known', 'COO, Example Media', 'My board asked what AI means for our managers.', id(121))] }], weekGoals: GOALS, canon, files: FILES, at: NOW, titleMax: 36 });
+  assert.equal(short.rows[0].proposal.title, 'Kim worried about AI in public', 'a short title falls back to the first name, never the title');
+});
+
+test('a verdict on whether they fit is never a reason, and a judge\'s clause is cut back to the fact before it', () => {
+  for (const note of [
+    "Not a fit for mindmake since his business isn't AI-related.",
+    'Example Media looks like a direct fit for connecting with the CX buyer audience.',
+    'He sits where adtech meets identity, a space that is highly relevant if the operator works in martech.',
+    'Active job posting for an AI role with budget signal.',
+    'His book on org design is a strong jumping-off point for a conversation.',
+    'Weak fit overall for the offer.',
+    'No clear fit with the brief yet.',
+    'The company is not AI-related at all.',
+    'Not relevant to the current campaign.',
+    'Outside the ICP for this quarter.',
+    'Scored low on the last pass.',
+    'An unlikely buyer this year.',
+    "Their work doesn't fit the offer today.",
+  ]) assert.equal(factOf(note), '', note);
+  assert.equal(factOf('Example Innovators is hosting industry events on marketing ROI, though their website shows no direct internal executive hiring triggers.'), 'Example Innovators is hosting industry events on marketing ROI', 'the fact stands and the clause goes');
+  for (const fact of ['Chairs an industry AI taskforce.', 'Runs a fitness brand across three cities.', 'Moved from a bank to a fintech in 2024.', 'Hosts a weekly show for media operators.'])
+    assert.equal(factOf(fact), fact.replace(/\.$/, ''), fact);
+  const told = caseFor({ c: { hook: "Not a fit for mindmake since it isn't AI-related. Hosts a weekly show for media operators." }, name: 'Avery Example', company: '', ask: 'appear', kind: 'broadcaster', reach: { band: 'unknown' }, fit: 60, serves: null });
+  assert.match(told.because, /^Hosts a weekly show for media operators\./, told.because);
+  assert.equal(told.brief.some(l => /not a fit/i.test(l)), false, told.brief.join(' | '));
+  const why = whyLines({ hook: 'His podcast and an investing community show he has built media infrastructure in financial services.', why_them: "Not a fit for mindmake since his business isn't AI-related." }, { ask: 'appear', at: NOW });
+  assert.deepEqual(why, ['His podcast and an investing community show he has built media infrastructure in financial services.']);
+});
+
+test('partner angles are tied to the person: their company or what they do, and one angle when nothing is known', () => {
+  const a = angleLines({ ask: 'partner', kind: 'investor', name: 'Avery Example', c: {}, company: 'Example Capital', canon: fullCanon });
+  const b = angleLines({ ask: 'partner', kind: 'investor', name: 'Blair Example', c: {}, company: 'Sample Partners', canon: fullCanon });
+  assert.ok(a[0].line.includes('Example Capital') && b[0].line.includes('Sample Partners'), a[0].line);
+  assert.equal(a.some(x => b.some(y => y.line === x.line)), false, 'no line is the same on two partners');
+  const bare = angleLines({ ask: 'partner', kind: 'investor', name: 'Avery Example', c: {}, company: '', canon: fullCanon });
+  assert.equal(bare.length, 1, 'nothing known: one angle, not generic lines over again');
+  const trainer = angleLines({ ask: 'partner', kind: 'ai_trainer', name: 'Avery Example', c: {}, company: 'Example Academy', canon: fullCanon });
+  assert.ok(trainer.every(x => x.line.includes('Example Academy')), JSON.stringify(trainer));
+  assert.deepEqual(Object.keys(a[0]).sort(), ['line', 'title'], 'nothing but the title and the line reaches the card');
+});
+
+test('an appearance names its show, and his own shows are never one', () => {
+  assert.equal(showIn('Her work hosting The Example Agenda podcast for a national paper.'), 'The Example Agenda');
+  assert.equal(showIn('He has been hosting The Example Show for over 8 years.'), 'The Example Show');
+  assert.equal(showIn("He hosts 'Give It A Go' and a couple of other podcasts."), 'Give It A Go');
+  assert.equal(showIn('Runs The Example Weekly, a research company.'), 'The Example Weekly');
+  assert.equal(showIn('Host of Example Show 9'), 'Example Show 9');
+  assert.equal(showIn('His podcast and public commentary on ad infrastructure.'), '', 'a podcast with no name names nothing');
+  assert.equal(showIn('Founder of Example Media, a studio.'), '', 'a company someone founded is not a show');
+  assert.equal(showIn('His story is worth asking about on The Example Show.'), '', 'a prompt names his show, not theirs');
+  // A co-host of his own show is never asked to have him on it, and may still be a tie to catch up with.
+  const cohost = person(130, 'Co-host, Signal & Noise', { followers: 5000, hook: 'Co-hosts the Signal & Noise podcast, a weekly show on AI and media.' });
+  const tie = { contact_id: id(130), network_tier: '1_reciprocated', current_title: 'Partner', current_company: 'Example Consulting', mindmake_fit: 70, known_since: '2020-01-01', email_last: '2025-01-10', who: 'Partner at Example Consulting, advising on data and identity.', contacts: { full_name: 'Rory Example', status: 'active' } };
+  const r = amplifierRows({ context: { amplifier_candidates: [cohost], network: [tie], routes: { [id(130)]: route() }, feedback: [], research: [] }, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
+  assert.equal(r.rows.some(x => x.proposal.row === 'visibility'), false);
+  assert.ok(r.held.includes('own_show'));
+  assert.deepEqual(r.rows.map(x => x.proposal.row), ['network'], 'still a tie to catch up with');
+  assert.equal(onOwnShow({ current_title: 'Contributor, makeyourmindup.ai' }), true);
+  assert.equal(onOwnShow({ hook: 'Writes for Make Your Mind Up.' }), true);
+  assert.equal(onOwnShow({ hook: 'Hosts The Example Show.' }), false);
+  // A podcast with no name is held and asked about once a month; the answer names it, and his own show is held then.
+  const unnamed = person(131, 'Partner, Example Consulting', { followers: 5000, hook: 'His podcast and public commentary on AI in advertising.' });
+  const ctx = { amplifier_candidates: [unnamed], routes: { [id(131)]: route() }, feedback: [], research: [] };
+  const first = amplifierRows({ context: ctx, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
+  assert.equal(first.rows.some(x => x.proposal.row === 'visibility'), false);
+  assert.ok(first.held.includes('unnamed_channel'));
+  const ask = first.research.find(q => q.request_id === `channel:${id(131)}:2026-10`);
+  assert.ok(ask && ask.kind === 'question' && ask.subject_ref === `contact:${id(131)}` && ask.query.length <= 400 && !/@/.test(ask.query), JSON.stringify(first.research));
+  const named = { ...ask, status: 'answered', answered_at: NOW, answer: 'Avery co-hosts The Example Hour, a weekly show on ad tech.', evidence: [] };
+  const second = amplifierRows({ context: { ...ctx, research: [named] }, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
+  assert.equal(second.rows.find(x => x.proposal.row === 'visibility')?.proposal.card.gain[0], 'A guest spot on The Example Hour.');
+  const own = { ...named, answer: 'Avery co-hosts Signal & Noise, a weekly show on AI and media.' };
+  const third = amplifierRows({ context: { ...ctx, research: [own] }, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
+  assert.equal(third.rows.some(x => x.proposal.row === 'visibility'), false);
+  assert.ok(third.held.includes('own_show'));
+  const unnamedOwn = { ...named, answer: 'Avery hosts the weekly podcast that makeyourmindup publishes.' };
+  assert.ok(amplifierRows({ context: { ...ctx, research: [unnamedOwn] }, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW }).held.includes('own_show'), 'the answer names his show even where it names no show of theirs');
+});
+
+test('VISIBILITY says the show by name, what he gets on it, and who he is to a booker', () => {
+  const h = person(140, 'Host of Example Show 140', { followers: 60000 });
+  const r = amplifierRows({ context: { amplifier_candidates: [h], routes: { [id(140)]: route() }, feedback: [], research: [] }, weekGoals: GOALS, canon, files: FILES, at: NOW });
+  const p = r.rows.find(x => x.proposal.row === 'visibility').proposal;
+  assert.equal(p.card.gain[0], 'A guest spot on Example Show 140.');
+  assert.ok(p.title.includes('Example Show 140'), p.title);
+  const a = JSON.parse(p.exact_payload);
+  assert.equal(a.subject, 'An idea for Example Show 140');
+  assert.ok(a.body.includes(`I'm ${KRISH_TITLE} and I write Make Your Mind Up (https://publication.example)`), a.body);
+  assert.equal(KRISH_TITLE, 'Executive Host of Signal & Noise');
+  assert.equal((a.body.match(/https:\/\//g) ?? []).length, 1, 'one link');
+  const audience = { value: 52000, band: '10k_100k', basis: 'listeners a month, from a cited answer', source_url: 'https://example.org/a', as_of: NOW };
+  assert.equal(gainLines({ ask: 'appear', name: 'Avery Example', reach: audience, serves: null, show: 'Example Show' })[0], 'A guest spot on Example Show, in front of its audience: 52,000 listeners a month, from a cited answer.');
+  const fb = [{ state: 'declined', decided_at: NOW, row: 'visibility', subject_ref: `contact:${id(77)}`, reason_code: 'pitch_off' }];
+  const other = amplifierRows({ context: { amplifier_candidates: [h], routes: { [id(140)]: route() }, feedback: fb, research: [] }, weekGoals: GOALS, canon, files: FILES, at: NOW }).rows[0].proposal;
+  const b = JSON.parse(other.exact_payload);
+  assert.notEqual(b.body, a.body);
+  assert.ok(b.body.includes(KRISH_TITLE) && b.subject === 'A conversation for Example Show 140', b.body);
+});
+
+test('a topic is what this one is about, or null: one "Not my topic" never refuses a whole row', () => {
+  assert.equal(topicOf({ who: 'Founder of Example Wealth, a financial advice firm, and host of Example Money Podcast.' }, 'Example Money Podcast'), 'finance');
+  assert.equal(topicOf({ who: 'Runs an executive search firm placing board leaders, and hosts The Example Talent Show.' }, 'The Example Talent Show'), 'talent');
+  assert.equal(topicOf({ who: 'Partner at an agency leading programmatic advertising.' }), 'advertising');
+  assert.equal(topicOf({ who: 'Keeps bees.' }), null);
+  const money = person(150, 'Host of Example Money Podcast', { followers: 30000, who: 'Hosts Example Money Podcast on personal finance.' });
+  const talent = person(151, 'Host of The Example Talent Show', { followers: 30000, who: 'Hosts The Example Talent Show on recruiting and careers.' });
+  const ctx = (feedback = []) => ({ amplifier_candidates: [money, talent], network: [{ contact_id: id(152), network_tier: '1_reciprocated', current_title: 'COO', mindmake_fit: 70, email_last: '2025-01-10', contacts: { full_name: 'Robin Sample', status: 'active' } }], routes: { [id(150)]: route(), [id(151)]: route(), [id(152)]: route() }, feedback, research: [] });
+  const r = amplifierRows({ context: ctx(), weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
+  const topic = t => r.rows.find(x => x.proposal.target === id(t)).proposal.features.topic;
+  assert.deepEqual([topic(150), topic(151), topic(152)], ['finance', 'talent', null]);
+  const fb = [{ state: 'declined', decided_at: NOW, row: 'visibility', subject_ref: `contact:${id(150)}`, reason_code: 'not_my_topic', amplifier_kind: 'broadcaster', features: { sector: null, topic: 'finance', seniority: 'other' } }];
+  const after = amplifierRows({ context: ctx(fb), weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
+  assert.deepEqual(after.rows.filter(x => x.proposal.row === 'visibility').map(x => x.proposal.target), [id(151)], 'another show on another topic stays');
 });
