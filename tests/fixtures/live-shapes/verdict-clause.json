@@ -1,0 +1,29 @@
+{
+  "id": "verdict-clause",
+  "fix": "F39",
+  "what": "A fact with a judge's clause after it, shown whole.",
+  "synthetic": true,
+  "field": "why.0",
+  "line": "Runs growth at Example Retail, though their website shows no hiring triggers.",
+  "records": [
+    "Runs growth at Example Retail, though their website shows no hiring triggers."
+  ],
+  "card": {
+    "who": "Chief Marketing Officer at Example Retail.",
+    "known": "Known since 2019, through your LinkedIn connections.",
+    "why": [
+      "Runs growth at Example Retail, though their website shows no hiring triggers."
+    ],
+    "gain": [
+      "One introduction puts you in front of a leader who decides."
+    ],
+    "angles": [
+      {
+        "title": "Build your AI brain",
+        "line": "The brain door, in the site's words: \"Your taste, standards and judgement.\""
+      }
+    ],
+    "sources": []
+  },
+  "expect": "verdict"
+}

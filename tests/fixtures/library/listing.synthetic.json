@@ -1,0 +1,122 @@
+{
+  "note": "Synthetic listing of the Growth library (docs/DRIVE.md). It holds exactly one loose file, one duplicate, a second PDF in a Current and one stale repository copy, and is otherwise clean. No real file, person or id.",
+  "expect": {
+    "loose": 1,
+    "duplicates": 1,
+    "current_over_one_pdf": 1,
+    "stale_copies": 1
+  },
+  "drive": [
+    {
+      "title": "Growth library READ ME FIRST",
+      "folder": "03_Growth",
+      "mime": "application/vnd.google-apps.document",
+      "modified": "2026-10-27T10:00:00Z"
+    },
+    {
+      "title": "Growth index",
+      "folder": "03_Growth",
+      "mime": "application/vnd.google-apps.spreadsheet",
+      "modified": "2026-10-27T10:00:00Z"
+    },
+    {
+      "title": "2026-10-27 Readout mindmake.co traffic v1",
+      "folder": "03_Growth",
+      "mime": "application/vnd.google-apps.document",
+      "modified": "2026-10-27T10:00:00Z"
+    },
+    {
+      "title": "2026-11-09 Week spec Mindmake growth v1",
+      "folder": "03_Growth/Growth strategy/Week specs",
+      "mime": "application/vnd.google-apps.document",
+      "modified": "2026-11-09T07:00:00Z"
+    },
+    {
+      "title": "2026-11-06 Weekly review Mindmake growth v1",
+      "folder": "03_Growth/Growth strategy/Weekly reviews",
+      "mime": "application/vnd.google-apps.document",
+      "modified": "2026-11-06T16:00:00Z"
+    },
+    {
+      "title": "2026-11-07 Weekly review Mindmake growth v1",
+      "folder": "03_Growth/Growth strategy/Weekly reviews",
+      "mime": "application/vnd.google-apps.document",
+      "modified": "2026-11-07T16:00:00Z"
+    },
+    {
+      "title": "2026-10-27 Plan Bulletproof growth engine v1",
+      "folder": "03_Growth/Growth strategy/Plans and briefs",
+      "mime": "application/vnd.google-apps.document",
+      "modified": "2026-10-27T12:00:00Z",
+      "copied_from": {
+        "path": "docs/briefs/2026-10-27-bulletproof-growth-engine.md",
+        "commit_at": "2026-10-27T12:00:00Z"
+      }
+    },
+    {
+      "title": "2026-11-10 One-sheet Speaker and guest v3.pdf",
+      "folder": "03_Growth/Growth assets/Speaker and guest one-sheet/Current",
+      "mime": "application/pdf",
+      "modified": "2026-11-10T09:00:00Z"
+    },
+    {
+      "title": "2026-11-11 One-sheet Speaker and guest v4.pdf",
+      "folder": "03_Growth/Growth assets/Speaker and guest one-sheet/Current",
+      "mime": "application/pdf",
+      "modified": "2026-11-11T09:00:00Z"
+    },
+    {
+      "title": "2026-11-03 One-sheet Speaker and guest v2 (superseded 2026-11-10).pdf",
+      "folder": "03_Growth/Growth archive",
+      "mime": "application/pdf",
+      "modified": "2026-11-10T09:00:00Z"
+    },
+    {
+      "title": "logo-mark.svg",
+      "folder": "03_Growth/Growth assets/Brand kit/Source files",
+      "mime": "image/svg+xml",
+      "modified": "2026-11-01T09:00:00Z"
+    }
+  ],
+  "canva": [
+    {
+      "title": "2026-11-10 One-sheet Speaker and guest v3",
+      "folder": "Mindmake Growth/Speaker and guest one-sheet",
+      "engine_made": true
+    },
+    {
+      "title": "An older design",
+      "folder": "Mindmaker",
+      "engine_made": false
+    }
+  ],
+  "index": [
+    {
+      "title": "2026-11-09 Week spec Mindmake growth v1",
+      "folder": "03_Growth/Growth strategy/Week specs"
+    },
+    {
+      "title": "2026-11-06 Weekly review Mindmake growth v1",
+      "folder": "03_Growth/Growth strategy/Weekly reviews"
+    },
+    {
+      "title": "2026-11-07 Weekly review Mindmake growth v1",
+      "folder": "03_Growth/Growth strategy/Weekly reviews"
+    },
+    {
+      "title": "2026-10-27 Plan Bulletproof growth engine v1",
+      "folder": "03_Growth/Growth strategy/Plans and briefs"
+    },
+    {
+      "title": "2026-11-10 One-sheet Speaker and guest v3.pdf",
+      "folder": "03_Growth/Growth assets/Speaker and guest one-sheet/Current"
+    },
+    {
+      "title": "2026-11-11 One-sheet Speaker and guest v4.pdf",
+      "folder": "03_Growth/Growth assets/Speaker and guest one-sheet/Current"
+    }
+  ],
+  "sources": {
+    "docs/briefs/2026-10-27-bulletproof-growth-engine.md": "2026-10-28T09:00:00Z"
+  }
+}

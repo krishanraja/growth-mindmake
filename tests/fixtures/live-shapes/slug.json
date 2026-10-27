@@ -1,0 +1,27 @@
+{
+  "id": "slug",
+  "fix": "F29",
+  "what": "An internal slug on the card.",
+  "synthetic": true,
+  "field": "gain.0",
+  "line": "Reads as ai_trainer with a large following.",
+  "records": [],
+  "card": {
+    "who": "Chief Marketing Officer at Example Retail.",
+    "known": "Known since 2019, through your LinkedIn connections.",
+    "why": [
+      "Rebuilt the marketing team around AI tools last year."
+    ],
+    "gain": [
+      "Reads as ai_trainer with a large following."
+    ],
+    "angles": [
+      {
+        "title": "Build your AI brain",
+        "line": "The brain door, in the site's words: \"Your taste, standards and judgement.\""
+      }
+    ],
+    "sources": []
+  },
+  "expect": "slug"
+}

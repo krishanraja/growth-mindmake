@@ -1,6 +1,6 @@
 # The growth engine protocol, version 1.11.0
 
-Every growth engine reports into Control Center through this one protocol, and Control Center pushes each engine its next move through it ([ADR-038](../../DECISIONS/038-one-protocol-for-growth-engines.md)). It replaces the per-engine receivers the handoffs asked for. The engines are:
+Every growth engine reports into Control Center through this one protocol, and Control Center pushes each engine its next move through it (Control Center ADR-038). It replaces the per-engine receivers the handoffs asked for. The engines are:
 
 | Engine | Slug in the path | `engine_id` | `product_slug` |
 |---|---|---|---|
@@ -154,7 +154,7 @@ an exact human-approved external action and a real independently verified receip
 
 ### The five rows: people in front of Krish (1.6.0)
 
-Ruling (Krish, 2026-10-26): growth-mindmake owns everything about growing Mindmake and connecting Krish to the right people: who, how far each one reaches, the words, and what it learns from his answers. Control Center holds the holistic view: the records, the walls, the press, and his home screen. It ranks nothing itself and never writes a Mindmake pitch ([ADR-041](../../DECISIONS/041-the-engine-hunts-control-center-holds.md)).
+Ruling (Krish, 2026-10-26): growth-mindmake owns everything about growing Mindmake and connecting Krish to the right people: who, how far each one reaches, the words, and what it learns from his answers. Control Center holds the holistic view: the records, the walls, the press, and his home screen. It ranks nothing itself and never writes a Mindmake pitch (Control Center ADR-041).
 
 Every action should make him exponentially more visible, so the engine hunts amplifiers, people whose yes puts him in front of many others (`amplifier_kind`): `investor` (prolific investors), `connector` (well-connected people), `ai_capital` (people anywhere with inordinate money who want to shape AI and steer their investments to it), `ai_trainer`, `student_educator` and `ceo_educator` (those who teach AI, students or CEOs at scale), and `broadcaster` (mass broadcast and social channels on growing with AI).
 
@@ -357,7 +357,7 @@ The schema is [engine-directive.schema.json](engine-directive.schema.json).
 | `next_action` | `{ proposal_id, instruction, why, close_condition }`: the one thing to do |
 | `decisions_since[]` | His decisions in the last seven days, each as `GET .../decisions` gives it: the `payload_sha256` it was made on, the `stage`, and his version when `amended` |
 | `constraints` | `{ walls, autonomy, autonomy_rule, spend_cap_usd: 0, max_actions: 5 }`. `walls` is the rule above, word for word; `autonomy` and `autonomy_rule` say who acts once he approves, below, and end with the one-ask-at-a-time rule |
-| `aim_by`, `week_of`, `week_target`, `current`, `urgency`, `urgency_reason` | 1.4.0, optional. The parent product's North Star number from Control Center's daily refresh ([ADR-040](../../DECISIONS/040-every-repository-chases-one-number.md)): its deadline, this week's rung of its weekly ladder, the latest reading, the urgency U1 to U5 by ai-harness `contract/north-star-metric.md`, and why. Mindmake's figures read `"private"`. Absent when no refresh has read the number |
+| `aim_by`, `week_of`, `week_target`, `current`, `urgency`, `urgency_reason` | 1.4.0, optional. The parent product's North Star number from Control Center's daily refresh (Control Center ADR-040): its deadline, this week's rung of its weekly ladder, the latest reading, the urgency U1 to U5 by ai-harness `contract/north-star-metric.md`, and why. Mindmake's figures read `"private"`. Absent when no refresh has read the number |
 | `north_star` | 1.4.0, optional. `{ parent, own, intensity }`: the parent product's number and the engine's own (each `{ repo, metric, unit, aim_by, week_of, week_target, current, urgency, urgency_reason, read_on }`, or null), and `intensity { urgency, drafts_multiplier, rule }`, set by the more urgent of the two. U3 doubles draft output, U4 asks for a bold swing every day, U5 for three unconventional recovery plays. The walls, `spend_cap_usd` and `max_actions` never move with it |
 | `taste` | 1.5.0, optional. `{ rule, approved_voice_rules[] }`: Krish's approved voice rules (`taste_profile_form`, lane voice: approved or reworded by him only, form only, his words only while the answer they quote stands), each `{ layer, rule, his_words, what_it_means }`. Follow them for how anything you draft is written, never to choose what it is about, and never to judge, score or rank. An empty list means none approved yet: never invent one. Absent means they could not be read today (krishanraja/inspirationhouse `docs/TWO_WAY.md`, step 6) |
 | `week_goals` | 1.6.0, optional. His goals for this week in his own words, newest week, at most three. A row's `serves` quotes one exactly. Empty when he has set none; absent when they could not be read |

@@ -1,0 +1,27 @@
+{
+  "id": "ellipsis-cut",
+  "fix": "F27",
+  "what": "A line cut with an ellipsis.",
+  "synthetic": true,
+  "field": "why.0",
+  "line": "Took two media software companies through a sale and then...",
+  "records": [],
+  "card": {
+    "who": "Chief Marketing Officer at Example Retail.",
+    "known": "Known since 2019, through your LinkedIn connections.",
+    "why": [
+      "Took two media software companies through a sale and then..."
+    ],
+    "gain": [
+      "One introduction puts you in front of a leader who decides."
+    ],
+    "angles": [
+      {
+        "title": "Build your AI brain",
+        "line": "The brain door, in the site's words: \"Your taste, standards and judgement.\""
+      }
+    ],
+    "sources": []
+  },
+  "expect": "ellipsis"
+}

@@ -2,7 +2,7 @@
 repo: krishanraja/growth-mindmake
 product: Mindmake growth engine
 as_of: 2026-10-27
-head: 3efa517
+head: 5d2877d
 lifecycle: building
 production_url: none
 state_doc: README.md
@@ -32,6 +32,7 @@ This session's trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What changed recently
 
+- 2026-10-27 **The crew as code (plan Phase 3).** Nine specialists, each with a lint, a measured check, a generated card and a lens; card grammar holds every live failure shape; all of it in shadow, two counted lines a run and nothing held; events[] says what closed, a twice-refused row's words go to the weekly review, and a live run that read nothing journals failed with its class, never a quiet success.
 - 2026-10-27 **First live run at 1.10.0: the dead plans left his list (Phase 0 done).** A manual dispatch run on main reported at 1.10.0; the four 22 October plans whose Advisory records are gone read back expired in Control Center with `withdrawn` evidence, the one real ask stays pending, both traffic lines arrived with the consent sentence, and no traffic figure reached the Actions log. Meetings read as unread, not none: Control Center first reads his calendar at its 05:10 push.
 - 2026-10-27 **The week spec, compiled (plan Phase 2).** From the week of 9 November Krish signs one spec each Monday (`gms-`, with last week's good meetings folded in, so one Monday ask): rows on or off and their caps, the fit floor, pitches, invites, the shows' split and forms, each inside bounds config/policy.json owns, never any spend. His Clear or his digest-verified version signs it; otherwise last week's signed spec, then today's settings, apply. A second wake the same day writes only what is left of Jonny's ten drafts. Every earlier fixture reports byte for byte as before. Built and tested; not live, and nothing changes before 9 November.
 - 2026-10-27 **A booked show is asked for the brief link, and dead plans leave his list.** The engine writes Jonny's one note asking a booked host for the brief link in the show notes, and takes back the four 22 October plans whose records are gone, both once Control Center serves them (krishanraja/control-center#584).

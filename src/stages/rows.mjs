@@ -126,6 +126,26 @@ export function lessons(feedback, at) {
   return L;
 }
 
+/** A row's words are up for review once he calls them off this often inside the window (N06). */
+export const PITCH_OFF_REVIEW = Object.freeze({ min: 2, days: 28 });
+/**
+ * Rows whose words he has called off more than once lately: "repeated, a
+ * doctrine review" (the table above). The words already move to their other
+ * variant on each pitch_off; a repeat means the doctrine behind them, not just
+ * the variant, is for the weekly review (N06). Pure.
+ */
+export function pitchOffReviews(feedback, at, { min = PITCH_OFF_REVIEW.min, days = PITCH_OFF_REVIEW.days } = {}) {
+  const now = Date.parse(at), from = now - days * DAY;
+  const byRow = new Map();
+  for (const f of Array.isArray(feedback) ? feedback : []) {
+    if (f?.state !== 'declined' || f.reason_code !== 'pitch_off' || !ROWS.includes(f.row)) continue;
+    const t = Date.parse(f.decided_at ?? '');
+    if (!Number.isFinite(t) || t < from || t > now) continue;
+    byRow.set(f.row, (byRow.get(f.row) ?? 0) + 1);
+  }
+  return ROWS.filter(r => (byRow.get(r) ?? 0) >= min).map(row => ({ row, count: byRow.get(row), days }));
+}
+
 /** Why a candidate is left out under what he has said, or null. */
 export function refusedBy(L, { subject, row, kind, sector, topic, band }, at) {
   if (L.never.has(subject)) return 'declined_person';
@@ -438,6 +458,30 @@ export function leadFacts(value, max, n = 1) {
     if (out.length === n) break;
   }
   return out.join(' ');
+}
+
+/**
+ * The fact test (plan section 3, card grammar), extending factOf: whether one
+ * sentence from a record is a fact he can read whole, and if not, why. factOf
+ * cuts a sentence back to the fact it holds; this says whether anything had
+ * to be cut, so a card line that carries record prose past its fact is caught
+ * after the fact as well as filtered before it. Also catches a dash or a cut
+ * ("..."), which factOf never sees because it reads plain text. Pure.
+ */
+export function factTest(sentence) {
+  const raw = String(sentence ?? '');
+  if (/[\u2014\u2013]/.test(raw)) return { ok: false, reason: 'dash' };
+  if (/\.{3}|\u2026/.test(raw)) return { ok: false, reason: 'ellipsis' };
+  const t = plain(raw).replace(/[.!?]+$/, '');
+  if (!t) return { ok: false, reason: 'empty' };
+  if (SLUG.test(t)) return { ok: false, reason: 'slug' };
+  if (JUDGE_NOTE.test(t)) return { ok: false, reason: 'judge_note' };
+  if (VERDICT.test(t)) return { ok: false, reason: 'verdict' };
+  if (INSTRUCTION.test(t)) return { ok: false, reason: 'instruction' };
+  if (PROMPT_CUT.test(t)) return { ok: false, reason: 'prompt' };
+  if (!endsWhole(t)) return { ok: false, reason: 'fragment' };
+  if (t.length < 12) return { ok: false, reason: 'short' };
+  return { ok: true, reason: null };
 }
 
 // A channel someone owns, named in their own record. Followers alone are an

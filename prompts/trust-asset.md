@@ -6,11 +6,13 @@ Required input: `source_artifact_ref`, `source_class`, `allowed_audience`, `clai
 
 A room usually meets an unaware or problem-aware audience: use a Story or Proclamation lead from [the copy and offer doctrine](../docs/playbooks/10-copy-and-offer-doctrine.md#awareness-lead-type-and-ask-by-path), one argument as the big idea, cleared proof placed next to its claim, and edit passes A to E before `ready_for_review`. Never Offer copy in an editorial or speaking surface.
 
+The format is one of the three a trust motion takes in `contracts/motions.ts` (N09): `founder_post` in Krish's voice, `practice_post` in Mindmake's, or `commentary` on research alone. A host pitch or a talk abstract is not a trust format: it is the speaking motion (`kind: speaking` in the same contract), whose output is a `speaking_pitch`.
+
 Return `artifact_type: "trust_asset"` with:
 
 ```json
 {
-  "format": "founder_post | practice_explanation | host_pitch | talk_abstract",
+  "format": "founder_post | practice_post | commentary",
   "persona": "krish | mindmake",
   "surface_ref": "Authorised actual account or synthetic reference",
   "source_class": "owned_artifact | cleared_client_pattern | external_commentary",

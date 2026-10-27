@@ -121,7 +121,8 @@ export function signalRequests({ voices, research, at, max = 10 }) {
 // ── Rows ────────────────────────────────────────────────────────────────────
 
 const first = firstName;
-const quoteOf = text => { const t = clean(text).replace(/"/g, "'"); if (t.length <= 160) return t; const c = t.slice(0, 157); return `${c.slice(0, Math.max(60, c.lastIndexOf(' ')))}...`; };
+/** A comment as the words quote it: whole when it is short, cut on a word at 160 otherwise. Pure. */
+export const quoteOf = text => { const t = clean(text).replace(/"/g, "'"); if (t.length <= 160) return t; const c = t.slice(0, 157); return `${c.slice(0, Math.max(60, c.lastIndexOf(' ')))}...`; };
 const lower1 = s => s.charAt(0).toLowerCase() + s.slice(1);
 
 /** The words to someone who said it in public: their own comment first, then

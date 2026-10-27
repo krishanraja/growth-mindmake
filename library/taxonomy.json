@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "source": "docs/DRIVE.md",
+  "source_sha256": "39e606f3b9afe0f1a8e1dbb758978781b591677b9edb3674295208686999ccc2",
+  "root": "03_Growth",
+  "folders": [
+    "03_Growth",
+    "03_Growth/Growth strategy",
+    "03_Growth/Growth strategy/Week specs",
+    "03_Growth/Growth strategy/Weekly reviews",
+    "03_Growth/Growth strategy/Plans and briefs",
+    "03_Growth/Growth assets",
+    "03_Growth/Growth assets/Brand kit",
+    "03_Growth/Growth assets/Brand kit/Source files",
+    "03_Growth/Growth assets/Speaker and guest one-sheet",
+    "03_Growth/Growth assets/Speaker and guest one-sheet/Current",
+    "03_Growth/Growth assets/Speaker and guest one-sheet/Drafts",
+    "03_Growth/Growth measurement",
+    "03_Growth/Growth archive"
+  ],
+  "top_files": [
+    "Growth library READ ME FIRST",
+    "Growth index"
+  ],
+  "exception_folders": [
+    "Source files"
+  ],
+  "kinds": [
+    "Week spec",
+    "Weekly review",
+    "Plan",
+    "Brief",
+    "Cowork prompt",
+    "Baseline",
+    "Readout",
+    "Brand kit spec",
+    "Brand kit specimen",
+    "One-sheet"
+  ],
+  "name_pattern": "^(\\d{4}-\\d{2}-\\d{2}) (Brand kit specimen|Brand kit spec|Weekly review|Cowork prompt|Week spec|One-sheet|Baseline|Readout|Brief|Plan) (.+) v(\\d+)(?: \\(superseded (\\d{4}-\\d{2}-\\d{2})\\))?(\\.[a-z0-9]{1,5})?$",
+  "banned_words": [
+    "final",
+    "new",
+    "copy of"
+  ],
+  "examples": [
+    "2026-11-09 Week spec Mindmake growth v1",
+    "2026-11-06 Weekly review Mindmake growth v1",
+    "2026-10-27 Plan Bulletproof growth engine v1",
+    "2026-11-06 Readout mindmake.co traffic v1",
+    "2026-11-03 One-sheet Speaker and guest v2 (superseded 2026-11-10).pdf"
+  ],
+  "current": {
+    "folder": "Current",
+    "max_pdf": 1
+  },
+  "drafts": {
+    "folder": "Drafts",
+    "max": 3
+  },
+  "archive": "03_Growth/Growth archive",
+  "canva": {
+    "root": "Mindmake Growth",
+    "folders": [
+      "Mindmake Growth",
+      "Mindmake Growth/Brand kit",
+      "Mindmake Growth/Speaker and guest one-sheet",
+      "Mindmake Growth/Drafts"
+    ]
+  }
+}

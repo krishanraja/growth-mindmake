@@ -1,0 +1,27 @@
+{
+  "id": "dash",
+  "fix": "F27",
+  "what": "A dash from record prose on the card.",
+  "synthetic": true,
+  "field": "who",
+  "line": "Founder \u2014 Example Studio.",
+  "records": [],
+  "card": {
+    "who": "Founder \u2014 Example Studio.",
+    "known": "Known since 2019, through your LinkedIn connections.",
+    "why": [
+      "Rebuilt the marketing team around AI tools last year."
+    ],
+    "gain": [
+      "One introduction puts you in front of a leader who decides."
+    ],
+    "angles": [
+      {
+        "title": "Build your AI brain",
+        "line": "The brain door, in the site's words: \"Your taste, standards and judgement.\""
+      }
+    ],
+    "sources": []
+  },
+  "expect": "dash"
+}
