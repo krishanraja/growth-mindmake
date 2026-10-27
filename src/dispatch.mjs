@@ -20,6 +20,7 @@ import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapPropos
 import { readWeb, trafficLines, bookedHosts } from './stages/traffic.mjs';
 import { weekSpec, defaultSpec, parseSpec, compiledDrift, STAGE_CAPS, SPEC_PREFIX, FIRST_SPEC_WEEK } from './crew/compile.mjs';
 import { crewShadow } from './crew/shadow.mjs';
+import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
 export const PRODUCT_SLUG = 'mindmake';
@@ -453,7 +454,7 @@ export async function readSpecFile(week) {
   catch (e) { if (e?.code === 'ENOENT') return null; throw e; }
 }
 
-export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA }) {
+export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA, proofReader = readProofRuns }) {
   if (!['live','synthetic'].includes(mode) || !/^[a-z][a-z0-9-]{0,40}$/.test(kind) || !/^gma-[A-Za-z0-9-]{8,80}$/.test(attemptId)) throw new Error('Invalid dispatch options');
   const started_at = clock();
   const run_id = `${SLUG}:${londonDate(started_at)}:${kind}`;
@@ -686,9 +687,13 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       const spend = mapped.proposals.reduce((sum, p) => sum + (typeof p.amount_usd === 'number' ? p.amount_usd : 0), 0);
       activity.push(`Constraints, in shadow: ${walled} walled proposal${walled === 1 ? '' : 's'}${c.max_actions !== null ? ` against max_actions ${c.max_actions}` : ''}, ${spend} USD proposed${c.spend_cap_usd !== null ? ` against a spend cap of ${c.spend_cap_usd}` : ''}. Nothing is held by them yet.`);
     } else activity.push('Constraints: the directive carried none this run, so none are assumed.');
-    const current = new Map(mapped.proposals.map(p => [p.proposal_id, p.payload_sha256]));
     const approved = directive.decisions_since.filter(d => d.decision === 'approved');
-    activity.push(`Control Center returned ${directive.decisions_since.length} decisions from the last seven days: ${approved.length} approved, ${directive.decisions_since.length - approved.length} declined; ${approved.filter(d => d.payload_sha256 && current.get(d.proposal_id) === d.payload_sha256).length} approvals match a payload in this report.`);
+    const decisionsLine = proposals => {
+      const current = new Map(proposals.map(p => [p.proposal_id, p.payload_sha256]));
+      return `Control Center returned ${directive.decisions_since.length} decisions from the last seven days: ${approved.length} approved, ${directive.decisions_since.length - approved.length} declined; ${approved.filter(d => d.payload_sha256 && current.get(d.proposal_id) === d.payload_sha256).length} approvals match a payload in this report.`;
+    };
+    const decisionsAt = activity.length;
+    activity.push(decisionsLine(mapped.proposals));
     // A live run that read work and prepared nothing, with no hold to say why, is held by name, never a quiet success (F48).
     const served = n => Array.isArray(n) && n.length > 0;
     const pitchesServed = [ROWS_VERSION, BRIEF_VERSION, CARD_VERSION, PITCH_VERSION].every(v => capabilities?.schema_versions?.includes(v));
@@ -705,6 +710,22 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // The crew, in shadow until the switch (plan section 3): each specialist's lint and measured check, counted and reported, nothing held or hidden.
     const crew = crewShadow({ proposals: mapped.proposals, context: suppliedContext, canon: rowsRun?.canon ?? null, research: rowsRun?.research ?? null, at, caps: week.caps, constraints: c, objectives, activity, origin_candidates, taps, lastWeek, londonDate });
     activity.push(...crew.lines);
+    // The Phase 5 switch (src/crew/switch.mjs): one readiness line every run. Only this week's signed spec with
+    // `enabled: true`, five proof runs, the shadow lines and the number measured make the crew hold what it finds.
+    let proofRuns;
+    try { proofRuns = await proofReader({ cc, run_id, revision, mode }); } catch { proofRuns = { count: null, reason: 'the past reports could not be read' }; }
+    const readyNow = readiness({ week, objectives, activity, proofRuns });
+    activity.push(readinessLine(readyNow));
+    const way = route(readyNow, { mode, revision });
+    if (way.line) activity.push(way.line);
+    if (way.enforce) {
+      // His own signing asks are never held by the crew: they are how he turns the route off.
+      const held = enforce({ proposals: mapped.proposals, findings: crew.findings, exempt: id => id.startsWith(SPEC_PREFIX) || id.startsWith(STOPGAP_PREFIX) });
+      mapped.proposals = held.kept;
+      holds.push(...held.holds);
+      activity[activity.indexOf(crew.lines[0])] = crew.enforcedLine();
+      activity[decisionsAt] = decisionsLine(mapped.proposals);
+    }
     activity.push('Preparation used the existing daily dispatch. External actions require exact approval, a supported connector and independently verified receipts. Native drafts and human edits remain with their owners.');
     const report = buildReport({
       run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.some(h => !STANDING_HOLDS.has(h.reason)) ? 'held' : 'ready',

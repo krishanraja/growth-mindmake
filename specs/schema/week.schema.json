@@ -130,6 +130,7 @@
         }
       }
     },
-    "questions": { "type": "array", "maxItems": 5, "items": { "type": "string", "minLength": 1, "maxLength": 300 } }
+    "questions": { "type": "array", "maxItems": 5, "items": { "type": "string", "minLength": 1, "maxLength": 300 } },
+    "enabled": { "type": "boolean", "description": "Optional, added for plan Phase 5. True runs the new route beside the old one this week: the crew's lint findings hold the proposals they name, but only once this week's spec is signed, five live proof runs have read back, the shadow lines are reported and the number is measured (src/crew/switch.mjs); until then it stays in shadow. Absent or false: today's route, in shadow. It carries no send or spend authority." }
   }
 }

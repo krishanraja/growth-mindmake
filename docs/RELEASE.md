@@ -1,5 +1,19 @@
 # Release state
 
+## The Phase 5 switch, built behind the spec (plan Phase 5), 27 October 2026
+
+Built and tested; not switched, not live. Nothing in today's reports changes but one activity line.
+
+- **The field.** `growth-week/1` gains an optional `enabled` boolean (add-only: absent in the default spec and every earlier spec; the schema's new SHA-256 is frozen in contracts/manifest.json). No experiment can set it.
+- **Readiness, every run.** One line, `Switch readiness: signed spec ...; proof runs ... of 5; shadow reported ...; number measured ....`, from what the run can prove: this week's signed spec (never last week's carried on, today's settings or an unsigned proposal), the crew's two shadow lines, and the good_meetings objective read `measured`. Proof runs are read through `proofReader`; Control Center serves no list of this engine's past reports and run ids end in a workflow run number, so today they read unknown with that reason, and no ledger is kept. A proof run counted from a stored report is live, ready or held, carries both crew lines and a route line naming its engine revision; five in a row at one revision, so no pull request merged between them.
+- **The route.** Enabled but not ready: one `Switch route:` line says what is missing, and the crew stays in shadow. Enabled and ready: each crew finding that names a proposal holds it (its lint code as the hold, counted, never an id) and the proposal leaves the report; the lint line says enforcing; his `gms-` and `gmg-` asks are never held. src/crew/switch.mjs.
+- **The old route.** OLD_ROUTE_DAYS is 30 and SWITCHED_ON is null until the first enforcing live run reads back; scripts/check-switch.mjs, in `npm run check`, refuses a route that enforces without readiness, a crew line that holds by default, or a dispatch that holds outside `if (way.enforce)`, until 30 days after SWITCHED_ON.
+- **The 20x measure.** `npm run measure-20x` reads the Phase 0 baseline's format and a measurement since it, and writes the eight measures, per session, to ignored runtime/; each is measured or unknown with its reason, and it prints only each measure's state.
+- **Byte for byte.** The golden test now leaves out the switch's lines as it does the crew's; every recorded report digest still matches.
+- **Mutations.** Four more: enforcement from a spec that is not this week's signed one, enforcement before readiness, a dispatch that holds whatever the route decided, and the old route removed early.
+- **Verified on:** the seven repository checks, with 396 tests (16 new), `npm run mutate` (25 of 25 killed) and `npm run pack`.
+- **Live proof:** none. The switch waits on one signed spec (the week of 9 November at the earliest), five live proof runs (which first need Control Center to serve a read of this engine's past reports), the number measured, and his `enabled: true`.
+
 ## The session pack and Codex task cards (plan Phase 4), 27 October 2026
 
 Built and tested; not used yet. No dispatch code, report shape or word file changed. Krish approved every piece of the plan on 27 October ("i approve all the other pieces", and later "keep going autonomously until every single phase is done"), which is his yes to the one change Phase 4 asked across AGENTS.md, docs/GET-GOING.md and NOW.md (plan sections 5 and 10).

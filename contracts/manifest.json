@@ -42,7 +42,7 @@
     "week": {
       "id": "growth-week/1",
       "file": "specs/schema/week.schema.json",
-      "sha256": "4664e29201e4d6e9b291ea86a802fedf3c7d9e1fa6413dea5b17614b4010cf37"
+      "sha256": "016c03bc8de6d8e1a3502946f117fecbd15c9f0a35455e96022c905d399f4de4"
     }
   }
 }

@@ -117,6 +117,7 @@ The full spec is `docs/control-center/ENGINE-PROTOCOL.md`, with the report and d
 
 - Global outcome reads from Control Center's own deals (qualified conversations, paid proofs), so you need not compute them from a page.
 - The Gmail draft readback close.
+- A read of this engine's own recent accepted live reports, newest first (for example `GET .../reports?mode=live&limit=10`, each as `GET .../reports/<run_id>` returns it), so the Phase 5 switch can count five consecutive proof runs (plan section 8). Run ids end in a workflow run number a later run cannot know, so until this is served the engine reports proof runs as unknown and never switches (`readProofRuns` in src/crew/switch.mjs).
 
 ## What Control Center still owes: protocol 1.10.0 (approved by Krish, 27 October 2026)
 

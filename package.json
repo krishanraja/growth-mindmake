@@ -29,6 +29,8 @@
     "mutate": "node scripts/mutate.mjs",
     "pack": "node scripts/pack.mjs",
     "dispatch-card": "node scripts/dispatch-card.mjs",
-    "verify-card": "node scripts/verify-card.mjs"
+    "verify-card": "node scripts/verify-card.mjs",
+    "check:switch": "node scripts/check-switch.mjs",
+    "measure-20x": "node scripts/measure-20x.mjs"
   }
 }

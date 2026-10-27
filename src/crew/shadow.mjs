@@ -6,6 +6,7 @@
  * 5 switch nothing they find holds or hides a proposal: the run reports one
  * line of lint counts by lint id, and one line of measurements, and today's
  * route works unchanged. crew/index.json names who owns which lint and check.
+ * The switch itself, and when it may enforce, is src/crew/switch.mjs.
  *
  * Pure but for reading library/taxonomy.json once at load.
  */
@@ -84,10 +85,22 @@ export function crewShadow({ proposals = [], context = null, canon = null, resea
   const counts = new Map();
   for (const f of findings) counts.set(f.lint, (counts.get(f.lint) ?? 0) + 1);
   const tally = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([k, v]) => `${k} ${v}`).join(', ');
-  const lintLine = `Crew lints, in shadow: read ${proposals.length} proposal${proposals.length === 1 ? '' : 's'}; ${findings.length ? `${findings.length} finding${findings.length === 1 ? '' : 's'} (${tally})` : 'no findings'}. Nothing is held by them until the switch (plan Phase 5).`;
+  const lintLine = lintLineFor({ read: proposals.length, findings: findings.length, tally });
   const input = { context, at, taps, lastWeek, londonDate, origin_candidates, taxonomy: TAXONOMY, proposals, constraints, findings };
   const measurements = CHECK_MODULES.flatMap(m => m.measure(input).map(x => ({ specialist: m.SPECIALIST, ...x })));
   const known = measurements.filter(m => m.value !== null);
   const checkLine = `Crew checks, measured after acting: ${known.length ? known.map(m => `${m.check} ${m.value}`).join(', ') : 'none measured yet'}; ${measurements.length - known.length} not measured yet, none of them read as zero.`;
-  return { findings, measurements, lines: [lintLine, checkLine] };
+  return { findings, measurements, lines: [lintLine, checkLine], enforcedLine: () => lintLineFor({ read: proposals.length, findings: findings.length, tally, enforcing: true }) };
+}
+
+/**
+ * The crew's lint line. In shadow (the default, today's words) nothing is
+ * held; once the Phase 5 switch enforces (src/crew/switch.mjs), each finding
+ * that names a proposal holds it. Pure.
+ */
+export function lintLineFor({ read, findings, tally, enforcing = false }) {
+  const counted = `read ${read} proposal${read === 1 ? '' : 's'}; ${findings ? `${findings} finding${findings === 1 ? '' : 's'} (${tally})` : 'no findings'}`;
+  return enforcing
+    ? `Crew lints, enforcing: ${counted}. Each finding that names a proposal holds it (plan Phase 5).`
+    : `Crew lints, in shadow: ${counted}. Nothing is held by them until the switch (plan Phase 5).`;
 }
