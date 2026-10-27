@@ -421,6 +421,7 @@ Codex builds code between runs as a development tool; the engine's runtime gains
 **Accept, live:** the first Monday stopgap he answers gives a non-null number with its source.
 
 **Phase 1b, the traffic reading (its own pull request and GET-GOING step, after Phase 1's).**
+- As built (27 October): the engine reads the directive's existing `web_analytics` block, Control Center's one Google Analytics feed (served to makeyourmindup at 1.10.0), not a new `web` context part, so the feed is extended rather than forked. Its tests cover each acceptance item below.
 - Two activity lines a run, never an objective: the whole site, then the share that came through the engine's tagged and matched referral visits. Each line carries the consent sentence.
 - When Control Center does not serve 1.10.0 or `features.web`, one line says the reading is not served yet.
 - No figure reaches the printed run result or the Actions log.
