@@ -611,10 +611,18 @@ export function answerFor(field, said) {
   }
 }
 
-/** The answer Control Center's runner would put in a field: the first whose label the field's contains, or is contained by (api/_formRunner.ts). Pure. */
+/**
+ * The answer Control Center's runner would put in a field (api/_formFill.ts,
+ * since krishanraja/control-center#576): of the answers whose label the
+ * field's contains, or is contained by, the closest in length, so the field's
+ * own label wins and "Name" never lands in "Company name". Pure.
+ */
 export function runnerPick(fieldLabel, answers) {
   const label = formKey(fieldLabel);
-  return answers.find(a => { const key = formKey(a.label); return key && label && Math.min(label.length, key.length) >= 3 && (label === key || label.includes(key) || key.includes(label)); }) ?? null;
+  if (!label) return null;
+  const near = answers.filter(a => { const key = formKey(a.label); return key && Math.min(label.length, key.length) >= 3 && (label === key || label.includes(key) || key.includes(label)); });
+  near.sort((x, y) => Math.abs(formKey(x.label).length - label.length) - Math.abs(formKey(y.label).length - label.length));
+  return near[0] ?? null;
 }
 
 /** Whether the runner would put any answer in a field it was not written for, or tick a box with one. Pure. */

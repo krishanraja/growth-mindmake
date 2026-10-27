@@ -206,15 +206,17 @@ test('a required terms box is his alone: the form holds and the stage falls to i
   assert.equal(JSON.parse(r.proposals[0].exact_payload).mailbox, 'jonny');
 });
 
-test('the runner would put an answer in the wrong field when one label holds another: that form holds', () => {
-  assert.deepEqual(runnerPick('Company name', [{ label: 'Name', value: 'Krish Raja' }, { label: 'Company name', value: 'Mindmake' }]), { label: 'Name', value: 'Krish Raja' }, 'the first answer whose label the field\'s holds, as api/_formRunner.ts matches');
+test('the engine predicts the runner\'s pick, the closest label, and holds a form only when an answer would still land where it should not', () => {
+  assert.deepEqual(runnerPick('Company name', [{ label: 'Name', value: 'Krish Raja' }, { label: 'Company name', value: 'Mindmake' }]), { label: 'Company name', value: 'Mindmake' }, 'the field\'s own label first, as api/_formFill.ts matches');
   assert.equal(runnerPick('Bio', [{ label: 'Website', value: FORM_SITE }]), null);
   assert.equal(runnerPick('ab', [{ label: 'ab', value: 'x' }]), null, 'under three letters the runner matches nothing');
   assert.equal(overlaps([field('Email'), field('Email address')], [{ label: 'Email', value: FORM_EMAIL }, { label: 'Email address', value: FORM_EMAIL }]), false, 'the same answer either way is no harm');
   assert.equal(overlaps([field('Company'), field('Company phone')], [{ label: 'Company', value: 'Mindmake' }]), true, 'a field left empty on purpose would be filled');
   assert.equal(overlaps([field('Topics', { type: 'checkbox', name: 'topics' })], [{ label: 'Topic', value: 'AI for marketing leaders' }]), true, 'a box would be ticked');
   assert.equal(overlaps([field('I agree to the terms', { type: 'checkbox', name: 'terms' })], [{ label: 'Terms', value: 'x' }]), false, 'the runner leaves a terms box alone');
-  assert.equal(stageForm(summit(1, { form_fields: [field('Name', { required: true }), field('Company name', { required: true }), field('Email', { type: 'email', required: true })] }), opts).hold, 'labels_overlap');
+  const both = stageForm(summit(1, { form_fields: [field('Name', { required: true }), field('Company name', { required: true }), field('Email', { type: 'email', required: true })] }), opts);
+  assert.equal(both.hold, null, 'the runner takes the closest label, so a name beside a company name is answered (control-center#576)');
+  assert.deepEqual(runnerPick('Your company name', [{ label: 'Name', value: 'Krish Raja' }, { label: 'Company name', value: 'Mindmake' }])?.value, 'Mindmake', 'the closer label wins');
   assert.equal(stageForm(summit(1, { form_fields: [field('Full name', { required: true }), field('Company', { required: true }), field('Email', { type: 'email', required: true })] }), opts).hold, null);
 });
 
