@@ -262,7 +262,9 @@ automated next best route."
   out. A form drawn in script (no fields read) is left alone.
 - **The answers.** Each field by its own label: his name (Krish Raja, or Krish
   and Raja), his public business address `hello@krishraja.com` and no other,
-  Mindmake, the title the run uses for him, `https://krishraja.com`, a bio and
+  Mindmake, the title the run uses for him, `https://mindmake.co` as the
+  website (and as the company's website; `https://krishraja.com` only where the
+  label asks for his personal or speaker site; Ruling, Krish, 2026-10-27), a bio and
   an abstract in whole sentences from the canon and his own site's record read
   this run (within any limit the label states), the talk title, and a format or
   a track only from the field's own options (a talk, or a panel seat where the

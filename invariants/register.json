@@ -650,9 +650,9 @@
     {
       "id": "N17",
       "what": "blobSha hashes decoded text, so it gives the wrong SHA for a binary file such as a PDF.",
-      "phase": "C2",
-      "state": "open",
-      "closed_by": null
+      "phase": "done",
+      "state": "closed",
+      "closed_by": "PR #28"
     },
     {
       "id": "N18",

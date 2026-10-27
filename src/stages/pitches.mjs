@@ -440,8 +440,12 @@ export function reachOf(t, basis, unknown) {
 
 /** His public business address: the one email a form is ever given for him (Krish, 2026-10-26). Never any other. */
 export const FORM_EMAIL = 'hello@krishraja.com';
-/** His own site, which a website field is given. */
-export const FORM_SITE = 'https://krishraja.com';
+/** Mindmake's site, which a website field is given: mindmake.co for every Mindmake venture thing (Krish, 2026-10-27). */
+export const FORM_SITE = 'https://mindmake.co';
+/** His personal speaker site, given only where a field's own label asks for that. */
+export const SPEAKER_SITE = 'https://krishraja.com';
+/** A label that asks for his personal or speaker site rather than the company's. */
+const SPEAKER_LABEL = /\b(?:personal (?:site|website|web site|page|url)|speaker (?:site|website|web site|page|url)|your own (?:site|website))\b/;
 /** Forms a row leads with at most in a run, so the people the engine ranked still show behind them on his widget. */
 export const FORMS_PER_ROW = 2;
 /** A bio and an abstract are whole sentences within these, or within a limit the field's own label states. */
@@ -514,7 +518,8 @@ export function fieldAsk(field) {
   if (type === 'email' || EMAIL.test(k)) return 'email';
   if (LINKEDIN.test(k)) return 'linkedin';
   if (ELSEWHERE.test(k)) return null;
-  if (ORG.test(k)) return NOT_ORG_NAME.test(k) ? null : 'company';
+  // The company's website is Mindmake's, mindmake.co (FORM_SITE), since 2026-10-27.
+  if (ORG.test(k)) return WEBSITE.test(k) ? 'website' : NOT_ORG_NAME.test(k) ? null : 'company';
   if (WEBSITE.test(k)) return 'website';
   if (POSTAL.test(k)) return 'address';
   if (PLACE.test(k)) return 'location';
@@ -600,7 +605,7 @@ export function answerFor(field, said) {
     case 'email': return FORM_EMAIL;
     case 'company': return 'Mindmake';
     case 'job_title': return KRISH_TITLE;
-    case 'website': return FORM_SITE;
+    case 'website': return SPEAKER_LABEL.test(formKey(field.label)) ? SPEAKER_SITE : FORM_SITE;
     case 'bio': return whole(said.bio, BIO_MAX);
     case 'abstract': return whole(said.abstract, ABSTRACT_MAX);
     case 'talk_title': return whole(said.talk, 200);

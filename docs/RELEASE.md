@@ -1,5 +1,9 @@
 # Release state
 
+## Stage forms give mindmake.co, and a PDF hashes as bytes, 27 October 2026
+
+Built and tested; merged just after a 05:10 UTC run, because pitches.mjs is a word file and a merge stales the rows on his phone. Ruling (Krish, 2026-10-27): "mindmake.co for all mindmake venture things". A stage form's website field is now `https://mindmake.co`, and so is a company website field, which the engine used to leave blank; `https://krishraja.com` is given only where the field's own label asks for his personal or speaker site. `blobSha` hashes raw bytes when given bytes, so the one-sheet PDF can be named by the SHA git gives it (N17, closed). Each change was broken on purpose and failed one test.
+
 ## The register of every past fix (plan Phase 0, part), 27 October 2026
 
 Merged by the session. `invariants/register.json` holds 48 fixes (F01 to F48: 40 guarded by a named test, 4 partly, 4 with a reason and a phase) and findings N01 to N19 (7 closed). tests/register.test.mjs checks ids, sources and phases, that every named test exists by its name, and that no unguarded fix is marked done; four deliberate breakages each failed one test. Ids the plan names keep their meaning; the others are numbered in the order their fix landed. Plan section 12 now carries the Control Center migration inventory (M1 to M13). 275 tests.

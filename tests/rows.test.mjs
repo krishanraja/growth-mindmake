@@ -24,6 +24,9 @@ test('canon is read from the venture as it is today: the main ask, its link, the
   assert.deepEqual(canon.ask, { label: 'Start building your AI brain', url: 'https://mindmake.example/?start=1', description: 'answer a few questions, keep the brief, then a free consultation' });
   assert.equal(canon.brain, 'Your taste, standards and judgement, running as a system you own.');
   assert.equal(blobSha('hello\n'), 'ce013625030ba8dba906f756967f9e9ca394464a', 'the same SHA git gives');
+  const pdf = Uint8Array.from([0x25, 0x50, 0x44, 0x46, 0xff, 0xfe, 0x00, 0x80, 0x0a]);
+  assert.equal(blobSha(pdf), '2453d10dafce2943703353576a4670bcc4b6a136', 'raw bytes, as git hashes a binary file');
+  assert.notEqual(blobSha(pdf), blobSha(Buffer.from(pdf).toString('utf8')), 'decoding a binary file as text gives another SHA (N17)');
   assert.throws(() => parseCanon({ northStar: NORTH_STAR, canon: CANON.replace('The main ask', 'Main') }), e => e instanceof CanonError && e.code === 'main_ask_unreadable');
   const read = await readCanon({ fetcher: async url => new Response(String(url).endsWith('00_NORTH_STAR.md') ? NORTH_STAR : CANON) });
   assert.deepEqual(read.files.map(f => f.sha), canon.files.map(f => f.sha));

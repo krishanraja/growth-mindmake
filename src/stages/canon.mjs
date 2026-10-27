@@ -21,9 +21,9 @@ export const CANON_REPO = 'krishanraja/mindmake';
 export const CANON_PATHS = { north_star: 'project-documentation/00_NORTH_STAR.md', canon: 'project-documentation/01_CANON.md' };
 const RAW = 'https://raw.githubusercontent.com/krishanraja/mindmake/main/';
 
-/** The git blob SHA of a file's bytes, as `git hash-object` gives it. */
-export function blobSha(text) {
-  const bytes = Buffer.from(text, 'utf8');
+/** The git blob SHA of a file, as `git hash-object` gives it: of its raw bytes when given bytes (a PDF), else of the text's UTF-8. */
+export function blobSha(content) {
+  const bytes = content instanceof Uint8Array ? Buffer.from(content.buffer, content.byteOffset, content.byteLength) : Buffer.from(String(content), 'utf8');
   return createHash('sha1').update(Buffer.concat([Buffer.from(`blob ${bytes.length}\0`), bytes])).digest('hex');
 }
 
