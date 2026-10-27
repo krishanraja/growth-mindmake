@@ -72,7 +72,8 @@ test('the report builder produces a schema-valid envelope, refuses unknown field
   const report = buildReport(fields);
   assert.deepEqual(violations(schema, report), []);
   assert.equal(report.payload_sha256, digest(report));
-  assert.deepEqual(Object.keys(report).sort(), Object.keys(schema.properties).sort());
+  // origin_candidates and withdrawn (1.10.0) are the optional fields: sent only when there is one.
+  assert.deepEqual(Object.keys(report).sort(), Object.keys(schema.properties).filter(k => !['origin_candidates', 'withdrawn'].includes(k)).sort());
   assert.doesNotMatch(JSON.stringify([report.activity, report.holds]), /PRIVATE_SYNTHETIC/);
   const smuggled = structuredClone(mapped.proposals); smuggled[0].send_now = true;
   assert.throws(() => buildReport({ ...fields, proposals: smuggled }), e => e instanceof DispatchError && e.code === 'report_invalid');
@@ -236,7 +237,7 @@ test('the dispatch CLI never prints the bearer or private source text, and refus
   await writeFile(join(dir, 'snapshot.json'), JSON.stringify(source));
   await writeFile(join(dir, 'route.mjs'), `const real = globalThis.fetch;\nglobalThis.fetch = (input, init) => { const u = new URL(input); if (u.origin !== 'https://controlcenter.example.test') throw new Error('unexpected origin'); return real(new URL(u.pathname + u.search, process.env.STAND_IN_LOCAL_ORIGIN), init); };\n`);
   const run = (args, env) => new Promise(resolve => execFile(process.execPath, ['--import', pathToFileURL(join(dir, 'route.mjs')).href, 'src/cli.mjs', ...args], { cwd: root, timeout: 15000, env: { PATH: process.env.PATH, ...env } }, (error, stdout, stderr) => resolve({ code: error ? error.code : 0, stdout, stderr })));
-  const service = await startProtocolService();
+  const service = await startProtocolService({ recorded: false }); // the real CLI runs on the wall clock, so its report differs each day
   try {
     const env = { CONTROL_CENTER_URL: service.origin, CONTROL_CENTER_ENGINE_TOKEN: STAND_IN_TOKEN, STAND_IN_LOCAL_ORIGIN: service.localOrigin };
     const ok = await run(['dispatch', '--synthetic', '--snapshot', join(dir, 'snapshot.json'), '--at', AT], env);

@@ -142,11 +142,14 @@ export function refusedBy(L, { subject, row, kind, sector, topic, band }, at) {
 /** How well each kind reaches his buyer: leaders who decide (playbook 11). */
 /** Control Center's Mindmake fit for a person, 0 to 100, or null when it has none. */
 export function fitOf(c) { const f = c?.mindmake_fit; return typeof f === 'number' && Number.isFinite(f) && f >= 0 && f <= 100 ? Math.round(f) : null; }
-/** Why a person is left out before any ask: they sell what Mindmake sells, or their fit is under the floor or unknown. */
-export function fitHold(c) {
+/**
+ * Why a person is left out before any ask: they sell what Mindmake sells, or their fit is under the floor or unknown.
+ * The floor is the week spec's (src/crew/compile.mjs), FIT_FLOOR unless he signed a higher one; it is never lower.
+ */
+export function fitHold(c, floor = FIT_FLOOR) {
   if (c?.sells_competing_services === true) return 'competitor';
   const f = fitOf(c);
-  return f === null || f < FIT_FLOOR ? 'low_fit' : null;
+  return f === null || f < Math.max(FIT_FLOOR, floor) ? 'low_fit' : null;
 }
 const ROUTE = { email_verified: 1, email_unchecked: 0.85, whatsapp: 0.9, x_message: 0.6 };
 const GOAL_WORDS = { partners: /partner/i, visibility: /visib|audience|podcast|media|stage/i, events: /event|speak|talk|stage|room/i, reach_out: /warm lead|one-?pager|offer|lead|intro/i, network: /warm|network|relationship|reconnect/i };
@@ -872,7 +875,7 @@ const KIND_NOUN = { investor: 'portfolio', ai_capital: 'investments', connector:
  * and from close ties gone quiet (network). Also the reach questions worth
  * asking: the top few with no cited figure, once a month each.
  */
-export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX }) {
+export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR }) {
   const L = lessons(context.feedback, at);
   const research = Array.isArray(context.research) ? context.research : [];
   const routes = context.routes ?? {};
@@ -886,7 +889,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     seen.add(id);
     const kinds = kindsOf(c);
     if (!kinds.length) continue;
-    const unfit = fitHold(c);
+    const unfit = fitHold(c, fitFloor);
     if (unfit) { held.push(unfit); continue; }
     const fit = fitOf(c);
     const reach = reachOf(c, research);
@@ -953,7 +956,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     // Gone quiet: a real relationship, nothing for 90 days. With no date at all, quiet is unknown.
     if (last === null || Date.parse(at) - last < 90 * DAY) continue;
     seen.add(id);
-    const unfit = fitHold(n);
+    const unfit = fitHold(n, fitFloor);
     if (unfit) { held.push(unfit); continue; }
     const fit = fitOf(n);
     const name = cleanName(n.contacts?.full_name ?? '');
@@ -1015,14 +1018,23 @@ export function titleFor(ask, kind, rawName, company, max = TITLE_MAX, show = ''
   return fit(`Reach out to ${name}`, `Reach out to ${f}`);
 }
 
-/** Rank inside each row, keep PER_ROW a row, and drop the engine's own field that names the person. */
-export function rankRows(entries) {
+/** Every row on, PER_ROW a row: today's rows, and the default week spec's (src/crew/compile.mjs). */
+export const LANES = Object.freeze(Object.fromEntries(ROWS.map(r => [r, Object.freeze({ on: true, max: PER_ROW })])));
+/**
+ * Rank inside each row, keep the row's cap (PER_ROW unless the week spec says
+ * otherwise; none on a row it turned off), and drop the engine's own field
+ * that names the person. A row turned off counts apart from the cap.
+ */
+export function rankRows(entries, lanes = LANES) {
   const byRow = new Map(ROWS.map(r => [r, []]));
   for (const e of entries) byRow.get(e.proposal.row)?.push(e);
-  const kept = [], dropped = [];
-  for (const [, list] of byRow) {
+  const kept = [];
+  let dropped = 0, off = 0;
+  for (const [row, list] of byRow) {
+    const lane = lanes[row] ?? LANES[row];
+    if (!lane.on) { off += list.length; continue; }
     list.sort((a, b) => b.score - a.score || a.proposal.proposal_id.localeCompare(b.proposal.proposal_id));
-    list.forEach((e, i) => { const { name, ...p } = e.proposal; (i < PER_ROW ? kept : dropped).push({ ...p, rank: i + 1 }); });
+    list.forEach((e, i) => { const { name, ...p } = e.proposal; if (i < lane.max) kept.push({ ...p, rank: i + 1 }); else dropped++; });
   }
-  return { kept, dropped: dropped.length };
+  return { kept, dropped, off };
 }

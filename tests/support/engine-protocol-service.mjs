@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { golden } from './golden.mjs';
 
 /** Synthetic stand-in for Control Center's growth engine protocol 1.0.0, never production storage. */
 const schema = JSON.parse(await readFile(new URL('../../docs/control-center/engine-report.schema.json', import.meta.url), 'utf8'));
@@ -47,7 +48,7 @@ export function parseActionV2(text) {
   const isObj = x => !!x && typeof x === 'object' && !Array.isArray(x);
   const str = (x, max) => typeof x === 'string' && x.trim() && x.length <= max ? x.trim() : null;
   if (!isObj(a)) return { ok: false, error: 'the action is not an object' };
-  const extra = Object.keys(a).filter(k => !['version', 'channel', 'recipient_contact_id', 'subject', 'body', 'form', 'mailbox'].includes(k));
+  const extra = Object.keys(a).filter(k => !['version', 'channel', 'recipient_contact_id', 'subject', 'body', 'form', 'mailbox', 'kind'].includes(k));
   if (extra.length) return { ok: false, error: `the action has a field the protocol does not know: ${extra.join(', ')}` };
   if (a.version !== 2) return { ok: false, error: 'the action must be version 2' };
   if (!['email', 'x_message', 'whatsapp', 'form'].includes(a.channel)) return { ok: false, error: 'the action channel must be email, x_message, whatsapp or form' };
@@ -79,7 +80,11 @@ export function parseActionV2(text) {
   const mailbox = a.mailbox === null || a.mailbox === undefined ? null : a.mailbox === 'krish' || a.mailbox === 'jonny' ? a.mailbox : undefined;
   if (mailbox === undefined) return { ok: false, error: 'mailbox must be krish, jonny or null' };
   if (mailbox && channel !== 'email') return { ok: false, error: 'only an email lands in a mailbox' };
-  return { ok: true, value: { version: 2, channel, recipient_contact_id: recipient, subject: channel === 'email' ? subject : null, body, form, mailbox } };
+  // 1.10.0: the show-notes note, an email in Jonny's box only.
+  const kind = a.kind === null || a.kind === undefined ? null : a.kind === 'show_notes_ask' ? a.kind : undefined;
+  if (kind === undefined) return { ok: false, error: 'the action kind must be show_notes_ask or null' };
+  if (kind === 'show_notes_ask' && (channel !== 'email' || mailbox !== 'jonny')) return { ok: false, error: "a show_notes_ask is an email in Jonny's box (mailbox jonny): he asks the host he pitched" };
+  return { ok: true, value: { version: 2, channel, recipient_contact_id: recipient, subject: channel === 'email' ? subject : null, body, form, mailbox, ...(kind ? { kind } : {}) } };
 }
 
 export function directiveFixture(changes = {}) {
@@ -102,7 +107,7 @@ export function directiveFixture(changes = {}) {
   };
 }
 
-export async function startProtocolService({ token = STAND_IN_TOKEN, directive = directiveFixture(), decisions = [], activatedOn = '2026-10-18', active = true } = {}) {
+export async function startProtocolService({ token = STAND_IN_TOKEN, directive = directiveFixture(), decisions = [], activatedOn = '2026-10-18', active = true, recorded = true } = {}) {
   const reports = new Map(), attempts = new Map(), requests = [], faults = [];
   const base = '/api/growth/engines/mindmake/';
   const server = createServer(async (req, res) => {
@@ -132,6 +137,8 @@ export async function startProtocolService({ token = STAND_IN_TOKEN, directive =
     }
     if (route?.startsWith('attempts/') && req.method === 'GET') { const a = attempts.get(decodeURIComponent(route.slice(9))); reply(a ? 200 : 404, a ? { ok: true, attempt: a } : { error: 'not_found' }); return; }
     if (route === 'reports' && req.method === 'POST') {
+      // Every report a fixture posts is checked against the one it gave before the week spec (tests/support/golden.mjs). A run on the wall clock, or a test of behaviour that is new since, passes recorded: false.
+      if (recorded) golden(body);
       const problems = violations(schema, body);
       if (problems.length) { reply(400, { error: 'invalid_report', field: problems[0] }); return; }
       if (body.engine_id !== 'growth-mindmake' || body.product_slug !== 'mindmake') { reply(403, { error: 'wrong_engine' }); return; }

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://controlcenter.krishraja.com/schemas/engine-report-1.0.0.json",
-  "title": "Growth engine report, protocol 1.9.0 (ADR-038)",
+  "title": "Growth engine report, protocol 1.10.0 (ADR-038)",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -27,9 +27,10 @@
         "1.6.0",
         "1.7.0",
         "1.8.0",
-        "1.9.0"
+        "1.9.0",
+        "1.10.0"
       ],
-      "description": "1.1.0 adds a proposal's stage and parent_proposal_id, 1.2.0 its subject_ref; an older report carrying a newer field is refused. 1.3.0 adds scoped context/outcome reads and exact action execution without changing report fields. 1.4.0 and 1.5.0 change only the directive. 1.6.0 adds a proposal's row, rank, reach, amplifier_kind, features, serves and source_revision, and allows 40 proposals (ENGINE-PROTOCOL.md, The five rows). 1.7.0 adds a row proposal's because and brief, which a row then needs. 1.8.0 adds a row proposal's card, the full card a tap opens, which a row then needs. 1.9.0 lets a visibility or events row's email action (exact_payload) name Jonny's box (mailbox), and changes no report field."
+      "description": "1.1.0 adds a proposal's stage and parent_proposal_id, 1.2.0 its subject_ref; an older report carrying a newer field is refused. 1.3.0 adds scoped context/outcome reads and exact action execution without changing report fields. 1.4.0 and 1.5.0 change only the directive. 1.6.0 adds a proposal's row, rank, reach, amplifier_kind, features, serves and source_revision, and allows 40 proposals (ENGINE-PROTOCOL.md, The five rows). 1.7.0 adds a row proposal's because and brief, which a row then needs. 1.8.0 adds a row proposal's card, the full card a tap opens, which a row then needs. 1.9.0 lets a visibility or events row's email action (exact_payload) name Jonny's box (mailbox), and changes no report field. 1.10.0 adds web_analytics to the directive of an engine whose product has a Google Analytics site with the per-post breakdown, origin_candidates to the report of the engine whose meetings Control Center reads (Mindmake, features.meetings), and a row action's kind show_notes_ask (exact_payload), Jonny's show-notes note after a booking."
     },
     "engine_id": {
       "type": "string",
@@ -234,7 +235,8 @@
               "string",
               "null"
             ],
-            "maxLength": 8000
+            "maxLength": 8000,
+            "description": "The exact words to approve. On a row proposal (1.6.0), a version 2 action as JSON text: { version: 2, channel, recipient_contact_id, subject, body, form, mailbox, kind }, never an address. mailbox (1.9.0): krish, jonny or null; jonny on the visibility and events rows only. kind (1.10.0, optional): show_notes_ask or null, only on an email with mailbox jonny about a stage (subject_ref target:<id>): Jonny's one note to a host after his pitch was booked, asking for the brief link in the show notes, drafted once a stage only after booked_at is recorded (ENGINE-PROTOCOL.md, The show-notes note). An older report naming a kind is refused."
           },
           "payload_sha256": {
             "type": "string",
@@ -659,6 +661,71 @@
               "null"
             ],
             "maxLength": 1000
+          }
+        }
+      }
+    },
+    "origin_candidates": {
+      "type": "array",
+      "maxItems": 40,
+      "description": "1.10.0, Mindmake only (features.meetings), optional: where the engine reads each of his recent meetings came from. The first candidate naming a path for the person he met is recorded at his good tap, once; any other path for them is kept as an assist (ENGINE-PROTOCOL.md, Held meetings and the good tap).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "contact_id",
+          "path"
+        ],
+        "properties": {
+          "contact_id": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "path": {
+            "enum": [
+              "existing-relationship",
+              "multiplier-intro",
+              "partner",
+              "guest-seat",
+              "podcast",
+              "own-show-guest",
+              "public-signal",
+              "inbound",
+              "referral",
+              "unknown"
+            ]
+          },
+          "origin_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2000,
+            "description": "A stable id (contact:<id>, a proposal id) or a public https page, never an address."
+          }
+        }
+      }
+    },
+    "withdrawn": {
+      "type": "array",
+      "maxItems": 40,
+      "description": "1.10.0, optional: your own pending proposals you take back, each with why. Each one Krish has not decided becomes expired and leaves his list; a decided one is left as it is. Never both proposed and withdrawn in one report.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proposal_id",
+          "reason"
+        ],
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9:._-]{0,119}$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
           }
         }
       }

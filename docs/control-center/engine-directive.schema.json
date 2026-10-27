@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://controlcenter.krishraja.com/schemas/engine-directive-1.0.0.json",
-  "title": "Growth engine directive, protocol 1.0.0 to 1.9.0 (ADR-038)",
+  "title": "Growth engine directive, protocol 1.0.0 to 1.10.0 (ADR-038)",
   "type": "object",
   "required": [
     "schema_version",
@@ -607,6 +607,174 @@
     "rows_rule": {
       "type": "string",
       "description": "1.6.0, Mindmake only, with week_goals: how to put people in front of him (ENGINE-PROTOCOL.md, The five rows), word for word."
+    },
+    "web_analytics": {
+      "type": "object",
+      "description": "1.10.0, optional: the Google Analytics readings of the site whose venture is this engine's product, for a site with the per-post (utm_content) breakdown; today only makeyourmindup. The last 28 days through the newest day captured, from web_analytics_daily. Counts only, no personal data. A part that cannot be read is null, with the reason in coverage, never zero. Absent for every other engine.",
+      "required": [
+        "property",
+        "measurement_id",
+        "through",
+        "days",
+        "events",
+        "rows",
+        "coverage"
+      ],
+      "properties": {
+        "property": {
+          "type": "string",
+          "description": "The site's prefix in Control Center, for example mymu."
+        },
+        "measurement_id": {
+          "type": "string",
+          "pattern": "^G-[A-Z0-9]+$"
+        },
+        "through": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date",
+          "description": "The newest day captured, which the window ends on. Null when nothing could be read."
+        },
+        "days": {
+          "type": "integer",
+          "description": "The window, in days: 28."
+        },
+        "events": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Each event name seen in the per-post rows. Null when no per-post row was captured in the window.",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "key_event",
+              "count_28d"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "key_event": {
+                "type": "boolean",
+                "description": "True when its key events add up above zero in the window."
+              },
+              "count_28d": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Sessions in which the event happened, summed over the per-post rows of the window. A count of sessions, not of events."
+              }
+            }
+          }
+        },
+        "rows": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Every breakdown row in the window, oldest day first. Null when the table could not be read or holds nothing for this site.",
+          "items": {
+            "type": "object",
+            "required": [
+              "date",
+              "dim_type",
+              "value",
+              "sessions",
+              "users",
+              "key_events"
+            ],
+            "properties": {
+              "date": {
+                "type": "string",
+                "format": "date"
+              },
+              "dim_type": {
+                "enum": [
+                  "source_medium",
+                  "landing_page",
+                  "utm_content"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "description": "source_medium: 'source / medium'. landing_page: the path. utm_content: '<utm_content>|<session source>|<event name>'; split it on the first and the last '|', never on every one, because a source can hold a '|'."
+              },
+              "sessions": {
+                "type": "number",
+                "minimum": 0
+              },
+              "users": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Google's users for that row: activeUsers on source and landing page rows, totalUsers on utm_content rows. Never add users across a post's event rows: the same people are in each."
+              },
+              "key_events": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "coverage": {
+          "type": "object",
+          "required": [
+            "complete",
+            "reason",
+            "dates"
+          ],
+          "properties": {
+            "complete": {
+              "type": "boolean",
+              "description": "True only when source, landing page and per-post rows are each on every day of the window, the newest day is current and nothing was cut."
+            },
+            "reason": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Why it is not complete, in plain words; null when complete. The per-post part is judged on its own days: when the per-post breakdown starts inside the window, or per-post rows are on fewer days than the window, it says so, because events and count_28d then cover only those days."
+            },
+            "dates": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "The days that carry rows of each kind, oldest first; null when nothing could be read. A day missing from utm_content had no tagged visits or was not captured: unknown, never zero.",
+              "required": [
+                "source_medium",
+                "landing_page",
+                "utm_content"
+              ],
+              "properties": {
+                "source_medium": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                },
+                "landing_page": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                },
+                "utm_content": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

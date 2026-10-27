@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/krishanraja/growth-mindmake/specs/schema/week.schema.json",
+  "title": "growth-week/1",
+  "description": "The week spec Krish signs on Monday (docs/briefs/2026-10-27-bulletproof-growth-engine.md, section 1). Canonical JSON of 8,000 characters or fewer, holding no people, ids or private links. Each cap sits inside the bounds config/policy.json owns, which src/crew/compile.mjs checks; this schema checks the shape only. It carries no send or spend authority, and no field can add any.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["spec", "week_of", "compiled", "rows", "pitches", "fit_floor", "assets", "experiment", "last_week", "questions"],
+  "properties": {
+    "spec": { "const": "growth-week/1" },
+    "week_of": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "The Monday the London week begins." },
+    "compiled": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "For information only, never a gate: a mismatch with what the run reads is an activity line, so a canon change never unsigns a week.",
+      "required": ["north_star_sha", "week_target", "canon", "week_goals_sha256"],
+      "properties": {
+        "north_star_sha": { "type": ["string", "null"], "pattern": "^[0-9a-f]{40}$", "description": "The git blob SHA of docs/NORTH_STAR.md the spec was written against." },
+        "week_target": { "type": ["integer", "null"], "minimum": 0, "maximum": 500, "description": "The North Star rung for the week, from the ladder." },
+        "canon": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha"],
+            "properties": {
+              "path": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$" },
+              "sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+            }
+          }
+        },
+        "week_goals_sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 of the canonical JSON of the directive's week goals." }
+      }
+    },
+    "rows": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["network", "partners", "reach_out", "visibility", "events"],
+      "properties": {
+        "network": { "$comment": "lane", "type": "object", "additionalProperties": false, "required": ["on", "max"], "properties": { "on": { "type": "boolean" }, "max": { "type": "integer", "minimum": 0, "maximum": 40 } } },
+        "partners": { "$comment": "lane", "type": "object", "additionalProperties": false, "required": ["on", "max"], "properties": { "on": { "type": "boolean" }, "max": { "type": "integer", "minimum": 0, "maximum": 40 } } },
+        "reach_out": { "$comment": "lane", "type": "object", "additionalProperties": false, "required": ["on", "max"], "properties": { "on": { "type": "boolean" }, "max": { "type": "integer", "minimum": 0, "maximum": 40 } } },
+        "visibility": { "$comment": "lane", "type": "object", "additionalProperties": false, "required": ["on", "max"], "properties": { "on": { "type": "boolean" }, "max": { "type": "integer", "minimum": 0, "maximum": 40 } } },
+        "events": { "$comment": "lane", "type": "object", "additionalProperties": false, "required": ["on", "max"], "properties": { "on": { "type": "boolean" }, "max": { "type": "integer", "minimum": 0, "maximum": 40 } } }
+      }
+    },
+    "pitches": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["per_run", "stage_share", "invites_per_run", "invites_per_week", "show_shares", "forms_per_row"],
+      "properties": {
+        "per_run": { "type": "integer", "minimum": 0, "maximum": 40, "description": "Jonny drafts a run writes at most: invites, podcast pitches and stage pitches together." },
+        "stage_share": { "type": "integer", "minimum": 0, "maximum": 40, "description": "Of those, the stages to speak on that keep their place when podcasts could take them all." },
+        "invites_per_run": { "type": "integer", "minimum": 0, "maximum": 40 },
+        "invites_per_week": { "type": "integer", "minimum": 0, "maximum": 40 },
+        "show_shares": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["makeyourmindup", "signal_noise"],
+          "properties": {
+            "makeyourmindup": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "signal_noise": { "type": "integer", "minimum": 0, "maximum": 100 }
+          }
+        },
+        "forms_per_row": { "type": "integer", "minimum": 0, "maximum": 40, "description": "Forms for his Submit a row leads with at most; a form is his press, not a Jonny draft." }
+      }
+    },
+    "fit_floor": { "type": "integer", "minimum": 40, "maximum": 100, "description": "Control Center's Mindmake fit a person needs to reach a row. 40 or higher: the spec can raise the floor, never lower it." },
+    "assets": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "version", "blob_sha", "url", "in"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$" },
+          "version": { "type": "integer", "minimum": 1, "maximum": 1000 },
+          "blob_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$", "description": "The git blob SHA of the asset's raw bytes." },
+          "url": { "type": "string", "maxLength": 300, "pattern": "^https://mindmake\\.co/media/[A-Za-z0-9._-]{1,120}$" },
+          "in": { "type": "array", "minItems": 1, "maxItems": 2, "items": { "enum": ["visibility", "events"] } }
+        }
+      }
+    },
+    "experiment": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["id", "lane", "change", "measure", "decide", "min_days"],
+      "description": "One experiment a week, or none. Its change is one cap, inside its bound. A traffic reading may be a second measure, never its first.",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$" },
+        "lane": { "enum": ["network", "partners", "reach_out", "visibility", "events"] },
+        "change": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["field", "to"],
+          "properties": {
+            "field": { "enum": ["rows.network.max", "rows.partners.max", "rows.reach_out.max", "rows.visibility.max", "rows.events.max", "fit_floor", "pitches.per_run", "pitches.stage_share", "pitches.invites_per_run", "pitches.invites_per_week", "pitches.forms_per_row"] },
+            "to": { "type": "integer", "minimum": 0, "maximum": 100 }
+          }
+        },
+        "measure": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$" },
+        "decide": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "min_days": { "type": "integer", "minimum": 7, "maximum": 56 }
+      }
+    },
+    "last_week": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["good_meetings_total", "by_path"],
+      "description": "Last week's good meetings to confirm, when Control Center does not yet serve his tap after each meeting: he types them with \"Change it first\". Counts only, never names. Null is unknown, never zero.",
+      "properties": {
+        "good_meetings_total": { "type": ["integer", "null"], "minimum": 0, "maximum": 500 },
+        "by_path": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "existing-relationship": { "type": ["integer", "null"], "minimum": 0, "maximum": 500 },
+            "multiplier-intro": { "type": ["integer", "null"], "minimum": 0, "maximum": 500 },
+            "partner": { "type": ["integer", "null"], "minimum": 0, "maximum": 500 },
+            "guest-seat": { "type": ["integer", "null"], "minimum": 0, "maximum": 500 },
+            "podcast": { "type": ["integer", "null"], "minimum": 0, "maximum": 500 },
+            "own-show-guest": { "type": ["integer", "null"], "minimum": 0, "maximum": 500 },
+            "public-signal": { "type": ["integer", "null"], "minimum": 0, "maximum": 500 },
+            "inbound": { "type": ["integer", "null"], "minimum": 0, "maximum": 500 },
+            "referral": { "type": ["integer", "null"], "minimum": 0, "maximum": 500 },
+            "unknown": { "type": ["integer", "null"], "minimum": 0, "maximum": 500 }
+          }
+        }
+      }
+    },
+    "questions": { "type": "array", "maxItems": 5, "items": { "type": "string", "minLength": 1, "maxLength": 300 } }
+  }
+}

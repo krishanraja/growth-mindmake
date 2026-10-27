@@ -1,5 +1,6 @@
 import { seal, clean, DAY } from '../guards.mjs';
 import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
+import { showNoteRows } from './shownotes.mjs';
 
 /**
  * Podcast pitches, written in Jonny's voice for Krish (protocol 1.9.0, playbook 11).
@@ -281,9 +282,12 @@ const GUEST_VERDICT = { take: 2, stretch: 1 };
 const OPEN_GUEST = new Set(['scouted', 'enriched']);
 const KRISH = /\bkrish\s+raja\b/i;
 
-/** Each show's invites this week, by its share of INVITES_A_WEEK, the larger share rounded up. Pure. */
-export function weeklyInvites(total = INVITES_A_WEEK) {
-  const mymu = Math.ceil(total * INVITE_SHOWS.makeyourmindup.share / 100);
+/** The shows' shares as the week spec carries them (src/crew/compile.mjs): today's ruled split. */
+export const SHOW_SHARES = Object.freeze(Object.fromEntries(Object.entries(INVITE_SHOWS).map(([k, v]) => [k, v.share])));
+
+/** Each show's invites this week, by its share of the week's invites (INVITES_A_WEEK unless the spec says otherwise), Make Your Mind Up's share rounded up. Pure. */
+export function weeklyInvites(total = INVITES_A_WEEK, shares = SHOW_SHARES) {
+  const mymu = Math.ceil(total * shares.makeyourmindup / 100);
   return { makeyourmindup: mymu, signal_noise: Math.max(0, total - mymu) };
 }
 
@@ -396,8 +400,7 @@ export function inviteCard({ g, name, show, topic, canon, contact, serves, weekl
 }
 
 /** This run's invites: the shows' room this week, Make Your Mind Up first, the best judged guest first, at most INVITES_PER_RUN. Pure. */
-export function pickInvites(open, done, perRun = INVITES_PER_RUN) {
-  const quota = weeklyInvites();
+export function pickInvites(open, done, perRun = INVITES_PER_RUN, quota = weeklyInvites()) {
   const room = { makeyourmindup: Math.max(0, quota.makeyourmindup - done.makeyourmindup), signal_noise: Math.max(0, quota.signal_noise - done.signal_noise) };
   const picked = [];
   const take = slug => {
@@ -413,8 +416,8 @@ export function pickInvites(open, done, perRun = INVITES_PER_RUN) {
 }
 
 /** How many of each kind a run writes: stages up to their share, podcasts the rest, and a share one kind cannot fill goes to the other. Pure. */
-export function shares(podcasts, stages, total = PITCHES_PER_RUN) {
-  const p = Math.min(podcasts, total - Math.min(stages, STAGE_SHARE));
+export function shares(podcasts, stages, total = PITCHES_PER_RUN, stageShare = STAGE_SHARE) {
+  const p = Math.min(podcasts, total - Math.min(stages, stageShare, total));
   return { podcasts: p, stages: Math.min(stages, total - p) };
 }
 
@@ -440,8 +443,12 @@ export function reachOf(t, basis, unknown) {
 
 /** His public business address: the one email a form is ever given for him (Krish, 2026-10-26). Never any other. */
 export const FORM_EMAIL = 'hello@krishraja.com';
-/** His own site, which a website field is given. */
-export const FORM_SITE = 'https://krishraja.com';
+/** Mindmake's site, which a website field is given: mindmake.co for every Mindmake venture thing (Krish, 2026-10-27). */
+export const FORM_SITE = 'https://mindmake.co';
+/** His personal speaker site, given only where a field's own label asks for that. */
+export const SPEAKER_SITE = 'https://krishraja.com';
+/** A label that asks for his personal or speaker site rather than the company's. */
+const SPEAKER_LABEL = /\b(?:personal (?:site|website|web site|page|url)|speaker (?:site|website|web site|page|url)|your own (?:site|website))\b/;
 /** Forms a row leads with at most in a run, so the people the engine ranked still show behind them on his widget. */
 export const FORMS_PER_ROW = 2;
 /** A bio and an abstract are whole sentences within these, or within a limit the field's own label states. */
@@ -453,7 +460,7 @@ const PAYLOAD_MAX = 8000;
 /** A try Control Center says went, or may have gone (a browser that never answered): never sent again. */
 const SENT = new Set(['submitted', 'confirmed', 'running']);
 /** The holds that are the form's own to count; a stage's own reasons (applied, buried, past its deadline, a No) are its pitch's. */
-const FORM_OWN = new Set(['in_script', 'sent', 'blocked', 'terms', 'unanswerable', 'no_email', 'labels_overlap', 'too_long', 'per_run_cap']);
+const FORM_OWN = new Set(['in_script', 'sent', 'blocked', 'terms', 'unanswerable', 'no_email', 'labels_overlap', 'too_long', 'per_run_cap', 'lane_off']);
 
 /** A label as Control Center's form runner reads it (api/_formRunner.ts): lower case, letters and digits, single spaces. Pure. */
 export const formKey = s => String(s ?? '').toLowerCase().replace(/\*/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -514,7 +521,8 @@ export function fieldAsk(field) {
   if (type === 'email' || EMAIL.test(k)) return 'email';
   if (LINKEDIN.test(k)) return 'linkedin';
   if (ELSEWHERE.test(k)) return null;
-  if (ORG.test(k)) return NOT_ORG_NAME.test(k) ? null : 'company';
+  // The company's website is Mindmake's, mindmake.co (FORM_SITE), since 2026-10-27.
+  if (ORG.test(k)) return WEBSITE.test(k) ? 'website' : NOT_ORG_NAME.test(k) ? null : 'company';
   if (WEBSITE.test(k)) return 'website';
   if (POSTAL.test(k)) return 'address';
   if (PLACE.test(k)) return 'location';
@@ -600,7 +608,7 @@ export function answerFor(field, said) {
     case 'email': return FORM_EMAIL;
     case 'company': return 'Mindmake';
     case 'job_title': return KRISH_TITLE;
-    case 'website': return FORM_SITE;
+    case 'website': return SPEAKER_LABEL.test(formKey(field.label)) ? SPEAKER_SITE : FORM_SITE;
     case 'bio': return whole(said.bio, BIO_MAX);
     case 'abstract': return whole(said.abstract, ABSTRACT_MAX);
     case 'talk_title': return whole(said.talk, 200);
@@ -787,7 +795,7 @@ function formProposal(f, rank, { t, canon, record, files, weekGoals, at, titleMa
  * the form's own holds; and the stages whose pitch waits behind a form
  * (`routed`: form_route while a form is the route, form_sent once one went).
  */
-export function formRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, L = lessons(context?.feedback, at), pitched = pitchedStages(context) }) {
+export function formRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, L = lessons(context?.feedback, at), pitched = pitchedStages(context), formsPerRow = FORMS_PER_ROW, lanes = LANES_ON }) {
   const tries = Array.isArray(context?.records?.forms) ? context.records.forms : [];
   const held = [], routed = new Map(), open = { visibility: [], events: [] }, seen = new Set();
   for (const t of Array.isArray(context?.records?.visibility) ? context.records.visibility : []) {
@@ -808,7 +816,8 @@ export function formRows({ context, weekGoals, canon, record = null, files, at, 
     open[row].forEach(({ f, t }, i) => {
       // A form waiting its turn is still the route: its pitch waits behind it.
       routed.set(t.id, 'form_route');
-      if (i < FORMS_PER_ROW) proposals.push(formProposal(f, i + 1, { t, canon, record, files, weekGoals, at, titleMax }));
+      if (lanes[row] === false) held.push('lane_off');
+      else if (i < formsPerRow) proposals.push(formProposal(f, i + 1, { t, canon, record, files, weekGoals, at, titleMax }));
       else held.push('per_run_cap');
     });
   }
@@ -823,11 +832,19 @@ export function formRows({ context, weekGoals, canon, record = null, files, at, 
  * its pitch waits behind it; the pitches rank after the forms on their row.
  * Ranks start at 1 within each row.
  */
-export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX }) {
+export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false }) {
   const L = lessons(context?.feedback, at);
   const pitched = pitchedStages(context);
-  const forms = formRows({ context, weekGoals, canon, record, files, at, titleMax, L, pitched });
+  const lanes = { ...LANES_ON, ...(caps.lanes ?? {}) };
+  const forms = formRows({ context, weekGoals, canon, record, files, at, titleMax, L, pitched, formsPerRow: caps.forms_per_row, lanes });
+  // Jonny's Gmail takes ten drafts a day (Control Center, api/_pitchDrafts.ts). What a wake earlier
+  // today already drafted there comes out of this run's room, so a second wake never asks for more.
+  const used = jonnyDraftsToday(context, at);
   const lead = { visibility: forms.proposals.filter(p => p.row === 'visibility').length, events: forms.proposals.filter(p => p.row === 'events').length };
+  // 1.10.0: a booked show's note asking for the brief link comes before any new pitch, inside the day's room (shownotes.mjs).
+  const notes = showNotes ? showNoteRows({ context, canon, files, at, titleMax, room: Math.max(0, Math.min(caps.per_run, (caps.jonny_per_day ?? PITCHES_PER_RUN) - used)) }) : { proposals: [], held: [] };
+  for (const n of notes.proposals) n.rank = ++lead[n.row];
+  const room = Math.max(0, Math.min(caps.per_run, (caps.jonny_per_day ?? PITCHES_PER_RUN) - used) - notes.proposals.length);
   const held = [], stageHeld = [], pods = [], stages = [];
   const seen = new Set();
   for (const t of Array.isArray(context?.records?.visibility) ? context.records.visibility : []) {
@@ -836,10 +853,10 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     const kind = stageKind(t);
     // A stage of neither kind is not counted as held from one. One whose own form is the route is not pitched as well.
     if (kind === 'podcast') {
-      const why = pitchHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? null;
+      const why = pitchHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? (lanes.visibility ? null : 'lane_off');
       if (why) held.push(why); else pods.push({ t, score: pitchScore(t, at) });
     } else if (kind === 'stage') {
-      const why = speakHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? null;
+      const why = speakHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? (lanes.events ? null : 'lane_off');
       if (why) stageHeld.push(why); else stages.push({ t, score: speakScore(t, at) });
     }
   }
@@ -855,13 +872,13 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   for (const g of guests) {
     if (typeof g?.contact_id === 'string' && seenGuest.has(g.contact_id)) continue;
     if (typeof g?.contact_id === 'string') seenGuest.add(g.contact_id);
-    const why = inviteHold(g, { L, invited, routes, at });
+    const why = inviteHold(g, { L, invited, routes, at }) ?? (lanes.visibility ? null : 'lane_off');
     if (why) inviteHeld.push(why); else open.push({ g, score: GUEST_VERDICT[g.guest_verdict] ?? 0 });
   }
   open.sort((a, b) => b.score - a.score || a.g.contact_id.localeCompare(b.g.contact_id));
-  const invites = pickInvites(open, invitesThisWeek(context, guests, at));
+  const invites = pickInvites(open, invitesThisWeek(context, guests, at), Math.min(caps.invites_per_run, room), weeklyInvites(caps.invites_per_week, caps.show_shares));
   if (open.length > invites.length) inviteHeld.push(...Array(open.length - invites.length).fill('invite_week_or_run_cap'));
-  const take = shares(pods.length, stages.length, PITCHES_PER_RUN - invites.length);
+  const take = shares(pods.length, stages.length, room - invites.length, caps.stage_share);
   const usedFiles = [...files, ...(record?.file ? [record.file] : [])].slice(0, 8);
   const serves = servesOf('visibility', weekGoals);
   const inviteProposals = invites.map(({ g }, i) => {
@@ -947,5 +964,33 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   if (pods.length > take.podcasts) held.push(...Array(pods.length - take.podcasts).fill('pitch_per_run_cap'));
   if (stages.length > take.stages) stageHeld.push(...Array(stages.length - take.stages).fill('pitch_per_run_cap'));
   // Forms first: a report keeps at most forty, and a pitch left out waits for the next run.
-  return { proposals: [...forms.proposals, ...inviteProposals, ...podcastProposals, ...stageProposals], held, stageHeld, inviteHeld, formHeld: forms.held };
+  return { proposals: [...forms.proposals, ...notes.proposals, ...inviteProposals, ...podcastProposals, ...stageProposals], held, stageHeld, inviteHeld, formHeld: forms.held, notesHeld: notes.held, jonny: { used, room } };
+}
+
+// ── The caps a run reads (plan Phase 2, N04) ───────────────────────────────
+//
+// Today's values, which the default week spec reproduces exactly. A signed
+// spec compiles into the same shape (src/crew/compile.mjs), inside the
+// bounds config/policy.json owns.
+
+/** Both pitch rows on: a lane the week spec turns off writes nothing there. */
+export const LANES_ON = Object.freeze({ visibility: true, events: true });
+/** The pitch caps of today's behaviour. jonny_per_day is Control Center's ten drafts a day in Jonny's Gmail. */
+export const PITCH_CAPS = Object.freeze({ per_run: PITCHES_PER_RUN, stage_share: STAGE_SHARE, invites_per_run: INVITES_PER_RUN, invites_per_week: INVITES_A_WEEK, show_shares: SHOW_SHARES, forms_per_row: FORMS_PER_ROW, jonny_per_day: PITCHES_PER_RUN, lanes: LANES_ON });
+
+const londonDay = at => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(at));
+/**
+ * Drafts already made in Jonny's Gmail on this London day, as the context's
+ * drafts say (each with its mailbox and created_at): pitches, invites and,
+ * later, show-notes notes. One with no readable time is not counted, since
+ * its day is unknown; Control Center's own cap still holds it. Pure.
+ */
+export function jonnyDraftsToday(context, at) {
+  const today = londonDay(at), now = Date.parse(at);
+  let n = 0;
+  for (const d of Array.isArray(context?.records?.drafts) ? context.records.drafts : []) {
+    const t = Date.parse(d?.created_at ?? '');
+    if (d?.mailbox === 'jonny' && Number.isFinite(t) && t <= now && londonDay(t) === today) n++;
+  }
+  return n;
 }

@@ -4,6 +4,7 @@ import { strategicPlan, outcomeScorecard, validateStrategicRead } from '../src/s
 import { runDispatch, payloadDigest } from '../src/dispatch.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
 import { readFile } from 'node:fs/promises';
+import { golden } from './support/golden.mjs';
 
 const NOW = '2026-10-25T12:00:00Z';
 const campaign = (id, motion='multiplier', extra={}) => ({ id, contact_id:id, growth_context:{ campaign:{ title:'A useful founder decision', motion, reviewed_at:NOW, state:'prepared', access:4,authority:4,distribution:5,proof_strength:3,timing:3,effort:2,argument:'AI that can apply a leader\'s judgement to a live commercial decision.',commitment:'A 30-minute demonstration',preparation:'An anonymised worked example.',follow_through:'Agree a two-week pilot on one workflow, only if useful.',success_measure:'A held intro and an agreed decision.',sources:[{url:'https://example.org/research',observed_at:NOW}],proof:[{id:'cleared',permission:'approved',source_url:'https://example.org/proof',allowed_use:'Anonymised private example'}],route:{kind:'rich',evidence:'A sourced founder programme, no assumed relationship.'},first_action:{recipient_contact_id:id,channel:'email',subject:'A founder decision',body:'Would a short demonstration be useful?'},...extra } } });
@@ -55,7 +56,7 @@ test('the shared context runs the existing complete selected-job producer before
   const registry=JSON.parse(await readFile(new URL('../config/campaigns.json',import.meta.url)));
   const policy=JSON.parse(await readFile(new URL('../config/policy.json',import.meta.url)));
   const reports=[];
-  const cc={recordAttempt:async()=>{},directive:async()=>directiveFixture(),capabilities:async()=>({activation:{activated_on:'2026-10-18'},features:{context:true}}),context:async()=>({ok:true,context:{...context({advisory:[]}),work_context:full}}),decisions:async()=>[],postReport:async r=>{reports.push(r);return{replayed:false}},readReport:async()=>reports.at(-1)};
+  const cc={recordAttempt:async()=>{},directive:async()=>directiveFixture(),capabilities:async()=>({activation:{activated_on:'2026-10-18'},features:{context:true}}),context:async()=>({ok:true,context:{...context({advisory:[]}),work_context:full}}),decisions:async()=>[],postReport:async r=>{reports.push(golden(r));return{replayed:false}},readReport:async()=>reports.at(-1)};
   const result=await runDispatch({cc,source:async()=>{throw Error('Retired source must not run')},policy,registry,attemptId:'gma-full-cycle-12345678',clock:()=>NOW});
   assert.equal(result.status,'succeeded');
   assert.ok(reports[0].activity.some(a=>a.line.includes(`full engine cycle dry on ${full.jobs.length} supplied jobs`)));
@@ -64,7 +65,7 @@ test('the shared context runs the existing complete selected-job producer before
 });
 test('daily dispatch consumes shared context and full outcomes without the retired snapshot credential; an unverified execution stays held',async()=>{
   const reports=[], attempts=[], calls=[];
-  const cc={recordAttempt:async a=>attempts.push(a),directive:async()=>directiveFixture(),capabilities:async()=>({activation:{activated_on:'2026-10-18'},features:{context:true,outcomes:true,exact_actions:true}}),context:async()=>({ok:true,context:context({advisory:[campaign('11111111-1111-4111-8111-111111111111')]})}),outcomes:async()=>({ok:true,outcomes:outcomes()}),decisions:async()=>[{proposal_id:'live-1',decision:'approved',stage:'go_live'}],actionReceipt:async()=>({ok:true,receipt:{state:'submitted',provider_id:'sent-but-unverified'}}),executeAction:async()=>calls.push('send'),postReport:async r=>{reports.push(r);return{replayed:false}},readReport:async()=>reports.at(-1)};
+  const cc={recordAttempt:async a=>attempts.push(a),directive:async()=>directiveFixture(),capabilities:async()=>({activation:{activated_on:'2026-10-18'},features:{context:true,outcomes:true,exact_actions:true}}),context:async()=>({ok:true,context:context({advisory:[campaign('11111111-1111-4111-8111-111111111111')]})}),outcomes:async()=>({ok:true,outcomes:outcomes()}),decisions:async()=>[{proposal_id:'live-1',decision:'approved',stage:'go_live'}],actionReceipt:async()=>({ok:true,receipt:{state:'submitted',provider_id:'sent-but-unverified'}}),executeAction:async()=>calls.push('send'),postReport:async r=>{reports.push(golden(r));return{replayed:false}},readReport:async()=>reports.at(-1)};
   const policy=JSON.parse(await readFile(new URL('../config/policy.json',import.meta.url)));
   const result=await runDispatch({cc,source:async()=>{throw Error('Snapshot must not be used')},policy,registry:{},attemptId:'gma-synthetic-12345678',clock:()=>NOW});
   assert.equal(result.status,'succeeded'); assert.equal(reports.length,1);assert.equal(calls.length,0);

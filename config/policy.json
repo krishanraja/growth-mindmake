@@ -2,13 +2,25 @@
   "version": 1,
   "venture": "mindmake",
   "targets": { "held_intros_per_week": 10, "qualified_conversations_per_week": 5, "paid_proofs_first_30_days": 1 },
-  "limits": { "recommendations_per_run": 5, "contacts_per_snapshot": 100, "evidence_max_age_days": 90, "trigger_max_age_days": 30, "snapshot_max_age_hours": 24, "canon_max_age_days": 30, "cooldown_days": 14, "max_follow_ups": 1 },
+  "limits": { "recommendations_per_run": 5, "contacts_per_snapshot": 100, "evidence_max_age_days": 90, "trigger_max_age_days": 30, "snapshot_max_age_hours": 24, "canon_max_age_days": 30, "cooldown_days": 14, "max_follow_ups": 1, "jonny_drafts_per_day": 10 },
   "motions": ["warm", "intro", "cold", "follow_up"],
   "voice": "mixed",
   "send_authority": "none",
   "spend_authority": "none",
   "execution": { "authority": "exact_approval", "channels": ["email"], "maximum_cost_usd": 0, "assets": false, "require_independent_receipt": true },
-  "recognition": { "confirmed_target": 2, "held_target": 1, "through": "2026-11-30", "status": "working_target_review_after_baseline" },
+  "recognition": { "podcasts_booked_per_week": 2, "stages_confirmed_per_fortnight": 1, "ruled": "2026-10-27", "counts_when": "the show or stage confirms a date" },
   "acquisition": { "multiplier_institution_share": 0.7, "direct_learning_share": 0.3, "rebalance_days": 14, "in_person": ["London", "New York"], "virtual": "global" },
-  "pilot": { "free": true, "weeks": 2, "workflows": 1, "require_before_after": true, "portfolio_rollout": "separately_scoped" }
+  "pilot": { "free": true, "weeks": 2, "workflows": 1, "require_before_after": true, "portfolio_rollout": "separately_scoped" },
+  "bounds": {
+    "rule": "The week spec sets each cap inside these bounds (src/crew/compile.mjs). A value outside one is refused, never clamped; no spec can change a bound, and none carries send or spend authority. direction says which way is the safer move from today's value.",
+    "rows.max": { "min": 0, "max": 8, "direction": "down_is_safer" },
+    "fit_floor": { "min": 40, "max": 90, "direction": "up_is_safer" },
+    "pitches.per_run": { "min": 0, "max": 10, "direction": "down_is_safer" },
+    "pitches.stage_share": { "min": 0, "max": 10, "direction": "down_is_safer" },
+    "pitches.invites_per_run": { "min": 0, "max": 4, "direction": "down_is_safer" },
+    "pitches.invites_per_week": { "min": 0, "max": 8, "direction": "down_is_safer" },
+    "pitches.show_shares.makeyourmindup": { "min": 50, "max": 100, "direction": "either" },
+    "pitches.show_shares.signal_noise": { "min": 0, "max": 50, "direction": "either" },
+    "pitches.forms_per_row": { "min": 0, "max": 4, "direction": "down_is_safer" }
+  }
 }

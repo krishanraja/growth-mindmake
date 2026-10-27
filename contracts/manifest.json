@@ -37,5 +37,12 @@
       "file": "research.ts",
       "sha256": "07279341c476c4d1941cf21db102237d3f8785e2c1146f5d07144ac80c5b462c"
     }
+  },
+  "schemas": {
+    "week": {
+      "id": "growth-week/1",
+      "file": "specs/schema/week.schema.json",
+      "sha256": "4664e29201e4d6e9b291ea86a802fedf3c7d9e1fa6413dea5b17614b4010cf37"
+    }
   }
 }

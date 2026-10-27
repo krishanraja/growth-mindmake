@@ -1,0 +1,42 @@
+{
+  "spec": "growth-week/1",
+  "week_of": "2026-11-09",
+  "compiled": {
+    "north_star_sha": "a894d449067d8ba264ea2f50093dcb6f6af4a0b5",
+    "week_target": 8,
+    "canon": [
+      { "path": "project-documentation/00_NORTH_STAR.md", "sha": "888aacab7faa19e4cda5e84fe00eb99001fe43d9" },
+      { "path": "project-documentation/01_CANON.md", "sha": "8f3169f5e4f1dc361694a18d75469bd6c74774f2" }
+    ],
+    "week_goals_sha256": "72f962be3e57506c95f0e777041c31c3f3096b0f445711bf6ff1ceff5ba07701"
+  },
+  "rows": {
+    "network": { "on": true, "max": 6 },
+    "partners": { "on": true, "max": 6 },
+    "reach_out": { "on": true, "max": 6 },
+    "visibility": { "on": true, "max": 6 },
+    "events": { "on": true, "max": 6 }
+  },
+  "pitches": {
+    "per_run": 10,
+    "stage_share": 4,
+    "invites_per_run": 2,
+    "invites_per_week": 4,
+    "show_shares": { "makeyourmindup": 70, "signal_noise": 30 },
+    "forms_per_row": 2
+  },
+  "fit_floor": 40,
+  "assets": [
+    { "id": "speaker-one-sheet", "version": 1, "blob_sha": "6bdf09bccef544f49e582c2d716e7bd3cbb22c47", "url": "https://mindmake.co/media/synthetic-one-sheet.pdf", "in": ["visibility", "events"] }
+  ],
+  "experiment": {
+    "id": "stage-share-5",
+    "lane": "events",
+    "change": { "field": "pitches.stage_share", "to": 5 },
+    "measure": "replies_and_bookings_14d",
+    "decide": "keep if replies plus bookings match or beat the prior fortnight; counts only below 20",
+    "min_days": 14
+  },
+  "last_week": { "good_meetings_total": null, "by_path": {} },
+  "questions": []
+}

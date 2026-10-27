@@ -110,7 +110,7 @@ Also recorded:
 | N14 | `strategicPlan().digest` is computed and never read. | 2 |
 | N15 | The engine never recomputes `amended_sha256` before acting on an amended decision, as AGENTS.md and the protocol require. | 1 |
 | N16 | A campaign plan over 8,000 characters fails the whole report instead of holding. | 1 |
-| N17 | `blobSha` hashes decoded text, so it gives the wrong SHA for a binary file such as a PDF. | in the C2 pitch-link PR |
+| N17 | `blobSha` hashes decoded text, so it gives the wrong SHA for a binary file such as a PDF. | closed: raw bytes hash as bytes (PR #28) |
 | N18 | Every approved `stage: "plan"` decision is routed to prepare-action whatever its id, so any new kind of plan would be treated as a campaign. | 1 |
 | N19 | Version 2 said Vercel page views would measure the one-sheet. Vercel Web Analytics is off for the mindmake project, and a PDF runs no page tag, so nothing could have read it. | closed by version 3 (sections 3, 7 and 9) |
 
@@ -233,7 +233,7 @@ tests/fixtures/live-shapes/*.json   hand-written synthetic versions of each live
 1. **The show-notes note** (T1, section 9). After one of Jonny's pitches to someone else's show or stage is booked, Jonny asks the host to put the brief link in the show notes or event page: a lasting public link, read just after the audience has heard him.
 2. **The one-sheet as a pitch's one link** (C2). Every pitch then sends a booker to mindmake.co.
 3. **The canon's brief link** in row notes and signals, unchanged and untagged.
-4. **The stage-form website field.** It becomes mindmake.co (Ruling, Krish, 2026-10-27: "mindmake.co for all mindmake venture things"); it is krishraja.com today (playbook 11).
+4. **The stage-form website field.** It becomes mindmake.co (Ruling, Krish, 2026-10-27: "mindmake.co for all mindmake venture things"); built in PR #28: mindmake.co, the company's website too, and krishraja.com only where a label asks for his personal or speaker site (playbook 11).
 
 Not this engine's: Make Your Mind Up's own notes (playbook 05, publication boundary) and new pages on the site (the mindmake repository, with his read before merge).
 
@@ -421,6 +421,7 @@ Codex builds code between runs as a development tool; the engine's runtime gains
 **Accept, live:** the first Monday stopgap he answers gives a non-null number with its source.
 
 **Phase 1b, the traffic reading (its own pull request and GET-GOING step, after Phase 1's).**
+- As built (27 October): the engine reads the directive's existing `web_analytics` block, Control Center's one Google Analytics feed (served to makeyourmindup at 1.10.0), not a new `web` context part, so the feed is extended rather than forked. Its tests cover each acceptance item below.
 - Two activity lines a run, never an objective: the whole site, then the share that came through the engine's tagged and matched referral visits. Each line carries the consent sentence.
 - When Control Center does not serve 1.10.0 or `features.web`, one line says the reading is not served yet.
 - No figure reaches the printed run result or the Actions log.

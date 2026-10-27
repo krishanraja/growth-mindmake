@@ -2,11 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, parseRecord, RECORD_REPO, RECORD_PATH } from '../src/stages/canon.mjs';
-import { pitchRows, formRows, stageForm, formAnswers, fieldAsk, formKey, runnerPick, overlaps, labelLimit, wholeWithin, formRow, formBio, pitchedStages,
-  FORM_EMAIL, FORM_SITE, FORMS_PER_ROW, PITCHES_PER_RUN, BIO_MAX } from '../src/stages/pitches.mjs';
+import { pitchRows, formRows, stageForm, formAnswers, fieldAsk, formKey, answerFor, runnerPick, overlaps, labelLimit, wholeWithin, formRow, formBio, pitchedStages,
+  FORM_EMAIL, FORM_SITE, SPEAKER_SITE, FORMS_PER_ROW, PITCHES_PER_RUN, BIO_MAX } from '../src/stages/pitches.mjs';
 import { lessons, KRISH_TITLE, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, BECAUSE_MAX, TITLE_MAX_BRIEF } from '../src/stages/rows.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture, violations, parseActionV2 } from './support/engine-protocol-service.mjs';
+import { golden } from './support/golden.mjs';
 
 // Synthetic only: invented stages and forms, example links, no live record.
 // The one address a form is given is his public business address (FORM_EMAIL).
@@ -76,7 +77,7 @@ test('each field is read by its own label: what the run can answer, and what is 
   assert.equal(ask('Anything', 'tel'), 'phone', 'a tel field is a phone whatever its label');
   assert.equal(ask('Preferred date', 'date'), 'number', 'a date or a number is never written');
   assert.equal(ask('Contact', 'email'), 'email');
-  for (const label of ['Title', 'Company website', 'Company description', 'Event name', 'How did you hear about us?', 'Twitter handle', 'Headshot URL', 'Anything else?']) assert.equal(ask(label), null, label);
+  for (const label of ['Title', 'Company description', 'Event name', 'How did you hear about us?', 'Twitter handle', 'Headshot URL', 'Anything else?']) assert.equal(ask(label), null, label);
   assert.equal(fieldAsk({ label: 'Keynote', type: 'radio' }), null, 'a choice is never ticked for him');
   assert.equal(fieldAsk({ label: 'Company', type: 'checkbox' }), null, 'nor a box, whatever its label says');
   assert.equal(fieldAsk({ label: 'I agree to the code of conduct', type: 'checkbox' }), 'terms');
@@ -154,7 +155,8 @@ test('a form is a 1.9.0 row action Control Center\'s own parser takes: no recipi
 
 test('the email is always his public business address, and no other address and no number is ever written', () => {
   assert.equal(FORM_EMAIL, 'hello@krishraja.com');
-  assert.equal(FORM_SITE, 'https://krishraja.com');
+  assert.equal(FORM_SITE, 'https://mindmake.co', 'mindmake.co for every Mindmake venture thing');
+  assert.equal(SPEAKER_SITE, 'https://krishraja.com');
   const r = run([summit(1), summit(2, { form_fields: [field('Your name', { required: true }), field('Contact email', { type: 'email', required: true }), field('Mobile', { type: 'tel' }), field('Street address'), field('Speaking fee'), field('Date of birth', { type: 'date' })] }), show(3)]);
   const forms = r.proposals.filter(isForm);
   assert.equal(forms.length, 3);
@@ -365,7 +367,7 @@ test('a dispatch run at 1.9.0 reports forms first on their row, the people behin
       context: async () => ({ ok: true, context: { schema_version: served.at(-1), engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }],
         records: { advisory: [], visibility: [summit(1), summit(2, { form_fields: [...FIELDS, field('Phone', { type: 'tel', required: true })] })], drafts: [], forms: [] },
         amplifier_candidates: [professor], routes: { [id(4)]: { email: 'verified', x: false, linkedin: true, instagram: false, whatsapp: false } }, feedback: [], research: [] } }),
-      decisions: async () => [], postReport: async rep => { reports.push(rep); return { replayed: false }; }, readReport: async () => reports.at(-1) };
+      decisions: async () => [], postReport: async rep => { reports.push(golden(rep)); return { replayed: false }; }, readReport: async () => reports.at(-1) };
     const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: `gma-form-${expected.replace(/\./g, '')}-1234`, clock: () => NOW,
       canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/pitches.mjs', sha: 'b'.repeat(40) }], recordReader: async () => RECORD });
     assert.equal(result.status, 'succeeded', expected);
@@ -395,4 +397,14 @@ test('a dispatch run at 1.9.0 reports forms first on their row, the people behin
       assert.equal(events.find(p => p.subject_ref === `contact:${id(4)}`).rank, 1);
     }
   }
+});
+
+test('a website field gets mindmake.co, and krishraja.com only where its own label asks for his personal or speaker site', () => {
+  assert.equal(answerFor({ label: 'Website', type: 'url' }), FORM_SITE);
+  assert.equal(answerFor({ label: 'Company website' }), FORM_SITE, "the company is Mindmake, so its website is mindmake.co");
+  assert.equal(answerFor({ label: 'Organisation URL', type: 'url' }), FORM_SITE);
+  assert.equal(answerFor({ label: 'Link to your work' }), FORM_SITE);
+  assert.equal(answerFor({ label: 'Personal website', type: 'url' }), SPEAKER_SITE);
+  assert.equal(answerFor({ label: 'Speaker site URL' }), SPEAKER_SITE);
+  assert.equal(answerFor({ label: 'Your own website*' }), SPEAKER_SITE);
 });

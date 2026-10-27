@@ -13,9 +13,15 @@ import { stageKind } from './pitches.mjs';
 /** Where a good meeting came from. The engine pre-fills one; Krish confirms it. */
 export const PATHS = ['existing-relationship', 'multiplier-intro', 'partner', 'guest-seat', 'podcast', 'own-show-guest', 'public-signal', 'inbound', 'referral', 'unknown'];
 export const STOPGAP_PREFIX = 'gmg-';
-/** His visibility targets (Ruling, Krish, 2026-10-27). */
+/** His visibility targets (Ruling, Krish, 2026-10-27), as config/policy.json's `recognition` holds them; these are the fallback when a policy has none. */
 export const PODCASTS_A_WEEK = 2;
 export const STAGES_A_FORTNIGHT = 1;
+/** The visibility targets from the policy's `recognition` (N04: read where they belong), else the ruled fallback. */
+export function visibilityTargets(policy) {
+  const r = policy?.recognition;
+  const whole = v => Number.isInteger(v) && v >= 0 ? v : null;
+  return { podcasts: whole(r?.podcasts_booked_per_week) ?? PODCASTS_A_WEEK, stages: whole(r?.stages_confirmed_per_fortnight) ?? STAGES_A_FORTNIGHT };
+}
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_A_WEEK = 500;
 
@@ -98,15 +104,44 @@ export function readStopgap(decisions, weekOf, digest) {
   if (typeof d.amended_sha256 !== 'string' || digest({ amount_usd: amount, exact_payload: d.exact_payload }) !== d.amended_sha256) return { state: 'digest_mismatch' };
   let v;
   try { v = JSON.parse(d.exact_payload); } catch { return { state: 'unreadable' }; }
+  if (!v || typeof v !== 'object' || v.week_of !== weekOf) return { state: 'unreadable' };
+  return countsOf(v.total, v.by_path);
+}
+
+/** A typed total and its paths: counted, or unreadable. Null is unknown, never zero. Pure. */
+function countsOf(total, paths) {
   const count = x => Number.isInteger(x) && x >= 0 && x <= MAX_A_WEEK;
-  if (!v || typeof v !== 'object' || v.week_of !== weekOf || !count(v.total)) return { state: 'unreadable' };
+  if (!count(total)) return { state: 'unreadable' };
   const by_path = {};
-  for (const [k, x] of Object.entries(v.by_path ?? {})) {
+  for (const [k, x] of Object.entries(paths ?? {})) {
     if (!PATHS.includes(k) || !(x === null || count(x))) return { state: 'unreadable' };
     if (x !== null) by_path[k] = x;
   }
-  if (Object.values(by_path).reduce((a, b) => a + b, 0) > v.total) return { state: 'unreadable' };
-  return { state: 'counted', total: v.total, by_path };
+  if (Object.values(by_path).reduce((a, b) => a + b, 0) > total) return { state: 'unreadable' };
+  return { state: 'counted', total, by_path };
+}
+
+/**
+ * From the week of 9 November the Monday ask folds into the week spec (plan
+ * section 1): the `gms-<week>` proposal carries last week's counts in
+ * `last_week`, and his "Change it first" version types them. Read exactly as
+ * the `gmg-` answer is: only his amended version, after its digest is
+ * recomputed; a Clear without numbers counts nothing. The counts are read
+ * whether or not the rest of his version compiles. Pure.
+ */
+export function readSpecCounts(decisions, specWeekOf, digest, prefix = 'gms-') {
+  const d = (Array.isArray(decisions) ? decisions : []).filter(x => x?.proposal_id === `${prefix}${specWeekOf}`).sort((a, b) => String(b.decided_at).localeCompare(String(a.decided_at)))[0];
+  if (!d) return { state: 'unanswered' };
+  if (d.decision === 'declined') return { state: 'declined' };
+  if (d.decision !== 'approved' && d.decision !== 'done') return { state: 'unanswered' };
+  if (d.amended !== true || typeof d.exact_payload !== 'string') return { state: 'cleared_without_counts' };
+  const amount = d.amount_usd === undefined ? null : d.amount_usd;
+  if (typeof d.amended_sha256 !== 'string' || digest({ amount_usd: amount, exact_payload: d.exact_payload }) !== d.amended_sha256) return { state: 'digest_mismatch' };
+  let v;
+  try { v = JSON.parse(d.exact_payload); } catch { return { state: 'unreadable' }; }
+  if (!v || typeof v !== 'object' || v.week_of !== specWeekOf || !v.last_week || typeof v.last_week !== 'object') return { state: 'unreadable' };
+  if (v.last_week.good_meetings_total === null) return { state: 'cleared_without_counts' };
+  return countsOf(v.last_week.good_meetings_total, v.last_week.by_path);
 }
 
 const STOPGAP_REASON = {
@@ -168,7 +203,126 @@ export function bookingObjectives({ booked, thisWeek, at, midnight, addDays, lon
   ];
 }
 
-export function bookingLine(booked) {
+export function bookingLine(booked, targets = { podcasts: PODCASTS_A_WEEK, stages: STAGES_A_FORTNIGHT }) {
   if (!booked) return 'Bookings: not measured; pitch outcomes were not served completely this run.';
-  return `Bookings: ${booked.podcasts} podcast${booked.podcasts === 1 ? '' : 's'} booked this week against ${PODCASTS_A_WEEK}, ${booked.stages} stage${booked.stages === 1 ? '' : 's'} confirmed in the last fourteen days against ${STAGES_A_FORTNIGHT}.`;
+  return `Bookings: ${booked.podcasts} podcast${booked.podcasts === 1 ? '' : 's'} booked this week against ${targets.podcasts}, ${booked.stages} stage${booked.stages === 1 ? '' : 's'} confirmed in the last fourteen days against ${targets.stages}.`;
+}
+
+// ── Held meetings and his good tap (protocol 1.10.0) ────────────────────────
+// Once Control Center serves each meeting he held (features.meetings), the
+// number is counted from his taps: a meeting he marked good, in the London
+// week it was held, by the path recorded at his tap. The Monday ask is then
+// no longer posted. The engine also says where each unanswered meeting came
+// from (origin_candidates), which Control Center records once at his tap.
+
+export const MEETINGS_VERSION = '1.10.0';
+export const ORIGIN_CANDIDATES_MAX = 40;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const REF = /^[A-Za-z0-9][A-Za-z0-9:._-]{0,119}$/;
+
+/** Whether Control Center serves held meetings to this engine: 1.10.0 and its feature flag. */
+export const meetingsServed = capabilities => capabilities?.features?.meetings === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes(MEETINGS_VERSION);
+
+/**
+ * The held meetings in the context, with their coverage. `served` when the
+ * part and its coverage line are there and available; `unavailable` with
+ * Control Center's reason otherwise. A meeting that does not parse is left
+ * out and counted, never guessed. Pure.
+ */
+export function readMeetings(context) {
+  const cov = (Array.isArray(context?.coverage) ? context.coverage : []).find(c => c?.source === 'meetings');
+  if (!cov || !Array.isArray(context?.meetings)) return { state: 'unserved', reason: 'meetings_not_in_context' };
+  if (cov.available !== true) return { state: 'unavailable', reason: typeof cov.reason === 'string' ? cov.reason.slice(0, 80) : 'source_unavailable' };
+  const meetings = [];
+  let dropped = 0;
+  for (const m of context.meetings) {
+    const ok = m && typeof m.meeting_id === 'string' && typeof m.contact_id === 'string' && UUID.test(m.contact_id)
+      && typeof m.held_at === 'string' && Number.isFinite(Date.parse(m.held_at))
+      && (m.good === null || typeof m.good === 'boolean')
+      && (m.origin_path === null || m.origin_path === undefined || PATHS.includes(m.origin_path));
+    if (!ok) { dropped++; continue; }
+    meetings.push({ meeting_id: m.meeting_id, contact_id: m.contact_id.toLowerCase(), held_at: m.held_at, good: m.good, origin_path: m.origin_path ?? null });
+  }
+  return { state: 'served', meetings, complete: cov.complete === true && dropped === 0, reason: dropped ? 'meetings_unreadable' : cov.complete === true ? null : (typeof cov.reason === 'string' ? cov.reason.slice(0, 80) : 'incomplete'), dropped };
+}
+
+/** His good meetings held in the London week [start, end), by recorded path, and how many there are still unanswered. Pure. */
+export function countGood(meetings, { start, end }, londonDate) {
+  const inWeek = meetings.filter(m => { const d = londonDate(m.held_at); return d >= start && d < end; });
+  const by_path = {};
+  let total = 0;
+  for (const m of inWeek.filter(x => x.good === true)) { total++; const p = m.origin_path ?? 'unknown'; by_path[p] = (by_path[p] ?? 0) + 1; }
+  return { total, by_path, held: inWeek.length, unanswered: inWeek.filter(x => x.good === null).length };
+}
+
+/** The good_meetings objective from his taps: measured only when every meeting was read, else missing with the reason. */
+export function tappedObjective({ read, count, lastWeek, midnight, timezone }) {
+  const base = { key: 'good_meetings', unit: 'meetings', window_start: midnight(lastWeek.start), window_end: midnight(lastWeek.end), timezone };
+  if (read.state === 'served' && read.complete) return { ...base, value: count.total, availability: 'measured', reason: null };
+  const why = read.state === 'served' ? `Control Center could not read every meeting he held (${read.reason}), so no count is claimed.` : `Control Center did not serve his held meetings this run (${read.reason}), so no count is claimed.`;
+  return { ...base, value: null, availability: 'missing', reason: why };
+}
+
+/** One line on the number from his taps. Counts only, never names. */
+export function tappedLine({ read, count, lastWeekOf, lastTarget, thisTarget, targetSource, northStar }) {
+  const urgency = northStar?.urgency ? ` Urgency U${northStar.urgency}${northStar.reason ? `: ${northStar.reason}` : ''}.` : '';
+  const target = Number.isInteger(thisTarget) ? ` This week's target is ${thisTarget} (${targetSource}).` : '';
+  if (read.state !== 'served') return `Good meetings: not measured. Control Center did not serve his held meetings this run (${read.reason}).${target}${urgency}`;
+  const paths = Object.entries(count.by_path).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([k, v]) => `${v} ${k.replace(/-/g, ' ')}`).join(', ');
+  const open = count.unanswered ? ` ${count.unanswered} of the ${count.held} held that week ${count.unanswered === 1 ? 'is' : 'are'} not answered yet.` : '';
+  const whole = read.complete ? '' : ` Not every meeting was read (${read.reason}), so this is a floor and is not reported as the number.`;
+  return `Good meetings in the week of ${lastWeekOf}: ${count.total}${Number.isInteger(lastTarget) ? ` against a target of ${lastTarget}` : ''}, from his taps after each meeting${paths ? ` (${paths})` : ''}.${open}${whole}${target}${urgency}`;
+}
+
+const ROW_PATH = { partners: 'partner', network: 'existing-relationship' };
+
+/**
+ * Where an unanswered meeting came from, for each person he met: the
+ * engine's own records first (a guest on his show, a show or a stage whose
+ * booking contact they are, a row he carried out about them, an Advisory
+ * pilot), then a warm tie in his network. A person the records say nothing
+ * about gets no candidate, so Control Center records `unknown`. Oldest
+ * meeting first, as his list asks; at most 40, one a person. Pure.
+ */
+export function originCandidates({ meetings, context }) {
+  const records = context?.records ?? {};
+  const list = v => (Array.isArray(v) ? v : []);
+  const lc = v => (typeof v === 'string' ? v.toLowerCase() : null);
+  const ref = (kind, id) => (typeof id === 'string' && REF.test(`${kind}:${id}`) ? `${kind}:${id}` : null);
+  const targets = list(records.visibility);
+  const pathOf = c => {
+    const guest = list(records.guests).find(g => lc(g?.contact_id) === c && g?.invite_show);
+    if (guest) return { path: 'own-show-guest', origin_ref: ref('guest', guest.id) };
+    const target = targets.find(t => lc(t?.booking_contact_id) === c);
+    if (target) {
+      const kind = stageKind(target);
+      if (kind) return { path: kind === 'podcast' ? 'podcast' : 'guest-seat', origin_ref: ref('target', target.id) };
+    }
+    const done = list(context?.feedback).filter(f => lc(f?.subject_ref) === `contact:${c}` && (f?.carried_out || f?.state === 'done' || f?.state === 'approved'))
+      .sort((a, b) => String(b.decided_at ?? '').localeCompare(String(a.decided_at ?? '')))[0];
+    if (done) {
+      const path = ROW_PATH[done.row] ?? (done.amplifier_kind === 'signal' ? 'public-signal' : done.row === 'reach_out' ? 'multiplier-intro' : null);
+      if (path) return { path, origin_ref: ref('proposal', done.proposal_id) };
+    }
+    const pilot = list(records.advisory).find(p => lc(p?.contact_id) === c);
+    if (pilot) {
+      const t = pilot.visibility_target_id && targets.find(x => x?.id === pilot.visibility_target_id);
+      const kind = t ? stageKind(t) : null;
+      if (kind) return { path: kind === 'podcast' ? 'podcast' : 'guest-seat', origin_ref: ref('target', t.id) };
+      if (pilot.guest_id) return { path: 'own-show-guest', origin_ref: ref('guest', pilot.guest_id) };
+      return { path: 'existing-relationship', origin_ref: ref('pilot', pilot.id) };
+    }
+    if (list(context?.network).some(n => lc(n?.contact_id) === c)) return { path: 'existing-relationship', origin_ref: null };
+    return null;
+  };
+  const out = [], seen = new Set();
+  const open = [...meetings].filter(m => m.good === null && m.origin_path === null).sort((a, b) => Date.parse(a.held_at) - Date.parse(b.held_at));
+  for (const m of open) {
+    if (seen.has(m.contact_id)) continue;
+    seen.add(m.contact_id);
+    const p = pathOf(m.contact_id);
+    if (p) out.push({ contact_id: m.contact_id, path: p.path, origin_ref: p.origin_ref });
+    if (out.length >= ORIGIN_CANDIDATES_MAX) break;
+  }
+  return out;
 }

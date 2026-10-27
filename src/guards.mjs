@@ -31,3 +31,48 @@ export function semanticSnapshot(snapshot) {
   const { generated_at, ...semantic } = snapshot;
   return semantic;
 }
+
+/** Canonical JSON: keys sorted at every depth, no whitespace, arrays in order, strings as JSON.stringify writes them. */
+export function canonicalJson(value) {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
+  if (typeof value === 'number') { if (!Number.isFinite(value)) throw new Error('Canonical JSON has no non-finite numbers'); return JSON.stringify(value); }
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (typeof value === 'object') return `{${Object.keys(value).sort().map(k => { if (value[k] === undefined) throw new Error('Canonical JSON has no undefined values'); return `${JSON.stringify(k)}:${canonicalJson(value[k])}`; }).join(',')}}`;
+  throw new Error('Canonical JSON cannot encode this value');
+}
+/** SHA-256 of canonical JSON: the digest every proposal, report and amended version is bound by. */
+export const payloadDigest = value => createHash('sha256').update(canonicalJson(value), 'utf8').digest('hex');
+
+const DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+/** Minimal JSON Schema check for the keywords the protocol schema uses. Unknown fields fail. */
+export function schemaErrors(schema, value, path = '$') {
+  const errors = [];
+  if (schema.const !== undefined && value !== schema.const) errors.push(`${path}: must equal ${JSON.stringify(schema.const)}`);
+  if (schema.enum && !schema.enum.includes(value)) errors.push(`${path}: value not allowed`);
+  if (schema.type !== undefined) {
+    const kind = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
+    const allowed = [].concat(schema.type).some(t => t === kind || (t === 'integer' && Number.isInteger(value)) || (t === 'number' && kind === 'number' && Number.isFinite(value)));
+    if (!allowed) { errors.push(`${path}: wrong type`); return errors; }
+  }
+  if (value === null || value === undefined) return errors;
+  if (typeof value === 'string') {
+    if (schema.maxLength !== undefined && value.length > schema.maxLength) errors.push(`${path}: too long`);
+    if (schema.minLength !== undefined && value.length < schema.minLength) errors.push(`${path}: too short`);
+    if (schema.pattern && !new RegExp(schema.pattern, 'u').test(value)) errors.push(`${path}: does not match its pattern`);
+    if (schema.format === 'date-time' && (!DATE_TIME.test(value) || !Number.isFinite(Date.parse(value)))) errors.push(`${path}: not a date-time`);
+  }
+  if (typeof value === 'number' && schema.minimum !== undefined && value < schema.minimum) errors.push(`${path}: below its minimum`);
+  if (typeof value === 'number' && schema.maximum !== undefined && value > schema.maximum) errors.push(`${path}: above its maximum`);
+  if (Array.isArray(value)) {
+    if (schema.maxItems !== undefined && value.length > schema.maxItems) errors.push(`${path}: too many items`);
+    if (schema.minItems !== undefined && value.length < schema.minItems) errors.push(`${path}: too few items`);
+    if (schema.items) value.forEach((item, i) => errors.push(...schemaErrors(schema.items, item, `${path}[${i}]`)));
+  } else if (typeof value === 'object') {
+    for (const key of schema.required ?? []) if (!Object.hasOwn(value, key)) errors.push(`${path}: missing ${key}`);
+    for (const [key, child] of Object.entries(value)) {
+      if (schema.properties && Object.hasOwn(schema.properties, key)) errors.push(...schemaErrors(schema.properties[key], child, `${path}.${key}`));
+      else if (schema.additionalProperties === false) errors.push(`${path}: unknown field ${key}`);
+    }
+  }
+  return errors;
+}
