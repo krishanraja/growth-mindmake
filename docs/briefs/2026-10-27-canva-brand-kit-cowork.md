@@ -29,7 +29,13 @@ In Canva: Brand, then Brand Kit, then add a new brand kit named **Mindmake**. Le
 
 ## 2. Logos
 
-Upload all four files to the Logos section of the Mindmake kit, named "Mindmake mark", "Mindmake wordmark", "Mindmake favicon" and "Mindmake mark on ink". The wordmark SVG recolours itself on paper on the website; in Canva it shows its default pale-to-mint gradient, which is right for dark grounds.
+The four files are already in Canva: they were uploaded through Canva's connector on 27 October and sit, unnamed, at the top of Canva's Uploads.
+- the mark: 378 by 328, two squares under two trapezoids;
+- the wordmark: 648 by 109, reading MIND/MAKE;
+- the favicon: 1000 by 1000;
+- the mark on ink: 512 by 512, on a near-black square.
+
+Add each to the Logos section of the Mindmake kit, named "Mindmake mark", "Mindmake wordmark", "Mindmake favicon" and "Mindmake mark on ink". If they are not there, upload them from the Drive Source files folder instead. The wordmark SVG recolours itself on paper on the website; in Canva it shows its default pale-to-mint gradient, which is right for dark grounds.
 
 ## 3. Colours
 

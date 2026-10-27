@@ -57,7 +57,7 @@ A new asset kind gets its own folder under Growth assets with the same Current a
 5. **Nothing loose.** Only the READ ME and the Growth index sit at the top of 03_Growth.
 6. **Never share, trash or move out.** Sharing, changing permissions, trashing, or moving anything into or out of 03_Growth needs Krish's yes at the time. Nothing is ever deleted.
 7. **Canva mirrors it.** Designs the engine makes live only in the Canva folder Mindmake Growth, in its subfolders Brand kit, Speaker and guest one-sheet, and Drafts. The old Mindmaker kit and its designs are left as they are.
-8. **No people.** A weekly review or readout filed here carries counts, paths and decisions, never names or contact details.
+8. **No people.** A weekly review or readout filed here carries counts, paths and decisions, never names or contact details. This rule carries extra weight because mind/make, and so 03_Growth, is shared so that anyone with the link can edit it, which Krish chose to keep on 2026-10-27. Nothing private is ever filed here.
 
 ## The check
 
