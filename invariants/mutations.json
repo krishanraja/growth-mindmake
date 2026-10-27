@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "The declared mutations scripts/mutate.mjs applies, one at a time, to a copy of the repository (N07). Each breaks one rule the card grammar, the pitches or a crew gate owns; the tests it names must fail. A survivor is a rule no test holds. Run with npm run mutate.",
+  "note": "The declared mutations scripts/mutate.mjs applies, one at a time, to a copy of the repository (N07). Each breaks one rule the card grammar, the pitches, a standard ported from Control Center or a crew gate owns; the tests it names must fail. A survivor is a rule no test holds. Run with npm run mutate.",
   "mutations": [
     {
       "id": "fact-test-judge-note",
@@ -260,6 +260,36 @@
       "replace": "if (typeof cc?.recentReports !== 'function') return { count: null, reason: PROOF_RUNS_NOT_SERVED };",
       "tests": [
         "tests/switch.test.mjs"
+      ]
+    },
+    {
+      "id": "visibility-mean",
+      "what": "the visibility standard becomes a mean of its three axes, not their minimum",
+      "file": "src/stages/visibility.mjs",
+      "find": "visibility_score: Math.min(room, standing_score, only_him_score) };",
+      "replace": "visibility_score: Math.round((room + standing_score + only_him_score) / 3) };",
+      "tests": [
+        "tests/visibility.test.mjs"
+      ]
+    },
+    {
+      "id": "guest-past-guest-wrong-show",
+      "what": "a past Signal & Noise guest is refused for Make Your Mind Up as the wrong show",
+      "file": "src/stages/guests.mjs",
+      "find": "const judgment = parsed && pastGuest ? { ...parsed, show_fit: show } : parsed;",
+      "replace": "const judgment = parsed;",
+      "tests": [
+        "tests/guests.test.mjs"
+      ]
+    },
+    {
+      "id": "room-practitioner-draw",
+      "what": "a room of practitioners is no longer penalised on Draw",
+      "file": "src/stages/rooms.mjs",
+      "find": "prac * w.draw.practitioner + vend * w.draw.vendor;",
+      "replace": "vend * w.draw.vendor;",
+      "tests": [
+        "tests/rooms.test.mjs"
       ]
     }
   ]

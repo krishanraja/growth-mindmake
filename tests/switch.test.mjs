@@ -238,3 +238,15 @@ test('the old route stays in code for 30 days after the switch, and its check re
   assert.ok(oldRouteErrors({ today: '2026-11-10', shadowLine, dispatchSource: dispatchSource.replace('if (way.enforce) {', 'if (true) {') }).length === 1);
   assert.ok(oldRouteErrors({ today: '2026-11-10', switchedOn: '2026-11-30', shadowLine, dispatchSource }).some(e => /in the future/.test(e)));
 });
+
+test('plan section 12, M3 to M5: each ported standard reports one counted line beside Control Center\'s, and holds nothing', async () => {
+  const policyRun = await capsReport({ runDispatch, directiveFixture, parseCanon, blobSha, parseRecord, policy });
+  const all = lines(policyRun.report);
+  for (const head of ['Guest standard, in shadow: ', 'Visibility standard, in shadow: ', 'Room scoring, in shadow: ']) {
+    const found = all.filter(l => l.startsWith(head));
+    assert.equal(found.length, 1, head);
+    assert.doesNotMatch(found[0], /[0-9a-f]{8}-[0-9a-f]{4}-|@|https?:\/\//, `${head} carries counts only, never an id, an address or a link`);
+  }
+  assert.equal(policyRun.report.proposals.length, 22, 'nothing is left out');
+  assert.equal(policyRun.report.holds.some(h => /standard|room/i.test(h.reason)), false, 'nothing is held');
+});

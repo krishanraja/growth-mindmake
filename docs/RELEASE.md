@@ -1,5 +1,19 @@
 # Release state
 
+## The guest standard, the visibility standard and room scoring, moved here in shadow (plan section 12, M3 to M5), 27 October 2026
+
+Built and tested; in shadow and not wired. No dispatch code, report shape, word file or existing stage changed, and nothing in Control Center is turned off yet. Krish's ruling (27 October): "Control center should just be where you read from and where you report to, it does not own the strategy for how to grow mindmake as a business".
+
+- **M3, src/stages/guests.mjs.** Control Center's guest standard (api/_guestStandard.ts: senior, seen online, worth hearing, the minimum of the three, thin as unjudged), `standingFor` (a past Signal & Noise guest is never the wrong show for Make Your Mind Up), the 70/30 split and the queue order (src/lib/shows.ts, src/lib/approaches.ts, api/_approaches.ts), how Krish could reach a guest (api/_guestPath.ts), and the scout's ranking and search terms (api/discover-guest-scout.ts, api/_judgmentLens.ts). The two shows, their shares and the invite holds are pitches.mjs's own; Make Your Mind Up's name is the canon's. The judge's prompt, each show's mandate and the lens's named voices stay in Control Center.
+- **M4, src/stages/visibility.mjs.** Nova's standard (api/_visibilityScore.ts, api/visibility-targets/score.ts, src/lib/visibilityScale.ts, src/lib/visibilityStandard.ts): the weights, the floors, the three axes and their minimum, the gates in order, the judgment clean-up, the stretch lane capped at two and the legacy scale. The judge's prompt and its offer copy stay in Control Center.
+- **M5, src/stages/rooms.mjs.** Room scoring (api/_eventScore.ts, api/events/score.ts): Draw and Demand, the named-attendee bonus, the host kind and the queue; with the rank, the gate a room must pass to be shown and where it is, from events_for() and events_recommendable.
+- **Shadow.** `guestsShadow`, `visibilityShadow` and `roomsShadow` each return the engine's verdicts and one counted activity line beside Control Center's stored verdicts; the main session wires them into the dispatch. The context serves each stage's three axes and verdict, so the visibility line compares; it serves each guest's verdict but not its axes, and no room scores at all, so those lines count what is not comparable and why.
+- **Parity.** Every Control Center test of these rules has an engine test on synthetic fixtures, with a parity table in each test file naming the few left in Control Center because they test its own surfaces (a show's label, the People card, the mailbox, the judge's input). A differential run against Control Center's own functions, outside this repository, agreed on about 140,000 random cases.
+- **The guard.** scripts/check-visibility-standard.mjs, inside `npm run check`, is Control Center's guard of the same name, ported where it applies to the engine.
+- **Mutations.** Three more: the visibility standard as a mean, a past guest refused as the wrong show, and a practitioner room unpenalised on Draw.
+- **Verified on:** the seven repository checks, 429 tests (49 new), `npm run mutate` and `npm run pack`.
+- **Live proof:** none. The next step is one live run with the three lines reported beside Control Center's own verdicts; only then does Control Center's retirement change follow.
+
 ## The Phase 5 switch, built behind the spec (plan Phase 5), 27 October 2026
 
 Built and tested; not switched, not live. Nothing in today's reports changes but one activity line.

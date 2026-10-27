@@ -26,6 +26,7 @@ import { basename } from 'node:path';
 import { payloadDigest } from '../../src/guards.mjs';
 import { CREW_LINE } from '../../src/crew/shadow.mjs';
 import { SWITCH_LINE } from '../../src/crew/switch.mjs';
+const STANDARD_LINE = /^(?:Guest standard|Visibility standard|Room scoring), in shadow: |^(?:guestsShadow|visibilityShadow|roomsShadow): /;
 
 const dir = new URL('../golden/', import.meta.url);
 const file = basename(process.argv[1] ?? 'unknown').replace(/\.test\.mjs$/, '');
@@ -45,7 +46,8 @@ if (writing) process.on('exit', () => { mkdirSync(dir, { recursive: true }); wri
 export function withoutCrew(report) {
   if (!report || typeof report !== 'object' || !Array.isArray(report.activity)) return report?.payload_sha256 ?? null;
   const { payload_sha256, ...body } = report;
-  const activity = body.activity.filter(a => !CREW_LINE.test(a?.line ?? '') && !SWITCH_LINE.test(a?.line ?? ''));
+  // The shadow lines of plan Phase 3 and 5 and section 12 (M3 to M5) are left out: each is counted, holds nothing, and is tested in its own file.
+  const activity = body.activity.filter(a => !CREW_LINE.test(a?.line ?? '') && !SWITCH_LINE.test(a?.line ?? '') && !STANDARD_LINE.test(a?.line ?? ''));
   return activity.length === body.activity.length ? payload_sha256 : payloadDigest({ ...body, activity });
 }
 
