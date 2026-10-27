@@ -56,15 +56,15 @@ Today's live report (2026-10-19) was `held`: one proposal ("Refresh the missing 
 - [ ] **Step 4.** Make the daily recommendation a prepared warm-path or room move: a drafted note to a contact the warm-path evidence supports, as `wall: send` with the exact words and channel.
 - [ ] **Step 5.** Write the exact outcome fields you need from Control Center for both objectives into a "What Control Center still owes" section of docs/CONTROL-CENTER-BRIEF.md, so Control Center can build that read. Keep both objectives missing, with their reason, until it exists.
 
-### The bulletproof engine build (added 2026-10-27)
+### The bulletproof engine build (added 2026-10-27): waiting on Krish's go, do not start
 
-From docs/briefs/2026-10-27-bulletproof-growth-engine.md, approved for filing by Krish on 2026-10-27. Each step is one pull request, built between runs, never during one. Its acceptance tests are in the plan; they are re-run by whoever did not build it. Phase 0 also reconciles Steps 0 to 5 above against evidence, ticking only what the evidence shows is done.
+From docs/briefs/2026-10-27-bulletproof-growth-engine.md. None of these steps starts until Krish says go; "Get going" skips this section until then. Once he does, Phase 1 comes first. Each step is one pull request, built between runs, never during one. Its acceptance tests are in the plan, re-run by whoever did not build it. Phase 0 closes or re-ticks Steps 0 to 5 above from evidence, so no session does Step 0 first.
 
+- [ ] **Phase 1.** Wire the North Star first: the `good_meetings` objective by path, `origin_candidates` (sent only once Control Center serves the version that accepts it), podcast and stage bookings read from 1.9.0 against the visibility target, the directive's constraints read and enforced in shadow, the approved-plan route narrowed to campaigns and amended digests verified, and the exact fields Control Center still owes (Step 5 above).
 - [ ] **Phase 0.** Baseline and register: real token, time and wait figures from this repo's sessions, Actions runs and PRs, and `invariants/register.json` with every past fix and every open finding.
-- [ ] **Phase 1.** Wire the North Star first: the `good_meetings` objective by path, `origin_candidates`, podcast and stage bookings read from 1.9.0 against the visibility target, the directive's constraints enforced, and the exact fields Control Center still owes (Step 5 above).
 - [ ] **Phase 2.** The week spec Krish signs on Monday, compiled into the dispatch, with today's config as the fallback, and status computed rather than written.
 - [ ] **Phase 3.** The crew as code: a lint, a measured check, a card and a lens for each specialist, including the Librarian; card grammar; every past fix as a test.
-- [ ] **Phase 4.** The session pack of 36 KB or less, gate packets, the session ledger, and Codex task cards behind the allowance guard.
+- [ ] **Phase 4.** The session pack of 36 KB or less and Codex task cards behind the allowance guard.
 - [ ] **Phase 5.** Prove the new route on real runs alongside the old one, then switch; measure the 20x targets against Phase 0.
 - [ ] **Canva C1.** The Mindmake brand kit, built by the Cowork session in docs/briefs/2026-10-27-canva-brand-kit-cowork.md, verified by readback, approved by Krish.
 - [ ] **Canva C2.** The speaker and guest one-sheet: three blind concepts, one synthesis shown cold, his approval, a brand template with autofill, the PDF at mindmake.co/media, and one line with its link in Jonny's podcast and stage pitches.
