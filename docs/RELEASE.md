@@ -1,5 +1,9 @@
 # Release state
 
+## Guest invites onto his shows for Jonny's Gmail (protocol 1.9.0), 27 October 2026
+
+Built and tested locally; a pull request. Guests Control Center holds with a contact, a show (`invite_show`) and an address on record, judged `take` or `stretch`, open, not invited before and not like a No, become 1.9.0 visibility rows naming Jonny's box and the guest (`contact:<id>`), closing on `visibility:invite`, ranked before the podcast pitches. Four a week by the shows' shares (Make Your Mind Up 3, Signal & Noise 1), counted from carried-out invites since Monday in London; at most two a run, inside the ten. Holds are counted as `invite_<reason>`. Stage and podcast reach now carry `audience_size` with its page and time. Needs Control Center to serve its guests (with `invite_state`) and their routes in the context and to file a Jonny-box invite as a guest draft; a context with no guests writes no invite. No live run yet.
+
 ## Speaking pitches on EVENTS for Jonny's Gmail (protocol 1.9.0), 27 October 2026
 
 Built and tested locally; a pull request. Stages to speak on (conferences, calls for papers, speaking slots, webinars and panels) whose own page gives an address for speakers, open and before their deadline, become 1.9.0 events rows naming Jonny's box and the stage (`target:<id>`), one ask (a talk or a panel seat) with one talk title, in Jonny's voice from the same live reads as a podcast pitch. Ten a run between podcasts and stages; stages keep up to four. Holds are counted as `speak_<reason>`. Needs Control Center's 1.9.0 with Jonny on events (krishanraja/control-center#575); until it serves 1.9.0 nothing is written. No live run yet.

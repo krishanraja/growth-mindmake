@@ -1,5 +1,5 @@
 import { seal, clean, DAY } from '../guards.mjs';
-import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
+import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
 
 /**
  * Podcast pitches, written in Jonny's voice for Krish (protocol 1.9.0, playbook 11).
@@ -23,6 +23,15 @@ import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, serves
  * own page gives an address for speakers (Control Center keeps it as the
  * stage's booking contact). One ask: a talk or a panel seat, with one talk
  * title tied to the room. Krish: EVENTS is events to pitch to.
+ *
+ * Guest invites (VISIBILITY) bring people onto his own shows (Krish,
+ * 2026-10-27: guests for Signal & Noise and Make Your Mind Up are part of his
+ * visibility; Make Your Mind Up takes a weekly conversation). A guest
+ * Control Center's guest standard judged worth having, with an address on
+ * record, gets one invite from Jonny, to the show it was judged for. The
+ * week's invites follow the shows' shares (Make Your Mind Up 70, Signal &
+ * Noise 30: Ruling, Krish, 2026-10-20), at most two a run, taken first from
+ * the run's ten.
  *
  * Pure: everything comes from the context, the directive and the files read
  * this run. No model call. No address, ever.
@@ -246,10 +255,166 @@ export function pitchCard({ t, show, host, topic, canon, serves, at }) {
   return { who, known, why: why.length ? why : [`${show} is live and takes guests.`], gain, angles, sources: sources.slice(0, CARD_SOURCES) };
 }
 
+// ── Guest invites for his own shows ────────────────────────────────────────
+
+/** Invites a run writes at most, taken first from the run's ten. */
+export const INVITES_PER_RUN = 2;
+/** Invites a week across both shows, split by their shares. */
+export const INVITES_A_WEEK = 4;
+/** His two shows: their share of guests (Ruling, Krish, 2026-10-20), and whether each takes a weekly conversation. */
+export const INVITE_SHOWS = {
+  makeyourmindup: { share: 70, weekly: true },
+  signal_noise: { share: 30, weekly: false },
+};
+/** The guest standard's verdicts that may be invited (Control Center, api/_guestStandard.ts): worth taking, or a stretch. */
+const GUEST_VERDICT = { take: 2, stretch: 1 };
+const OPEN_GUEST = new Set(['scouted', 'enriched']);
+const KRISH = /\bkrish\s+raja\b/i;
+
+/** Each show's invites this week, by its share of INVITES_A_WEEK, the larger share rounded up. Pure. */
+export function weeklyInvites(total = INVITES_A_WEEK) {
+  const mymu = Math.ceil(total * INVITE_SHOWS.makeyourmindup.share / 100);
+  return { makeyourmindup: mymu, signal_noise: Math.max(0, total - mymu) };
+}
+
+/** The Monday his London week began, as a time. Pure. */
+export function londonWeekStart(at) {
+  const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' }).formatToParts(new Date(at));
+  const get = t => day.find(p => p.type === t)?.value;
+  const ymd = `${get('year')}-${get('month')}-${get('day')}`;
+  const back = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 }[get('weekday')] ?? 0;
+  const d = new Date(`${ymd}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - back);
+  // London is at UTC or an hour ahead; an hour early never misses a Monday invite.
+  return d.getTime() - 3600000;
+}
+
+/** A guest's full name without a title, or null. */
+export const guestName = g => { const n = givenParts(g?.name ?? ''); return n.length >= 2 ? n.join(' ') : null; };
+
+/** The guests already invited: an answer on an invite to them. Their own row says drafted or booked too. */
+export function invitedGuests(context) {
+  const out = new Set();
+  for (const f of Array.isArray(context?.feedback) ? context.feedback : []) {
+    const m = /^contact:([0-9a-f-]{36})$/i.exec(f?.subject_ref ?? '');
+    if (m && f.row === 'visibility' && ['approved', 'done', 'declined'].includes(f.state)) out.add(m[1].toLowerCase());
+  }
+  return out;
+}
+
+/** How many invites to each show were carried out this week. */
+export function invitesThisWeek(context, guests, at) {
+  const since = londonWeekStart(at);
+  const showOf = new Map(guests.map(g => [String(g.contact_id).toLowerCase(), g.invite_show]));
+  const out = { makeyourmindup: 0, signal_noise: 0 };
+  for (const f of Array.isArray(context?.feedback) ? context.feedback : []) {
+    const m = /^contact:([0-9a-f-]{36})$/i.exec(f?.subject_ref ?? '');
+    if (!m || f.row !== 'visibility' || f.reference !== 'visibility:invite' || !f.carried_out || !(Date.parse(f.decided_at ?? '') >= since)) continue;
+    const show = showOf.get(m[1].toLowerCase());
+    if (show in out) out[show] += 1;
+  }
+  return out;
+}
+
+/** Why a guest is not invited today, or null when they may be. Pure. */
+export function inviteHold(g, { L, invited, routes, at }) {
+  if (typeof g?.contact_id !== 'string' || !UUID.test(g.contact_id)) return 'no_contact';
+  if (!(g.invite_show in INVITE_SHOWS)) return 'no_show';
+  if (g.buried_at) return 'buried';
+  if (g.recorded_at || g.published_at) return 'recorded';
+  if (!OPEN_GUEST.has(g.status)) return 'not_open';
+  if (g.invite_state && g.invite_state !== 'proposed') return 'already_invited';
+  if (g.guest_verdict === 'rejected') return 'guest_rejected';
+  if (!(g.guest_verdict in GUEST_VERDICT)) return 'guest_not_judged';
+  if (!guestName(g)) return 'no_name';
+  if (KRISH.test(g.name)) return 'krish_himself';
+  const email = routes?.[g.contact_id]?.email;
+  if (email !== 'verified' && email !== 'unchecked') return 'no_email';
+  if (invited.has(g.contact_id.toLowerCase())) return 'already_invited';
+  return refusedBy(L, { subject: `contact:${g.contact_id}`, row: 'visibility', kind: null, sector: null, topic: guestTopic(g), band: 'unknown' }, at);
+}
+
+/** What a guest talks about, from their own record; null when nothing says. Pure. */
+export function guestTopic(g) {
+  const text = [g?.one_liner, g?.why_fit].filter(x => typeof x === 'string').join(' | ');
+  return text.trim() ? (TOPICS.find(([, re]) => re.test(text))?.[0] ?? null) : null;
+}
+
+/** A public page about the guest from their evidence: https, never a profile or a way to reach them. */
+const evidencePages = g => (Array.isArray(g?.evidence) ? g.evidence : [])
+  .filter(e => typeof e?.url === 'string' && /^https:\/\/\S+$/.test(e.url) && e.url.length <= 2000 && !NOT_A_SOURCE.test(e.url) && typeof e.label === 'string' && clean(e.label));
+
+/** The show an invite is to, in the words the run reads: the publication's name from the canon, Signal & Noise by the ruling. Pure. */
+export function inviteShow(slug, canon) {
+  return slug === 'makeyourmindup'
+    ? { name: canon.publication.name, who: `who writes ${canon.publication.name} (${canon.publication.url})`, ask: 'for one of its weekly conversations' }
+    : { name: 'Signal & Noise', who: KRISH_TITLE, ask: 'on the show for a conversation' };
+}
+
+/** The invite in Jonny's words: one point, one ask, Krish in the third person, signed Jonny. Pure. */
+export function inviteWords({ name, show, page }) {
+  // A page's own title, a few words long, never a bare word or an address.
+  const label = page ? clean(page.label).replace(/[.!?]+$/, '') : '';
+  const seen = label && label.length <= 100 && /\S\s+\S/.test(label) && !/https?:|www\.|@/i.test(label) ? `We came across "${label}", and it is exactly the kind of thinking we'd love to hear more of.` : '';
+  const lines = [
+    `I work with Krish Raja, ${show.who}. We'd love to have you ${show.ask}.`,
+    ...(seen ? [seen] : []),
+    'Would you be up for it in the coming weeks? I can send a short brief and a few dates.',
+  ];
+  return {
+    subject: clean(`A conversation for ${show.name}`).slice(0, 200),
+    body: [`Hi ${firstName(name)},`, ...lines.map(clean), 'Jonny'].join('\n\n'),
+  };
+}
+
+/** The full card for an invite: who the guest is, how Krish knows them, why them, what he gets, the angles. */
+export function inviteCard({ g, name, show, topic, canon, contact, serves, weekly }) {
+  const who = within(`${name}${g.one_liner ? `: ${leadFacts(g.one_liner, CARD_WHO_MAX - name.length - 2).replace(/[.!?]+$/, '')}` : ''}.`, CARD_WHO_MAX) || `${name}.`;
+  const known = (contact ? knownWords(contact) : '') || 'You do not know them yet. Jonny writes first, from his own Gmail.';
+  const pages = evidencePages(g);
+  const why = [leadFacts(g.why_fit, CARD_LINE_MAX), pages[0] ? within(`Seen online: ${clean(pages[0].label)}.`) : '', g.guest_verdict === 'take' ? `The guest standard judged them worth having on ${show.name}.` : `The guest standard judged them a stretch for ${show.name}, worth asking.`]
+    .filter(Boolean).filter((l, i, a) => a.findIndex(x => x.slice(0, 40) === l.slice(0, 40)) === i).slice(0, CARD_LINES);
+  const goal = serves ? within(`It serves this week's goal: ${serves.replace(/[.!?]+$/, '')}.`) : '';
+  const gain = [`A guest for ${weekly ? `${show.name}'s weekly conversation` : show.name}, and a conversation that puts both names in front of each other's audience.`, ...(goal ? [goal] : [])].map(l => within(l)).filter(Boolean);
+  const [about, short] = TOPIC_PITCH[topic] ?? TOPIC_PITCH.leadership;
+  const angles = [
+    { title: fitTitleWithin(CARD_ANGLE_TITLE_MAX, short.charAt(0).toUpperCase() + short.slice(1), 'The conversation'), line: within(`Ask them about ${about}, from their own work.`) },
+    { title: canon.publication.name, line: within(`Point them to ${canon.publication.name} first, at ${canon.publication.url}, so they know the conversation before they say yes.`) },
+  ].filter(a => a.line && a.title.length <= CARD_ANGLE_TITLE_MAX);
+  const sources = pages.slice(0, CARD_SOURCES).map(e => ({ label: fitTitleWithin(80, clean(e.label)), url: e.url }));
+  return { who, known, why: why.length ? why : [`${name} is worth having on ${show.name}.`], gain: gain.length ? gain : [`A guest for ${show.name}.`], angles, sources };
+}
+
+/** This run's invites: the shows' room this week, Make Your Mind Up first, the best judged guest first, at most INVITES_PER_RUN. Pure. */
+export function pickInvites(open, done, perRun = INVITES_PER_RUN) {
+  const quota = weeklyInvites();
+  const room = { makeyourmindup: Math.max(0, quota.makeyourmindup - done.makeyourmindup), signal_noise: Math.max(0, quota.signal_noise - done.signal_noise) };
+  const picked = [];
+  const take = slug => {
+    const next = room[slug] > 0 && picked.length < perRun ? open.find(o => o.g.invite_show === slug && !picked.includes(o)) : null;
+    if (next) { picked.push(next); room[slug] -= 1; }
+    return Boolean(next);
+  };
+  // The weekly conversation first, then Signal & Noise, then whichever still has room.
+  take('makeyourmindup');
+  take('signal_noise');
+  while (take('makeyourmindup') || take('signal_noise'));
+  return picked;
+}
+
 /** How many of each kind a run writes: stages up to their share, podcasts the rest, and a share one kind cannot fill goes to the other. Pure. */
 export function shares(podcasts, stages, total = PITCHES_PER_RUN) {
   const p = Math.min(podcasts, total - Math.min(stages, STAGE_SHARE));
   return { podcasts: p, stages: Math.min(stages, total - p) };
+}
+
+/** A stage's reach: its audience size as Nova read it, a figure with its page and when, else a band nobody has measured. Pure. */
+export function reachOf(t, basis, unknown) {
+  const n = t?.audience_size;
+  const page = typeof t?.event_url === 'string' && /^https:\/\/\S+$/.test(t.event_url) && !NOT_A_SOURCE.test(t.event_url) ? t.event_url : null;
+  const asOf = Number.isFinite(Date.parse(t?.updated_at ?? '')) ? new Date(Date.parse(t.updated_at)).toISOString() : null;
+  if (Number.isInteger(n) && n > 0 && page && asOf) return { value: n, band: bandOf(n), basis, source_url: page, as_of: asOf };
+  return { value: null, band: 'unknown', basis: unknown, source_url: null, as_of: null };
 }
 
 /**
@@ -279,9 +444,49 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   const byScore = (a, b) => b.score - a.score || a.t.id.localeCompare(b.t.id);
   pods.sort(byScore);
   stages.sort(byScore);
-  const take = shares(pods.length, stages.length);
+  // Guests he might have on his own shows: up to two a run, before the pitches.
+  const routes = context?.routes ?? {};
+  const invited = invitedGuests(context);
+  const guests = Array.isArray(context?.records?.guests) ? context.records.guests : [];
+  const people = new Map([...(context?.network ?? []), ...(context?.amplifier_candidates ?? []), ...(context?.quiet_ties ?? [])].filter(c => typeof c?.contact_id === 'string').map(c => [c.contact_id, c]));
+  const inviteHeld = [], open = [], seenGuest = new Set();
+  for (const g of guests) {
+    if (typeof g?.contact_id === 'string' && seenGuest.has(g.contact_id)) continue;
+    if (typeof g?.contact_id === 'string') seenGuest.add(g.contact_id);
+    const why = inviteHold(g, { L, invited, routes, at });
+    if (why) inviteHeld.push(why); else open.push({ g, score: GUEST_VERDICT[g.guest_verdict] ?? 0 });
+  }
+  open.sort((a, b) => b.score - a.score || a.g.contact_id.localeCompare(b.g.contact_id));
+  const invites = pickInvites(open, invitesThisWeek(context, guests, at));
+  if (open.length > invites.length) inviteHeld.push(...Array(open.length - invites.length).fill('invite_week_or_run_cap'));
+  const take = shares(pods.length, stages.length, PITCHES_PER_RUN - invites.length);
   const usedFiles = [...files, ...(record?.file ? [record.file] : [])].slice(0, 8);
   const serves = servesOf('visibility', weekGoals);
+  const inviteProposals = invites.map(({ g }, i) => {
+    const name = guestName(g);
+    const show = inviteShow(g.invite_show, canon);
+    const weekly = INVITE_SHOWS[g.invite_show].weekly;
+    const topic = guestTopic(g);
+    const words = inviteWords({ name, show, page: evidencePages(g)[0] ?? null });
+    const card = inviteCard({ g, name, show, topic, canon, contact: people.get(g.contact_id) ?? null, serves, weekly });
+    const because = `A ${g.guest_verdict === 'take' ? 'strong ' : ''}guest for ${show.name}. Jonny invites them.`;
+    const action = { version: 2, channel: 'email', recipient_contact_id: g.contact_id, subject: words.subject, body: words.body, form: null, mailbox: 'jonny' };
+    return {
+      proposal_id: `gmp-${seal({ subject: `contact:${g.contact_id}`, ask: 'invite' }).slice(0, 32)}`,
+      title: fitTitleWithin(titleMax, `Jonny invites ${name} onto ${show.name}`, `Jonny invites ${firstName(name)} onto ${show.name}`, `Jonny invites a guest onto ${show.name}`),
+      why: clean(`${name} is a guest the guest standard judged ${g.guest_verdict === 'take' ? 'worth having' : 'a stretch'} for ${show.name}, with an address on record. One ask: a conversation on the show.`).slice(0, 1000),
+      kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: 'qualified_conversations',
+      exact_payload: JSON.stringify(action), target: g.contact_id, subject_ref: `contact:${g.contact_id}`,
+      evidence: [], close_condition: { event: 'outreach_sent', reference: 'visibility:invite' },
+      expires_at: new Date(Date.parse(at) + 14 * DAY).toISOString(), stage: null, parent_proposal_id: null,
+      row: 'visibility', rank: i + 1,
+      reach: { value: null, band: 'unknown', basis: "a guest's audience not yet measured", source_url: null, as_of: null },
+      amplifier_kind: null, features: { sector: null, topic, seniority: null }, serves, source_revision: files.slice(0, 8),
+      ...(because.length <= BECAUSE_MAX ? { because } : {}),
+      brief: [card.who, card.known, ...card.why.slice(0, 2), `The ask: Jonny invites ${firstName(name)} onto ${show.name}, from his own Gmail.`].map(l => cutClean(l, BRIEF_LINE_MAX)).slice(0, 6),
+      card,
+    };
+  });
   const podcastProposals = pods.slice(0, take.podcasts).map(({ t }, i) => {
     const show = cleanName(t.title);
     const host = hostOf(t);
@@ -300,8 +505,8 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
       exact_payload: JSON.stringify(action), target: t.booking_contact_id, subject_ref: `target:${t.id}`,
       evidence: [], close_condition: { event: 'outreach_sent', reference: 'visibility:pitch' },
       expires_at: new Date(Date.parse(at) + 14 * DAY).toISOString(), stage: null, parent_proposal_id: null,
-      row: 'visibility', rank: i + 1,
-      reach: { value: null, band: 'unknown', basis: 'a podcast audience not yet measured', source_url: null, as_of: null },
+      row: 'visibility', rank: inviteProposals.length + i + 1,
+      reach: reachOf(t, 'people in its audience, as Nova read it', 'a podcast audience not yet measured'),
       amplifier_kind: 'broadcaster', features: { sector: null, topic, seniority: null }, serves, source_revision: usedFiles,
       ...(because.length <= BECAUSE_MAX ? { because } : {}),
       brief: [card.who, card.known, ...card.why.slice(0, 2), `The ask: Jonny asks ${show} to have you on as a guest, from his own Gmail.`].map(l => cutClean(l, BRIEF_LINE_MAX)).slice(0, 6),
@@ -330,7 +535,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
       evidence: [], close_condition: { event: 'outreach_sent', reference: 'events:pitch' },
       expires_at: new Date(Math.min(Date.parse(at) + 14 * DAY, Number.isFinite(Date.parse(t.deadline_at ?? '')) ? Date.parse(t.deadline_at) : Infinity)).toISOString(), stage: null, parent_proposal_id: null,
       row: 'events', rank: i + 1,
-      reach: { value: null, band: 'unknown', basis: "an event's room not yet measured", source_url: null, as_of: null },
+      reach: reachOf(t, 'people in its room, as Nova read it', "an event's room not yet measured"),
       amplifier_kind: 'ceo_educator', features: { sector: null, topic, seniority: null }, serves: speakServes, source_revision: usedFiles,
       ...(because.length <= BECAUSE_MAX ? { because } : {}),
       brief: [card.who, card.known, ...card.why.slice(0, 2), `The ask: Jonny asks ${event} for ${ask} for you, from his own Gmail.`].map(l => cutClean(l, BRIEF_LINE_MAX)).slice(0, 6),
@@ -339,5 +544,5 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   });
   if (pods.length > take.podcasts) held.push(...Array(pods.length - take.podcasts).fill('pitch_per_run_cap'));
   if (stages.length > take.stages) stageHeld.push(...Array(stages.length - take.stages).fill('pitch_per_run_cap'));
-  return { proposals: [...podcastProposals, ...stageProposals], held, stageHeld };
+  return { proposals: [...inviteProposals, ...podcastProposals, ...stageProposals], held, stageHeld, inviteHeld };
 }

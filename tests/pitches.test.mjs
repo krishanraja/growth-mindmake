@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, parseRecord, readRecord, RECORD_REPO, RECORD_PATH } from '../src/stages/canon.mjs';
-import { pitchRows, pitchHold, pitchedStages, pitchScore, pitchWords, hostOf, showTopic, stageKind, speakingAsk, speakHold, speakScore, speakWords, talkTitle, shares, PITCHES_PER_RUN, STAGE_SHARE, QUIET_AFTER_DAYS } from '../src/stages/pitches.mjs';
+import { pitchRows, pitchHold, pitchedStages, pitchScore, pitchWords, hostOf, showTopic, stageKind, speakingAsk, speakHold, speakScore, speakWords, talkTitle, shares, PITCHES_PER_RUN, STAGE_SHARE, QUIET_AFTER_DAYS,
+  inviteHold, invitedGuests, invitesThisWeek, weeklyInvites, londonWeekStart, pickInvites, inviteWords, inviteShow, inviteCard, guestTopic, guestName, reachOf, INVITES_PER_RUN, INVITES_A_WEEK } from '../src/stages/pitches.mjs';
 import { lessons, titleFor, OWN_SHOW, WORDS, KRISH_TITLE, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, BECAUSE_MAX, TITLE_MAX_BRIEF } from '../src/stages/rows.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture, violations } from './support/engine-protocol-service.mjs';
@@ -329,5 +330,216 @@ test('a dispatch run at 1.9.0 reports speaking pitches on events and says why th
   assert.equal(speaking.length, 1);
   assert.equal(speaking[0].subject_ref, `target:${id(2)}`, 'the stage stays the subject, never the address\'s contact');
   assert.ok(rep.holds.some(h => h.reason === 'speak_deadline_passed'));
+  assert.deepEqual(violations(schema, rep), []);
+});
+
+// ── Guest invites for his own shows (protocol 1.9.0, synthetic shapes) ──────
+
+const NAMES = ['Avery Example', 'Sam Sample', 'Jordan Test', 'Riley Placeholder', 'Casey Demo', 'Morgan Fixture'];
+const guest = (n, over = {}) => ({ contact_id: id(300 + n), name: NAMES[(n - 1) % NAMES.length], status: 'enriched', invite_show: 'makeyourmindup', invite_state: null, scheduled_at: null,
+  guest_verdict: 'take', buried_at: null, recorded_at: null, published_at: null,
+  one_liner: 'Chief Marketing Officer at Example Retail, rebuilding a marketing team around AI', why_fit: 'Runs a marketing team that changed how it works with AI.',
+  evidence: [{ url: `https://talks.example/guest-${n}`, label: 'How marketing teams change with AI', at: '2026-10-01T00:00:00Z', kind: 'talk' }], ...over });
+const route = (...ns) => Object.fromEntries(ns.map(n => [id(300 + n), { email: 'verified' }]));
+const invitedOn = (n, decided_at, over = {}) => ({ proposal_id: `gmp-${n}`, state: 'done', stage: null, decided_at, reference: 'visibility:invite', row: 'visibility', subject_ref: `contact:${id(300 + n)}`, carried_out: 'draft', reason_code: null, reason_text: null, amplifier_kind: null, features: null, reach: null, ...over });
+
+test('the week\'s invites follow the shows\' shares, and Make Your Mind Up gets one every week', () => {
+  assert.equal(INVITES_A_WEEK, 4);
+  assert.deepEqual(weeklyInvites(), { makeyourmindup: 3, signal_noise: 1 });
+  assert.deepEqual(weeklyInvites(1), { makeyourmindup: 1, signal_noise: 0 }, 'one a week is the weekly conversation');
+  assert.deepEqual(weeklyInvites(10), { makeyourmindup: 7, signal_noise: 3 }, 'seventy and thirty');
+});
+
+test('his week starts on Monday in London, in winter and in summer', () => {
+  assert.equal(new Date(londonWeekStart(NOW)).toISOString(), '2026-10-25T23:00:00.000Z', 'a Tuesday in GMT: Monday midnight, an hour early');
+  assert.equal(new Date(londonWeekStart('2026-07-01T12:00:00Z')).toISOString(), '2026-06-28T23:00:00.000Z', 'a Wednesday in BST: Monday midnight exactly');
+  assert.equal(new Date(londonWeekStart('2026-11-01T23:30:00Z')).toISOString(), '2026-10-25T23:00:00.000Z', 'Sunday night is still the week before');
+  assert.equal(new Date(londonWeekStart('2026-07-05T23:30:00Z')).toISOString(), '2026-07-05T23:00:00.000Z', 'half past midnight on a BST Monday is the new week');
+});
+
+test('a guest is invited only when judged worth having, with an address, a full name, not invited before and not ruled out', () => {
+  const L = lessons([], NOW);
+  const hold = (over, extra = {}) => inviteHold(guest(1, over), { L, invited: new Set(), routes: route(1), at: NOW, ...extra });
+  assert.equal(hold({}), null);
+  assert.equal(hold({ contact_id: null }), 'no_contact');
+  assert.equal(hold({ contact_id: 'not-an-id' }), 'no_contact');
+  assert.equal(hold({ invite_show: null }), 'no_show', 'a guest judged for no show of his is not invited');
+  assert.equal(hold({ invite_show: 'another_show' }), 'no_show');
+  assert.equal(hold({ buried_at: '2026-10-01T00:00:00Z' }), 'buried');
+  assert.equal(hold({ recorded_at: '2026-10-01T00:00:00Z' }), 'recorded');
+  assert.equal(hold({ published_at: '2026-10-01T00:00:00Z' }), 'recorded');
+  assert.equal(hold({ status: 'scouted' }), null, 'scouted is open');
+  assert.equal(hold({ status: 'booked' }), 'not_open');
+  assert.equal(hold({ invite_state: 'proposed' }), null, 'proposed is not yet invited');
+  for (const s of ['drafted', 'booked', 'declined']) assert.equal(hold({ invite_state: s }), 'already_invited', s);
+  assert.equal(hold({ guest_verdict: 'stretch' }), null, 'a stretch is worth asking');
+  assert.equal(hold({ guest_verdict: 'rejected' }), 'guest_rejected');
+  assert.equal(hold({ guest_verdict: 'unjudged' }), 'guest_not_judged');
+  assert.equal(hold({ guest_verdict: null }), 'guest_not_judged');
+  assert.equal(hold({ name: 'Avery' }), 'no_name');
+  assert.equal(hold({ name: 'Dr Avery' }), 'no_name', 'a title is not a surname');
+  assert.equal(hold({ name: 'Krish Raja' }), 'krish_himself');
+  assert.equal(hold({}, { routes: {} }), 'no_email');
+  assert.equal(hold({}, { routes: { [id(301)]: { email: 'none' } } }), 'no_email');
+  assert.equal(hold({}, { routes: { [id(301)]: { email: 'unchecked' } } }), null, 'an unchecked address may be drafted');
+  assert.equal(hold({}, { invited: new Set([id(301)]) }), 'already_invited');
+  const no = (extra = {}) => lessons([{ state: 'declined', decided_at: NOW, row: 'visibility', subject_ref: `contact:${id(309)}`, reason_code: null, amplifier_kind: null, features: { sector: null, topic: 'marketing', seniority: null }, reach: { band: 'unknown' }, ...extra }], NOW);
+  assert.equal(inviteHold(guest(9), { L: no(), invited: new Set(), routes: route(9), at: NOW }), 'declined_on_row', 'a No on the guest is kept');
+  assert.equal(inviteHold(guest(1), { L: no({ reason_code: 'not_my_topic' }), invited: new Set(), routes: route(1), at: NOW }), 'not_my_topic', 'his reason reaches guests like them');
+  assert.equal(inviteHold(guest(1, { one_liner: 'Head of hiring at Example Co', why_fit: 'Writes about recruiting.' }), { L: no({ reason_code: 'not_my_topic' }), invited: new Set(), routes: route(1), at: NOW }), null, 'another topic is not like it');
+  assert.equal(guestTopic(guest(1)), 'marketing');
+  assert.equal(guestTopic({ one_liner: null, why_fit: null }), null);
+  assert.equal(guestName({ name: 'Dr. Avery Example' }), 'Avery Example', 'never a title');
+});
+
+test('a guest invited before is invited once: an answer on their invite, on his shows\' row only', () => {
+  const invited = invitedGuests({ feedback: [
+    { subject_ref: `contact:${id(301)}`, row: 'visibility', state: 'done' },
+    { subject_ref: `contact:${id(302)}`, row: 'visibility', state: 'declined' },
+    { subject_ref: `contact:${id(303)}`, row: 'visibility', state: 'pending' },
+    { subject_ref: `contact:${id(304)}`, row: 'network', state: 'done' },
+    { subject_ref: `target:${id(305)}`, row: 'visibility', state: 'done' },
+  ] });
+  assert.deepEqual([...invited].sort(), [id(301), id(302)]);
+});
+
+test('this week\'s invites are counted by show from what was drafted since Monday', () => {
+  const guests = [guest(1), guest(2), guest(3, { invite_show: 'signal_noise' })];
+  const done = invitesThisWeek({ feedback: [
+    invitedOn(1, '2026-10-26T08:00:00Z'),
+    invitedOn(2, '2026-10-24T08:00:00Z'),
+    invitedOn(3, '2026-10-26T09:00:00Z'),
+    invitedOn(4, '2026-10-26T09:00:00Z'),
+    invitedOn(1, '2026-10-26T10:00:00Z', { reference: 'visibility:pitch' }),
+    invitedOn(2, '2026-10-26T10:00:00Z', { carried_out: null, state: 'declined' }),
+  ] }, guests, NOW);
+  assert.deepEqual(done, { makeyourmindup: 1, signal_noise: 1 }, 'last week, a pitch, a No and a guest not on record are not this week\'s invites');
+});
+
+test('a run invites Make Your Mind Up first, then Signal & Noise, within the week\'s room and two a run', () => {
+  assert.equal(INVITES_PER_RUN, 2);
+  const open = [guest(1), guest(2), guest(3), guest(4, { invite_show: 'signal_noise' }), guest(5, { invite_show: 'signal_noise' })].map(g => ({ g }));
+  const ids = picked => picked.map(o => o.g.contact_id);
+  const none = { makeyourmindup: 0, signal_noise: 0 };
+  assert.deepEqual(ids(pickInvites(open, none)), [id(301), id(304)], 'the weekly conversation first, then the other show');
+  assert.deepEqual(ids(pickInvites(open, { makeyourmindup: 3, signal_noise: 0 })), [id(304)], 'a full week for one show leaves the other');
+  assert.deepEqual(ids(pickInvites(open, { makeyourmindup: 1, signal_noise: 1 })), [id(301), id(302)], 'the show with room takes both');
+  assert.deepEqual(ids(pickInvites(open, { makeyourmindup: 3, signal_noise: 1 })), [], 'a full week invites nobody');
+  assert.deepEqual(ids(pickInvites(open.slice(3), none)), [id(304)], 'Signal & Noise alone takes its one');
+  assert.deepEqual(ids(pickInvites(open, none, 4)), [id(301), id(304), id(302), id(303)]);
+});
+
+test('an invite is one ask in Jonny\'s words, to the show it was judged for, signed Jonny', () => {
+  const page = { label: 'How marketing teams change with AI.', url: 'https://talks.example/guest-1' };
+  const mymu = inviteWords({ name: 'Avery Example', show: inviteShow('makeyourmindup', canon), page });
+  assert.equal(mymu.subject, 'A conversation for Make Your Mind Up');
+  assert.equal(mymu.body, [
+    'Hi Avery,',
+    'I work with Krish Raja, who writes Make Your Mind Up (https://publication.example). We\'d love to have you for one of its weekly conversations.',
+    'We came across "How marketing teams change with AI", and it is exactly the kind of thinking we\'d love to hear more of.',
+    'Would you be up for it in the coming weeks? I can send a short brief and a few dates.',
+    'Jonny',
+  ].join('\n\n'));
+  const sn = inviteWords({ name: 'Sam Sample', show: inviteShow('signal_noise', canon), page: null });
+  assert.equal(sn.subject, 'A conversation for Signal & Noise');
+  assert.ok(sn.body.startsWith(`Hi Sam,\n\nI work with Krish Raja, ${KRISH_TITLE}. We'd love to have you on the show for a conversation.\n\nWould you`), 'no page, no line about it');
+  for (const w of [mymu, sn]) {
+    assert.equal((w.body.match(/\?/g) ?? []).length, 1, 'one ask');
+    assert.ok(w.body.endsWith('\n\nJonny'));
+    assert.equal(w.body.includes(EM) || w.subject.includes(EM), false, 'no em dash');
+    assert.equal(/@|\+\d{6}/.test(w.body), false, 'never an address or a number');
+  }
+  for (const label of ['Talk', 'https://talks.example/guest-1', 'www.example.com/talk', 'Write to avery@example.test', 'x'.repeat(60) + ' ' + 'y'.repeat(60)]) {
+    assert.equal(inviteWords({ name: 'Avery Example', show: inviteShow('makeyourmindup', canon), page: { label, url: page.url } }).body.includes('came across'), false, label);
+  }
+  const renamed = { ...canon, publication: { name: 'The Example Letter', url: 'https://letter.example' } };
+  assert.equal(inviteWords({ name: 'Avery Example', show: inviteShow('makeyourmindup', renamed), page: null }).subject, 'A conversation for The Example Letter', 'the publication\'s name is read from the canon each run');
+});
+
+test('an invite\'s card says who the guest is, how Krish knows them, why them, what he gets, and where it was read', () => {
+  const g = guest(1, { evidence: [{ url: 'https://www.linkedin.com/in/avery-example', label: 'Profile' }, { url: 'http://talks.example/old', label: 'An old talk' }, { url: 'https://talks.example/guest-1', label: 'How marketing teams change with AI' }] });
+  const show = inviteShow('makeyourmindup', canon);
+  const c = inviteCard({ g, name: 'Avery Example', show, topic: 'marketing', canon, contact: null, serves: GOALS[1], weekly: true });
+  assert.ok(c.who.startsWith('Avery Example: Chief Marketing Officer at Example Retail') && c.who.length <= CARD_WHO_MAX);
+  assert.equal(c.known, 'You do not know them yet. Jonny writes first, from his own Gmail.');
+  assert.ok(c.why.includes('Runs a marketing team that changed how it works with AI.'));
+  assert.ok(c.why.includes('Seen online: How marketing teams change with AI.'));
+  assert.ok(c.why.includes('The guest standard judged them worth having on Make Your Mind Up.'));
+  assert.ok(c.gain[0].startsWith('A guest for Make Your Mind Up\'s weekly conversation'));
+  assert.ok(c.gain.some(l => l.startsWith('It serves this week\'s goal: Have a clear plan for driving partnerships and visibility')));
+  assert.ok(c.angles.length === 2 && c.angles.every(a => a.title.length <= 60 && a.line.length <= CARD_LINE_MAX));
+  assert.deepEqual(c.sources, [{ label: 'How marketing teams change with AI', url: 'https://talks.example/guest-1' }], 'a profile or a plain http page is never a source');
+  const stretch = inviteCard({ g: guest(2, { guest_verdict: 'stretch', invite_show: 'signal_noise' }), name: 'Sam Sample', show: inviteShow('signal_noise', canon), topic: null, canon, contact: { known_since: '2019-03-01', source_list: ['linkedin'] }, serves: null, weekly: false });
+  assert.ok(stretch.why.includes('The guest standard judged them a stretch for Signal & Noise, worth asking.'));
+  assert.ok(stretch.known.startsWith('Known since 2019'), 'a guest he knows says how');
+  assert.ok(stretch.gain[0].startsWith('A guest for Signal & Noise,'));
+  assert.equal(/@[a-z]/i.test(JSON.stringify(c)), false);
+});
+
+test('invites rank first on visibility, take their two from the run\'s ten, and leave the podcasts the rest', () => {
+  const guests = [guest(1, { guest_verdict: 'stretch' }), guest(2), guest(3), guest(4, { invite_show: 'signal_noise' }), guest(5, { invite_show: 'signal_noise', invite_state: 'drafted' }), guest(2)];
+  const r = pitchRows({ context: { ...ctx(Array.from({ length: 12 }, (_, i) => stage(i + 1))), records: { visibility: Array.from({ length: 12 }, (_, i) => stage(i + 1)), drafts: [], guests }, routes: route(1, 2, 3, 4, 5) }, weekGoals: GOALS, canon, record: RECORD, files: FILES, at: NOW, titleMax: TITLE_MAX_BRIEF });
+  const invites = r.proposals.filter(p => p.close_condition.reference === 'visibility:invite');
+  const pods = r.proposals.filter(p => p.close_condition.reference === 'visibility:pitch');
+  assert.deepEqual(invites.map(p => p.target), [id(302), id(304)], 'the best judged guest of each show, Make Your Mind Up first');
+  assert.deepEqual(invites.map(p => p.rank), [1, 2]);
+  assert.equal(pods.length, PITCHES_PER_RUN - 2, 'the invites come out of the ten');
+  assert.equal(pods[0].rank, 3, 'the podcasts follow the invites');
+  assert.deepEqual(r.inviteHeld.sort(), ['already_invited', 'invite_week_or_run_cap', 'invite_week_or_run_cap'], 'a guest listed twice is counted once');
+  assert.equal(r.held.filter(h => h === 'pitch_per_run_cap').length, 4);
+  const [p] = invites;
+  assert.equal(p.row, 'visibility');
+  assert.equal(p.subject_ref, `contact:${id(302)}`);
+  assert.equal(p.wall, 'send');
+  assert.equal(p.amplifier_kind, null);
+  assert.equal(p.title, 'Jonny invites Sam Sample onto Make Your Mind Up');
+  assert.ok(p.title.length <= TITLE_MAX_BRIEF);
+  assert.equal(p.because, 'A strong guest for Make Your Mind Up. Jonny invites them.');
+  assert.equal(invites[1].because, 'A strong guest for Signal & Noise. Jonny invites them.');
+  assert.ok(p.brief.length >= 2 && p.brief.length <= 6);
+  assert.deepEqual(p.source_revision, FILES, 'an invite rests on the canon and the words, not his record');
+  assert.equal(p.features.topic, 'marketing');
+  assert.equal(p.reach.band, 'unknown');
+  const a = JSON.parse(p.exact_payload);
+  assert.deepEqual([a.version, a.channel, a.mailbox, a.recipient_contact_id, a.form], [2, 'email', 'jonny', id(302), null]);
+  assert.equal(a.subject, 'A conversation for Make Your Mind Up');
+  assert.ok(a.body.startsWith('Hi Sam,'));
+  assert.equal(a.body.includes(RECORD.line), false, 'an invite asks for nothing about Krish beyond who he is');
+  const again = pitchRows({ context: { records: { visibility: [], drafts: [], guests: [guest(1), guest(2)] }, routes: route(1, 2), feedback: [invitedOn(9, '2026-10-26T08:00:00Z'), invitedOn(8, '2026-10-26T08:00:00Z'), invitedOn(7, '2026-10-26T08:00:00Z')] }, weekGoals: GOALS, canon, files: FILES, at: NOW });
+  assert.equal(again.proposals.length, 2, 'invites to guests not on record count for no show');
+  const full = pitchRows({ context: { records: { visibility: [], drafts: [], guests: [guest(1), guest(2), guest(7), guest(8), guest(9)] }, routes: route(1, 2), feedback: [invitedOn(9, '2026-10-26T08:00:00Z'), invitedOn(8, '2026-10-26T08:00:00Z'), invitedOn(7, '2026-10-26T08:00:00Z')] }, weekGoals: GOALS, canon, files: FILES, at: NOW });
+  assert.equal(full.proposals.length, 0, 'three Make Your Mind Up invites this week fill its week');
+  assert.ok(full.inviteHeld.includes('invite_week_or_run_cap'));
+});
+
+test('a stage\'s reach is its audience size with its page and when it was read, else unknown', () => {
+  const t = { audience_size: 2500, event_url: 'https://summit.example/1', updated_at: '2026-10-20T10:00:00Z' };
+  assert.deepEqual(reachOf(t, 'people in its room', 'unmeasured'), { value: 2500, band: '1k_10k', basis: 'people in its room', source_url: 'https://summit.example/1', as_of: '2026-10-20T10:00:00.000Z' });
+  for (const over of [{ audience_size: null }, { audience_size: 0 }, { audience_size: 12.5 }, { event_url: null }, { event_url: 'http://summit.example/1' }, { updated_at: null }]) {
+    assert.deepEqual(reachOf({ ...t, ...over }, 'people in its room', 'unmeasured'), { value: null, band: 'unknown', basis: 'unmeasured', source_url: null, as_of: null }, JSON.stringify(over));
+  }
+  const r = pitchRows({ context: ctx([summit(1, { audience_size: 40000, updated_at: '2026-10-20T10:00:00Z' }), stage(2, { audience_size: 150000, updated_at: '2026-10-20T10:00:00Z' })]), weekGoals: GOALS, canon, files: FILES, at: NOW });
+  assert.equal(r.proposals.find(p => p.row === 'events').reach.band, '10k_100k');
+  assert.equal(r.proposals.find(p => p.row === 'visibility').reach.value, 150000);
+});
+
+test('a dispatch run at 1.9.0 reports invites with the pitches, counts them, and says why the others were not invited', async () => {
+  const policy = JSON.parse(await readFile(new URL('../config/policy.json', import.meta.url)));
+  const schema = JSON.parse(await readFile(new URL('../docs/control-center/engine-report.schema.json', import.meta.url), 'utf8'));
+  const served = ['1.6.0', '1.7.0', '1.8.0', '1.9.0'];
+  const reports = [];
+  const cc = { recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: '1.9.0', week_goals: GOALS }),
+    capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true } }),
+    context: async () => ({ ok: true, context: { schema_version: '1.9.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }], records: { advisory: [], visibility: [stage(1)], drafts: [], guests: [guest(1), guest(2, { invite_state: 'booked' }), guest(3, { guest_verdict: 'rejected' })] }, amplifier_candidates: [], routes: route(1, 2, 3), feedback: [], research: [] } }),
+    decisions: async () => [], postReport: async rep => { reports.push(rep); return { replayed: false }; }, readReport: async () => reports.at(-1) };
+  const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-invite-190-1234', clock: () => NOW,
+    canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/pitches.mjs', sha: 'b'.repeat(40) }], recordReader: async () => RECORD });
+  assert.equal(result.status, 'succeeded');
+  const rep = reports[0];
+  const jonny = rep.proposals.filter(p => JSON.parse(p.exact_payload ?? 'null')?.mailbox === 'jonny');
+  assert.deepEqual(jonny.map(p => p.subject_ref), [`contact:${id(301)}`, `target:${id(1)}`], 'the invite first, then the podcast');
+  assert.ok(rep.holds.some(h => h.reason === 'invite_already_invited'));
+  assert.ok(rep.holds.some(h => h.reason === 'invite_guest_rejected'));
+  assert.ok(rep.activity.some(a => a.line === 'Pitches for Jonny\'s Gmail: 1 guests invited onto his shows, 1 podcasts, 0 stages to speak on.'));
   assert.deepEqual(violations(schema, rep), []);
 });
