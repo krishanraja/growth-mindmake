@@ -1,6 +1,8 @@
 # Mindmake growth engine
 
-An executable growth producer for relationships, introductions, researched named outreach, inbound, qualification, paid proof preparation, trust assets and speaking, with operating playbooks and outcome reporting. The commercial target is **five qualified conversations per London week and at least one paid proof in the first 30 days after actual activation**. These are targets, not results claimed by the software.
+Start a continuation with [NOW.md](NOW.md). The [27 October session handoff](docs/history/2026-10-27-growth-session-handoff.md) records the earlier release, prepared trust routes, live readback discrepancies and what must be reconciled before resuming. Current AGENTS.md rulings and live Control Center decisions take precedence over historical preparation notes.
+
+An executable growth producer for relationships, introductions, researched named outreach, inbound, qualification, paid proof preparation, trust assets and speaking, with operating playbooks and outcome reporting. The current weekly ambition and ladder are in [the North Star](docs/NORTH_STAR.md). The original commercial baseline was **five qualified conversations per London week and at least one paid proof in the first 30 days after actual activation**. These are targets, not results claimed by the software; preserve the original activation window when measuring the first-month baseline.
 
 This repository is the growth-mindmake producer. Since 2026-10-19 it reports to Control Center through the one growth engine protocol: [the Control Center brief](docs/CONTROL-CENTER-BRIEF.md) supersedes [the earlier handoff](docs/CONTROL-CENTRE-HANDOFF.md). [The release record](docs/RELEASE.md) keeps built, tested, merged, deployed and activated apart.
 
