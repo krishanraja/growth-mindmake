@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, readCanon, CanonError } from '../src/stages/canon.mjs';
-import { kindsOf, reachOf, countIn, lessons, refusedBy, amplifierRows, rankRows, score, fitTitle, channelOf, servesOf, fitHold, cleanName, lastContact, caseFor, titleFor, fitTitleWithin, endsWhole, firstSentence, titleCase, wholeRole, wholeSentence, JOINERS, FIT_FLOOR, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX_BRIEF, cardFor, knownWords, knownLine, knownShort, mailWords, whyLines, gainLines, angleLines, openerOf, sourceLinks, leadSentences, hasChannel, plain, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX } from '../src/stages/rows.mjs';
+import { kindsOf, reachOf, countIn, lessons, refusedBy, amplifierRows, rankRows, score, fitTitle, channelOf, servesOf, fitHold, cleanName, lastContact, caseFor, titleFor, fitTitleWithin, endsWhole, firstSentence, titleCase, wholeRole, wholeSentence, JOINERS, FIT_FLOOR, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX_BRIEF, cardFor, knownWords, knownLine, knownShort, mailWords, whyLines, gainLines, angleLines, openerOf, openLine, sourceLinks, leadSentences, leadFacts, factOf, reachSentence, hasChannel, plain, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, RESEARCH_PAGES } from '../src/stages/rows.mjs';
 import { icpOf, signalRequests, signalRows, isoWeek } from '../src/stages/signals.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
@@ -503,7 +503,7 @@ test('how he knows them: every combination of emails each way reads true, and th
 test('why them, why now: whole sentences from the record, the quiet tie first, a recent AI post but never selling AI', () => {
   const c = { hook: `Chairs the industry AI taskforce ${EM} worth asking what is landing.`, why_them: 'Reaches the audience builder_economy wants.', intent_summary: `building a team ${EM} Active job posting for an AI platform role.`, last_post_at: '2026-09-10T00:00:00Z' };
   const why = whyLines(c, { ask: 'relationship', quietSince: 'Jun 2025', company: { why_now: 'Raised a growth round in September.' }, at: NOW });
-  assert.deepEqual(why, ['A close tie, and nothing between you since Jun 2025.', 'Chairs the industry AI taskforce, worth asking what is landing.', 'Raised a growth round in September.'], 'no em dash, no slug, at most three');
+  assert.deepEqual(why, ['A close tie, and nothing between you since Jun 2025.', 'Chairs the industry AI taskforce.', 'Raised a growth round in September.'], 'no em dash, no slug, no prompt, at most three');
   assert.ok(whyLines({ ...c, hook: null }, { ask: 'partner', at: NOW }).includes('They posted in Sep 2026: Active job posting for an AI platform role.'));
   assert.deepEqual(whyLines({ intent_summary: `selling AI ${EM} Pitching AI services to agencies.`, last_post_at: '2026-10-01T00:00:00Z' }, { ask: 'partner', at: NOW }), [], 'selling AI is not his buyer\'s signal');
   assert.deepEqual(whyLines({ intent_summary: `commenting ${EM} Asked about AI pricing.`, last_post_at: '2026-03-01T00:00:00Z' }, { ask: 'partner', at: NOW }), [], 'an old post is no reason now');
@@ -514,8 +514,8 @@ test('why them, why now: whole sentences from the record, the quiet tie first, a
 test('what he gets: by the ask, numbers only with their source, ending on the goal it serves word for word', () => {
   const cited = { value: 35000, band: '10k_100k', basis: 'chief executives, from a cited answer', source_url: 'https://example.org/forum', as_of: NOW };
   assert.deepEqual(gainLines({ ask: 'teach', kind: 'ceo_educator', name: 'Avery Example', reach: cited, fit: 70, serves: GOALS[1] }), ['A session in front of their leaders: 35,000 chief executives, from a cited answer.', `It serves this week's goal: ${GOALS[1]}.`]);
-  assert.deepEqual(gainLines({ ask: 'appear', name: 'Avery Example', reach: { value: null, band: '10k_100k', basis: 'followers on their profile, as Control Center last read it' }, serves: null }), ['A guest spot in front of their audience: 10,000 to 100,000 followers on their profile, as Control Center last read it.']);
-  assert.deepEqual(gainLines({ ask: 'appear', name: 'Avery Example', reach: { value: null, band: 'unknown', basis: 'not yet researched' }, serves: null }), ['A guest spot in front of their audience.'], 'an unknown reach is not said as a number');
+  assert.deepEqual(gainLines({ ask: 'appear', name: 'Avery Example', reach: { value: null, band: '10k_100k', basis: 'followers on their profile, as Control Center last read it' }, serves: null }), ['A guest spot on their channel.', 'Avery has 10,000 to 100,000 followers on their profile, as Control Center last read it.'], 'a profile following is not the audience of a channel');
+  assert.deepEqual(gainLines({ ask: 'appear', name: 'Avery Example', reach: { value: null, band: 'unknown', basis: 'not yet researched' }, serves: null }), ['A guest spot on their channel.'], 'an unknown reach is not said as a number');
   assert.match(gainLines({ ask: 'relationship', name: 'Avery Example', fit: 92, serves: GOALS[0] })[0], /scores 92 of 100 for Mindmake fit; it can turn into an advisory conversation\.$/);
   assert.match(gainLines({ ask: 'introduce', name: 'Avery Example', reach: { band: 'unknown' }, serves: null })[0], /^One introduction from Avery puts you in front of a leader/);
   for (const ask of ['introduce', 'relationship', 'appear', 'teach', 'partner', 'signal']) assert.ok(gainLines({ ask, name: 'Avery Example', reach: cited, fit: 60, serves: GOALS[1] }).at(-1).startsWith("It serves this week's goal: "), ask);
@@ -525,13 +525,15 @@ test('the angles: titled in the canon\'s own words this run, tied to this person
   const c = { hook: 'His Data Driven newsletter and two board seats, worth asking what patterns he sees.', current_company: 'Example Capital' };
   const partner = angleLines({ ask: 'partner', kind: 'investor', name: 'Avery Example', c, company: 'Example Capital', canon: fullCanon });
   assert.deepEqual(partner.map(a => a.title), ['Build your AI revenue engine', 'Build your AI brain']);
-  assert.equal(partner[1].line, `Open on his Data Driven newsletter and two board seats. Then the brain door, in the site's words: "${fullCanon.brain}"`);
+  assert.equal(partner[1].line, `Open with what you know: His Data Driven newsletter and two board seats. Then the brain door, in the site's words: "${fullCanon.brain}"`);
   assert.ok(partner[0].line.includes(`"The pricing, positioning and team you'll need."`), 'the revenue door quoted, not paraphrased');
   assert.deepEqual(angleLines({ ask: 'relationship', name: 'Avery Example', c, company: '', canon: fullCanon }).map(a => a.title), ['Promote your AI from intern to chief of staff', 'Build your AI brain']);
   assert.deepEqual(angleLines({ ask: 'appear', name: 'Avery Example', c, company: '', canon: fullCanon }).map(a => a.title), ['Make Your Mind Up', 'Build your AI brain']);
   assert.deepEqual(angleLines({ ask: 'partner', kind: 'investor', name: 'Avery Example', c, company: '', canon }).map(a => a.title), ['Build your AI brain'], 'a door the canon no longer carries is not offered');
-  assert.equal(openerOf({ hook: 'Built a fund. Then more.' }, 'Example Capital'), 'Built a fund');
-  assert.equal(openerOf({}, 'Example Capital'), 'their work at Example Capital');
+  assert.equal(openerOf({ hook: 'Built a fund. Then more.' }), 'Built a fund');
+  assert.equal(openerOf({}), '');
+  assert.equal(openLine({}, 'Example Capital'), 'Open with their work at Example Capital.');
+  assert.equal(openLine({}, ''), '');
 });
 
 test('sources are public pages about them: a profile, an address or a number is never one, and there are six at most', () => {
@@ -542,6 +544,93 @@ test('sources are public pages about them: a profile, an address or a number is 
   assert.deepEqual(s.map(x => x.url), ['https://example.org/show', 'https://example.org/interview', 'https://example-capital.test']);
   assert.equal(s[0].label, 'Reach: listeners a month, from a cited answer, 2026-10-26');
   assert.ok(sourceLinks({ extra: Array.from({ length: 9 }, (_, i) => ({ label: `Page ${i}`, url: `https://example.org/${i}` })) }).length === 6);
+});
+
+// ── Facts, not notes (the first live 1.8.0 run): synthetic shapes of the live faults ──
+
+test('a judge\'s note or an instruction is never a reason, and a prompt is cut back to the fact before it', () => {
+  const notes = [
+    'There are no recent dated news triggers or readable website details available for Example Data to indicate a need.',
+    'There is no readable website content or recent news regarding Example Group to indicate an immediate need.',
+    'Example Labs is an AI vendor offering creative agents for commerce, making them a potential technology partner rather than a primary buyer for AI strategy consulting.',
+    'As a fast-growing video platform, Example Video is a prospective partner or vendor rather than a direct client.',
+    'Example Weekly is a small niche publisher with no recent funding, leadership changes, or strategic triggers in the provided data.',
+  ];
+  for (const n of notes) assert.equal(factOf(n), '', n);
+  assert.equal(factOf('His podcast and public commentary on ad infrastructure, reference a specific episode or piece if one is known.'), '', 'an instruction is dropped whole');
+  assert.equal(factOf('His path from Example Audio to Example Mart to running Example Media Exchange is a clean narrative of retail media\'s rise, worth asking him to unpack on the podcast.'),
+    "His path from Example Audio to Example Mart to running Example Media Exchange is a clean narrative of retail media's rise");
+  assert.equal(factOf('He hosts Example Talk and two other podcasts, worth comparing notes on guest booking and format.'), 'He hosts Example Talk and two other podcasts');
+  assert.equal(factOf('Her build of an innovation team tied to a ten-year deal, worth referencing directly as a parallel.'), 'Her build of an innovation team tied to a ten-year deal');
+  assert.equal(factOf('His portfolio across three sectors could make for a good podcast conversation on venture investing.'), 'His portfolio across three sectors');
+  assert.equal(factOf('Raised a growth round in September.'), 'Raised a growth round in September', 'a plain fact stands');
+  const c = { hook: 'His work chairing an industry AI taskforce, worth asking what is landing.', why_them: 'There is no readable website content to indicate a need.' };
+  const why = whyLines(c, { ask: 'partner', company: { why_now: 'Example Labs is an AI vendor, a potential technology partner rather than a primary buyer. It signed a distribution deal in June 2026.' }, at: NOW });
+  assert.deepEqual(why, ["His work chairing an industry AI taskforce.", 'It signed a distribution deal in June 2026.'], 'the note is passed over and the fact after it kept');
+  assert.equal(leadFacts('There are no recent triggers. Then nothing.', 240), 'Then nothing.');
+  assert.equal(cardFor({ c: { who: 'Partner at Example Capital.', hook: 'There is no recent news for Example Capital to indicate a need.' }, id: id(97), name: 'Avery Example', title: 'Partner', company: 'Example Capital', ask: 'partner', kind: 'investor', reach: { band: 'unknown' }, fit: 60, serves: GOALS[1], canon: fullCanon, at: NOW }), null, 'nothing left but notes: the card is thin and held');
+});
+
+test('the opener always reads as a sentence: the fact quoted whole, never "Open on his move ... is a path"', () => {
+  const c = { hook: 'His move from Example Bank CMO to Other Bank CMO, plus running Example Alarm as CEO in between, is an unusually direct path worth asking about.' };
+  const line = openLine(c, 'Other Bank');
+  assert.equal(line, 'Open with what you know: His move from Example Bank CMO to Other Bank CMO, plus running Example Alarm as CEO in between, is an unusually direct path.');
+  assert.equal(/Open on (his|her|their)\b/.test(angleLines({ ask: 'relationship', name: 'Avery Example', c, company: 'Other Bank', canon: fullCanon }).map(a => a.line).join(' ')), false);
+  assert.equal(openLine({ hook: 'There is no recent news to indicate a need.' }, 'Example Co'), 'Open with their work at Example Co.', 'a note is never the opener');
+  const long = { hook: 'His move from a chief marketing role at Example Bank to Other Bank, plus running Example Alarm as chief executive in between, is an unusually direct path worth asking about.' };
+  const brain = angleLines({ ask: 'introduce', name: 'Avery Example', c: long, company: 'Other Bank', canon: fullCanon })[0];
+  assert.equal(brain.title, 'Build your AI brain');
+  assert.ok(brain.line.startsWith('Open with what you know: His move from a chief marketing role'), 'a long fact keeps its place; the quote gives way');
+  assert.ok(brain.line.length <= CARD_LINE_MAX);
+});
+
+test('what he gets says what each number is: a profile following or a media audience is never the room of leaders', () => {
+  const people = { value: 52000000, band: 'over_1m', basis: 'people, from a cited answer', source_url: 'https://example.org/a', as_of: NOW };
+  const followers = { value: null, band: '10k_100k', basis: 'followers on their profile, as Control Center last read it' };
+  const portfolio = { value: 40, band: 'under_1k', basis: 'portfolio companies, from the fund page', source_url: 'https://example.org/f', as_of: NOW };
+  assert.deepEqual(gainLines({ ask: 'partner', kind: 'investor', name: 'Ann Example', company: 'Example Board', reach: people, serves: GOALS[1] }),
+    ['A working session for the leaders Example Board backs or gathers.', 'Example Board reaches 52,000,000 people, from a cited answer.', `It serves this week's goal: ${GOALS[1]}.`]);
+  assert.deepEqual(gainLines({ ask: 'partner', kind: 'investor', name: 'Ann Example', company: 'Example Capital', reach: followers, serves: GOALS[1] }).slice(0, 2),
+    ['A working session for the leaders Example Capital backs or gathers.', 'Ann has 10,000 to 100,000 followers on their profile, as Control Center last read it.']);
+  assert.deepEqual(gainLines({ ask: 'partner', kind: 'investor', name: 'Ann Example', company: 'Example Capital', reach: portfolio, serves: null }),
+    ['A working session for the leaders Example Capital backs or gathers: 40 portfolio companies, from the fund page.'], 'a count of the room it is for stays in the line');
+  assert.deepEqual(gainLines({ ask: 'introduce', name: 'Ann Example', reach: followers, serves: null })[1], 'Ann has 10,000 to 100,000 followers on their profile, as Control Center last read it.', 'never "Their network: ..."');
+  assert.equal(reachSentence({ band: 'unknown', basis: 'not yet researched' }, 'Ann Example', 'Example Co'), '');
+  for (const ask of ['introduce', 'appear', 'teach', 'partner']) {
+    for (const r of [people, followers]) {
+      const lines = gainLines({ ask, kind: 'investor', name: 'Ann Example', company: 'Example Co', reach: r, serves: null });
+      assert.equal(lines.some(l => /(leaders|audience|people they train|students)[^.]*: [\d,]+ (people|followers)|: [\d,]+ to [\d,]+ followers/.test(l)), false, `${ask}: ${lines.join(' | ')}`);
+    }
+  }
+});
+
+test('VISIBILITY counts a channel only where the record says they host, run, write or present it, never from a prompt', () => {
+  const cmo = person(98, 'CMO at Example Tracking', { followers: 8000, who: 'CMO at Example Tracking, a brand tracking company, after marketing roles at three startups.', hook: 'His founder to enterprise CMO arc is a solid operator story worth asking about on the podcast.' });
+  const founder = person(99, 'Founder and CEO, Example Video', { followers: 74000, who: 'Founder and CEO of Example Video, a video creation startup.', hook: 'His line that AI is the social elevator of this decade, worth asking how that shows up in what he is building.' });
+  const host = person(100, 'Founder, Example Talk Group', { followers: 30000, who: 'Serial founder running media and podcast production businesses.', hook: 'He hosts Example Talk and two other podcasts, worth comparing notes on guest booking.' });
+  const publisher = person(101, 'Founder', { followers: 30000, who: 'Runs The Example Weekly, a global research company and conference for marketing technology leaders.' });
+  assert.equal(hasChannel(cmo), false, 'a "worth asking on the podcast" prompt is his podcast, not theirs');
+  assert.equal(hasChannel(founder), false, '"shows up" is not a show');
+  assert.equal(hasChannel(host), true);
+  assert.equal(hasChannel(publisher), true, 'a named publication they run');
+  assert.equal(hasChannel({ who: 'Runs the sales channel and shows the team what works.' }), false);
+  assert.equal(hasChannel({ current_title: 'Editor at Example Times' }), true);
+  assert.equal(hasChannel({ current_title: 'Podcast Host' }), true, 'a title that is a media role');
+  assert.equal(hasChannel({ hook: 'Ran three company exits, worth asking about on the show.' }), false, 'a prompt naming "the show" is read past');
+  const ctx = { amplifier_candidates: [cmo, founder, host, publisher], routes: Object.fromEntries([98, 99, 100, 101].map(n => [id(n), route()])), feedback: [], research: [] };
+  const r = amplifierRows({ context: ctx, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
+  const vis = r.rows.filter(x => x.proposal.row === 'visibility').map(x => x.proposal.target);
+  assert.equal(vis.includes(id(98)) || vis.includes(id(99)), false, vis.join(','));
+});
+
+test('each research page is named by its title or its site, deduped, four at most', () => {
+  const evidence = Array.from({ length: 6 }, (_, i) => ({ url: `https://news${i}.example.org/story` }));
+  const research = [{ request_id: `profile:${id(102)}:2026-10`, kind: 'question', status: 'answered', subject_ref: `contact:${id(102)}`, answered_at: NOW,
+    evidence: [{ url: 'https://www.example.com/summit', title: 'Example News: the board summit' }, { url: 'https://www.example.com/summit' }, ...evidence] }];
+  const s = sourceLinks({ research, id: id(102) });
+  assert.equal(s.length, RESEARCH_PAGES);
+  assert.deepEqual(s.map(x => x.label), ['Example News: the board summit', 'news0.example.org', 'news1.example.org', 'news2.example.org']);
+  assert.equal(s.some(x => /^Research, /.test(x.label)), false);
 });
 
 test('a card too thin to show is held and asks once a month who they are; the answer fills it on the next run', () => {
