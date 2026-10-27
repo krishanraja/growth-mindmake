@@ -1,0 +1,139 @@
+{
+  "note": "What AGENTS.md and NOW.md held on main at the source commit, derived by tests/support/rulings.mjs; tests/rulings.test.mjs checks every quote, ruling section, standing section, owner line and NOW.md bullet is still kept, and re-derives this from git where the commit is present. Hashes and quoted words only.",
+  "source_commit": "c6f95c52d8f751ce303a7965412af4283a611341",
+  "quotes": [
+    "Where it is right now",
+    "Get going",
+    "Canva is also available for you to use at will with zero limits in the engine.",
+    "Don't forget to drive as much traffic to mindmake.co as possible. You have Google Analytics installed already and Control Centre can see that. Make sure this is a part of your Measurement Specialist. Happy to let you read Google Analytics directly if you prefer.",
+    "mindmake.co for all mindmake venture things",
+    "yes merge them yourself, go",
+    "Counts only visitors who press Allow, so it is a floor and a trend, not a total",
+    "make sure all the old growth machinery from control-center is brought in to your machine. Control center should just be where you read from and where you report to, it does not own the strategy for how to grow mindmake as a business"
+  ],
+  "ruling_sections": [
+    {
+      "heading": "Approved execution (Ruling, Krish, 2026-10-22)",
+      "sha256": "1a34037c95ef56e7309d12144d61c6deb9ac68ada028dd1160f81a11598d639b"
+    },
+    {
+      "heading": "The five rows and signals (Rulings, Krish, 2026-10-26)",
+      "sha256": "a729f8c78843503fd70e12793392160f8556bcf9e5f2c6cda48ff7bb9dfdbe4d"
+    },
+    {
+      "heading": "Meetings, visibility, Canva and the Growth library (Rulings, Krish, 2026-10-27)",
+      "sha256": "1297ae5959d362a8d00b598685d4ba401163d135a36223a2531cf37b78056ffd"
+    },
+    {
+      "heading": "Traffic to mindmake.co (Rulings, Krish, 2026-10-27)",
+      "sha256": "9ba7910c50e50ca97635be54d0146dbbe32fd86d47841021367fcaa6b6920261"
+    },
+    {
+      "heading": "Control Center reads and reports; this engine owns the strategy (Ruling, Krish, 2026-10-27)",
+      "sha256": "9b82aa584426c2cf35e018250b7f53bfc57f2d404497876a535f0fcfca001e95"
+    }
+  ],
+  "standing_sections": [
+    {
+      "heading": "North Star: read it first, every session",
+      "sha256": "3afd3ea5a6726831154f1e88ae93cd0660ef9cddf33fbcee018365810c316a7d"
+    },
+    {
+      "heading": "\"Get going\"",
+      "sha256": "bf79e5b87fe14b14de300760314160f35ea654da201e049b026a6fda43f89efd"
+    },
+    {
+      "heading": "Current release boundary",
+      "sha256": "93774274d423f2ad9076a9323ca128ee1f344f410896a207022076e7ab62bdc2"
+    },
+    {
+      "heading": "Privacy and action authority",
+      "sha256": "e4ff724f9cdd0e50c8bfab272bf0a0d9926e80371af947cc13ef2ceca4f43e1f"
+    },
+    {
+      "heading": "Checks and delivery",
+      "sha256": "50e2a316ede80b2fb9fd5351aad7ab75707a350442e1e5178d7eb513a18783ec"
+    }
+  ],
+  "owner_lines": [
+    "fe92721fe6e0f4e467c60542b242ae28e0bbe9a252da0729e38d6c38a2fa3ce7",
+    "f61dfc34b895785491dcdad27a696d18da38e4daaedf27c8e73e47175a2b31c6",
+    "710c6a420066d27b00f4f923d3c8093eb3d7cfc70b408e3b3045bcb7581e245d",
+    "f95086b798ae487b180e08c55fb74c852bd2859ff0e1d99d5b28afcf4a4ef322",
+    "82182cd3ed997e5f0c0fd1f99c4c78a685763f067d44dd34f8b27db923dad55a",
+    "a9fc21295b68acb11b74551e9cc6a1b35ec46636223fd47175ad7598e4e42bc1",
+    "4059ee780de484590053b83823d978d840fd0b06cb760fb1d5d0a8c22d789000",
+    "fe53947da342d37fa5977ff8889919c1257b66971b1cc8523948441c4dcfecd0",
+    "1608788317c04ebfd5051b8d998e5136d14ca10e64f035610302788975c3cfc5",
+    "0644396cd0d47207aa4b516f7ad5601675ca339187c77405e74b451d2e5e8d15",
+    "40a984d6fab9c780d45ecc7cdcc8e324a9294dbb205c795583a8578da1e1c2a4",
+    "d9c44855649a04c4bbc4fd41706bf7e72aa0202e0212aa218e92312abd2618c3",
+    "83d778a6804da2ab13c10a22c0796f7957105920b22ec1a705d14bd7cc8a9168",
+    "0eed89b7e8a1bf346d81183f219ca100829577d2af45ba7edfa3901879c61608",
+    "06e11b9f161b49048eb43456d9aa6cd5ecd64282406fae52c9808a9356edea3a",
+    "1441c24920d155b8021b43a8871b66c750c9e25e22fd91db0d06a78f33ccf1be",
+    "f11e678f97f19fb7a4b812508e2dda81865dd2d92c185facd734fbe1da0b0131",
+    "1d1edc1f4044684e5f0048f48f7ff69eb4b43b0f2cbe0983c3b0d4a462bbd198",
+    "e59296154cf0b5e72e6a15c3e14bd27e17dfff72156a393159985be98d2d9b31",
+    "f8d7cf0678422f10cde9da4e5b6f887853c8505567d8f0fc7d27b12ba8e8f0cf",
+    "38238bc1b955a51d28f02d58e54e8223858665146cdbebb8557cce6df550521a",
+    "f085ae3ff0a1764df1bf24a857eafcf6a0579f2e1793860c91be1e5338244b99"
+  ],
+  "now": {
+    "front_matter_keys": [
+      "repo",
+      "product",
+      "as_of",
+      "head",
+      "lifecycle",
+      "production_url",
+      "state_doc",
+      "history_log",
+      "truth_files",
+      "authority_order",
+      "steward"
+    ],
+    "state_line_sha256": "1db3500d1d3f220cfe8d606466f7f463fb77bbf27dcf35012c2bfec1dba844c5",
+    "headings": [
+      "# Mindmake growth engine: where it is right now",
+      "## What it is",
+      "## Who it is for and why it matters for Mindmake",
+      "## Where it is right now (as of 2026-10-27)",
+      "## What changed recently",
+      "## What is next and what is waiting on Krish",
+      "### Existing integration gates to retain",
+      "## Read next",
+      "## Do not trust"
+    ],
+    "changed_bullets": [
+      "ba9a9501acbd3b41271c32946fc3e7857a05ff4c203f2c025f037e97707e2aae",
+      "76262fa66873b09156ff5eed75d0459a145225929384faffc9f1dbfab9cb2240",
+      "850560569fafafd6ae54f42ac52e5dcd4e2376e3c1a714f057c7a53e73ccdb53",
+      "88554a06184b9eb0ca8c39a97caee19b1ec45c7797f50da98bab1cd130e620f0",
+      "8de868e6cbb948acb50c96153794dd505d783cc8e199d033746089b59546d51d",
+      "bf2af1b702432d5cdc8e3063483dba9fb8d478a1623be1a9a9e2ad6740f35c5a",
+      "2b6cc00a3559ec60a7db220d4186e1810e3952f72274ff26e6e505d4bf35be5d",
+      "a32485453fdefdc2723c9500613ed8fbb65da9c1b4d1219853f9b362442b1e80",
+      "0cb4b751876eeb78642928b287521affaa420f1a6e6528ce4b30ec5844f2a679",
+      "35507cdd41db2eb9dfc3054a0c2fc6fdc7e73d82864563b34e0fdf739ab7cce9",
+      "bd2744ae9417f1c0f98c0c6feed38036613b0de6d0a3c7f68bb970e31e6afd24",
+      "410668317e987ccb105308d9001b9fab3f1c27304260ac0dad9245f1796507e0",
+      "4768d41d1cc5c546949c969383dae974b3ddb1d17d431313e76a8da8eb1d9653",
+      "951c2c2ccd7340ff80645e9c46023e6c053ce5839beff59830676ae1a6530006",
+      "26e51bdcafa0ee3bf0463ea9d9e8f58315171350b3f58b9a254fc06cf1a090a2",
+      "9183b891e8208f496b4ca337b5f3bb05362177930e48d509d294c45d554e0580",
+      "1bec7bdf67dea050818d9b54b3363aa428b4572b11bad50e1a0f63da706be621",
+      "f73b392e3d96b70622c08ce562013ae1b7fff1d2cb4f115db77305c43e2850c3",
+      "88ca0392963124c831b08de679586a10686e853a684474210ed70526523e07ce",
+      "0dd3c0767be6dc6cde61ca74cd2758150bea047e9179b463f6ecd7e1b619ee57",
+      "1eafaa3279e8417925010539d41a3896daed80f25361be5682189d1c89df2232",
+      "b3deb8fe964e710f6a9bd51370bda0e510d537f1771811b07e7bf42a12e3876a",
+      "ed8bf3fcfc755c0100c54b16c7734e95def6a9c8d0caa7c912f9860178b60b56",
+      "939f26ae67c08f6d5e47cb2943bb84de0d059c039d0c98b984f6a675e6e3bec4",
+      "30b2be8265317ecc6761074d5a94606303190ddab53af5c7ceb4c48797c1b2f1",
+      "a931cfc6af1945710e03b9185317921c8ad5750b18fdfa46de76802db890da4d",
+      "8fd898bd5d210e32c0e64682c29c123566a1799df1cb1dc5f26a38c909ad40c2",
+      "91841c05f3cc5b35f2cf3a99a9cd1c62195c1560d66700d677e7bae2f02b5007"
+    ]
+  }
+}
