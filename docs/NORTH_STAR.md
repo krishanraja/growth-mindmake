@@ -2,7 +2,7 @@
 
 Status: Current
 Owner: Krish Raja
-Last verified: 2026-10-18
+Last verified: 2026-10-27
 
 > Near term, by 30 November 2026: every paid proof starts from a warm path or a room, never a list, and leaders arrive already asking for the brain because someone they trust told them.
 >
@@ -14,16 +14,18 @@ This repository serves [Mindmake's North Star](https://github.com/krishanraja/mi
 
 ## The number
 
-**Qualified leader conversations a week, every one from a warm path or a room**: 20 by 30 November 2026, on a front-loaded weekly ladder. Checkpoints: 16 Nov 2026: 11; 30 Nov 2026: 20.
+**Good meetings a week, each marked good by Krish after it and traced to where it came from**: 20 by 30 November 2026, on a front-loaded weekly ladder. Checkpoints: 16 Nov 2026: 11; 30 Nov 2026: 20.
+
+Ruling (Krish, 2026-10-27): "Anything that gets me good meetings counts towards my number, and we need to trace where it came from so we know what works." A meeting counts when he marks it good with one tap after it, whether it was with a buyer, a multiplier, a partner or a host. The engine pre-fills where it came from and he confirms; the path is recorded once and never rewritten. Qualified buyer conversations (authority, owned problem, active need, offer fit and an agreed next step) are reported as a subset beside it.
 
 ```yaml north-star-metric
-metric: "Qualified leader conversations a week, every one from a warm path or a room"
+metric: "Good meetings a week, each marked good by Krish after it and traced to where it came from"
 unit: count
 direction: up
 target: 20
 deadline: 2026-11-30
 ladder_shape: front-loaded
-source: "Control Center pilot deals and calendar, counted by this engine"
+source: "Control Center calendar and Krish's good tap after each meeting, with its traced path, counted by this engine"
 status: active
 ladder:
   - [2026-10-26, 2]

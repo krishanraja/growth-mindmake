@@ -34,6 +34,16 @@ Apply the canonical personal harness and krish-principles, then strategy-brief, 
 - People who comment on posts about AI and their jobs are worth reaching, but only worried executives in his ICP, never AI people. The engine thinks about these signals and brings each to him for action; Control Center only collects. This is his decision to reach people beyond his network who engaged in public, one note at a time, each on his press.
 - The North Star number stays as written; reach only ranks the work.
 
+## Meetings, visibility, Canva and the Growth library (Rulings, Krish, 2026-10-27)
+
+- The number counts any good meeting: he marks it good with one tap after it, whether with a buyer, a multiplier, a partner or a host. The engine pre-fills where it came from, and the path is recorded once and never rewritten (docs/NORTH_STAR.md).
+- Rooms are guest seats only: no hosted rooms this year. A room is a seat on someone else's stage, panel, forum or podcast.
+- Visibility target: two podcasts booked a week and one stage or panel confirmed a fortnight, replacing one podcast a week. A booking counts when the show or stage confirms a date.
+- Canva is used at will inside his own account: create, edit, upload, export and brand templates. Sharing a design, making anything public, merging a page and any send or spend still need his yes at the time. Growth assets carry a new Mindmake brand kit, built first by a Cowork computer-use session on his PC; the old Mindmaker kit is left as it is. The first asset is the speaker and guest one-sheet, with Jonny's box as its booking contact.
+- An asset reaches people as a link in the words, never as an attachment: a PDF at mindmake.co/media, and later a SendLinks link per recipient minted by Control Center.
+- Every asset and strategy this engine produces lives in Drive, mind/make > 03_Growth, by docs/DRIVE.md. The engine keeps it easy to find and never lets it sprawl.
+- The week spec is signed Monday morning with one Clear on his Control Center list; Friday is the review. The architecture plan is docs/briefs/2026-10-27-bulletproof-growth-engine.md.
+
 ## Current release boundary
 
 Krish authorised implementation across growth-mindmake and Control Center on 22 October 2026. Extend the shared protocol and the existing daily `cc-growth-directive` dispatch. docs/CONTROL-CENTER-BRIEF.md supersedes the historical producer-only handoff.
@@ -59,6 +69,7 @@ Docs/RELEASE.md owns the completion record. Keep built, tested, merged, deployed
 - src/stages/research.mjs and contracts/research.ts: explicit research tasks and proposed private enrichment from supplied sources; no automatic prospect authority.
 - src/weekly-review.mjs: global commercial constraints, source-backed channel attribution, actual effort and observed experiments, with one persisted-feedback-aware recommendation.
 - src/stages/rows.mjs: the five rows on Krish's home screen (protocol 1.6.0): amplifier kinds, reach, rank, the words, the channel, the full card a tap opens (1.8.0: who, how he knows them, why, what he gets, the angles, the sources), and the lessons of every No and its reason. src/stages/signals.mjs: signals from his buyers (who commented, worried, on posts about AI and their jobs) and the research it asks Control Center to run for them. src/stages/canon.mjs: Mindmake's canon read live from its own repository every run, named by blob SHA, and Krish's track record from krishraja.com's own repository (`readRecord`). src/stages/pitches.mjs: podcast pitches and guest invites onto his own shows (VISIBILITY) and speaking pitches (EVENTS) in Jonny's voice for his Gmail (protocol 1.9.0), which Control Center drafts with no press. Playbook 11 holds the doctrine.
+- docs/DRIVE.md: the Growth library in Drive (mind/make > 03_Growth) and Canva (Mindmake Growth): what goes where, naming, one current version, the index and the Friday check. Every session that files something follows it.
 - docs/CONTROL-CENTER-BRIEF.md and docs/control-center/: the protocol contract with Control Center, copied from its authoritative source. docs/CONTROL-CENTRE-HANDOFF.md remains as history and for the seven frozen contracts.
 
 pipeline/stage-conveyor.json declares executable ownership and handoffs. Keep it current when topology changes. Do not add a parallel state store, scheduler, contact database, approval interface or model provider.

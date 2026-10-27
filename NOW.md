@@ -2,7 +2,7 @@
 repo: krishanraja/growth-mindmake
 product: Mindmake growth engine
 as_of: 2026-10-27
-head: fd2b8fd
+head: 3efa517
 lifecycle: building
 production_url: none
 state_doc: README.md
@@ -24,12 +24,13 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 ## Where it is right now (as of 2026-10-26)
 
-<!-- north-star-state {"week_of": "2026-10-26", "week_target": 2, "current": null, "current_as_of": null, "current_source": null, "urgency": 4, "urgency_reason": "not measured yet"} --> **North Star number: U4, far behind.** Qualified leader conversations a week, every one from a warm path or a room: not measured yet, against 2 this week, on the way to 20 by 30 November 2026. A bold swing every day; work that does not move the number waits.
+<!-- north-star-state {"week_of": "2026-10-26", "week_target": 2, "current": null, "current_as_of": null, "current_source": null, "urgency": 4, "urgency_reason": "not measured yet"} --> **North Star number: U4, far behind.** Good meetings a week, each marked good by Krish after it and traced to where it came from: not measured yet, against 2 this week, on the way to 20 by 30 November 2026. A bold swing every day; work that does not move the number waits.
 
 Lifecycle: building. The detail is in `README.md`.
 
 ## What changed recently
 
+- 2026-10-27 **A plan for a bulletproof engine, with Canva in it.** Krish answered ten questions and the plan is filed (`docs/briefs/2026-10-27-bulletproof-growth-engine.md`): one week spec he signs on Monday, a crew of nine specialists as code (a lint before acting, a measured check after, a card and a lens each), every past fix kept as a test, a session pack of 36 KB or less, Codex task cards behind an allowance guard, and a phased build measured against this repo's own baseline. Rulings (Krish, 2026-10-27): any good meeting counts toward the number, traced to where it came from (`docs/NORTH_STAR.md`); rooms are guest seats only; two podcasts booked a week and one stage a fortnight; a new Mindmake brand kit in Canva first, then the speaker and guest one-sheet with Jonny's box as its contact; every asset and strategy in Drive, mind/make > 03_Growth (`docs/DRIVE.md`). Nothing in the engine is built yet.
 - 2026-10-27 **Guest invites onto his own shows, for Jonny's Gmail (protocol 1.9.0).** Krish: guests for Signal & Noise and Make Your Mind Up are part of his visibility, and Make Your Mind Up takes a weekly conversation. Guests Control Center's guest standard judged worth having or a stretch, with an address on record, not invited before and not ruled out, now get one invite from Jonny to the show they were judged for: "A conversation for" the show, one ask, signed Jonny. Four a week by the shows' shares (three Make Your Mind Up, one Signal & Noise), at most two a run, taken first from the ten. Speaking pitches now carry the stage's audience size as reach. Built and tested; a pull request (`src/stages/pitches.mjs`).
 - 2026-10-27 **Speaking pitches on EVENTS, for Jonny's Gmail (protocol 1.9.0).** Krish: EVENTS was empty, and his EVENTS is events to pitch to. Stages to speak on whose own page gives an address for speakers (Control Center keeps it as the booking contact) now get a pitch in Jonny's voice: one ask, a talk or a panel seat, with one talk title, open and before the deadline, never pitched twice or against a No. Ten a run between podcasts and stages; stages keep up to four (`src/stages/pitches.mjs`).
 - 2026-10-27 **Podcast pitches in Jonny's voice, for his Gmail (protocol 1.9.0).** Krish, 2026-10-27: pitch him to as many podcasts as possible from Jonny's Gmail, "Drafted daily, no press", "For visibility Jonny sends"; the goal is one podcast a week. Each run now writes up to ten pitches (`src/stages/pitches.mjs`) to the shows Control Center holds with an address the show publishes for itself, live within 120 days, not pitched before and not ruled out by any No, best first by Nova's verdict, recency, whether his buyer listens and how long the show has run. Each is a visibility row naming Jonny's box, about the show (`target:<id>`), in Jonny's words: Krish in the third person as Executive Host of Signal & Noise, his publication and the brain door from the canon read live, and his track record from krishraja.com's own repository read live (`readRecord`, `krishanraja/krish-raja` `src/content/receipts.ts`, named by blob SHA). Control Center drafts each into Jonny's Gmail with no press; nothing is written until it serves 1.9.0. Also: a title never carries an honorific, a partner's email names who they back, "no emails between you on record" replaces "no email on record" where nothing was counted, and Control Center's `signal_noise` slug marks his own show. Built and tested; a pull request.
@@ -44,6 +45,8 @@ Lifecycle: building. The detail is in `README.md`.
 
 ## What is next and what is waiting on Krish
 
+- Read the plan and say go for Phase 0 (the baseline) and Phase 1 (the number wired by path). Run the Cowork brand kit session on his PC (`docs/briefs/2026-10-27-canva-brand-kit-cowork.md`): he logs in to Canva and opens the brand assets folder.
+- North Star check (2026-10-27, the plan): holds. Wiring the number by path comes first, and the one-sheet aims the visibility rows at bookings; the number is still unmeasured.
 - After Control Center serves 1.9.0 (krishanraja/control-center#575, which also lets Jonny's box serve the events row), run the dispatch once and read back the pitches: each about a show or a stage with its own address, in Jonny's words, none to one already drafted; then Control Center's drafts in Jonny's Gmail and, later, which ones answer.
 - Measure the North Star number and record it on the first line under "Where it is right now".
 - After Control Center's 1.6.0 is live, read the first live report with rows and spot-check ten reach figures against their sources.
