@@ -457,6 +457,7 @@
         "src/dispatch.mjs",
         "src/strategy.mjs",
         "src/stages/canon.mjs",
+        "src/stages/meetings.mjs",
         "src/stages/rows.mjs",
         "src/stages/signals.mjs",
         "src/stages/pitches.mjs"

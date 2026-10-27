@@ -1,5 +1,17 @@
 # Release state
 
+## The number, wired (plan Phase 1), 27 October 2026
+
+Built and tested; merged by the session per Krish's go of 27 October. Not live until the dispatch's next run reports, and the first count needs his answer.
+
+- **The number.** `good_meetings` leads every report's objectives. From Monday 2 November the dispatch posts one Monday ask, `gmg-<last week>`: a strategy plan holding every path as null. It is counted only from his "Change it first" version after its `amended_sha256` is recomputed. A Clear without numbers, a decline, an unreadable answer or decisions that cannot be read leave it missing with the reason, never 0. The weekly target comes from the ladder read from docs/NORTH_STAR.md, or from Control Center's refresh when it is a number (Mindmake's read "private").
+- **Bookings.** `podcasts_booked` (this London week, against 2) and `stages_confirmed` (the last fourteen days, against 1) come from each pitch's `booked_at` in the 1.9.0 context, and are missing when pitch outcomes are not served completely.
+- **Safety (N15, N16, N18).** Only `gmc-` campaign plans reach prepare-action. An amended plan or go-live is acted on only after its digest verifies, else `amended_digest_mismatch`. A campaign plan over 8,000 characters is held as `payload_too_long` instead of failing the report.
+- **Directive (N03, N10).** The directive's North Star figures and constraints are read as data. The constraints are reported in shadow, holding nothing yet. Every report carries the standing `founder_visibility_open` hold, which never marks a run as held.
+- **Control Center's side.** docs/CONTROL-CENTER-BRIEF.md now lists exactly what protocol 1.10.0 owes, in build order.
+- **Verified on:** the seven repository checks, with 268 tests (13 new in tests/meetings.test.mjs). Six deliberate mutations of the new guards were each caught by a failing test.
+- **Live proof:** none yet.
+
 ## Trusted-distribution session closeout, 27 October 2026
 
 Documentation closeout only. The [dated handoff](history/2026-10-27-growth-session-handoff.md) records the completed 22 October release through Control Center PR 523 and growth-mindmake PR 7, its authorised migration/configuration readback, preparation-only canary and replay, and the subsequent private route preparation. It supersedes the outstanding production-release gates in the original 22 October local-build note below. It establishes no verified external action or commercial result.
