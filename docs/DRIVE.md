@@ -13,7 +13,7 @@ Read this before touching Drive or Canva. The same map sits at the top of the Dr
 
 ## What lives here, and what never does
 
-Here: the engine's strategies (week specs, weekly reviews, plans, briefs, Cowork prompts), its measurements (the baseline, weekly North Star and visibility readouts), its assets (the brand kit, its source files and specimen, the speaker and guest one-sheet, later kits) and the index of all of them.
+Here: the engine's strategies (week specs, weekly reviews, plans, briefs, Cowork prompts), its measurements (the baseline, weekly North Star, visibility and mindmake.co traffic readouts), its assets (the brand kit, its source files and specimen, the speaker and guest one-sheet, later kits) and the index of all of them.
 
 Never here:
 - approval state of its own: a title, a folder such as Current, or an index entry is a label copied after Control Center records a decision, never authority;
@@ -39,7 +39,7 @@ Every folder name starts with "Growth" or sits inside one that does, so a Drive 
     Speaker and guest one-sheet/
       Current/                       exactly one PDF, the version Control Center last approved by its SHA
       Drafts/                        unapproved revisions, the last three at most
-  Growth measurement/                the baseline, weekly North Star and visibility readouts
+  Growth measurement/                the baseline, weekly North Star, visibility and mindmake.co traffic readouts
   Growth archive/                    superseded versions, never deleted
 ```
 
@@ -47,7 +47,7 @@ A new asset kind gets its own folder under Growth assets with the same Current a
 
 ## Naming
 
-`YYYY-MM-DD <Kind> <subject> vN`, optionally followed by ` (superseded YYYY-MM-DD)`, then the file extension if it has one. Kinds: Week spec, Weekly review, Plan, Brief, Cowork prompt, Baseline, Readout, Brand kit spec, Brand kit specimen, One-sheet. The date is the day it was made, or the London Monday of its week for a week spec. Examples: `2026-10-27 Plan Bulletproof growth engine v1`, `2026-11-09 Week spec Mindmake growth v1`, `2026-11-03 One-sheet Speaker and guest v2 (superseded 2026-11-10).pdf`. Exceptions keep their own names: the READ ME, the Growth index, and files in a Source files folder, which keep the names they have at their source. Never "final", "new" or "copy of" in a title.
+`YYYY-MM-DD <Kind> <subject> vN`, optionally followed by ` (superseded YYYY-MM-DD)`, then the file extension if it has one. Kinds: Week spec, Weekly review, Plan, Brief, Cowork prompt, Baseline, Readout, Brand kit spec, Brand kit specimen, One-sheet. The date is the day it was made, or the London Monday of its week for a week spec. Examples: `2026-10-27 Plan Bulletproof growth engine v1`, `2026-11-09 Week spec Mindmake growth v1`, `2026-11-06 Readout mindmake.co traffic v1`, `2026-11-03 One-sheet Speaker and guest v2 (superseded 2026-11-10).pdf`. Exceptions keep their own names: the READ ME, the Growth index, and files in a Source files folder, which keep the names they have at their source. Never "final", "new" or "copy of" in a title.
 
 ## Rules
 
@@ -58,7 +58,7 @@ A new asset kind gets its own folder under Growth assets with the same Current a
 5. **Nothing loose.** Only the READ ME and the Growth index sit at the top of 03_Growth.
 6. **Never share, trash or move out.** Sharing, changing permissions, trashing, or moving anything into or out of 03_Growth needs Krish's yes at the time. Nothing is ever deleted.
 7. **Canva mirrors it.** Designs the engine makes live only in the Canva folder Mindmake Growth, in its subfolders Brand kit, Speaker and guest one-sheet, and Drafts. The old Mindmaker kit and its designs are left as they are.
-8. **No people.** A weekly review or readout filed here carries counts, paths and decisions, never names or contact details. This rule carries extra weight because mind/make, and so 03_Growth, is shared so that anyone with the link can edit it, which Krish chose to keep on 2026-10-27. Nothing private is ever filed here.
+8. **No people.** A weekly review or readout filed here carries counts, paths and decisions, never names or contact details. This rule carries extra weight because mind/make, and so 03_Growth, is shared so that anyone with the link can edit it, which Krish chose to keep on 2026-10-27. Nothing private is ever filed here. A traffic readout carries the week-on-week change and the share of visits by path, with the sentence "Counts only visitors who press Allow, so it is a floor and a trend, not a total", and never a count: traffic counts stay in Control Center (Ruling, Krish, 2026-10-27).
 
 ## The check
 

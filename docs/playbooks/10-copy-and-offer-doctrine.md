@@ -198,5 +198,5 @@ Below 28 of 48, return `needs_review` with the weakest link named. A high score 
 8. No fear framing for expensed buyers. Motives are ambition, competence and autonomy.
 9. No paid acquisition, generic sequences or automatic connection requests; the Core Four's paid and cold one-to-many-at-scale motions are out.
 10. No em dashes in new material, and British English throughout.
-11. Measurement uses recorded outcomes only: qualified conversations with human confirmation and paid proofs with payment evidence. Opens, clicks and rubric scores never count as results.
+11. Measurement uses recorded outcomes only: qualified conversations with human confirmation and paid proofs with payment evidence. Opens, clicks and rubric scores never count as results. Visits to mindmake.co are a supporting reading (Ruling, Krish, 2026-10-27): they rank the work and are never a result.
 12. Discovery and closing belong to Krish's conversation. The engine prepares questions and records evidence; it never closes or qualifies on its own.

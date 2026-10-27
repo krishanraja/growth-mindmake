@@ -44,6 +44,19 @@ Apply the canonical personal harness and krish-principles, then strategy-brief, 
 - Every asset and strategy this engine produces lives in Drive, mind/make > 03_Growth, by docs/DRIVE.md. The engine keeps it easy to find and never lets it sprawl.
 - The week spec is signed Monday morning with one Clear on his Control Center list; Friday is the review. The architecture plan is docs/briefs/2026-10-27-bulletproof-growth-engine.md.
 
+## Traffic to mindmake.co (Rulings, Krish, 2026-10-27)
+
+In his words: "Don't forget to drive as much traffic to mindmake.co as possible. You have Google Analytics installed already and Control Centre can see that. Make sure this is a part of your Measurement Specialist. Happy to let you read Google Analytics directly if you prefer."
+
+- Every lane looks for ways to send people to mindmake.co inside the canon: its allowed asks only, one ask a message, and his read before any new page or claim on the site.
+- The Measurement Specialist reads mindmake.co's Google Analytics through Control Center (protocol 1.10.0, once served), never directly.
+- Traffic is a supporting reading: it ranks the work and is reported every week beside the number. It is never a meeting, never part of the number, never a result and never an objective.
+- Every reading says "Counts only visitors who press Allow, so it is a floor and a trend, not a total", compares week on week, and is null with a reason when unknown.
+- Links on public placements may carry `utm_source=growth-<path>&utm_medium=referral` from a fixed list. His one-to-one notes and source citations are never tagged, and no tag names a person, a show or a proposal.
+- After a show or stage confirms a date, Jonny sends the host one short note asking for the brief link in its show notes or event page.
+- Once the one-sheet reads at its pinned SHA, a podcast or stage pitch's one link is the one-sheet, with Make Your Mind Up still named.
+- Traffic counts stay in Control Center. Drive readouts carry only the week-on-week change and the share by path; nothing goes in git, NOW.md, Actions logs or the printed run result.
+
 ## Current release boundary
 
 Krish authorised implementation across growth-mindmake and Control Center on 22 October 2026. Extend the shared protocol and the existing daily `cc-growth-directive` dispatch. docs/CONTROL-CENTER-BRIEF.md supersedes the historical producer-only handoff.
