@@ -26,6 +26,9 @@
     "check:links": "node scripts/check-links.mjs",
     "check:drift": "node scripts/check-drift.mjs",
     "check:library": "node scripts/check-library.mjs --listing tests/fixtures/library/listing.synthetic.json --fixture",
-    "mutate": "node scripts/mutate.mjs"
+    "mutate": "node scripts/mutate.mjs",
+    "pack": "node scripts/pack.mjs",
+    "dispatch-card": "node scripts/dispatch-card.mjs",
+    "verify-card": "node scripts/verify-card.mjs"
   }
 }

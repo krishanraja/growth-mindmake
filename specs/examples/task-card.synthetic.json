@@ -1,0 +1,27 @@
+{
+  "card": "codex-task/1",
+  "id": "example-week-label",
+  "title": "Synthetic example: a pure London week label for activity lines",
+  "model": {
+    "name": "example-codex-model",
+    "effort": "medium",
+    "why": "Synthetic. A real card names the model and effort the reference architecture measured, re-checked against Codex's own model list at dispatch."
+  },
+  "limits": { "max_minutes": 20, "max_calls": 60 },
+  "worktree": { "from": "main", "branch": "codex/example-week-label", "dir": "../growth-mindmake-codex-example-week-label" },
+  "write_allow": ["src/crew/week-label.mjs", "tests/week-label.test.mjs"],
+  "read": ["src/crew/compile.mjs", "scripts/pack.mjs", "docs/codex/TASK-CARD.md"],
+  "never": ["git", "network", "mcp", "publishing", "new_dependencies", "edits_outside_write_allow", "secrets", "people"],
+  "interface": "export function weekLabel(mondayIso: string): string\n- mondayIso is a London Monday as YYYY-MM-DD; anything else throws RangeError('not a Monday').\n- Returns 'the week of <D> <Month> <YYYY>', for example weekLabel('2026-11-09') === 'the week of 9 November 2026'.\n- Pure: no clock, no file, no network. No em dash or en dash in any string.",
+  "acceptance": ["node --test tests/week-label.test.mjs", "npm run check"],
+  "returns": {
+    "type": "object",
+    "required": ["status", "files_changed", "acceptance", "notes"],
+    "properties": {
+      "status": { "enum": ["done", "blocked"] },
+      "files_changed": { "type": "array", "items": { "type": "string" } },
+      "acceptance": { "type": "array", "items": { "type": "object", "properties": { "command": { "type": "string" }, "exit": { "type": "integer" } } } },
+      "notes": { "type": "string", "maxLength": 600 }
+    }
+  }
+}

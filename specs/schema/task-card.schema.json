@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/krishanraja/growth-mindmake/blob/main/specs/schema/task-card.schema.json",
+  "title": "codex-task/1: one Codex task card, 6 KB or less",
+  "description": "Plan section 6 (docs/briefs/2026-10-27-bulletproof-growth-engine.md). A card names one bounded change for Codex in its own worktree. scripts/dispatch-card.mjs validates it against this schema, the 6,144-byte limit and the rules the schema cannot say (the branch is codex/<id>, every never item is present, globs stay inside the repository), and binds his yes to the SHA-256 of its canonical JSON. scripts/verify-card.mjs re-runs its acceptance commands and the seven repository checks outside the sandbox. No person, id of a record, private link, figure or credential ever goes in a card.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "card",
+    "id",
+    "title",
+    "model",
+    "limits",
+    "worktree",
+    "write_allow",
+    "read",
+    "never",
+    "interface",
+    "acceptance",
+    "returns"
+  ],
+  "properties": {
+    "card": {
+      "const": "codex-task/1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,47}$",
+      "description": "Lower case, digits and hyphens. The branch is codex/<id>."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 120
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "effort",
+        "why"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^(?!default$)[a-z0-9][a-z0-9.-]{1,63}$",
+          "description": "Pinned, never the default; re-checked against Codex's own model list at dispatch."
+        },
+        "effort": {
+          "enum": [
+            "minimal",
+            "low",
+            "medium",
+            "high",
+            "xhigh"
+          ]
+        },
+        "why": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 240,
+          "description": "The measured reason for this model and effort."
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_minutes",
+        "max_calls"
+      ],
+      "properties": {
+        "max_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120
+        },
+        "max_calls": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 400
+        }
+      }
+    },
+    "worktree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "branch",
+        "dir"
+      ],
+      "properties": {
+        "from": {
+          "const": "main"
+        },
+        "branch": {
+          "type": "string",
+          "pattern": "^codex/[a-z0-9][a-z0-9-]{2,47}$"
+        },
+        "dir": {
+          "type": "string",
+          "pattern": "^\\.\\./growth-mindmake-codex-[a-z0-9][a-z0-9-]{2,47}$",
+          "description": "A sibling of the main checkout, never the second checkout."
+        }
+      }
+    },
+    "write_allow": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "string",
+        "pattern": "^(?![/.])(?!.*\\.\\.)[A-Za-z0-9_*?/.-]{1,120}$"
+      }
+    },
+    "read": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": {
+        "type": "string",
+        "pattern": "^(?![/.])(?!.*\\.\\.)[A-Za-z0-9_/.-]{1,120}$"
+      }
+    },
+    "never": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 10,
+      "items": {
+        "enum": [
+          "git",
+          "network",
+          "mcp",
+          "publishing",
+          "new_dependencies",
+          "edits_outside_write_allow",
+          "secrets",
+          "people"
+        ]
+      }
+    },
+    "interface": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 2400,
+      "description": "The interface, verbatim: signatures, shapes and the behaviour each must have."
+    },
+    "acceptance": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "string",
+        "pattern": "^(npm (test|run [a-z][a-z:-]*)|node( --test)? [A-Za-z0-9_./-]+\\.mjs)( [A-Za-z0-9_./=:,-]+)*$",
+        "maxLength": 200
+      }
+    },
+    "returns": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "required",
+        "properties"
+      ],
+      "properties": {
+        "type": {
+          "const": "object"
+        },
+        "required": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,39}$"
+          }
+        },
+        "properties": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

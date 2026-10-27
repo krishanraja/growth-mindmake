@@ -16,60 +16,22 @@ This repository's North Star is [`docs/NORTH_STAR.md`](docs/NORTH_STAR.md): an a
 
 When Krish says "Get going", or opens a session with no more specific task, follow `docs/GET-GOING.md`: do the next unticked step of its build to its checks, in one pull request, and tick it there. Keep that file current as the plan changes. Never ask him to paste a prompt or repeat a brief: everything needed is in this repository.
 
+## Every session: the pack
 
-## Approved execution (Ruling, Krish, 2026-10-22)
-
-Mindmake prepares autonomously across Network, Advisory, Guests, Visibility and Events. Krish approves the exact finished external action, then the shared Control Center executor may execute a supported route and independently verify it. This supersedes the handcrafted ruling of 19 October. An amended version is his version, after its digest is verified. A network tier, plan approval or prepared draft is never send authority. Unsupported channels, assets or costs stay blocked.
-
+Run `npm run pack` (add `-- --cards <slug>,<slug>` for up to three specialists in play from crew/index.json, and `--report <file>` for a report's holds and lint findings) and read runtime/pack.md. It holds this file, NOW.md, docs/NORTH_STAR.md, the week spec in force, those cards, open findings and holds as counts and codes, and gate status, in 36 KB or less, and fails above it. Open docs/BRIEF.md, docs/CONTROL-CENTER-BRIEF.md, docs/control-center/ENGINE-PROTOCOL.md, the dated handoff, docs/OWNERS.md or docs/RULINGS.md only when the task needs them.
 
 Apply the canonical personal harness and krish-principles, then strategy-brief, krish-build and verification-loop for material changes. Read docs/BRIEF.md and docs/RELEASE.md before changing scope. Commercial content also uses Mindmake context, conversion strategy and Krish's voice rules. Every draft, aid, review and proof-scope proposal applies docs/playbooks/10-copy-and-offer-doctrine.md.
 
-## The five rows and signals (Rulings, Krish, 2026-10-26)
+## Rulings
 
-- growth-mindmake owns everything about growing Mindmake and connecting Krish to the right people: who, rank, words, channel and learning. Control Center holds the holistic view (records, walls, execution, the widget, the research tools) and never duplicates it (Control Center ADR-041).
-- Every suggestion is ranked by how far his name travels: hunt amplifiers (playbook 11).
-- No stored assumptions about the venture: row words come from Mindmake's canon read live each run, and every action names the files it rests on by blob SHA.
-- A row action pressed on his widget becomes a Gmail draft he sends himself, a message opened with the words typed, or a form submitted on his tap. The engine never sends it.
-- No on any suggestion takes a reason, a better one replaces it, and the lesson is kept for good.
-- People who comment on posts about AI and their jobs are worth reaching, but only worried executives in his ICP, never AI people. The engine thinks about these signals and brings each to him for action; Control Center only collects. This is his decision to reach people beyond his network who engaged in public, one note at a time, each on his press.
-- The North Star number stays as he writes it in docs/NORTH_STAR.md; reach only ranks the work.
+Each is in docs/RULINGS.md word for word, with his quotes; a line here says what it binds and never replaces the record. A new ruling goes there and gets a line here in the same change.
 
-## Meetings, visibility, Canva and the Growth library (Rulings, Krish, 2026-10-27)
-
-- The number counts any good meeting: he marks it good with one tap after it, whether with a buyer, a multiplier, a partner or a host. The engine pre-fills where it came from, and the path is recorded once and never rewritten (docs/NORTH_STAR.md).
-- Rooms are guest seats only: no hosted rooms this year. A room is a seat on someone else's stage, panel, forum or podcast.
-- Visibility target: two podcasts booked a week and one stage or panel confirmed a fortnight, replacing one podcast a week. A booking counts when the show or stage confirms a date.
-- Canva, in his words: "Canva is also available for you to use at will with zero limits in the engine." Read as (an interpretation, pending his confirmation): creating, editing, uploading and exporting drafts inside his own Canva account is at will; publishing a brand template, sharing a design, making anything public, merging a page, and any send, spend, purchase, upgrade or trial need his yes at the time. Growth assets carry a new Mindmake brand kit, built first by a Cowork computer-use session on his PC; the old Mindmaker kit is left as it is. The first asset is the speaker and guest one-sheet, with Jonny's box as its booking contact.
-- An asset reaches people as a link in the words, never as an attachment: a PDF at mindmake.co/media, and later a SendLinks link per recipient minted by Control Center.
-- Every asset and strategy this engine produces lives in Drive, mind/make > 03_Growth, by docs/DRIVE.md. The engine keeps it easy to find and never lets it sprawl.
-- The week spec is signed Monday morning with one Clear on his Control Center list; Friday is the review. The architecture plan is docs/briefs/2026-10-27-bulletproof-growth-engine.md.
-
-## Traffic to mindmake.co (Rulings, Krish, 2026-10-27)
-
-In his words: "Don't forget to drive as much traffic to mindmake.co as possible. You have Google Analytics installed already and Control Centre can see that. Make sure this is a part of your Measurement Specialist. Happy to let you read Google Analytics directly if you prefer."
-
-His answers the same day:
-- The Measurement Specialist reads mindmake.co's Google Analytics through Control Center (protocol 1.10.0, once served), never directly.
-- After one of Jonny's pitches to someone else's show or stage is booked, Jonny sends the host one short note asking for the brief link in its show notes or event page.
-- Once the one-sheet reads at its pinned SHA, a podcast or stage pitch's one link is the one-sheet, with Make Your Mind Up still named; the one-sheet prints the show's link and the brief link.
-- Traffic counts stay in Control Center. Drive readouts carry only the week-on-week change and the share by path; nothing goes in git, NOW.md, Actions logs or the printed run result.
-- Traffic is never a meeting and never part of the number (docs/NORTH_STAR.md).
-
-Later the same day: "mindmake.co for all mindmake venture things". Every Mindmake link the engine writes, a stage form's website field included, points to mindmake.co; krishraja.com stays only where a form asks for his personal speaker site. He also approved every piece of the plan, with "yes merge them yourself, go": a session merges this repository's pull requests once their checks pass, timed just after a morning run. Each send, publish, spend or permission change still takes his yes at the time.
-
-How the plan reads it (docs/briefs/2026-10-27-bulletproof-growth-engine.md, version 3; an interpretation, pending his go on the plan):
-- Every lane looks for ways to send people to mindmake.co inside the canon: its allowed asks only, one ask a message, and his read before any new page or claim on the site.
-- Traffic is a supporting reading: meetings by path decide what ranks first, and traffic by path only breaks ties between levers. It never steers the work, never counts as a result and is never an objective; it is reported every week beside the number.
-- Every reading says "Counts only visitors who press Allow, so it is a floor and a trend, not a total", compares week on week, and is null with a reason when unknown.
-- Links on public placements may carry `utm_source=growth-<path>&utm_medium=referral` from a fixed list. His one-to-one notes and source citations are never tagged, and no tag names a person, a show or a proposal.
-
-## Control Center reads and reports; this engine owns the strategy (Ruling, Krish, 2026-10-27)
-
-In his words: "make sure all the old growth machinery from control-center is brought in to your machine. Control center should just be where you read from and where you report to, it does not own the strategy for how to grow mindmake as a business"
-
-- Every decision about how to grow Mindmake lives in this repository: who to reach, ranking, scoring, choosing the next move, the words and the learning.
-- Control Center is the store and the executor: it collects data, serves it through the protocol, holds records and his list, and carries out what he approves. It never ranks, scores or chooses a Mindmake growth move.
-- Growth logic that still lives in Control Center for Mindmake is moved here, one piece per pull request, and Control Center's copy is retired in the same change on its side. The inventory and order are in docs/briefs/2026-10-27-bulletproof-growth-engine.md, section 12.
+- Approved execution (Ruling, Krish, 2026-10-22): he approves the exact finished external action, and only then may the shared Control Center executor run a supported route and verify it; a network tier, plan approval or prepared draft is never send authority.
+- The five rows and signals (Rulings, Krish, 2026-10-26): this engine owns who to reach, the rank, the words, the channel and the learning, ranks by how far his name travels, reads Mindmake's canon live each run, and never sends a row action itself.
+- Meetings, visibility, Canva and the Growth library (Rulings, Krish, 2026-10-27): any meeting he marks good counts by its path, rooms are guest seats only, the visibility target is two podcasts a week and a stage a fortnight, Canva drafts are at will but nothing is published, shared or spent without his yes, assets go out as links and live in Drive by docs/DRIVE.md, and the week spec is signed on Monday.
+- Traffic to mindmake.co (Rulings, Krish, 2026-10-27): drive traffic to mindmake.co, read Analytics only through Control Center, never count traffic as a meeting or an objective, point every Mindmake link at mindmake.co, and merge this repository's pull requests once their checks pass while each send, publish, spend or permission change still takes his yes.
+- Control Center reads and reports; this engine owns the strategy (Ruling, Krish, 2026-10-27): every Mindmake growth decision lives here, Control Center only stores, serves and executes, and its remaining Mindmake growth logic moves here one piece per pull request.
+- The session pack and Codex task cards (Ruling, Krish, 2026-10-27): sessions start from the pack, and a Codex card runs only behind the allowance guard and his yes on its digest, and is accepted only on verification outside the sandbox.
 
 ## Current release boundary
 
@@ -81,29 +43,7 @@ Docs/RELEASE.md owns the completion record. Keep built, tested, merged, deployed
 
 ## One owner per responsibility
 
-- contracts/growth.ts: canonical source/draft wire types and parsers. A future consumer must use the frozen contract rather than guess its shape.
-- contracts/reporting.ts: canonical reporting and improvement interface. Its version and digest belong in contracts/manifest.json and the handoff.
-- config/policy.json: targets, bounds and permitted motions, including `bounds` (the minimum and maximum every week-spec cap sits inside, each with its safer direction), Jonny's ten drafts a day and the ruled visibility targets (`recognition`). No sending or spending authority.
-- src/stages/qualify.mjs: prospect relevance, evidence and suppression gates. Never human conversation qualification.
-- src/stages/draft.mjs: proposed message and decision aid.
-- src/stages/scorecard.mjs: London-week and first-month outcome semantics. Global counts require complete outcome coverage independent of a prospect page.
-- src/control-center.mjs: bounded authenticated transport, receipt validation and authoritative readback, including the growth engine protocol client (`engineClient`). No blind write retries.
-- src/dispatch.mjs: the daily Control Center dispatch, proposal/report readback, capability negotiation and guarded approved-action loop. It reports in `events[]` only what it can prove closed (a verified receipt, his counted Monday answer, his signed week spec; N02), posts one `gmd-` doctrine review a week for a row whose words he called off twice in 28 days (N06), and ends a live run that read nothing, or read work and prepared and held nothing, failed with its class (`nothing_read`, `context_unread`, `nothing_prepared`; F48). src/strategy.mjs owns strategic selection over native identities and complete outcome coverage; qualification reuses src/stages/scorecard.mjs.
-- src/orchestrator.mjs: routing and semantic identities. Domain rules stay in their stages.
-- src/engine.mjs and contracts/engine.ts: complete selected-job cycle, shared capacity, campaign routing, private work identity and exact dispositions. `engine` is the full cycle; `daily` retains the earlier outbound interface.
-- src/stages/motions.mjs and contracts/motions.ts: evidence-scoped outreach, trust, speaking and reusable aids; reuse existing outbound eligibility.
-- src/stages/lifecycle.mjs and contracts/lifecycle.ts: introduction permissions, actual inbound requests, qualification preparation, bounded proof scope and paid delivery handoff. Preparation changes no outcome.
-- src/stages/research.mjs and contracts/research.ts: explicit research tasks and proposed private enrichment from supplied sources; no automatic prospect authority.
-- src/weekly-review.mjs: global commercial constraints, source-backed channel attribution, actual effort and observed experiments, with one persisted-feedback-aware recommendation.
-- src/stages/rows.mjs: the five rows on Krish's home screen (protocol 1.6.0): amplifier kinds, reach, rank, the words, the channel, the full card a tap opens (1.8.0: who, how he knows them, why, what he gets, the angles, the sources; at 1.10.0 its why lines read Control Center's typed `facts[]` before its prose, each a whole engine sentence around one fact, a post only with its page), and the lessons of every No and its reason. src/stages/signals.mjs: signals from his buyers (who commented, worried, on posts about AI and their jobs) and the research it asks Control Center to run for them. src/stages/canon.mjs: Mindmake's canon read live from its own repository every run, named by blob SHA, and Krish's track record from krishraja.com's own repository (`readRecord`). src/stages/pitches.mjs: podcast pitches and guest invites onto his own shows (VISIBILITY) and speaking pitches (EVENTS) in Jonny's voice for his Gmail (protocol 1.9.0), which Control Center drafts with no press. Playbook 11 holds the doctrine. src/stages/meetings.mjs: the North Star number (good meetings by path: from Krish's one tap after each meeting he held once Control Center serves them at 1.10.0, `features.meetings`, else from his typed Monday answer), where each unanswered meeting came from (`origin_candidates`, from the engine's own records), the `gmg-` Monday ask while taps are not served, the ladder read from docs/NORTH_STAR.md, the directive's number and constraints read as data, and podcast and stage bookings against his targets. src/stages/traffic.mjs: the Measurement Specialist's traffic reading of mindmake.co from the directive's `web_analytics` (1.10.0): two activity lines a run with the consent sentence, never an objective, and the one tag builder for public placements (`utm_source=growth-<podcast|guest-seat|one-sheet>&utm_medium=referral`). src/stages/shownotes.mjs: the show-notes note (1.10.0, `kind: show_notes_ask`, `features.show_notes`): once one of Jonny's pitches is booked, Jonny thanks the host and asks once for the brief link in the show notes or event page, tagged for its placement; the one stage that writes a tagged link, and a word file. The dispatch also takes back (`withdrawn`, `features.withdrawn`) pending campaign plans whose Advisory record Control Center no longer holds. Only `gmc-` campaign plans reach prepare-action, and an amended version is used only after its digest is recomputed.
-- src/crew/compile.mjs and specs/: the week spec Krish signs on Monday (`growth-week/1`, specs/schema/week.schema.json, frozen in contracts/manifest.json; plan Phase 2). It compiles a signed spec into the caps the stages read (rows on or off and their cap, the fit floor, pitches per run, the stage share, invites, the shows' split, forms per row), inside the bounds config/policy.json owns: a value outside one is refused, never clamped, no spec can change a bound, and zero spend is enforced here. The default spec is today's caps, generated from the stages' own exports. It also owns the `gms-` proposal, his signature (a Clear on the digest posted, or his version after `amended_sha256` is recomputed), the holds `spec_too_long`, `spec_amended_invalid` and `spec_unsigned`, and the fallback: this week's signed spec, else last week's, else today's settings. Nothing changes before the week of 9 November. Proposed specs live in specs/weeks/<monday>.json, synthetic examples in specs/examples/, and neither holds people, ids or private links.
-- crew/, src/crew/shadow.mjs, src/crew/lints/, src/crew/checks/ and src/crew/cards.mjs: the crew as code (plan Phase 3). crew/index.json names the nine specialists of plan section 3, each owning a lint (pure, `(action, context, spec) -> findings`, importing the stage predicates and restating none), a measured check (pure, `null` with its reason when unmeasured, never a zero nobody measured) and a card and lens generated from the playbooks by scripts/check-crew.mjs with each source's SHA-256, so an unregenerated card is drift. Card grammar (src/crew/lints/grammar.mjs) reads every 1.8.0 card line: whole engine sentences, or record sentences that pass `factTest` in src/stages/rows.mjs; the stages' deny-lists stay the first net. Every lint runs in shadow on each dispatch until the Phase 5 switch: two counted activity lines (`Crew lints, in shadow:` and `Crew checks, measured after acting:`), never a held, hidden or changed proposal. The golden test leaves out exactly those two lines.
-- src/crew/library.mjs and library/taxonomy.json: the Librarian's rules, read from docs/DRIVE.md (taxonomy.json is generated, with a drift check), its naming pattern and the counts of its check over a listing (scripts/check-library.mjs; a synthetic listing in tests/fixtures/library/). Until Control Center serves the library listing, the check reports unknown.
-- scripts/check-bespoke.mjs (no run id, dated value or person in a src string literal), scripts/check-links.mjs (every relative Markdown link resolves inside the repository), scripts/check-drift.mjs (NOW.md's head and named files, the protocol header) and scripts/check-crew.mjs run inside `npm run check`; scripts/mutate.mjs re-runs every mutation declared in invariants/mutations.json (`npm run mutate`, in CI, not in `npm test`). Regression tests for past fixes live in tests/regression/, hand-written synthetic live-failure shapes in tests/fixtures/live-shapes/.
-- docs/DRIVE.md: the Growth library in Drive (mind/make > 03_Growth) and Canva (Mindmake Growth): what goes where, naming, one current version, the index and the library check. Every session that files something follows it.
-- docs/CONTROL-CENTER-BRIEF.md and docs/control-center/: the protocol contract with Control Center, copied from its authoritative source. docs/CONTROL-CENTRE-HANDOFF.md remains as history and for the seven frozen contracts.
-
-pipeline/stage-conveyor.json declares executable ownership and handoffs. Keep it current when topology changes. Do not add a parallel state store, scheduler, contact database, approval interface or model provider.
+docs/OWNERS.md names the one owner of every responsibility. Read it before adding a file or moving a duty, and change it in the same change. pipeline/stage-conveyor.json declares executable ownership and handoffs. Do not add a parallel state store, scheduler, contact database, approval interface or model provider.
 
 ## Privacy and action authority
 

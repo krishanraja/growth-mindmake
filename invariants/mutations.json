@@ -161,6 +161,56 @@
       "tests": [
         "tests/rows.test.mjs"
       ]
+    },
+    {
+      "id": "ruling-reworded",
+      "what": "a ruling moved to docs/RULINGS.md loses words on the way",
+      "file": "docs/RULINGS.md",
+      "find": "Rooms are guest seats only: no hosted rooms this year.",
+      "replace": "Rooms are guest seats only.",
+      "tests": [
+        "tests/rulings.test.mjs"
+      ]
+    },
+    {
+      "id": "pack-limit-widened",
+      "what": "the session pack limit is widened past 36 KB",
+      "file": "scripts/pack.mjs",
+      "find": "export const PACK_MAX = 36 * 1024;",
+      "replace": "export const PACK_MAX = 360 * 1024;",
+      "tests": [
+        "tests/pack.test.mjs"
+      ]
+    },
+    {
+      "id": "guard-over-80",
+      "what": "the allowance guard lets a card through above 80% usage",
+      "file": "scripts/dispatch-card.mjs",
+      "find": "if (usage.used_percent > USAGE_MAX)",
+      "replace": "if (usage.used_percent > 100)",
+      "tests": [
+        "tests/codex-card.test.mjs"
+      ]
+    },
+    {
+      "id": "guard-yes-any-digest",
+      "what": "the allowance guard takes a yes made on another card digest",
+      "file": "scripts/dispatch-card.mjs",
+      "find": "if (approval.payload_sha256 !== digest)",
+      "replace": "if (false)",
+      "tests": [
+        "tests/codex-card.test.mjs"
+      ]
+    },
+    {
+      "id": "verify-outside-write-allow",
+      "what": "verify-card accepts a change outside write_allow",
+      "file": "scripts/verify-card.mjs",
+      "find": "if (out.length) return stop(",
+      "replace": "if (false) return stop(",
+      "tests": [
+        "tests/codex-card.test.mjs"
+      ]
     }
   ]
 }
