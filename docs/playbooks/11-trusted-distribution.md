@@ -273,8 +273,10 @@ automated next best route."
   city today, so those stay empty.
 - **When it cannot be.** A required field the run is not sure of, a required
   terms box (ticking one is a legal yes in his name), no email to answer him
-  on, or labels so alike that Control Center's runner would put an answer in
-  the wrong field ("Name" and "Company name"): no form is written, the hold is
+  on, or an answer Control Center's runner would put where it should not (it
+  takes the closest label, so "Name" beside "Company name" is answered, but a
+  "Company phone" left empty beside "Company" would be filled): no form is
+  written, the hold is
   counted (`form_unanswerable`, `form_terms`, `form_no_email`,
   `form_labels_overlap`), and the stage falls to its Jonny pitch where its page
   gives an address for speakers. A try that sent nothing (`forms`, `not_sent`)
