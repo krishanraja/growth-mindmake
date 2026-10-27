@@ -68,7 +68,7 @@ test('daily dispatch consumes shared context and full outcomes without the retir
   const policy=JSON.parse(await readFile(new URL('../config/policy.json',import.meta.url)));
   const result=await runDispatch({cc,source:async()=>{throw Error('Snapshot must not be used')},policy,registry:{},attemptId:'gma-synthetic-12345678',clock:()=>NOW});
   assert.equal(result.status,'succeeded'); assert.equal(reports.length,1);assert.equal(calls.length,0);
-  assert.equal(reports[0].proposals[0].stage,'plan');assert.equal(reports[0].objectives[0].value,0);
+  assert.equal(reports[0].proposals[0].stage,'plan');assert.equal(reports[0].objectives.find(o=>o.key==='held_intros').value,0);
   assert.ok(reports[0].holds.some(h=>h.reason==='external_action_unverified'));assert.equal(attempts.at(-1).status,'succeeded');
   assert.equal(reports[0].proposals[0].payload_sha256.length,payloadDigest({}).length);
 });

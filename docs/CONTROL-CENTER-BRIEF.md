@@ -118,6 +118,19 @@ The full spec is `docs/control-center/ENGINE-PROTOCOL.md`, with the report and d
 - Global outcome reads from Control Center's own deals (qualified conversations, paid proofs), so you need not compute them from a page.
 - The Gmail draft readback close.
 
+## What Control Center still owes: protocol 1.10.0 (approved by Krish, 27 October 2026)
+
+Built in this order: first what wires the number, then traffic and the show-notes note. Within 1.x Control Center only adds; the engine sends a new report field only once Control Center serves 1.10.0.
+
+1. **The registry.** Register `good_meetings` (unit `meetings`, the weekly ladder in this repository's `docs/NORTH_STAR.md`), `podcasts_booked` (2 a week) and `stages_confirmed` (1 a fortnight) as Mindmake's objectives, so `chooseNextAction` weighs their gaps. Until then they arrive as unregistered keys. `qualified_conversations` keeps its 5/1 lock.
+2. **Held meetings.** A context part `meetings` from his calendar, each `{ meeting_id, contact_id, held_at, good, good_at, origin_path, origin_ref, assists[], said_yes_because }`, with its coverage line. `good` is null until he answers. `origin_path` is one of `existing-relationship`, `multiplier-intro`, `partner`, `guest-seat`, `podcast`, `own-show-guest`, `public-signal`, `inbound`, `referral`, `unknown`, recorded once and never rewritten.
+3. **The good tap.** One source on his one list after each held meeting, on the "How was the room?" pattern: Clear means good and Purge means not. It is pre-filled from the engine's report field `origin_candidates` (`[{ contact_id, path, origin_ref }]`, at most 40), which the engine sends only once 1.10.0 is served.
+4. **Typed `facts[]`** on a row card, each `{ kind, text, source_url, observed_at }`, so card words are built from facts and never from prose.
+5. **`asset_ref`** on a version 2 action: Control Center mints a SendLinks link per recipient when it drafts or he presses.
+6. **The Growth library listing.** Titles and modified dates only, of Drive mind/make > 03_Growth and the Canva folder Mindmake Growth, as a context part with coverage. Read access is Krish's grant.
+7. **Traffic.** `features.web` and a context part `web` for mindmake.co from the existing Google Analytics store: its coverage line and flags (always `consent_gated`); the latest weekly insights (7 days against the previous 7: sessions, users, engaged sessions, page views, key events; top sources, pages, channels and AI sources); 28 days of the daily totals, each null with a reason when unread; and 14 days of rows by source and medium and by landing page, landing paths filtered as Control Center filters them. Nothing else: no full referrer, query string, country, device, user id or Plausible. Figures go to the engine's own bearer only.
+8. **The show-notes note.** A `show_notes_ask` email kind in Jonny's box, drafted only after Control Center records `booked_at` on one of Jonny's pitches to someone else's show or stage (`job: 'booked'` with a `visibility_target_id`), never on a guest invite (`job: 'guests'`), once per booking, counted inside the ten Jonny drafts a day, and sent by Jonny.
+
 ## Acceptance
 
 - A synthetic report is accepted, replays with the same acknowledgement, and reads back with the same digest.

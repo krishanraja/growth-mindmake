@@ -17,12 +17,19 @@ import { amplifierRows, rankRows, ROWS, TITLE_MAX, TITLE_MAX_BRIEF } from './sta
 import { signalRequests, signalRows } from './stages/signals.mjs';
 import { readCanon, readRecord, blobSha, CanonError } from './stages/canon.mjs';
 import { pitchRows } from './stages/pitches.mjs';
+import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, STOPGAP_PREFIX } from './stages/meetings.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
 export const PRODUCT_SLUG = 'mindmake';
 export const SLUG = 'mindmake';
 export const TIMEZONE = 'Europe/London';
 export const REPORT_SCHEMA = JSON.parse(await readFile(new URL('../docs/control-center/engine-report.schema.json', import.meta.url), 'utf8'));
+/** The weekly ladder Krish set in docs/NORTH_STAR.md, read from the file itself so it never drifts from his number. */
+export const LADDER = readLadder(await readFile(new URL('../docs/NORTH_STAR.md', import.meta.url), 'utf8'));
+/** Campaign plans are the only plans prepare-action may act on (N18). Other plans (`gmg-` and later kinds) are read by their own readers. */
+export const CAMPAIGN_PREFIX = 'gmc-';
+/** Holds that record a standing ruling rather than a problem with this run; they never make a run read as held. */
+const STANDING_HOLDS = new Set(['founder_visibility_open']);
 const DAY = 86400000;
 const CODE = /^[a-z][a-z0-9_]{0,63}$/;
 const CONTACT = /^[A-Za-z0-9_-]{1,64}$/;
@@ -44,6 +51,11 @@ export function canonicalJson(value) {
 }
 const sha256 = text => createHash('sha256').update(text, 'utf8').digest('hex');
 export const payloadDigest = value => sha256(canonicalJson(value));
+/** An amended decision's digest, recomputed: SHA-256 of canonical JSON of exactly `{ amount_usd, exact_payload }`, null when absent (ENGINE-PROTOCOL.md). */
+export function amendedDigestOk(d) {
+  if (typeof d?.amended_sha256 !== 'string' || typeof d.exact_payload !== 'string') return false;
+  return payloadDigest({ amount_usd: d.amount_usd === undefined ? null : d.amount_usd, exact_payload: d.exact_payload }) === d.amended_sha256;
+}
 /** SHA-256 of the canonical report without its own payload_sha256 field. */
 export function reportDigest(report) { const { payload_sha256, ...body } = report; return payloadDigest(body); }
 
@@ -154,6 +166,9 @@ export function readDirective(value) {
     voice: readVoice(d.taste),
     // 1.6.0: his goals this week, word for word, so each row says which one it serves.
     week_goals: Array.isArray(d.week_goals) ? d.week_goals.filter(g => typeof g === 'string' && g.trim() && g.length <= 300).slice(0, 10) : [],
+    // 1.4.0: the number, its urgency and the walls' constraints, read as data (N03). They never widen authority.
+    north_star: readNorthStar(d),
+    constraints: readConstraints(d),
     decisions_since: d.decisions_since.filter(x => x && typeof x.proposal_id === 'string' && ['approved','declined'].includes(x.decision)).map(x => ({ proposal_id: x.proposal_id, decision: x.decision, payload_sha256: typeof x.payload_sha256 === 'string' ? x.payload_sha256 : null })),
     in_house: counts && typeof counts === 'object' ? {
       advisory: part(counts.advisory, ['drafted_waiting','sent_this_week','replied_waiting','calls_booked_this_week','paid']),
@@ -413,7 +428,7 @@ export function failureClass(e) {
   return 'the engine could not plan from it';
 }
 
-export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord }) {
+export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER }) {
   if (!['live','synthetic'].includes(mode) || !/^[a-z][a-z0-9-]{0,40}$/.test(kind) || !/^gma-[A-Za-z0-9-]{8,80}$/.test(attemptId)) throw new Error('Invalid dispatch options');
   const started_at = clock();
   const run_id = `${SLUG}:${londonDate(started_at)}:${kind}`;
@@ -449,6 +464,12 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const read = capabilities?.features?.context ? {} : await source();
     const snapshot = read?.snapshot ?? null;
     const holds = [], activity = [];
+    // His decisions, read once before planning: the Monday ask's answer and the approved plans both come from here.
+    let decisionsRead = null;
+    try { decisionsRead = await cc.decisions(new Date(Date.parse(started_at) - 30 * DAY).toISOString()); }
+    catch (e) { holds.push({ reason: 'decisions_unavailable', detail: `Krish's decisions could not be read before planning (${failureClass(e)}); no answer is assumed.` }); }
+    // HeyGen outbound waits on the open founder-visibility ruling (docs/briefs/2026-10-22-heygen-outbound.md; N10).
+    holds.push({ reason: 'founder_visibility_open', detail: 'Avatar-led outbound waits on the open founder-visibility ruling; growth-makeyourmindup asks it, so no duplicate question is raised here.' });
     let strategic = null, outcomes = null, strategicSource = null, liveWorkContext = null, suppliedContext = null;
     if (capabilities?.features?.context) {
       try {
@@ -494,12 +515,21 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       } catch (error) { holds.push({ reason: 'engine_cycle_held', detail: cut(error?.message ?? 'The full engine cycle held.', 1000) }); }
     } else if (mode === 'live') holds.push({ reason: 'engine_context_unavailable', detail: 'The shared protocol does not provide a usable complete selected-job context. No full producer coverage is claimed.' });
     const mapped = proposalsFrom({ batch, snapshot, work, workSnapshot: producerContext?.snapshot ?? null, policy });
-    if (strategic) mapped.proposals = [...mapped.proposals,...strategic.selected.map(campaignProposal)].slice(0,policy.limits.recommendations_per_run);
+    if (strategic) {
+      // A plan longer than the protocol allows is held, never thrown, so one long plan cannot fail the whole report (N16).
+      const plans = strategic.selected.map(campaignProposal);
+      const fits = plans.filter(p => (p.exact_payload ?? '').length <= 8000);
+      if (fits.length < plans.length) holds.push({ reason: 'payload_too_long', detail: `${plans.length - fits.length} campaign plan${plans.length - fits.length === 1 ? ' is' : 's are'} longer than the protocol allows and stay${plans.length - fits.length === 1 ? 's' : ''} unproposed.` });
+      mapped.proposals = [...mapped.proposals, ...fits].slice(0, policy.limits.recommendations_per_run);
+    }
     if (mode === 'live' && capabilities?.features?.exact_actions && policy.execution?.authority === 'exact_approval' && policy.execution.maximum_cost_usd === 0 && policy.execution.require_independent_receipt === true) {
       phase = 'prepare_action';
-      const decisions = await cc.decisions(new Date(Date.parse(started_at)-30*DAY).toISOString());
-      for (const decision of decisions.filter(d => d.decision === 'approved' && d.stage === 'plan')) {
+      const decisions = decisionsRead ?? await cc.decisions(new Date(Date.parse(started_at)-30*DAY).toISOString());
+      // Only campaign plans reach prepare-action (N18). The pending 22 October route plans are campaign plans (gmc-), so none is stranded.
+      for (const decision of decisions.filter(d => d.decision === 'approved' && d.stage === 'plan' && typeof d.proposal_id === 'string' && d.proposal_id.startsWith(CAMPAIGN_PREFIX))) {
         try {
+          // His amended version is acted on only after its digest is recomputed (N15).
+          if (decision.amended === true && !amendedDigestOk(decision)) { holds.push({ reason: 'amended_digest_mismatch', detail: "An approved plan's amended version does not match its digest, so it was not acted on." }); continue; }
           const prepared = await cc.prepareAction(decision.proposal_id);
           if (prepared?.ok === true && prepared.prepared?.parent_proposal_id === decision.proposal_id && prepared.prepared.completed === true) {
             mapped.proposals = mapped.proposals.filter(p=>p.proposal_id !== decision.proposal_id); continue;
@@ -524,6 +554,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
           catch (e) { if (e.status !== 404) throw e; receipt = null; }
           if (!receipt) receipt = await cc.executeAction(decision.proposal_id);
           else if (receipt.receipt?.state === 'submitted') receipt = await cc.reconcileAction(decision.proposal_id);
+          if (decision.amended === true && !amendedDigestOk(decision)) throw new Error('Amended digest does not verify');
           const expectedDigest = decision.amended === true ? decision.amended_sha256 : decision.payload_sha256;
           if (receipt?.receipt?.state !== 'verified' || !receipt.receipt.provider_id || receipt.receipt.payload_sha256 !== expectedDigest) throw new Error('Receipt not verified');
           activity.push(`Approved external action ${decision.proposal_id} has an independently verified provider receipt.`);
@@ -533,6 +564,16 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       }
       mapped.proposals = mapped.proposals.slice(0,10);
     }
+    // The number (docs/NORTH_STAR.md): last week's good meetings from the Monday ask, until Control Center serves each meeting.
+    const thisWeek = londonWeek(at), lastWeek = { start: addDays(thisWeek.start, -7), end: thisWeek.start };
+    const due = ladder.length > 0 && lastWeek.start >= ladder[0][0];
+    const answer = !due ? { state: 'not_due' } : decisionsRead ? readStopgap(decisionsRead, lastWeek.start, payloadDigest) : { state: 'unread' };
+    const thisTarget = directive.north_star.week_target ?? ladderTarget(ladder, thisWeek.start);
+    if (due && (answer.state === 'unanswered' || answer.state === 'unread')) mapped.proposals.unshift(finishProposal(stopgapProposal({ weekOf: lastWeek.start, expiresAt: londonMidnight(thisWeek.end), target: ladderTarget(ladder, lastWeek.start) })));
+    if (answer.state === 'digest_mismatch') holds.push({ reason: 'amended_digest_mismatch', detail: "The Monday ask's amended answer does not match its digest, so it was not counted." });
+    activity.push(goodMeetingsLine({ answer, lastWeekOf: lastWeek.start, lastTarget: ladderTarget(ladder, lastWeek.start), thisTarget, targetSource: directive.north_star.week_target !== null ? "Control Center's refresh" : 'the ladder in docs/NORTH_STAR.md', northStar: directive.north_star }));
+    const booked = suppliedContext ? bookings({ context: suppliedContext, at, weekStart: thisWeek.start, londonDate, addDays }) : null;
+    activity.push(bookingLine(booked));
     // 1.6.0: the five rows on his home screen, after everything else, in the room a report has left.
     let schema_version = SCHEMA_VERSION;
     if (suppliedContext && capabilities?.features?.rows === true && Array.isArray(capabilities.schema_versions) && capabilities.schema_versions.includes(ROWS_VERSION)) {
@@ -552,15 +593,26 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       outcome.rows = rows.counts;
     }
     holds.push(...mapped.holds); activity.push(...mapped.activity);
+    // The directive's constraints, in shadow until the switch (plan section 3): counted and reported, nothing hidden.
+    const c = directive.constraints;
+    if (c) {
+      const walled = mapped.proposals.filter(p => ['send', 'post', 'spend'].includes(p.wall)).length;
+      const spend = mapped.proposals.reduce((sum, p) => sum + (typeof p.amount_usd === 'number' ? p.amount_usd : 0), 0);
+      activity.push(`Constraints, in shadow: ${walled} walled proposal${walled === 1 ? '' : 's'}${c.max_actions !== null ? ` against max_actions ${c.max_actions}` : ''}, ${spend} USD proposed${c.spend_cap_usd !== null ? ` against a spend cap of ${c.spend_cap_usd}` : ''}. Nothing is held by them yet.`);
+    } else activity.push('Constraints: the directive carried none this run, so none are assumed.');
     const current = new Map(mapped.proposals.map(p => [p.proposal_id, p.payload_sha256]));
     const approved = directive.decisions_since.filter(d => d.decision === 'approved');
     activity.push(`Control Center returned ${directive.decisions_since.length} decisions from the last seven days: ${approved.length} approved, ${directive.decisions_since.length - approved.length} declined; ${approved.filter(d => d.payload_sha256 && current.get(d.proposal_id) === d.payload_sha256).length} approvals match a payload in this report.`);
     activity.push('Preparation used the existing daily dispatch. External actions require exact approval, a supported connector and independently verified receipts. Native drafts and human edits remain with their owners.');
     const observed_at = clock();
     const report = buildReport({
-      run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.length ? 'held' : 'ready',
+      run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.some(h => !STANDING_HOLDS.has(h.reason)) ? 'held' : 'ready',
       source: strategicSource ?? { revision: snapshot && snapshot.source_revision.length <= 128 ? snapshot.source_revision : revision, captured_at: snapshot?.generated_at ?? observed_at },
-      objectives: outcomes ? outcomeScorecard(outcomes, observed_at) : objectiveReadings({ at: observed_at, activatedOn }), activity, proposals: mapped.proposals, holds, schema_version
+      objectives: [
+        goodMeetingsObjective({ answer, lastWeek, thisWeek, midnight: londonMidnight, timezone: TIMEZONE }),
+        ...bookingObjectives({ booked, thisWeek, at, midnight: londonMidnight, addDays, londonDate, timezone: TIMEZONE }),
+        ...(outcomes ? outcomeScorecard(outcomes, observed_at) : objectiveReadings({ at: observed_at, activatedOn }))
+      ].slice(0, 20), activity, proposals: mapped.proposals, holds, schema_version
     });
     outcome.report = { status: report.status, payload_sha256: report.payload_sha256, proposals: report.proposals.length, walled: report.proposals.filter(p => p.wall !== 'none').length, holds: report.holds.map(h => h.reason), objectives: report.objectives.map(o => ({ key: o.key, availability: o.availability })), replayed: null };
     phase = 'report';
