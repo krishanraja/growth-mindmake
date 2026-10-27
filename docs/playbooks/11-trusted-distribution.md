@@ -143,6 +143,24 @@ channels with mass audiences on growing with AI. In the protocol these are
   Going on someone's channel needs a channel they own named in their record
   (a podcast, newsletter, show or publication): followers alone are an
   audience, not a channel, and such a person is held as `no_channel`.
+  An appearance names its show (`showOf`): from the record's facts or
+  titles, or a cited answer to a `channel:` question asked once a month when
+  the record says they own one but not what it is called (`unnamed_channel`).
+  What he gets says the show by name, and its audience only where the figure
+  counts its audience. His own shows, Signal & Noise and makeyourmindup, are
+  never an appearance (`own_show`); their people may still be a tie to catch
+  up with.
+- **Facts, not verdicts** (the second live 1.8.0 run, 27 October 2026). A
+  sentence that judges whether they fit ("not a fit for Mindmake", "not
+  AI-related", "a direct fit", "budget signal", "relevant if the operator")
+  is dropped, and a judge's clause after a fact ("..., though their website
+  shows no hiring triggers") is cut back to the fact (`VERDICT`, `factOf`).
+  The line under the title and the brief read the same facts. A first name
+  is never a title ("Dr.", "Prof.", "Sir"). A partner's angles are tied to
+  their company or what they do, and a partner with nothing known gets one.
+- **A topic is what this one is about, or null** (`topicOf`, a small fixed
+  list). A blanket topic would let one "Not my topic" refuse a whole row for
+  good, so a close tie has no topic.
 - **The ask decides the row.** Partner (investors, AI-minded capital, AI
   trainers) is PARTNERS; an introduction (connectors) and a signal from a
   buyer are REACH OUT; an appearance (broadcasters) is VISIBILITY; a session
@@ -152,7 +170,9 @@ channels with mass audiences on growing with AI. In the protocol these are
   Center never wrote the touch, so NETWORK was empty until it read the
   email). Six a row at most, one person once.
 - **Words.** One ask, in Krish's own name, British English, no invented
-  familiarity, no em dash, and Mindmake only in its canon's own words. The
+  familiarity, no em dash, and Mindmake only in its canon's own words. Ruling
+  (Krish, 2026-10-27): pitches call him Executive Host of Signal & Noise. An
+  appearance pitch says so, with his publication as the canon names it. The
   canon is read live from `krishanraja/mindmake` on every run
   (`src/stages/canon.mjs`), never from a pinned copy: the pinned copy went
   stale within a week of its approval. Each action names the canon files and
