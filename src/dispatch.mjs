@@ -362,13 +362,17 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax });
   const { kept, dropped } = rankRows([...amplifiers.rows, ...signals.rows]);
   const proposals = kept.map(finishProposal);
-  // 1.9.0: pitches for Jonny's box, after the rows he presses himself: podcasts
-  // on visibility, stages to speak on on events. An older Control Center gets none.
-  const pitched = pitches ? pitchRows({ context: ctx, weekGoals: directive.week_goals, canon, record: await recordReader(), files, at, titleMax }) : { proposals: [], held: [], stageHeld: [] };
+  // 1.9.0: pitches for Jonny's box, after the rows he presses himself: guests
+  // invited onto his own shows and podcasts on visibility, stages to speak on
+  // on events. An older Control Center gets none.
+  const pitched = pitches ? pitchRows({ context: ctx, weekGoals: directive.week_goals, canon, record: await recordReader(), files, at, titleMax }) : { proposals: [], held: [], stageHeld: [], inviteHeld: [] };
   proposals.push(...pitched.proposals.map(finishProposal));
-  counts.pitches = pitched.proposals.filter(p => p.row === 'visibility').length;
+  const isInvite = p => p.close_condition?.reference === 'visibility:invite';
+  counts.invites = pitched.proposals.filter(isInvite).length;
+  counts.pitches = pitched.proposals.filter(p => p.row === 'visibility' && !isInvite(p)).length;
   counts.speaking_pitches = pitched.proposals.filter(p => p.row === 'events').length;
   counts.prepared = proposals.length;
+  for (const [reason, count] of tally(pitched.inviteHeld ?? [])) holds.push({ reason: holdCode('invite', reason), detail: `${count} guest${count === 1 ? '' : 's'} not invited today: ${reason.replace(/_/g, ' ')}.` });
   for (const [reason, count] of tally(pitched.held)) holds.push({ reason: holdCode('pitch', reason), detail: `${count} podcast${count === 1 ? '' : 's'} not pitched today: ${reason.replace(/_/g, ' ')}.` });
   for (const [reason, count] of tally(pitched.stageHeld ?? [])) holds.push({ reason: holdCode('speak', reason), detail: `${count} stage${count === 1 ? '' : 's'} to speak on not pitched today: ${reason.replace(/_/g, ' ')}.` });
   const held = [...amplifiers.held, ...signals.held];
@@ -376,7 +380,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   for (const [reason, count] of tally(held)) holds.push({ reason: holdCode('row', reason), detail: `${count} possible row action${count === 1 ? '' : 's'} held: ${reason.replace(/_/g, ' ')}.` });
   if (dropped) holds.push({ reason: 'row_per_row_cap', detail: `${dropped} more row action${dropped === 1 ? '' : 's'} ranked below the six a row shows.` });
   activity.push(`Rows from Mindmake's canon as it is today (${canon.files.map(f => f.sha.slice(0, 7)).join(', ')}): ${ROWS.map(r => `${proposals.filter(p => p.row === r && !isPitch(p)).length} ${r.replace('_', ' ')}`).join(', ')}.`);
-  if (pitches) activity.push(`Pitches for Jonny's Gmail: ${counts.pitches} podcasts, ${counts.speaking_pitches} stages to speak on.`);
+  if (pitches) activity.push(`Pitches for Jonny's Gmail: ${counts.invites} guests invited onto his shows, ${counts.pitches} podcasts, ${counts.speaking_pitches} stages to speak on.`);
   if (counts.research_asked) activity.push(`Asked Control Center for ${counts.research_asked} lookups; ${counts.research_answered} answered.`);
   return { proposals, holds, activity, counts };
 }

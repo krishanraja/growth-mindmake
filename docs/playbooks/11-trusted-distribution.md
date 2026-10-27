@@ -244,7 +244,36 @@ him to speak, the same way he pitches him to podcasts.
   with its call.
 - **Who does what.** An events row naming Jonny's box (protocol 1.9.0, kind
   `ceo_educator`, so a No's reason reaches stages like it). Control Center
-  drafts it into Jonny's Gmail; Jonny sends.
+  drafts it into Jonny's Gmail; Jonny sends. Its reach is the audience size
+  Nova recorded, with the stage's page and when it was read; unknown otherwise.
+
+## Guests for his own shows (Rulings, Krish, 2026-10-27 and 2026-10-20)
+
+Krish, 2026-10-27: guests for Signal & Noise and Make Your Mind Up are part of
+his visibility, and Make Your Mind Up takes a weekly conversation. Ruling
+(Krish, 2026-10-20): invites go from Jonny's box in Jonny's voice, and the
+shows share guests Make Your Mind Up 70, Signal & Noise 30.
+
+- **Which guests.** People Control Center holds as guests with a contact, a
+  show they were judged for (`invite_show`), and an address on record
+  (verified or unchecked), scouted or enriched, not buried, recorded or
+  published, not invited before (the guest's own `invite_state`, or any answer
+  on an invite to them), judged worth having or a stretch by Control Center's
+  guest standard, with a full name, never Krish himself, and not like anything
+  he said No to. Best judged first.
+- **The cadence.** Four invites a week, by the shows' shares: three for Make
+  Your Mind Up, so it always has its weekly conversation, and one for Signal &
+  Noise, counted from the invites drafted since Monday in London. At most two
+  a run, Make Your Mind Up first, taken first from the run's ten pitches.
+- **The words.** Jonny's, for Krish, one ask: a conversation on the show.
+  Make Your Mind Up is named as the canon names it, with its link; Signal &
+  Noise with Krish's ruled title. A page about the guest from their own
+  evidence may be named in one line; nothing else about Krish is claimed.
+  Subject: "A conversation for" the show.
+- **Who does what.** A visibility row naming Jonny's box and the guest
+  (`contact:<id>`), ranked before the podcast pitches. Control Center files it
+  as a guest draft for that show, marks the guest drafted, and books it from
+  his calendar; Jonny sends.
 
 ## Signals from his buyers (Rulings, Krish, 2026-10-26)
 
