@@ -1,5 +1,9 @@
 # Release state
 
+## First live run at 1.10.0, 27 October 2026
+
+Live run, not a live outcome. Control Center production carried krishanraja/control-center#584; a manual `dispatch` run on main reported at 1.10.0 and was read back: the four 22 October campaign plans resting on Advisory records Control Center no longer holds are expired with `done_evidence.kind = withdrawn`, the plan that still matches its record stays pending, and the report carries the two traffic activity lines with the consent sentence. No traffic figure appears in the Actions log. The meetings part reads unavailable (`calendar_not_read`) until Control Center's first 05:10 calendar read, so the number stays unmeasured, never zero. Closes N20 and Phase 0.
+
 ## The show-notes note, and dead plans taken back, 27 October 2026
 
 Built and tested; pairs with krishanraja/control-center#584. Once one of Jonny's pitches to someone else's show or stage is booked (`booked_at` on a `job: booked` Jonny draft), the engine writes one short note in Jonny's voice thanking the host and asking for the brief link in the show notes or event page, the canon's brief URL tagged `growth-podcast` or `growth-guest-seat` (`src/stages/shownotes.mjs`, the one stage that writes a tagged link). It is ranked before any new pitch inside Jonny's ten a day, once per booking, never to a guest on his own shows, with no objective. The dispatch also withdraws pending campaign plans whose Advisory record Control Center no longer holds (`withdrawn`, only with complete Advisory records, never a decided one). Both are sent only where Control Center's capabilities say so, so nothing changes before it deploys. Six deliberate breakages each failed a test.
