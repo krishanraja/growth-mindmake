@@ -211,6 +211,56 @@
       "tests": [
         "tests/codex-card.test.mjs"
       ]
+    },
+    {
+      "id": "switch-enforce-unsigned",
+      "what": "the switch takes any spec in force as signed, so last week's spec carried on or today's settings could enforce",
+      "file": "src/crew/switch.mjs",
+      "find": "  const signed = week?.source === 'signed' && week?.era === true",
+      "replace": "  const signed = week?.era === true",
+      "tests": [
+        "tests/switch.test.mjs"
+      ]
+    },
+    {
+      "id": "switch-enforce-unready",
+      "what": "a signed, enabled spec enforces before the readiness is met",
+      "file": "src/crew/switch.mjs",
+      "find": "  if (r.ready === true && r.signed === true && r.enabled === true) {",
+      "replace": "  if (r.signed === true && r.enabled === true) {",
+      "tests": [
+        "tests/switch.test.mjs"
+      ]
+    },
+    {
+      "id": "dispatch-enforce-ungated",
+      "what": "the dispatch holds the crew's findings whatever the route decided",
+      "file": "src/dispatch.mjs",
+      "find": "    if (way.enforce) {",
+      "replace": "    if (true) {",
+      "tests": [
+        "tests/switch.test.mjs"
+      ]
+    },
+    {
+      "id": "switch-old-route-early",
+      "what": "the old route may be removed before its 30 days after the switch",
+      "file": "src/crew/switch.mjs",
+      "find": "  if (until && typeof today === 'string' && today >= until) return errors;",
+      "replace": "  if (true) return errors;",
+      "tests": [
+        "tests/switch.test.mjs"
+      ]
+    },
+    {
+      "id": "proof-runs-read-unserved",
+      "what": "past proof runs are read when Control Center does not serve the list",
+      "file": "src/crew/switch.mjs",
+      "find": "if (capabilities?.features?.recent_reports !== true || typeof cc?.recentReports !== 'function') return { count: null, reason: PROOF_RUNS_NOT_SERVED };",
+      "replace": "if (typeof cc?.recentReports !== 'function') return { count: null, reason: PROOF_RUNS_NOT_SERVED };",
+      "tests": [
+        "tests/switch.test.mjs"
+      ]
     }
   ]
 }

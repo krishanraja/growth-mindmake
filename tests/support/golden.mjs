@@ -9,7 +9,9 @@
  * Digests are matched in the order a file posts them, so run whole files:
  * a name filter that skips a posting test fails the count check.
  *
- * The crew's two lines (src/crew/shadow.mjs, plan Phase 3) are left out of
+ * The crew's two lines (src/crew/shadow.mjs, plan Phase 3) and the switch's
+ * readiness line (src/crew/switch.mjs, plan Phase 5; with its route line,
+ * written only once a signed spec enables the new route) are left out of
  * the digest: they are shadow output, added on top of today's report, and
  * leaving them out proves everything else is still byte for byte the report
  * recorded before the week spec. Nothing else is ever left out.
@@ -23,6 +25,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { basename } from 'node:path';
 import { payloadDigest } from '../../src/guards.mjs';
 import { CREW_LINE } from '../../src/crew/shadow.mjs';
+import { SWITCH_LINE } from '../../src/crew/switch.mjs';
 
 const dir = new URL('../golden/', import.meta.url);
 const file = basename(process.argv[1] ?? 'unknown').replace(/\.test\.mjs$/, '');
@@ -38,11 +41,11 @@ if (!writing && expected) process.on('exit', () => {
 });
 if (writing) process.on('exit', () => { mkdirSync(dir, { recursive: true }); writeFileSync(path, `${JSON.stringify({ file: `tests/${file}.test.mjs`, reports: seen }, null, 2)}\n`); });
 
-/** A report's digest with the crew's shadow lines left out: the digest it would have had without them. */
+/** A report's digest with the crew's shadow lines and the switch's lines left out: the digest it would have had without them. */
 export function withoutCrew(report) {
   if (!report || typeof report !== 'object' || !Array.isArray(report.activity)) return report?.payload_sha256 ?? null;
   const { payload_sha256, ...body } = report;
-  const activity = body.activity.filter(a => !CREW_LINE.test(a?.line ?? ''));
+  const activity = body.activity.filter(a => !CREW_LINE.test(a?.line ?? '') && !SWITCH_LINE.test(a?.line ?? ''));
   return activity.length === body.activity.length ? payload_sha256 : payloadDigest({ ...body, activity });
 }
 

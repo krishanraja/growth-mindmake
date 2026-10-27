@@ -117,6 +117,7 @@ The full spec is `docs/control-center/ENGINE-PROTOCOL.md`, with the report and d
 
 - Global outcome reads from Control Center's own deals (qualified conversations, paid proofs), so you need not compute them from a page.
 - The Gmail draft readback close.
+- Done: a read of this engine's own latest live reports, newest first (`GET .../reports?recent=<n>`, `features.recent_reports`, krishanraja/control-center#589), each with only `run_id`, `accepted_at`, `status` and `activity`. The Phase 5 switch counts its proof runs from it (`readProofRuns` in src/crew/switch.mjs) and reads nothing where it is not served.
 
 ## What Control Center still owes: protocol 1.10.0 (approved by Krish, 27 October 2026)
 
