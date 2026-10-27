@@ -26,7 +26,7 @@ The outcome wanted is an engine that:
 - keeps everything it makes easy to find;
 - costs a twentieth as much to change.
 
-**What this moves on the North Star.** First, measuring it at all (Phase 1). Second, the visibility route to meetings: podcast and stage pitches that carry a real one-sheet, with bookings counted against the target. Third, traffic to mindmake.co: each booking becomes a lasting link to the brief, the site's only door to a meeting, and visits are read as a supporting measure that ranks the work, never as the number. Phases 2 to 5 are mostly cost and quality work. Under U4 they start only with Krish's explicit go, and each says what it moves. Nothing here changes the ICP, channels, formats or remit.
+**What this moves on the North Star.** First, measuring it at all (Phase 1). Second, the visibility route to meetings: podcast and stage pitches that carry a real one-sheet, with bookings counted against the target. Third, traffic to mindmake.co: each booking becomes a lasting link to the brief, the site's only door to a meeting, and visits are read as a supporting measure that only breaks ties between levers, never as the number. Phases 2 to 5 are mostly cost and quality work. Under U4 they start only with Krish's explicit go, and each says what it moves. Nothing here changes the ICP, channels, formats or remit.
 
 ## Krish's answers (27 October 2026)
 
@@ -42,7 +42,7 @@ Recorded in docs/NORTH_STAR.md and AGENTS.md:
 8. **Drive sharing:** mind/make, and so 03_Growth, stays link-editable by his choice, so nothing private is filed there.
 9. **Traffic:** "Don't forget to drive as much traffic to mindmake.co as possible. You have Google Analytics installed already and Control Centre can see that. Make sure this is a part of your Measurement Specialist. Happy to let you read Google Analytics directly if you prefer." His answers the same day:
    - Analytics is read through Control Center, never directly.
-   - After a show or stage confirms a date, Jonny sends the host one short note asking for the brief link in its show notes or event page.
+   - After one of Jonny's pitches to someone else's show or stage is booked, Jonny sends the host one short note asking for the brief link in its show notes or event page.
    - Once the one-sheet exists, it replaces the show link in podcast and stage pitches; Make Your Mind Up is still named, and the one-sheet prints the show's link and the brief link.
    - Traffic counts stay in Control Center; Drive readouts carry the week-on-week change and the share by path only.
 
@@ -110,14 +110,14 @@ Also recorded:
 | N14 | `strategicPlan().digest` is computed and never read. | 2 |
 | N15 | The engine never recomputes `amended_sha256` before acting on an amended decision, as AGENTS.md and the protocol require. | 1 |
 | N16 | A campaign plan over 8,000 characters fails the whole report instead of holding. | 1 |
-| N17 | `blobSha` hashes decoded text, so it gives the wrong SHA for a binary file such as a PDF. | in the C2 pitch-line PR |
+| N17 | `blobSha` hashes decoded text, so it gives the wrong SHA for a binary file such as a PDF. | in the C2 pitch-link PR |
 | N18 | Every approved `stage: "plan"` decision is routed to prepare-action whatever its id, so any new kind of plan would be treated as a campaign. | 1 |
 | N19 | Version 2 said Vercel page views would measure the one-sheet. Vercel Web Analytics is off for the mindmake project, and a PDF runs no page tag, so nothing could have read it. | closed by version 3 (sections 3, 7 and 9) |
 
 **How mindmake.co is measured today** (read-only, 27 October; mindmake at ddd0049, Control Center at 2965e73):
 - **The site** runs Google Analytics 4 in Consent Mode v2 "basic": Google receives nothing until a visitor presses Allow, and the banner appears only after a scroll past 60% of the first screen. Analytics gets page views only, with no custom events.
 - **Plausible** is installed and cookieless, so it sees every visit and the site's own events, including `scoping_request`, the click that opens the brief. Krish ruled on 2 October that Control Center gets no Plausible key, so it is read nowhere.
-- **No attribution.** The site keeps no UTM tag or referrer; the brief request records only its entry route, and `/start` drops query strings. There is no booking link, by canon rule: a reader reaches a meeting through the free brief.
+- **No attribution.** The site keeps no UTM tag or referrer; the brief request records only its entry route. (`/start` keeps a query string at the edge: a 307 to `/?...&start=1`.) There is no booking link, by canon rule: a reader reaches a meeting through the free brief.
 - **Control Center** reads Analytics for mindmake.co every day with a read-only service account. It stores daily totals (sessions, users, page views, key events), rows by source and medium and by landing page, and a weekly insights read that always flags the count as consent-gated. None of it reaches a growth engine: the protocol has no traffic field.
 - **The engine** puts mindmake.co in words only through the canon's brief link (row notes, signals and card angles). Pitches carry makeyourmindup.ai, and stage forms carry krishraja.com. Nothing is tagged, and nothing reads traffic.
 
@@ -160,11 +160,13 @@ One spec per London week, `growth-week/1`: canonical JSON of 8,000 characters or
                "show_shares": {"makeyourmindup": 70, "signal_noise": 30}, "forms_per_row": 2 },
   "fit_floor": 40,
   "assets": [{ "id": "speaker-one-sheet", "version": 1, "blob_sha": "<git blob of the PDF bytes>", "url": "https://mindmake.co/media/<file>.pdf", "in": ["visibility", "events"] }],
-  "experiment": { "id": "one-sheet-in-pitches", "lane": "visibility", "change": {"field": "assets.speaker-one-sheet.in", "to": ["visibility", "events"]},
+  "experiment": { "id": "stage-share-5", "lane": "events", "change": {"field": "pitches.stage_share", "to": 5},
                   "measure": "replies_and_bookings_14d", "decide": "keep if replies plus bookings match or beat the prior fortnight; counts only below 20", "min_days": 14 },
   "last_week": { "good_meetings_total": null, "by_path": {} },
   "questions": [] }
 ```
+
+The one-sheet's place in podcast and stage pitches is his ruling of 27 October, not a lever: no spec or experiment removes it. A worse fortnight becomes a question in `questions[]`, never a revert.
 
 The default spec is generated from today's exported constants, policy and code keys, so it reproduces today's behaviour exactly.
 
@@ -220,9 +222,9 @@ tests/fixtures/live-shapes/*.json   hand-written synthetic versions of each live
 | Network Steward | `rows.mjs` network row | tie evidence counted both ways; quiet 90 days or more; no refusal; one ask; a route; card grammar; the canon's link untagged | a reply within 7 days (Control Center's email count rises after `carried_out`); a good meeting on `existing-relationship` | Will they feel remembered, or worked? |
 | Multiplier Steward | partners row, connector intro asks, introduction permissions | relationship evidence beyond a LinkedIn connection; one named person with a reason; the fit floor; card grammar | connector reply within 7 days; introductions offered; good meetings on `multiplier-intro` | Does this spend their trust, or give first? |
 | Visibility Producer | podcast pitches, own-show guest invites, podcast and show forms, appearance asks, the show-notes note | the show's own booking address; an episode within 120 days; never pitched; never his own show; one ask; his ruled title; the show named; the one-sheet as the pitch's one link only when the PDF reads at its pinned SHA, else the show's link; the show-notes note only after Control Center records the booking, once per booking | the 1.9.0 sent, replied, booked, recorded and published per pitch, read for the first time (N05); bookings a week against 2; tagged and referral visits in the 14 days after an episode publishes; later, SendLinks opens | Would the booker say yes in ten seconds? |
-| Stages Producer | speaking pitches, stage forms (#20, #23), `teach` asks, the event-page note | open and before its deadline; a speaker address or form from the stage's own page; his buyer in the room; one talk title; never press; the event-page note only after the stage confirms a date, once | a reply; a stage confirmed only by a reply with a date or a calendar event, never by a form's "confirmed" receipt, against 1 a fortnight; brief and meeting requests within 7 days of the session; tagged and referral visits in the 14 days after it; good meetings on `guest-seat` | Is his buyer actually in this room? |
+| Stages Producer | speaking pitches, stage forms (#20, #23), `teach` asks, the event-page note | open and before its deadline; a speaker address or form from the stage's own page; his buyer in the room; one talk title; never press; the event-page note only after the stage confirms a date on Jonny's pitch thread, once | a reply; a stage confirmed only by a reply with a date or a calendar event, never by a form's "confirmed" receipt, against 1 a fortnight; brief and meeting requests within 7 days of the session; tagged and referral visits in the 14 days after it; good meetings on `guest-seat` | Is his buyer actually in this room? |
 | Signal Scout | `signals.mjs` | an executive by their own headline; worried in their own words; not an AI person or seller; inside the research window signals.mjs already uses; quoted exactly with the post named; the canon's link untagged | reply within 7 days; good meetings on `public-signal`; opt-outs suppressed the same run | Will they feel heard, or harvested? |
-| Trust-Asset Steward (Canva) | `motions.mjs` trust assets and decision aids | the Mindmake kit; fonts and colours inside it; the name exactly "Mindmake"; read-back text equals the approved text; every fact named by blob SHA; one page; Jonny's box as contact and never Krish's personal email; none of what the canon says is never published (price, rate card, availability, unconsented client names, the method's name); no durations, emoji or em dashes | the PDF's blob SHA at its URL equals the approved one; visits from the PDF's printed links (`growth-one-sheet`), since a PDF runs no page tag; replies and bookings on pitches carrying it against the prior fortnight; SendLinks opens per host | Does it prove, or decorate? |
+| Trust-Asset Steward (Canva) | `motions.mjs` trust assets and decision aids | the Mindmake kit; fonts and colours inside it; the name exactly "Mindmake"; read-back text equals the approved text; every fact named by blob SHA; one page; Jonny's box as contact and never Krish's personal email; none of what the canon says is never published (price, rate card, availability, unconsented client names, the method's name); no durations, emoji or em dashes | the PDF's blob SHA at its URL equals the approved one; visits tagged `growth-one-sheet`, from bookers who press the PDF's link and from listeners of show notes a host copied from it, never read as PDF reads (SendLinks opens are, C3); replies and bookings on pitches carrying it against the prior fortnight, a Friday reading and never a revert; SendLinks opens per host | Does it prove, or decorate? |
 | Measurement Specialist | `scorecard.mjs`, `outcomeScorecard`, qualification review, weekly-review attribution and `traffic.mjs`. It stores nothing: Control Center records each meeting and each day's visits | every meeting carries the path Control Center recorded from the engine's pre-fill and his tap, never rewritten; assists kept separately; a visit is never a meeting, a path count or a result; every traffic line carries its coverage and the consent sentence; null with a reason, never zero, unless Control Center has proved the site receives data; every link is the canon's URL byte for byte, or that URL plus exactly the two allowed keys on an allowed placement; no tag on his notes, on a citation or on another domain; no traffic figure in git, a spec, printed output or logs | good meetings a week by path against the ladder; the qualified subset; paid proofs traced to their path; meetings with no match; mindmake.co sessions, engaged sessions and key events over 7 days against the previous 7; `growth-*` tagged visits by path; referral visits from the domains of shows and stages he was booked on; AI sources | Would this survive "show me the meeting", with every visit figure saying what it cannot see? |
 | Librarian | docs/DRIVE.md, Drive 03_Growth, Canva Mindmake Growth | before filing: the path is in the map; the name passes the naming pattern; no duplicate of kind, subject and version; a superseded file moves to the archive in the same step; never trash or share; nothing private (the library is link-editable) | the tree walk finds zero of each: files outside the map, loose files, duplicates, more than one PDF in a Current, engine-made Canva designs outside the folder, copies older than their source's last change, index entries that do not match | Could Krish find the current version in ten seconds? |
 | Guard | `guards.mjs`, `check.mjs`, policy | nothing sends, publishes, spends or changes permission without his yes; no automation of posting, messaging or connecting on LinkedIn; no live people in git; no per-run bespoke code; the directive's constraints; no traffic figure in logs | constraint breaches zero; opt-outs honoured; restriction notices zero | Is anything here acting without his yes? |
@@ -236,7 +238,7 @@ tests/fixtures/live-shapes/*.json   hand-written synthetic versions of each live
 Not this engine's: Make Your Mind Up's own notes (playbook 05, publication boundary) and new pages on the site (the mindmake repository, with his read before merge).
 
 **Tagging, for public placements only.**
-- **The tag:** `utm_source=growth-<podcast|guest-seat|one-sheet>&utm_medium=referral`, added to a mindmake.co page URL after `?start=1` with `&`, never on `/start`, which drops it. The medium stays one of Analytics' own words, so Control Center's channel view stays readable.
+- **The tag:** `utm_source=growth-<podcast|guest-seat|one-sheet>&utm_medium=referral`, added to a mindmake.co page URL after `?start=1` with `&`. The medium stays one of Analytics' own words, so Control Center's channel view stays readable.
 - **No other key:** never `utm_campaign`, `utm_content`, `utm_term` or `utm_id`.
 - **Nothing identifying:** never a person, a show, a proposal or a date.
 - **Where tags go:** show notes, event pages and the one-sheet's printed links.
@@ -350,7 +352,7 @@ Codex builds code between runs as a development tool; the engine's runtime gains
 | Canva (main: Mindmake) | the brand kit, brand templates, the one-sheet, later aids, all in the Canva folder Mindmake Growth | drafts at will inside his account; publishing a brand template, sharing, public links, purchases, upgrades or trials need his yes |
 | Google Drive | the Growth library, mind/make > 03_Growth, link-editable by his choice | create and move inside 03_Growth only; nothing private |
 | SendLinks | a tracked link per recipient to an asset, minted by Control Center when it drafts | the send stays with the send lanes |
-| Control Center | records, approvals, drafting into Gmail, form submission on his tap, outcomes, calendar, and the research desk within its caps | the protocol only |
+| Control Center | records, approvals, drafting into Gmail, form submission on his tap, outcomes, calendar, and the research desk within its caps | the protocol only, except the Friday traffic stopgap's one approved row read until 1.10.0 |
 | Gmail | Control Center drafts Jonny's pitches (no press) and the drafts for his rows | the engine never drafts or sends |
 | Google Analytics 4 | mindmake.co traffic for the Measurement Specialist, read through Control Center's web part (1.10.0), never directly | read only; consent-gated; counts stay in Control Center |
 | Plausible | installed on the site and cookieless, but not read, by his ruling of 2 October | not used |
@@ -392,9 +394,9 @@ Codex builds code between runs as a development tool; the engine's runtime gains
 - The directive's `north_star`, `urgency` and `constraints` are read, and constraints are enforced in shadow (N03).
 - The `founder_visibility_open` hold is recorded (N10).
 
-**What Control Center owes.** This goes into docs/CONTROL-CENTER-BRIEF.md (GET-GOING Step 5), for its own session after its 1.9.0 work, as a new protocol minor version:
+**What Control Center owes.** This goes into docs/CONTROL-CENTER-BRIEF.md (GET-GOING Step 5), for its own session after its 1.9.0 work, as protocol 1.10.0, built in this order: first what wires the number (the held meetings, the good prompt and `origin_candidates`, `facts[]`, `asset_ref`, the library listing), then traffic and the show-notes kind:
 - each held meeting from his calendar, with `meeting_id, contact_id, held_at, good, good_at, origin_path, origin_ref, assists[], said_yes_because`;
-- the one-tap good prompt, pre-filled from the engine's `origin_candidates`. The engine sends these only once Control Center serves that version, because the report schema refuses unknown fields;
+- the one-tap good prompt, pre-filled from the engine's `origin_candidates`. The engine sends these only once Control Center serves 1.10.0, because the report schema refuses unknown fields;
 - typed `facts[]` for cards;
 - `asset_ref`, minting SendLinks links;
 - a listing of 03_Growth and Mindmake Growth (titles and dates only), so the dispatch can run the library check daily. Granting that read access is his decision.
@@ -405,7 +407,7 @@ Codex builds code between runs as a development tool; the engine's runtime gains
   - 14 days of rows by source and medium and by landing page, with landing paths filtered as Control Center already filters them.
 
   Nothing else: no full referrer, query string, country, device, user id or Plausible. The figures go to the engine's own bearer only. Because the push is at 05:10 and the snapshot at 05:30 UTC, each reading is a day behind and says so.
-- **the show-notes note (1.10.0):** a `show_notes_ask` email kind in Jonny's box. Control Center drafts it only after it records the booking, once per booking, inside the ten drafts a day, and Jonny sends it.
+- **the show-notes note (1.10.0):** a `show_notes_ask` email kind in Jonny's box. Control Center drafts it only after it records `booked_at` on one of Jonny's pitches to someone else's show or stage, never on a guest invite to his own shows, once per booking, counted inside the ten Jonny drafts a day, and Jonny sends it.
 
 **Accept, on the stand-in:**
 - an approved or amended stopgap never reaches prepare-action;
@@ -418,7 +420,7 @@ Codex builds code between runs as a development tool; the engine's runtime gains
 
 **Accept, live:** the first Monday stopgap he answers gives a non-null number with its source.
 
-**The traffic reading (a second PR, after the number's).**
+**Phase 1b, the traffic reading (its own pull request and GET-GOING step, after Phase 1's).**
 - Two activity lines a run, never an objective: the whole site, then the share that came through the engine's tagged and matched referral visits. Each line carries the consent sentence.
 - When Control Center does not serve 1.10.0 or `features.web`, one line says the reading is not served yet.
 - No figure reaches the printed run result or the Actions log.
@@ -432,7 +434,7 @@ Codex builds code between runs as a development tool; the engine's runtime gains
   - the tag round trip;
   - no tag on notes or citations;
   - no figure in the printed output.
-- **Stopgap until 1.10.0:** the Friday review session reads Control Center's stored site insights read-only and files a readout in Drive's Growth measurement folder, with the week-on-week change and the share by path only.
+- **Stopgap until 1.10.0:** each Friday the review session reads mindmake.co's latest stored insights row through Control Center's bounded row read (one request, named columns), only after Krish approves that read; if he does not, it asks him in the review for the week-on-week change he sees on Growth > Numbers. It files a readout in Drive's Growth measurement folder with the week-on-week change and the share by path only, and writes no count anywhere.
 
 **Whether the weekly count may be written into NOW.md's public state line is his to rule.** AGENTS.md keeps business figures out of git, and Control Center serves Mindmake's figures as private. Until he rules, NOW.md records only availability, urgency and the reading's date, and the count stays in Control Center.
 
@@ -449,7 +451,7 @@ Codex builds code between runs as a development tool; the engine's runtime gains
 - **Build:**
   - the schema, `compile.mjs`, the `gms-` proposal, the signed-digest read placed before compilation, the fallback chain and the `spec_amended_invalid` hold;
   - hard-coded caps and unread policy fields move into read config with values unchanged, and policy.json gains explicit bounds (N04);
-  - N01 fixed with a new run_id per wake, together with a per-London-day pitch budget read from that day's drafts, so later wakes never exceed Control Center's ten drafts a day;
+  - N01 fixed with a new run_id per wake, together with a per-London-day budget of Jonny drafts (show-notes notes, invites and pitches) read from that day's drafts, so later wakes never exceed Control Center's ten drafts a day;
   - `rows_rule` read, and N14 resolved.
 - **Accept:**
   - a golden test: every fixture gives a byte-identical report under the default spec, with the word files and canon reader pinned;
@@ -551,7 +553,7 @@ Krish approves the kit where he sees it.
 - Make Your Mind Up, as the canon names it;
 - the approved photo of him already used on the About page, never a generated likeness;
 - Jonny's box as the booking contact, read from Control Center at build time and never committed here;
-- a "For your show notes" line, with the brief link printed and tagged `growth-one-sheet` and the show's link printed untagged, so every host who uses it sends listeners to mindmake.co.
+- a "For your show notes" line, with the brief link printed and tagged `growth-one-sheet` and the show's link printed untagged, so every host who uses it sends listeners to mindmake.co. The one-sheet is a booker's reference sheet, and by his ruling of 27 October it prints both links: its one exception to one ask, for this asset alone. C2's pull request raises the trust-asset cap for the one-sheet only.
 
 **Design process:** three blind concept spines on the Mindmake kit, two blinded judges, and one synthesis shown to him cold.
 
@@ -564,11 +566,13 @@ Krish approves the kit where he sees it.
 
 ### T1. The show-notes note
 
-After Control Center records a booking (a show or stage confirming a date), Jonny sends the host one short note asking for the brief link in the show notes or the event page (Ruling, Krish, 2026-10-27).
+After Control Center records `booked_at` on one of Jonny's pitches to someone else's show or stage (the show or stage confirming a date), Jonny sends the host one short note asking for the brief link in the show notes or the event page (Ruling, Krish, 2026-10-27).
 - **Words:** built in `pitches.mjs`, in Jonny's voice with Krish in the third person, signed Jonny.
 - **The ask:** one ask, the brief link tagged `growth-podcast` or `growth-guest-seat`.
 - **Drafting:** Control Center drafts it into Jonny's box as the `show_notes_ask` kind (1.10.0), once per booking, and Jonny presses Send.
-- **Measure:** referral and tagged visits in the 14 days after the episode publishes or the session runs.
+- **Count and rank:** each note is taken first from the run's ten, as own-show invites are (playbook 11), so Control Center drafts it the day the booking is recorded; invites and pitches fill what is left.
+- **Never:** a guest booked onto his own shows, whose show notes are Make Your Mind Up's own (playbook 05), or a stage booked through a form, which has no thread in Jonny's box. Those rely on the one-sheet's show-notes line.
+- **Measure:** referral and tagged visits in the 14 days after the episode publishes or the session runs, reading `growth-one-sheet` beside `growth-podcast` and `growth-guest-seat`.
 
 It needs Control Center's 1.10.0 and is built on the stand-in first.
 
@@ -605,12 +609,12 @@ A Codex card's yes comes when the guard asks. His daily presses stay as they are
 - the proposed corpus rules;
 - the AGENTS.md, GET-GOING.md and NOW.md change in Phase 4;
 - his go on Phases 2 to 5 under U4;
-- Control Center's 1.10.0 session (the web part and the show-notes kind);
+- Control Center's 1.10.0 session (first the held meetings, the one-tap good prompt and `origin_candidates`, `facts[]`, `asset_ref` and the library listing, then the web part and the show-notes kind);
 - the stage-form website field: krishraja.com today, or mindmake.co;
 - three changes in the mindmake repository, each needing his yes and his read before merge (its canon's rule for any new page or claim):
-  1. Analytics key events for the brief's steps;
-  2. UTM tags kept through `/start` and until a visitor answers the banner;
-  3. the brief request recording `utm_source` and `utm_medium` beside its entry route, the one path that ties a visit to a meeting whatever the banner does.
+  1. the site sending Analytics events for the brief's steps, only after Allow. Marking them as key events is a separate change in the Analytics property, which Krish makes or approves at the time; Control Center's service account stays read-only;
+  2. UTM tags kept until a visitor answers the banner, held only in the address or page memory, never written to the device before Allow, dropped on Decline, and passed to Analytics only after Allow;
+  3. the brief request recording the tag beside its entry route only when `utm_source` is one of the three `growth-*` values with `utm_medium=referral` (otherwise null), with the site's privacy page and the brief's request contract updated in the same pull request for his read. It is the one path that ties a visit to a meeting, since Analytics sees only visitors who press Allow.
 
 ## 11. Assumptions and counterpoints
 
@@ -618,7 +622,7 @@ A Codex card's yes comes when the guard asks. His daily presses stay as they are
 - **Control Center builds what it owes after its 1.9.0 work.** Until then the Monday stopgap measures the number, so it is never left unmeasured to 30 November.
 - **The Canva connector has no brand-kit write.** If one appears, it replaces the Cowork step.
 - **Vercel Web Analytics is off for mindmake.co** (checked 27 October), so the one-sheet's reads stay unknown until SendLinks receipts arrive.
-- **Control Center serves the web part in 1.10.0.** Until then the Friday review session reads its stored site insights read-only.
+- **Control Center serves the web part in 1.10.0.** Until then the Friday stopgap in Phase 1b applies.
 
 **Counterpoints:**
 - **A wider number can reward meetings that never buy.** The qualified subset and the paid-proof path stay on every report, and the Friday review compares them.
