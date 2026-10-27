@@ -1,271 +1,549 @@
 # A bulletproof growth engine for Mindmake, with Canva in it
 
-Status: plan, filed for Krish's go. Nothing in the engine is built by this document.
-Written: 2026-10-27, from Krish's brief, the reference architecture (Drive, 27 Oct 2026, the content-engine redesign) and the Mindmake growth corpus (Oct 2026), after a read-only inventory of this repository, its Actions runs and pull requests, Control Center's placements and venture state, the Mindmake canon, Drive and Canva. Every figure below was checked by an independent reviewer trying to refute it; where a figure is this review's own count, it says so.
+Status: plan (version 2), filed for Krish's go. Nothing in the engine is built by this document.
+
+Written 2026-10-27, from four sources:
+- Krish's brief;
+- the reference architecture (Drive, 27 Oct 2026, the content-engine redesign);
+- the Mindmake growth corpus (Oct 2026);
+- a read-only inventory of this repository, its Actions runs and pull requests, Control Center's placements and venture state, the Mindmake canon, Drive and Canva.
+
+Two independent review rounds tried to refute every figure and mechanism. Version 2 folds in their corrections. Where a figure is this review's own count, it says so.
 
 ## Why
 
-The content engine failed on 27 October: one long thread, the engine rebuilt during the job, rules written as prose that never held, and passes certified by the session that did the work. This repository shows the same pattern on a smaller scale. The full-card feature on 27 October took six pull requests (#11 to #16) and five manual live runs in about four hours, four of which found the defects the next pull request fixed. Seven of 22 pull requests are corrections of earlier work (#6, #12, #14, #15, #16 and #22 fully, #17 partly). A live run (manual-24) showed success while it read no context and prepared nothing. And the North Star number is computed nowhere: it is U4, unmeasured.
+The content engine failed on 27 October. It ran in one long thread, the engine was rebuilt during the job, rules written as prose never held, and passes were certified by the session that did the work. This repository shows the same pattern on a smaller scale:
+- **The full-card feature** on 27 October took six pull requests (#11 to #16) and six manual live runs (18 to 23) in about four hours. Five of those runs came before the last fix, and four found the defects the next pull request fixed.
+- **At least seven of 23 pull requests** are corrections of earlier work: #6, #12, #14, #15, #16 and #22 fully, and #17 partly. #23 adapts #20 to a change in Control Center's form runner.
+- **A silent success.** Live run manual-24 reported success while it read no context and prepared nothing.
+- **The North Star number is computed nowhere.** It is U4, unmeasured.
 
-The outcome wanted: an engine that measures the number at its source, compiles each week from one spec Krish signs, blocks bad output with code before it reaches his phone, gets him onto more podcasts and stages, keeps everything it makes easy to find, and costs a twentieth as much to change.
+The outcome wanted is an engine that:
+- measures the number at its source;
+- compiles each week from one spec Krish signs;
+- blocks bad output with code before it reaches his phone;
+- gets him onto more podcasts and stages;
+- keeps everything it makes easy to find;
+- costs a twentieth as much to change.
 
-**What this moves on the North Star.** Measuring it at all (Phase 1, first), and the visibility route to meetings: podcast and stage pitches that carry a real one-sheet, with bookings counted against the target. Nothing here changes the ICP, channels, formats or remit.
+**What this moves on the North Star.** First, measuring it at all (Phase 1). Second, the visibility route to meetings: podcast and stage pitches that carry a real one-sheet, with bookings counted against the target. Phases 2 to 5 are mostly cost and quality work. Under U4 they start only with Krish's explicit go, and each says what it moves. Nothing here changes the ICP, channels, formats or remit.
 
 ## Krish's answers (27 October 2026)
 
-Recorded as rulings in docs/NORTH_STAR.md and AGENTS.md:
+Recorded in docs/NORTH_STAR.md and AGENTS.md:
 
 1. **The number:** "Anything that gets me good meetings counts towards my number, and we need to trace where it came from so we know what works." A meeting counts when he marks it good with one tap after it, whether with a buyer, a multiplier, a partner or a host. The engine pre-fills where it came from; he confirms. Qualified buyer conversations (the five tests) are reported as a subset.
 2. **Rooms:** guest seats only. No hosted rooms this year.
 3. **Visibility target:** two podcasts booked a week and one stage or panel confirmed a fortnight, replacing one podcast a week.
-4. **Canva:** a full, new Mindmake brand kit first; then the speaker and guest one-sheet. The kit is built by a Cowork computer-use session on his PC from his brand assets folder; he logs in and opens the folder. The old "Mindmaker" kit and decks stay as they are.
-5. **The one-sheet:** a PDF at mindmake.co/media, with Jonny's box as the booking contact. SendLinks (standard DEL-002) later carries a tracked link per recipient.
+4. **Canva order:** a full, new Mindmake brand kit first, then the speaker and guest one-sheet. The kit is built by a Cowork computer-use session on his PC from his brand assets folder; he logs in and opens the folder. The old "Mindmaker" kit and decks stay as they are.
+5. **The one-sheet:** a PDF at mindmake.co/media, with Jonny's box as the booking contact. SendLinks later carries a tracked link per recipient.
 6. **The Growth library:** every asset and strategy the engine produces lives in Drive, mind/make > 03_Growth (docs/DRIVE.md), and the engine keeps it from sprawling.
-7. **Signing:** the week spec is signed Monday morning; Friday is the review.
-8. **Codex:** the shared allowance has reset.
+7. **Signing:** the week spec is signed Monday morning, and Friday is the review.
+8. **Drive sharing:** mind/make, and so 03_Growth, stays link-editable by his choice, so nothing private is filed there.
 
-Recorded interpretation, unless he corrects it: "Canva at will" covers creating, editing, uploading, exporting and brand templates inside his own Canva account. Sharing, making anything public, merging the mindmake.co change, and any send or spend still need his yes at the time.
+Also recorded:
+- **A dated fact, not a ruling.** Krish said on 27 October that the shared Codex allowance has reset. The allowance guard uses this as an input.
+- **Canva, in his words:** "Canva is also available for you to use at will with zero limits in the engine." This plan reads that as: creating, editing, uploading and exporting drafts inside his own Canva account is at will. Publishing a brand template, sharing a design, making anything public, merging a page, and any send, spend, purchase, upgrade or trial still need his yes at the time. That reading is an interpretation pending his confirmation.
 
 ## 0. Lose nothing: what exists and stays
 
-**Stays exactly as is, and remains the fallback route until the new route has proved itself on real runs:** the daily Control Center wake (05:10 UTC `repository_dispatch`) and `node src/cli.mjs dispatch`; the attempt journal, report readback by digest and decision digests; capability negotiation from 1.2 to 1.9; the five rows with full cards, fit first and the permanent No store (`lessons`, `refusedBy`); the canon and track record read live by blob SHA; Jonny's podcast, stage and guest pitches; forms on his tap (#20); signals; the larger context budget (#22); 255 tests and the three demos; the 27 October session handoff (docs/history/2026-10-27-growth-session-handoff.md) and its continuation point.
+**What stays exactly as is.** All of this remains the fallback route until the new route has proved itself on real runs:
+- the daily Control Center wake (05:10 UTC `repository_dispatch`) and `node src/cli.mjs dispatch`;
+- the attempt journal, report readback by digest, and decision digests;
+- capability negotiation from 1.2 to 1.9;
+- the five rows with full cards, fit first, and the permanent No store (`lessons`, `refusedBy`);
+- the canon and track record read live by blob SHA;
+- Jonny's podcast, stage and guest pitches;
+- forms on his tap (#20, #23);
+- signals;
+- the larger context budget (#22);
+- 255 tests and the three demos;
+- the 27 October session handoff (docs/history/2026-10-27-growth-session-handoff.md) and its continuation point.
 
-**Live jobs.** No `schedule` trigger anywhere. `operate.yml`: `repository_dispatch` (`cc-growth-directive`) and `workflow_dispatch` (modes engine, daily, readiness, weekly-review, dispatch). `ci.yml`: push, pull request, manual.
+**Live jobs.** There is no `schedule` trigger anywhere.
+- `operate.yml`: `repository_dispatch` (`cc-growth-directive`) and `workflow_dispatch`, in modes engine, daily, readiness, weekly-review and dispatch.
+- `ci.yml`: push, pull request and manual.
 
-**Run history (Actions, as of 27 Oct 12:25 UTC).** 25 operate runs; 22 live dispatch runs since 19 October (9 woken by Control Center, 13 manual). Three failed: `attempt_unconfirmed` on 19 Oct, `directive_invalid` on 20 and 21 Oct. Run manual-24 reported success while it read no context (fixed by #22). Median run 15 seconds overall, 17 for dispatch runs, 21 on 27 October; Actions billable time is effectively zero. CI: 62 runs, 61 passed, 1 cancelled.
+**Run history** (Actions, as of 27 Oct 12:25 UTC; #23 merged at 12:46):
+- 25 operate runs, of which 22 were live dispatch runs since 19 October (9 woken by Control Center, 13 manual).
+- Three failed: `attempt_unconfirmed` on 19 Oct, and `directive_invalid` on 20 and 21 Oct.
+- Run manual-24 reported success while it read no context.
+- The median run lasts 15 seconds overall, 17 for dispatch runs and 21 on 27 October. Actions billable time is effectively zero.
+- CI: 62 runs then, 61 passed and 1 cancelled.
 
-**Past fixes.** This review counted 48 distinct fixes from commit bodies, PR descriptions and docs (its own count; Phase 0 commits the list with a commit or PR for each so it can be checked). Most are guarded by objective code tests. Four have no test: F08 (secret and variable names in the workflow), F09 (schema verified before promotion), F10 (a link outside the repository; the fault is live again at docs/control-center/ENGINE-PROTOCOL.md lines 3, 157 and 298, and RELEASE.md claims a link check that does not exist), F22 (OPERATIONS.md says five minutes; operate.yml says ten). Four are partly guarded: F15 (the live report-reuse branch and `recovery_report_mismatch`), F18 (the voice-rules overclaim, half covered by tests/voice.test.mjs), F20 (the pinned canon, still stale), F21 (schema bounds, no direct unit test). F48 is new: a run that read no context still showed success.
+**Past fixes.** This review counted 48 distinct fixes from commit bodies, PR descriptions and docs. That is its own count; Phase 0 commits the list, with a commit or PR for each, so it can be checked. Most fixes are guarded by objective code tests.
+- **No test (4):**
+  - F08: secret and variable names in the workflow.
+  - F09: schema verified before promotion.
+  - F10: a link outside the repository. The fault is live again at docs/control-center/ENGINE-PROTOCOL.md lines 3, 157 and 300, and RELEASE.md claims a link check that does not exist.
+  - F22: OPERATIONS.md says five minutes; operate.yml says ten.
+- **Partly guarded (4):**
+  - F15: the live report-reuse branch and `recovery_report_mismatch`.
+  - F18: the voice-rules overclaim, half covered by tests/voice.test.mjs.
+  - F20: the pinned canon, still stale.
+  - F21: schema bounds, with no direct unit test.
+- **Open (1):**
+  - F48: a run that reads no context still journals success. #22 named the cause and raised the budget, but the silent success itself is not fixed.
 
-**Open findings, all confirmed by an independent reviewer (N01 to N18).**
+**Open findings**, each confirmed by an independent reviewer, with the phase that closes it:
 
-| Id | Finding |
-|---|---|
-| N01 | A second Control Center wake on the same London day replays the first report, though the protocol gives a later wake a new run_id. |
-| N02 | `events[]` is always empty, so closes are never reported. |
-| N03 | The directive's `north_star`, `urgency`, `constraints` and `rows_rule` are read nowhere. |
-| N04 | Policy fields `voice`, `recognition`, `acquisition`, `pilot`, `venture`, `execution.channels`, `execution.assets` are never read; row, fit and pitch caps and the 70/30 split are hard-coded. |
-| N05 | The 1.9.0 pitch outcomes (sent, replied, booked, recorded, published) are read nowhere, so the engine cannot learn which shows answer. |
-| N06 | A repeated `pitch_off` No never reaches the weekly review as a doctrine change. |
-| N07 | Mutation-kill claims in PRs #12 to #19 cannot be re-run: no harness is committed or run in CI. |
-| N08 | Docs drift: NOW.md head lags, docs/history/LOG.md is named but missing, merged PRs are called unmerged, the protocol header says 1.8.0 while documenting 1.9.0. |
-| N09 | The trust-asset prompt's formats differ from `contracts/motions.ts`. |
-| N10 | The `founder_visibility_open` hold was never recorded. |
-| N11 | The registry target is a flat 5 against the ladder 2, 5, 8, 11, 15, 20. |
-| N12 | The pinned canon review lapses on 15 November. |
-| N13 | The 50 held prospects were never turned into one decision. |
-| N14 | `strategicPlan().digest` is computed and never read. |
-| N15 | The engine never recomputes `amended_sha256` before acting on an amended decision, as the protocol requires. |
-| N16 | A campaign plan over 8,000 characters fails the whole report instead of holding. |
-| N17 | `blobSha` hashes decoded text, so it gives the wrong SHA for a binary file such as a PDF. |
-| N18 | Every approved `stage: "plan"` decision is routed to prepare-action whatever its id, so any new kind of plan would be treated as a campaign. |
+| Id | Finding | Phase |
+|---|---|---|
+| N01 | A second Control Center wake on the same London day replays the first report, though the protocol gives a later wake a new run_id. This happened live on 23 Oct. | 2, with a per-day pitch budget |
+| N02 | `events[]` is always empty, so closes are never reported. | 3 |
+| N03 | The directive's `north_star`, `urgency`, `constraints` and `rows_rule` are read nowhere. | 1 (north_star, urgency, constraints), 2 (rows_rule) |
+| N04 | Policy fields `voice`, `recognition`, `acquisition`, `pilot`, `venture` and `execution.*` are never read. Row, fit and pitch caps and the 70/30 split are hard-coded. | 2 |
+| N05 | The 1.9.0 pitch outcomes (sent, replied, booked, recorded, published) are read nowhere, so the engine cannot learn which shows answer. | 1 |
+| N06 | A repeated `pitch_off` No never reaches the weekly review as a doctrine change. | 3 |
+| N07 | Mutation-kill claims in PRs #12 to #19 cannot be re-run: no harness is committed or run in CI. | 3 |
+| N08 | Docs drift: NOW.md head lags, docs/history/LOG.md is named but missing, merged PRs are called unmerged, and the protocol header says 1.8.0 while documenting 1.9.0. | 3, by the drift check |
+| N09 | The trust-asset prompt's formats differ from `contracts/motions.ts`. | 3 |
+| N10 | The `founder_visibility_open` hold was never recorded. | 1 |
+| N11 | The registry target is a flat 5 against the ladder 2, 5, 8, 11, 15, 20. | 1 (good_meetings reads the ladder) |
+| N12 | The pinned canon review lapses on 15 November. | Krish's review |
+| N13 | The 50 held prospects were never turned into one decision. | 0 (reconcile with the handoff) |
+| N14 | `strategicPlan().digest` is computed and never read. | 2 |
+| N15 | The engine never recomputes `amended_sha256` before acting on an amended decision, as AGENTS.md and the protocol require. | 1 |
+| N16 | A campaign plan over 8,000 characters fails the whole report instead of holding. | 1 |
+| N17 | `blobSha` hashes decoded text, so it gives the wrong SHA for a binary file such as a PDF. | in the C2 pitch-line PR |
+| N18 | Every approved `stage: "plan"` decision is routed to prepare-action whatever its id, so any new kind of plan would be treated as a campaign. | 1 |
 
-**Pending work from the handoff.** Four route plans prepared on 22 October are still pending, their action windows expired and their original Advisory records unresolved. The handoff's continuation point (reconcile them before any replacement) stays first in line, and Phase 0 carries it.
+**Pending work from the handoff.** Four route plans prepared on 22 October are still pending. Their action windows have expired and their original Advisory records do not resolve. The handoff's continuation point stays first in line: reconcile them before anything replaces them. Their id prefixes are recorded before the plan route is narrowed (N18), so none is stranded.
 
-**The recurring defect.** Free text from Control Center records was used as card copy, so each live run found a new shape and each fix added to a deny-list. The tests pin past examples rather than define a valid line, so the next unseen shape passes.
+**The recurring defect.** Free text from Control Center records was used as card copy, so each live run found a new shape, and each fix added to a deny-list. The tests pin past examples rather than define a valid line, so the next unseen shape passes.
 
-**In flight.** No open PRs. Merged branches remain (including two `codex/` branches, #7 and #21, whose sessions cannot be traced from GitHub). The second checkout on Krish's PC is checked before any local write and never written to.
+**In flight.** There are no open PRs. Of the Codex branches, only #7's remains on the remote; #21's was deleted. The second checkout on Krish's PC is checked before any local write and never written to.
 
 ## 1. The week spec: the one artefact he signs
 
-One per London week, `growth-week/1`, canonical JSON of 8,000 characters or fewer. It holds no people, ids or private links, so a proposed spec can be reviewed as a file. Its judgement fields are typed; everything else is compiled or is an invariant.
+One spec per London week, `growth-week/1`: canonical JSON of 8,000 characters or fewer. It holds no people, ids or private links, so a proposed spec can be reviewed as a file.
 
-- **Typed judgement fields:** lanes on or off; caps inside the bounds config/policy.json owns (the spec is validated against them and can only tighten); the visibility targets; assets in play; one experiment; questions for Krish.
-- **Compiled fields, never typed:** the North Star week target, the canon blob SHAs, the digest of the directive's week goals.
-- **Invariants, never in the spec:** no send or spend authority, one follow-up, no em dashes, the fit floor of 40, privacy.
+**Typed judgement fields:**
+- lanes on or off;
+- caps, inside the minimum and maximum bounds config/policy.json owns, each with a stated direction;
+- a fit floor of 40 or higher;
+- the assets in play;
+- one experiment;
+- questions for Krish.
+
+**Referenced, never owned by the spec:**
+- The visibility targets, which config/policy.json owns. Phase 2 replaces `policy.recognition` with the 27 October ruling before wiring it.
+- The allocation, which stays inert until it is wired.
+
+**Compiled, for information only:** the North Star week target, the canon blob SHAs, and the digest of the directive's week goals. They are never a gate; a mismatch is logged as an activity line, so a canon change never unsigns a week.
+
+**Invariants, kept out of the spec:** no send or spend authority (zero spend is enforced in the compiler), one follow-up, no em dashes, privacy.
 
 ```json
-{ "spec": "growth-week/1", "week_of": "2026-11-02",
-  "compiled": { "north_star_sha": "<blob>", "week_target": 5, "canon": [{"path": "01_CANON.md", "sha": "<blob>"}], "week_goals_sha256": "<hex>" },
-  "targets": { "podcasts_booked_per_week": 2, "stages_confirmed_per_fortnight": 1 },
-  "lanes": { "network": {"on": true, "rows": 6}, "partners": {"on": true, "rows": 6}, "reach_out": {"on": true, "rows": 6},
-             "pitches": {"per_run": 10, "stage_share": 4, "invites_per_run": 2, "invites_per_week": 4,
-                         "show_shares": {"make_your_mind_up": 70, "signal_noise": 30}, "forms_per_row": 2} },
-  "allocation": { "multiplier_share": 0.7, "rebalance_days": 14 },
+{ "spec": "growth-week/1", "week_of": "2026-11-09",
+  "compiled": { "north_star_sha": "<blob>", "week_target": 8,
+                "canon": [{"path": "project-documentation/00_NORTH_STAR.md", "sha": "<blob>"}, {"path": "project-documentation/01_CANON.md", "sha": "<blob>"}],
+                "week_goals_sha256": "<hex>" },
+  "rows": { "network": {"on": true, "max": 6}, "partners": {"on": true, "max": 6}, "reach_out": {"on": true, "max": 6},
+            "visibility": {"on": true, "max": 6}, "events": {"on": true, "max": 6} },
+  "pitches": { "per_run": 10, "stage_share": 4, "invites_per_run": 2, "invites_per_week": 4,
+               "show_shares": {"makeyourmindup": 70, "signal_noise": 30}, "forms_per_row": 2 },
+  "fit_floor": 40,
   "assets": [{ "id": "speaker-one-sheet", "version": 1, "blob_sha": "<git blob of the PDF bytes>", "url": "https://mindmake.co/media/<file>.pdf", "in": ["visibility", "events"] }],
   "experiment": { "id": "one-sheet-in-pitches", "lane": "visibility", "change": {"field": "assets.speaker-one-sheet.in", "to": ["visibility", "events"]},
                   "measure": "replies_and_bookings_14d", "decide": "keep if replies plus bookings match or beat the prior fortnight; counts only below 20", "min_days": 14 },
-  "questions": [],
-  "spend_usd": 0 }
+  "last_week": { "good_meetings_total": null, "by_path": {} },
+  "questions": [] }
 ```
 
-Every default comes from today's exported constants, so the default spec reproduces today's behaviour exactly.
+The default spec is generated from today's exported constants, policy and code keys, so it reproduces today's behaviour exactly.
 
 **How it is proposed and signed, with no new write path or approval interface:**
-1. Between runs, a session proposes next week's spec as a file in this repository by pull request. It contains nothing private.
-2. The dispatch, the only production writer, posts the signed-off file on main as a `stage: "plan"`, `wall: "strategy"` proposal with id prefix `gms-`. His list shows plans before sends.
-3. His Clear is the signature. For a plan, the digest covers the whole proposal minus its target, so the title, why and evidence are generated deterministically from the spec and do not re-ask him. "Change it first" makes his amended version the signed one; the engine recomputes `amended_sha256` before using it (N15).
-4. The approved-plan route at src/dispatch.mjs is narrowed to campaign ids (`gmc-`) so a spec never reaches prepare-action (N18), and an oversized spec is held as `spec_too_long`, never thrown (N16).
-5. **Effective day.** Monday's 05:10 run reads decisions before he signs, so a Monday-morning signature takes effect at Tuesday's run, or at once if he starts a manual run. Monday runs under last week's spec.
-6. No signed spec: the last signed spec up to 7 days old, then today's config, with the hold `spec_unsigned`.
-7. On full Mondays the spec takes one non-row slot, so the report carries one fewer pitch that day.
+1. **A session proposes.** Between runs, a session writes next week's spec as a file in this repository, by pull request. It contains nothing private.
+2. **The dispatch posts.** The dispatch is the only production writer. It posts the merged spec as a `stage: "plan"`, `wall: "strategy"` proposal with id prefix `gms-`.
+   - Its `expires_at` is the end of the spec's London week, and its evidence is blob-SHA links. Both stay fixed, so the digest never changes on its own and never re-asks him.
+   - The same proposal carries last week's good-meeting counts to confirm (the Phase 1 stopgap, folded in from Phase 2) and any asset version awaiting approval. That makes one Monday ask.
+3. **His Clear is the signature.** "Change it first" makes his amended version the signed one. The engine recomputes `amended_sha256` before using it (N15). An amended spec that fails the schema or loosens a bound is held as `spec_amended_invalid`, and the last valid signed spec stays in force.
+4. **The plan route is narrowed.** Only campaign ids (`gmc-`) reach prepare-action (N18, in Phase 1). An oversized spec is held as `spec_too_long`, never thrown (N16).
+5. **When it takes effect.** A spec takes effect at the first run whose decisions read, placed before compilation and rows, finds the signed digest.
+   - Today the morning run reads decisions before he signs, so a Monday-morning signature takes effect at Tuesday's run, or at once if he starts a manual run.
+   - A same-day re-wake applies it only once N01 is fixed (Phase 2).
+   - The first signable spec is for the week of 9 November, effective Tuesday 10 November.
+   - The spec surfaces only after the four 22 October plans are reconciled (a Phase 0 exit condition), because his list shows one ask at a time, plans oldest first.
+6. **Fallback.** With no signed spec, the last signed spec up to 7 days old applies, then today's config, with the hold `spec_unsigned`.
+7. **Pitch slots.** On Mondays the spec and the stopgap each take a non-row slot, so the report carries up to two fewer items from the end of the pitch and form list.
 
 ## 2. Repository structure (additive; every new src file registered in pipeline/stage-conveyor.json)
 
 ```
 specs/schema/week.schema.json       the spec schema, frozen and hashed in contracts/manifest.json
-specs/weeks/YYYY-MM-DD.json         proposed and signed-off specs (no people, ids or private links)
+specs/weeks/YYYY-MM-DD.json         proposed and merged specs (no people, ids or private links)
 specs/examples/week.synthetic.json  synthetic only
 crew/index.json                     specialist -> lanes, lint ids, check ids, card, lens
-crew/<specialist>/card.md           3 KB or less, a decision table loaded only when its lane is in play
+crew/<specialist>/card.md           3 KB or less, generated from the playbooks with a source hash and a drift check
 crew/<specialist>/lens.md           1 KB or less, one question for an independent reviewer
 src/crew/lints/*.mjs                pure (action, context, spec) -> findings; they import the stage predicates, never restate them
 src/crew/checks/*.mjs               pure (Control Center readback) -> measurements
 src/crew/compile.mjs                signed spec -> the caps the stages read, inside policy.json's bounds
-src/crew/status.mjs                 readiness and success, computed from evidence, printed by `npm run status`
-invariants/register.json            every past fix and open finding -> its test, or an accepted reason
-assets/manifest.json                asset ids, versions, blob SHAs, public URLs; no design ids or private links
-library/taxonomy.json               the Growth library's folders, naming rule and kinds (docs/DRIVE.md)
+invariants/register.json            every past fix and open finding -> its test or an accepted reason, and its phase
+library/taxonomy.json               generated from docs/DRIVE.md, with a drift check
 tasks/cards/*.md                    task cards of 6 KB or less; returns go to ignored runtime/
 scripts/{pack,check-crew,check-bespoke,check-library,dispatch-card,verify-card,mutate}.mjs
 tests/regression/*.test.mjs         the missing regression tests
 tests/fixtures/live-shapes/*.json   hand-written synthetic versions of each live failure shape, never live text
 ```
 
-The stage modules keep owning behaviour. A specialist owns its lint, check, card and lens, not the stage's code. RELEASE.md stays the completion record; `npm run status` gives the evidence it cites. New owner lines go into AGENTS.md and the conveyor in the same change.
+**One owner each:**
+- The stage modules keep owning behaviour. A specialist owns its lint, check, card and lens, not the stage's code.
+- `good_meetings` lives in `scorecard.mjs`.
+- The asset version in force is the one Control Center approved by SHA. The spec references it; the Drive index only labels it.
+- RELEASE.md stays the completion record. `npm run status` extends the existing readiness command and prints the evidence RELEASE.md cites.
+- New owner lines go into AGENTS.md and the conveyor in the same change.
 
 ## 3. The crew (from this repository's rows, routes and remit)
 
 | Specialist | Stage code it reviews | Lint (blocks before acting) | Measured check (real data, after) | Lens |
 |---|---|---|---|---|
 | Network Steward | `rows.mjs` network row | tie evidence counted both ways; quiet 90 days or more; no refusal; one ask; a route; card grammar | a reply within 7 days (Control Center's email count rises after `carried_out`); a good meeting on `existing-relationship` | Will they feel remembered, or worked? |
-| Multiplier Steward | partners row, connector intro asks, introduction permissions | relationship evidence beyond a LinkedIn connection; one named person with a reason; fit 40 or more; card grammar | connector reply within 7 days; introductions offered; good meetings on `multiplier-intro` | Does this spend their trust, or give first? |
+| Multiplier Steward | partners row, connector intro asks, introduction permissions | relationship evidence beyond a LinkedIn connection; one named person with a reason; the fit floor; card grammar | connector reply within 7 days; introductions offered; good meetings on `multiplier-intro` | Does this spend their trust, or give first? |
 | Visibility Producer | podcast pitches, own-show guest invites, podcast and show forms, appearance asks | the show's own booking address; an episode within 120 days; never pitched; never his own show; one ask; his ruled title; the show named; the one-sheet line only when the PDF reads at its pinned SHA | the 1.9.0 sent, replied, booked, recorded and published per pitch, read for the first time (N05); bookings a week against 2; later, SendLinks opens | Would the booker say yes in ten seconds? |
-| Stages Producer | speaking pitches, stage forms (#20), `teach` asks | open and before its deadline; a speaker address or form from the stage's own page; his buyer in the room; one talk title; never press | reply, form submitted, seat confirmed against 1 a fortnight; brief and meeting requests within 7 days of the session; good meetings on `guest-seat` | Is his buyer actually in this room? |
-| Signal Scout | `signals.mjs` | an executive by their own headline; worried in their own words; not an AI person or seller; comment within 30 days; quoted exactly with the post named | reply within 7 days; good meetings on `public-signal`; opt-outs suppressed the same run | Will they feel heard, or harvested? |
-| Trust-Asset Steward (Canva) | `motions.mjs` trust assets and decision aids; `assets/` | the Mindmake kit; fonts and colours inside it; the name exactly "Mindmake", never "Mindmaker"; read-back text equals the approved text; every fact named by blob SHA; one page; Jonny's box as contact and never Krish's personal email; none of what the canon says is never published (price, rate card, availability, unconsented client names, the method's name); no durations, emoji or em dashes | the PDF's blob SHA at its URL equals the approved one; page views; replies and bookings on pitches carrying it against the prior fortnight; SendLinks opens per host | Does it prove, or decorate? |
-| Meeting Ledger | `scorecard.mjs`, `outcomeScorecard`, qualification review | every meeting carries a path pre-filled from the engine's own carried-out action, recorded once and never rewritten; assists kept separately | good meetings a week by path against the ladder; the qualified subset; paid proofs traced to their path; meetings with no match | Would this survive "show me the meeting"? |
-| Librarian | docs/DRIVE.md, `library/taxonomy.json`, Drive 03_Growth, Canva Mindmake Growth | before filing: the path is in the taxonomy; the name passes the naming pattern; no duplicate of kind, subject and version; a superseded file moves to the archive in the same step; never trash or share; no lists of people | the tree walk: files outside the map, loose files, duplicates, more than one Current, engine-made Canva designs outside the folder, copies older than their source's last change, index entries that do not match: each zero | Could Krish find the current version in ten seconds? |
-| Guard | `guards.mjs`, `check.mjs`, policy | nothing sends, publishes, spends or changes permission without his yes; no LinkedIn automation; no live people in git; no per-run bespoke code; the directive's constraints | constraint breaches zero; opt-outs honoured; restriction notices zero | Is anything here acting without his yes? |
+| Stages Producer | speaking pitches, stage forms (#20, #23), `teach` asks | open and before its deadline; a speaker address or form from the stage's own page; his buyer in the room; one talk title; never press | a reply; a stage confirmed only by a reply with a date or a calendar event, never by a form's "confirmed" receipt, against 1 a fortnight; brief and meeting requests within 7 days of the session; good meetings on `guest-seat` | Is his buyer actually in this room? |
+| Signal Scout | `signals.mjs` | an executive by their own headline; worried in their own words; not an AI person or seller; inside the research window signals.mjs already uses; quoted exactly with the post named | reply within 7 days; good meetings on `public-signal`; opt-outs suppressed the same run | Will they feel heard, or harvested? |
+| Trust-Asset Steward (Canva) | `motions.mjs` trust assets and decision aids | the Mindmake kit; fonts and colours inside it; the name exactly "Mindmake"; read-back text equals the approved text; every fact named by blob SHA; one page; Jonny's box as contact and never Krish's personal email; none of what the canon says is never published (price, rate card, availability, unconsented client names, the method's name); no durations, emoji or em dashes | the PDF's blob SHA at its URL equals the approved one; page views; replies and bookings on pitches carrying it against the prior fortnight; SendLinks opens per host | Does it prove, or decorate? |
+| Meeting Ledger | `scorecard.mjs`, `outcomeScorecard`, qualification review. It stores nothing: Control Center records each meeting | every meeting carries the path Control Center recorded from the engine's pre-fill and his tap, never rewritten; assists kept separately | good meetings a week by path against the ladder; the qualified subset; paid proofs traced to their path; meetings with no match | Would this survive "show me the meeting"? |
+| Librarian | docs/DRIVE.md, Drive 03_Growth, Canva Mindmake Growth | before filing: the path is in the map; the name passes the naming pattern; no duplicate of kind, subject and version; a superseded file moves to the archive in the same step; never trash or share; nothing private (the library is link-editable) | the tree walk finds zero of each: files outside the map, loose files, duplicates, more than one PDF in a Current, engine-made Canva designs outside the folder, copies older than their source's last change, index entries that do not match | Could Krish find the current version in ten seconds? |
+| Guard | `guards.mjs`, `check.mjs`, policy | nothing sends, publishes, spends or changes permission without his yes; no automation of posting, messaging or connecting on LinkedIn; no live people in git; no per-run bespoke code; the directive's constraints | constraint breaches zero; opt-outs honoured; restriction notices zero | Is anything here acting without his yes? |
 
-**Card grammar** is the lint every row specialist shares, and it ends the deny-list chase. A line may be built only from typed slots (a name, a title, an organisation, a counted figure with its source, a canon quote, or a record sentence that passes `isFact`), and Control Center is asked for typed `facts[]` instead of prose. Property tests prove every live failure shape is held as `card_grammar`, with generated variants of each. The deny-lists stay as a second net.
+**Card grammar** is the lint every row specialist shares, and it ends the deny-list chase.
+- A line may be built only from typed slots: a name, a title, an organisation, a counted figure with its source, a canon quote, or a record sentence that passes the fact test.
+- The fact test extends today's `factOf` and `leadFacts` (src/stages/rows.mjs), with its own tests.
+- Control Center is asked for typed `facts[]` instead of prose.
+- Property tests prove every live failure shape is held as `card_grammar`, with generated variants of each.
+- The deny-lists stay as a second net.
 
 **Shadow first.** Every new hold (card grammar, the directive's constraints, the Librarian) runs in shadow until the Phase 5 switch: it is counted and reported, and nothing it would hold is hidden. The current route keeps working unchanged until the new one has proved itself.
 
-**Proposed rules, not lints until he rules.** The corpus recommends practices this repository has never adopted: at most one ask of a multiplier in 30 days unless they offered; a gift before an ask; a forwardable blurb of 150 words or fewer; identification and an opt-out on a cold email (a postal address for US recipients). They reach him as questions on the first spec, not as silent new gates.
+**What the engine does with LinkedIn, stated plainly.** It chooses what Control Center collects from LinkedIn (posts, the people who engaged, their routes) through Control Center's research desk, inside its daily caps. It never posts, messages or connects.
+
+**Proposed rules: lints only once he rules.** The corpus recommends practices this repository has never adopted:
+- at most one ask of a multiplier in 30 days, unless they offered;
+- a gift before an ask;
+- a forwardable blurb of 150 words or fewer;
+- identification and an opt-out on a cold email, plus a postal address for US recipients;
+- a 30-day limit on the age of a signal comment.
+
+They reach him as questions on the first spec, not as silent new gates.
 
 ## 4. Checks mapped to this repository's failure history
 
 | Failure class (ids) | Invariant | Guard today | Added guard |
 |---|---|---|---|
-| Protocol drift (F13, F21) | accept any 1.x directive; gate each report version on what Control Center serves | dispatch and rows version tests | unit tests for maximum, minLength and minItems |
-| Replay and recovery (F03, F15, N01) | a restart never re-prepares or re-executes; a later wake gets its own run_id | adapter and dispatch replay tests | live-reuse and `recovery_report_mismatch` tests; a same-day second-wake test |
-| Silent success (F48) | a run that reads no context, or prepares nothing while Control Center serves work, is a held run with a named class, never a quiet success | #22's dispatch test | `npm run status` reads empty output as not done |
+| Protocol drift (F13, F21) | accept any 1.x directive; gate each report version, and each new report field, on what Control Center serves | dispatch and rows version tests | unit tests for maximum, minLength and minItems; a test that a new field is sent only when its version is served |
+| Replay and recovery (F03, F15, N01) | a restart never re-prepares or re-executes; a later wake gets its own run_id | adapter and dispatch replay tests | live-reuse and `recovery_report_mismatch` tests; a same-day second-wake test with its fix |
+| Silent success (F48) | a run that reads no context, or prepares nothing while Control Center serves work, is a held run with a named class, never a quiet success | #22's dispatch test of the named class | `npm run status` reads empty output as not done |
 | Retired routes and secrets (F08, F11, F12, F22) | never call retired routes; the workflow binds exact secret names and timeouts | dispatch and strategy tests | a test that parses operate.yml against OPERATIONS.md |
-| Card words from free text (F27 to F45) | lines only from whole typed pieces | about 25 rows and pitches tests | card grammar, property tests, `card_grammar` held in shadow then enforced |
+| Card words from free text (F27 to F45) | lines only from whole typed pieces | about 25 rows and pitches tests | card grammar, property tests, `card_grammar` in shadow, then enforced |
 | Unknown versus zero (F30, F45) | never a zero that was not measured | dispatch null test | extended to good meetings and every check |
-| Ranking by vanity (F23, F25) | fit first, floor 40, competitors out | rows fit tests | the spec can only tighten the floor |
+| Ranking by vanity (F23, F25) | fit first, floor 40, competitors out | rows fit tests | the spec can raise the floor, never lower it |
 | Duplicates and priority (F06, F14, F16) | one copy per person; replies before new outreach | learning, dispatch and strategy tests | unchanged |
 | Stale canon (F20, N12) | canon read live; the pinned copy reviewed | rows canon tests | CI warns 14 days before the pinned review lapses |
-| Claims in docs (F09, F10, F18, N08) | status is computed, never written | none | a local link check in check.mjs; a drift check for NOW head and the protocol header |
-| Self-certification (N07) | a claimed kill rate re-runs in CI | none | a committed zero-dependency mutation runner for card grammar and pitches |
-| Bespoke code per run (the 27 Oct pattern) | no run ids, dated literals or people in src | none | `check-bespoke.mjs` in CI |
-| Binary hashing and plan routing (N16, N17, N18) | assets hashed from raw bytes; specs routed apart from campaigns; oversize holds | none | unit tests for each |
+| Claims in docs (F09, F10, F18, N08) | status is evidenced, never asserted | none | a local link check in check.mjs; a drift check for NOW head and the protocol header |
+| Self-certification (N07) | a claimed kill rate re-runs in CI | none | a committed, zero-dependency mutation runner for card grammar and pitches |
+| Bespoke code per run (the 27 Oct pattern) | no run ids, dated values or people in src string literals | none | `check-bespoke.mjs`, scoped to string literals outside comments, with ruling citations allowed |
+| Plan routing and digests (N15, N16, N18) | only campaigns reach prepare-action; amended digests are verified; oversize holds | none | stand-in tests for each, in Phase 1 |
+| Binary hashing (N17) | assets hashed from raw bytes | none | a unit test with a real PDF |
 
 ## 5. Session protocol
 
-- **Session kinds, each fresh and doing one job.** A spec session (Friday) writes next week's spec file and ends. A build session (between runs) verifies one task card. An asset session makes one Canva revision. The daily dispatch stays zero tokens. Token and wall-clock budgets are provisional until Phase 0 measures the real median; they are then set at one twentieth of it.
-- **A session pack of 36 KB or less.** `npm run pack` writes runtime/pack.md: AGENTS.md (loaded by CLAUDE.md anyway, so it counts), the North Star state, the signed spec, the cards of up to three specialists in play, open lint findings and holds as counts and codes, and gate status. CI fails the pack above 36,864 bytes and counts every mandatory load. Today AGENTS.md alone requires reading BRIEF, RELEASE and playbook 10 (more than 40 KB together), so Phase 4 asks Krish to replace those standing reads with the cards that distil them; until he agrees, the pack cannot meet its size.
-- **No mid-turn questions.** Questions go into the next spec's `questions[]` and reach him on Monday's list; the session ends at that gate. Recurring gates are at most three a week; one-off setup approvals are listed apart.
-- **Two clocks.** Phase 0 reads session events (counts only) to give tokens, engine time and time waiting on Krish per session; nothing is stored as a second record.
+**Session kinds.** Each session is fresh and does one job:
+- a spec session (Friday) writes next week's spec file and ends;
+- a build session (between runs) verifies one task card;
+- an asset session makes one Canva revision;
+- the daily dispatch stays at zero tokens.
+
+Token and wall-clock budgets are provisional until Phase 0 measures the real median per session; they are then set at one twentieth of it.
+
+**A session pack of 36 KB or less.** `npm run pack` writes runtime/pack.md. It counts every mandatory load, including the ones loaded anyway:
+- AGENTS.md (about 12 KB);
+- NOW.md (about 16 KB);
+- docs/NORTH_STAR.md (about 3 KB);
+- the signed spec;
+- the cards of up to three specialists in play;
+- open lint findings and holds, as counts and codes;
+- gate status.
+
+The first three alone come to about 30 KB. GET-GOING's read list adds GET-GOING itself, the handoff, the Control Center brief and the protocol, about 75 KB more. So Phase 4 asks Krish for one change across AGENTS.md, GET-GOING.md and NOW.md (which the docs steward keeps):
+- shorten the always-on files;
+- turn the standing reads into the cards that distil them.
+
+Until he agrees, the pack cannot meet its size, and the plan says so rather than pretending it does.
+
+**No mid-turn questions.** Questions go into the next spec's `questions[]` and reach him in Monday's one ask; the session ends at that gate.
+
+**Recurring gates: two a week.**
+- Monday: one ask, holding the spec, last week's counts and any asset version.
+- Friday: the review.
+
+A Codex spend ask comes only when the guard requires it.
+
+**Two clocks.** Phase 0 reads session events (counts only) and gives tokens, engine time and time waiting on Krish per session. These counts are runtime only, never a stored record.
 
 ## 6. Codex task-card dispatch
 
 Codex builds code between runs as a development tool; the engine's runtime gains no model provider.
 
-- **A card, 6 KB or less:** model and effort pinned (the reference architecture's measured choice, re-verified against Codex's own model list at dispatch, never the default), maximum minutes and calls, the worktree, `write_allow` globs, five read files or fewer, a never list (no git, network, MCP, publishing, new dependencies, or edits outside write_allow), the interface verbatim, acceptance commands that must exit 0, and the JSON return shape.
-- **Dispatch** from a local Claude Code session on Krish's PC, where the Codex plugin lives: `node <plugin>/scripts/codex-companion.mjs task --background --fresh --write --model <pinned> --effort <pinned> --cwd <worktree> --prompt-file <card>`, then `status --wait` and `result`. Never the codex-rescue subagent.
-- **A worktree per card** from main, on a `codex/<card-id>` branch, never in the second checkout.
-- **Allowance guard.** Control Center's economics snapshot carries no Codex meter, so `dispatch-card.mjs` takes the allowance as an explicit input with its source (today: Krish, 27 Oct, reset) and refuses above 80% or when unknown, unless a spend approval is named.
-- **Verification.** Claude re-runs the acceptance commands and the seven repository checks outside the sandbox and confirms the diff stays inside write_allow. Codex's own report is never evidence.
-- **Fallback:** the same card through a Claude agent in an isolated worktree, verified the same way.
+- **A card, 6 KB or less,** holds:
+  - the model and effort, pinned (the reference architecture's measured choice, re-verified against Codex's own model list at dispatch, never the default);
+  - maximum minutes and calls;
+  - the worktree;
+  - `write_allow` globs;
+  - five read files or fewer;
+  - a never list: no git, network, MCP, publishing, new dependencies, or edits outside write_allow;
+  - the interface, verbatim;
+  - acceptance commands that must exit 0;
+  - the JSON return shape.
+- **Dispatch** runs from a local Claude Code session on Krish's PC, where the Codex plugin lives: `node <plugin>/scripts/codex-companion.mjs task --background --fresh --write --model <pinned> --effort <pinned> --cwd <worktree> --prompt-file <card>`, then `status --wait` and `result`. Never the codex-rescue subagent.
+- **A worktree per card,** from main, on a `codex/<card-id>` branch, never in the second checkout.
+- **The allowance guard.** `dispatch-card.mjs` takes a dated usage reading with its source for every dispatch. It refuses when:
+  - the reading is unknown, or older than the last dispatched card;
+  - usage is above 80%;
+  - there is no yes from him for this card, recorded as a decision on his Control Center list, whose id and digest are the named approval.
+- **Verification.** Claude re-runs the acceptance commands and the seven repository checks outside the sandbox, and confirms the diff stays inside write_allow. Codex's own report is never evidence.
+- **Fallback.** The same card runs through a Claude agent in an isolated worktree and is verified the same way.
 
 ## 7. Tool routing (Control Center tool catalog 2026-10-26.1, placements ruled 26 Oct)
 
 | Tool | Use here | Gate |
 |---|---|---|
-| Canva (main: Mindmake) | the brand kit, brand templates, the one-sheet, later aids, all in the Canva folder Mindmake Growth | at will inside his account; sharing, public links or publishing need his yes |
-| Google Drive | the Growth library, mind/make > 03_Growth | create and move inside 03_Growth only |
-| SendLinks (DEL-002) | a tracked link per recipient to an asset, minted by Control Center when it drafts | the send stays with the send lanes |
-| Control Center | records, approvals, drafting into Gmail, form submission on his tap, outcomes, calendar, the research desk within its caps | the protocol only |
+| Canva (main: Mindmake) | the brand kit, brand templates, the one-sheet, later aids, all in the Canva folder Mindmake Growth | drafts at will inside his account; publishing a brand template, sharing, public links, purchases, upgrades or trials need his yes |
+| Google Drive | the Growth library, mind/make > 03_Growth, link-editable by his choice | create and move inside 03_Growth only; nothing private |
+| SendLinks | a tracked link per recipient to an asset, minted by Control Center when it drafts | the send stays with the send lanes |
+| Control Center | records, approvals, drafting into Gmail, form submission on his tap, outcomes, calendar, and the research desk within its caps | the protocol only |
 | Gmail | Control Center drafts Jonny's pitches (no press) and the drafts for his rows | the engine never drafts or sends |
 | Vercel | page views for the one-sheet, read in the review session | read only |
 | Brandfetch (main: Mindmake) | partner logos for a later co-branded asset | approved per lookup |
 | Teleprompter (main: Mindmake) | a rehearsal script once a talk is booked | not before a booking |
-| HeyGen, ElevenLabs (main: Mindmake) | held: `founder_visibility_open` (docs/briefs/2026-10-22-heygen-outbound.md) and the reference architecture's standing ruling that the face and voice clones stay on backup until he has trained them | not used |
-| Higgsfield, Runway | placed with Heartside and Full Time | not used |
-| Apify, LinkedIn | only through Control Center's research desk; no LinkedIn automation | not used directly |
+| HeyGen, ElevenLabs (main: Mindmake) | held: `founder_visibility_open` (docs/briefs/2026-10-22-heygen-outbound.md), and the reference architecture's statement that the face and voice clones stay on backup until he has trained them | not used |
+| Higgsfield, Runway | placed with other ventures | not used |
+| Apify, LinkedIn | only through Control Center's research desk, as section 3 states | not used directly |
 | Codex | code between runs | the allowance guard |
 | Instantly, Apollo, Fireflies, Descript | retired | never |
 
-## 8. The phased build (one pull request each; dates are targets; each phase lists its acceptance tests)
+## 8. The phased build (one pull request each; dates are targets)
 
-**Phase 1: wire the number (first, by 31 Oct).**
-- The `good_meetings` objective beside the existing ones (the 5/1 registry lock on `qualified_conversations` stays), its week target from the directive's `north_star` when present, broken down by path. Paths: existing-relationship, multiplier-intro, partner, guest-seat, podcast, own-show-guest, public-signal, inbound, referral, unknown.
-- **Stopgap from week one, no Control Center change needed:** each Monday the dispatch posts "Last week's good meetings" as a `stage: "plan"` proposal whose payload holds counts by path, all null. Krish fills in the counts with "Change it first"; the engine reads his amended payload and reports the number with that source. Counts only, no names.
-- `origin_candidates`: each contact's latest carried-out action per lane, so Control Center can pre-fill the tap.
-- Podcast and stage bookings read from the 1.9.0 outcomes and reported against 2 a week and 1 a fortnight (N05). The directive's `constraints` and `urgency` read, enforced in shadow (N03).
-- What Control Center owes, written into docs/CONTROL-CENTER-BRIEF.md (GET-GOING Step 5) for its own session after its 1.9.0 work: each held meeting from his calendar with `meeting_id, contact_id, held_at, good, good_at, origin_path, origin_ref, assists[], said_yes_because`; the one-tap good prompt pre-filled; typed `facts[]` for cards; `asset_ref` minting SendLinks links; a listing of 03_Growth and Mindmake Growth (titles and dates only) so the dispatch can run the Librarian's check daily.
-- Accept: on the stand-in, synthetic meetings give exact counts by path; the stopgap round trip reads an amended payload; unserved means null with a reason, never zero; a paid proof is traced to its path; bookings per show feed the rank. Live: the first Monday stopgap answered gives a non-null number with its source, and NOW.md's state line carries it.
+### Phase 1: wire the number (first, by 31 Oct)
 
-**Phase 0: baseline and register (alongside Phase 1).**
-- Session events read for the 20 PRs whose bodies link a session (tokens, turns, engine time, wait time; counts only, kept in ignored runtime/); the two Codex PRs (#7, #21) listed as untraceable.
-- `invariants/register.json`: every past fix and open finding with its commit or PR and its test or accepted reason.
-- The handoff's continuation point: the four pending route plans reconciled with their current records before anything replaces them.
-- GET-GOING Steps 0 to 5 reconciled against evidence.
-- Accept: every figure in this document re-derived with its run or PR ids; every register entry has a guard or a reason.
+**Before the first Monday post, in the same PR:**
+- record the id prefixes of the four pending 22 October plans;
+- narrow the approved-plan route to `gmc-` campaigns (N18);
+- recompute `amended_sha256` before reading any amended payload (N15);
+- hold an oversized plan instead of failing the report (N16).
 
-**Phase 2: the spec, compiled, and status computed (week of 2 Nov).**
-- The schema, `compile.mjs`, the `gms-` proposal, the signed-digest read, the fallback chain, the narrowed plan route (N18), the length hold (N16), `amended_sha256` recomputed (N15). Hard-coded caps and unread policy fields move into read config with values unchanged (N04). `npm run status`.
-- Accept: a golden test (every fixture gives a byte-identical report under the default spec); approve and amend round trips on the stand-in; the length hold; the unsigned fallback; a spec cannot loosen a policy bound.
+**The number:**
+- `good_meetings` goes in `scorecard.mjs`, beside the existing objectives (the 5/1 registry lock on `qualified_conversations` stays).
+- Its week target comes from the directive's `north_star`, else the ladder in docs/NORTH_STAR.md (N11).
+- It is one objective, with per-path counts carried as activity lines, because the report allows 20 objectives.
+- Paths: existing-relationship, multiplier-intro, partner, guest-seat, podcast, own-show-guest, public-signal, inbound, referral, unknown.
 
-**Phase 3: the crew as code (week of 9 Nov).**
-- Nine lints and checks importing the stage predicates; cards and lenses; card grammar; `events[]` closes (N02); repeated Nos as weekly-review proposals (N06); the regression tests for F08, F10, F15, F18, F21, F22, F48 and N01; `check-bespoke`, the link check, the drift check, the mutation runner (N07); raw-byte blob SHAs (N17); the Librarian's lint and `check-library.mjs`.
-- Accept: every register entry passes; cards are capped at 3 KB and lenses at 1 KB; every live failure shape and its variants are held; on a synthetic listing the library check catches a loose file, a duplicate, a second Current and a stale copy; the naming pattern passes every example in docs/DRIVE.md.
+**Stopgap from week one, with no Control Center change needed:**
+- Each Monday the dispatch posts "Last week's good meetings" as a `stage: "plan"` proposal with prefix `gmg-`. Its payload has a required `total` and counts by path, all null.
+- Krish fills in the counts with "Change it first". An unamended Clear means not counted; an amended null path means zero.
+- The engine verifies his amended digest and reports the number with its source named as his typed weekly totals.
+- Counts only, no names.
+- From Phase 2 the stopgap folds into the spec proposal.
+- Whether this reading may stand in for the metric until the per-meeting tap exists is his to say; only he edits docs/NORTH_STAR.md.
 
-**Phase 4: the session protocol and dispatch tooling (week of 16 Nov).**
-- `pack.mjs`, the cards that replace standing reads (with Krish's yes to the AGENTS.md change), the task-card template, `dispatch-card.mjs` with the guard, `verify-card.mjs`.
-- Accept: the pack builds at 36 KB or less counting every mandatory load; a new card runs through Codex and is verified outside the sandbox; the guard refuses above 80% and when unknown.
+**Also:**
+- Podcast and stage bookings are read from the 1.9.0 outcomes and reported against 2 a week and 1 a fortnight (N05). `booked_at` is taken as Control Center records it; a stage counts as confirmed only on a reply with a date or a calendar event.
+- The directive's `north_star`, `urgency` and `constraints` are read, and constraints are enforced in shadow (N03).
+- The `founder_visibility_open` hold is recorded (N10).
 
-**Phase 5: prove on real runs, then switch (week of 23 Nov).**
-- The new route runs alongside the old for one London week behind `spec.enabled`. Switch only after one signed spec, five consecutive live runs with no corrective PR, shadow holds reported, and the number measured. The old route stays in code for 30 days after.
-- **The 20x targets, against the Phase 0 baseline:** Claude tokens per accepted capability at one twentieth or less; PRs per accepted capability from 6 (the card feature, 4 of them corrections) to 1; the corrective share from 7 in 22 to 1 in 20 or less; live runs used as tests from 5 to 0; his review rounds per capability to 1 gate; mid-turn questions 0; recurring gates 3 a week or fewer; ask-to-accepted wall clock at one twentieth wherever the baseline is measurable. The dispatch itself (seconds, no cost) is not a target. A run with no measured outcome counts as not done.
+**What Control Center owes.** This goes into docs/CONTROL-CENTER-BRIEF.md (GET-GOING Step 5), for its own session after its 1.9.0 work, as a new protocol minor version:
+- each held meeting from his calendar, with `meeting_id, contact_id, held_at, good, good_at, origin_path, origin_ref, assists[], said_yes_because`;
+- the one-tap good prompt, pre-filled from the engine's `origin_candidates`. The engine sends these only once Control Center serves that version, because the report schema refuses unknown fields;
+- typed `facts[]` for cards;
+- `asset_ref`, minting SendLinks links;
+- a listing of 03_Growth and Mindmake Growth (titles and dates only), so the dispatch can run the library check daily. Granting that read access is his decision.
 
-## 9. The Canva track (parallel from day one; asset work, not engine code)
+**Accept, on the stand-in:**
+- an approved or amended stopgap never reaches prepare-action;
+- an amended payload is used only after its digest verifies;
+- synthetic meetings give exact counts by path;
+- unserved means null with a reason, never zero;
+- a paid proof is traced to its path;
+- bookings per show feed the rank;
+- the report stays inside its schema with every objective present.
 
-**What the live brand source says** (krishanraja/mindmake at its 26 Oct head, read by blob SHA):
-- The name is **Mindmake**, never "Mindmaker", "The Mindmaker", "Mindmaker Live" or "Mindmake AI". The legal entities keep their names only in legal text. The drawn wordmark reads MIND/MAKE; typed text always says Mindmake.
-- Type, per the founder's ruling of 25 September in the design contract, matched by the live CSS and its type check: Newsreader light for headlines, Newsreader 400 for anything read, Archivo 700 only for actions and small interface text (sentence case), IBM Plex Mono 400 for labels, numbers and dates in tracked capitals. Source Serif 4 only for the private brief's brand line. (An older line in the canon's North Star still says a grotesque carries structure; the contract and code are newer and win.)
-- Colour carries meaning: mint is the answer, amber is what moved; nothing else is coloured for decoration. Grounds are ink, raise and paper.
-- Krish appears only in approved biography, proof framing and verbatim quotes; his name never appears in anything written as Mindmake. The one-sheet is approved biography written about him, in Jonny's framing, not copy written as "we".
-- There is no /media route today: "Media" in the menu links to the publication. The PDF needs a small static-file change in the mindmake repository, with no new page and no menu change.
+**Accept, live:** the first Monday stopgap he answers gives a non-null number with its source.
 
-**C1. The brand kit**, by the Cowork session in docs/briefs/2026-10-27-canva-brand-kit-cowork.md. Verified by readback: the kit named Mindmake is listed; a test design generated on it reads back the right fonts and colours; its thumbnails pass an independent visual check; Krish approves the kit where he sees it.
+**Whether the weekly count may be written into NOW.md's public state line is his to rule.** AGENTS.md keeps business figures out of git, and Control Center serves Mindmake's figures as private. Until he rules, NOW.md records only availability, urgency and the reading's date, and the count stays in Control Center.
 
-**C2. The speaker and guest one-sheet.**
-- State of use: a booker or organiser triaging pitches, often on a phone, deciding in seconds and forwarding to a producer.
-- Content, every fact read live and named by blob SHA: his ruled title, Executive Host of Signal & Noise; Mindmake in the canon's own words; three talk titles he approves; his track record and stages from krishraja.com's own record; Make Your Mind Up as the canon names it; the approved photo of him already used on the About page, never a generated likeness; Jonny's box as the booking contact (read from Control Center at build time and never committed here).
-- Three blind concept spines on the Mindmake kit, two blinded judges, one synthesis shown to him cold. After his yes: lock it as a Canva brand template with autofill fields, so later versions refill from live reads; export the PDF; a mindmake repository PR adds it as a static file (his merge publishes it); this engine reads its blob SHA from the raw bytes and adds one line with its link to Jonny's podcast and stage pitches, only when it reads (it uses one of the two free source-revision slots), failing soft like the track-record read.
-- The version the pitches link is approved on his Control Center list by its blob SHA, posted by the dispatch, so no approval lives outside the existing flow.
+### Phase 0: baseline and register (alongside Phase 1)
 
-**C3. SendLinks per recipient**, once Control Center mints them at draft time (not read-once, because mail scanners spend views), with opens and downloads read back as the Visibility and Stages check.
+- **Session baseline.** Session events are read for the sessions that produced the PRs: 21 of 23 PR bodies link a session, five distinct ones, and one of them produced #10 to #20, #22 and #23. The baseline is measured per session, as tokens, turns, engine time and time waiting on him, with counts only kept in ignored runtime/. A capability is defined as the work between two merges. The Codex PRs (#7, #21) are listed as untraceable.
+- **Register.** `invariants/register.json` lists every past fix and open finding, with its commit or PR, its test or accepted reason, and its phase.
+- **Handoff.** The four pending route plans are reconciled with their current records before anything replaces them. This is an exit condition before any spec is posted.
+- **GET-GOING.** Steps 0 to 5 are closed or re-ticked from evidence.
+- **Accept:** every figure in this document is re-derived with its run or PR ids, and every register entry has a guard or a reason.
 
-**C4. Later kits** (a multiplier gift pack, a decision aid, a case-study cut) only after C2 shows a measured effect.
+### Phase 2: the spec, compiled (week of 2 Nov; needs his go under U4)
+
+- **Build:**
+  - the schema, `compile.mjs`, the `gms-` proposal, the signed-digest read placed before compilation, the fallback chain and the `spec_amended_invalid` hold;
+  - hard-coded caps and unread policy fields move into read config with values unchanged, and policy.json gains explicit bounds (N04);
+  - N01 fixed with a new run_id per wake, together with a per-London-day pitch budget read from that day's drafts, so later wakes never exceed Control Center's ten drafts a day;
+  - `rows_rule` read, and N14 resolved.
+- **Accept:**
+  - a golden test: every fixture gives a byte-identical report under the default spec, with the word files and canon reader pinned;
+  - approve and amend round trips on the stand-in;
+  - the length and invalid-amendment holds;
+  - the unsigned fallback;
+  - a spec can never loosen a bound.
+- **What it moves:** one Monday ask in place of scattered ones, so his presses go to meetings.
+- **Timing.** Merging it makes every pending row's source revision stale on his phone, so it merges right after a run, not before one.
+
+### Phase 3: the crew as code (week of 9 Nov; needs his go under U4)
+
+- **Build:**
+  - nine lints and checks that import the stage predicates;
+  - generated cards and lenses;
+  - card grammar;
+  - `events[]` closes (N02);
+  - repeated Nos as weekly-review proposals (N06);
+  - the trust-asset format mismatch (N09);
+  - the regression tests for F08, F10, F15, F18, F21, F22 and F48;
+  - `check-bespoke`, the link check, the drift check and the mutation runner (N07, N08);
+  - the Librarian's lint and `check-library.mjs`.
+- **Accept:**
+  - every register entry passes;
+  - cards are 3 KB or less and lenses 1 KB or less;
+  - every live failure shape and its variants are held;
+  - on a synthetic listing, the library check catches a loose file, a duplicate, a second PDF in a Current and a stale copy;
+  - the naming pattern passes every example in docs/DRIVE.md.
+- **What it moves:** fewer bad cards on his phone, so more presses become meetings.
+
+### Phase 4: the session protocol and dispatch tooling (week of 16 Nov; needs his go)
+
+- **Build:** `pack.mjs`, the cards that replace standing reads (with his yes to the AGENTS.md, GET-GOING.md and NOW.md change), the task-card template, `dispatch-card.mjs` with the guard, and `verify-card.mjs`.
+- **Accept:**
+  - the pack builds at 36 KB or less, counting every mandatory load;
+  - a new card runs through Codex and is verified outside the sandbox;
+  - the guard refuses when the reading is unknown, stale, above 80%, or has no yes.
+
+### Phase 5: prove on real runs, then switch (week of 23 Nov)
+
+**The switch.** The new route runs alongside the old for one London week behind `spec.enabled`. It switches only after:
+- one signed spec;
+- five consecutive live proof runs with no corrective PR;
+- shadow holds reported;
+- the number measured.
+
+The old route stays in code for 30 days after.
+
+**The 20x targets,** measured per session against the Phase 0 baseline:
+
+| Measure | Target |
+|---|---|
+| Claude tokens per accepted capability | one twentieth or less |
+| PRs per accepted capability | 1 (was 6 for the card feature, 4 of them corrections) |
+| Corrective share of PRs | 1 in 20 or less (was at least 7 in 23) |
+| Live runs started to find defects | 0 (was 5) |
+| His review rounds per capability | 1 gate |
+| Mid-turn questions | 0 |
+| Recurring gates | 2 a week |
+| Ask-to-accepted wall clock | one twentieth, wherever the baseline is measurable |
+
+Proof runs are not counted as defect-finding runs. The dispatch itself (seconds, no cost) is not a target. A run with no measured outcome counts as not done.
+
+## 9. The Canva track (parallel from day one; it moves the visibility route)
+
+**What the live brand source says.** krishanraja/mindmake at commit ddd0049; files named by blob SHA in the Cowork prompt's header:
+- **Name** (`project-documentation/00_NORTH_STAR.md`): **Mindmake**, never "Mindmaker", "The Mindmaker", "Mindmaker Live" or "Mindmake AI". The legal entities keep their names only in legal text. The drawn wordmark reads MIND/MAKE; typed text always says Mindmake.
+- **Type** (`project-documentation/03_DESIGN_CONTRACT.md`, the founder's ruling of 25 September, matched by `src/styles/mindmake.css` and its type check):
+  - Newsreader light for headlines, and Newsreader 400 for anything read.
+  - Archivo 700 only for actions, plus small interface text.
+  - IBM Plex Mono 400 for labels, numbers and dates, in tracked capitals.
+  - Source Serif 4 only for the private brief's brand line.
+  - An older line in the North Star still says a grotesque carries structure. The dated contract and the code win.
+- **Colour:** mint is the answer, amber is what moved since yesterday, and nothing else is coloured for decoration. The grounds are ink, raise and paper.
+- **Krish's name:** he appears only in approved biography, proof framing and verbatim quotes, never in anything written as Mindmake. The one-sheet is approved biography written about him, in Jonny's framing.
+- **No /media route today** (`src/App.tsx`): "Media" in the menu links to the publication. The PDF needs a small static-file change in the mindmake repository, with no new page and no menu change.
+
+### C1. The brand kit
+
+Built by the Cowork session in docs/briefs/2026-10-27-canva-brand-kit-cowork.md. The four logos are already in Canva's Uploads, placed there through the connector on 27 October and verified by readback.
+
+Verification:
+1. The cloud session recorded the existing kit ids before the session; the one new id is the Mindmake kit.
+2. A test design is generated on that kit and filed in Mindmake Growth > Brand kit.
+3. Its fonts and colours are read back, and its thumbnail passes an independent visual check.
+4. Everything is filed in the Growth index.
+
+Krish approves the kit where he sees it.
+
+### C2. The speaker and guest one-sheet
+
+**State of use:** a booker or organiser triaging pitches, often on a phone, deciding in seconds and forwarding to a producer.
+
+**Content.** Every fact is read live and named by blob SHA:
+- his ruled title, Executive Host of Signal & Noise;
+- Mindmake in the canon's own words;
+- three talk titles he approves;
+- his track record and stages from krishraja.com's own record;
+- Make Your Mind Up, as the canon names it;
+- the approved photo of him already used on the About page, never a generated likeness;
+- Jonny's box as the booking contact, read from Control Center at build time and never committed here.
+
+**Design process:** three blind concept spines on the Mindmake kit, two blinded judges, and one synthesis shown to him cold.
+
+**After his yes:**
+1. Lock it as a Canva brand template with autofill fields, so later versions refill from live reads. Publishing that template is his yes.
+2. Export the PDF.
+3. He approves the exact PDF bytes, including the printed contact, by their blob SHA. A dispatch-posted proposal with its own prefix (`gmv-`) carries that approval, and it never reaches prepare-action.
+4. Only then does a session (never the dispatch) open the mindmake repository PR that adds the static file. His merge publishes it. Opening that PR is a once-only gate.
+5. This engine reads the PDF's blob SHA from its raw bytes (the N17 fix ships in this PR) and adds one line with its link to Jonny's podcast and stage pitches, only when the file reads. It uses one of the two free source-revision slots and fails soft, like the track-record read. This step depends on Phase 1's narrowed route.
+
+### C3. SendLinks per recipient
+
+Once Control Center mints them at draft time. They are not read-once, because mail scanners spend views. Opens and downloads are read back as the Visibility and Stages check.
+
+### C4. Later kits
+
+A multiplier gift pack, a decision aid and a case-study cut, only after C2 shows a measured effect.
 
 ## 10. Gates
 
-- **Now:** this plan.
-- **Recurring, at most three a week:** Monday, sign the week spec and answer its questions, fill in last week's good meetings (the stopgap), approve any asset version by its SHA, and any Codex spend the guard asks for. Friday, the review. His daily presses stay as they are.
-- **Once each:** the Cowork kit session (he logs in and opens the folder); kit approval; one-sheet mock approval; the three talk titles; merging the mindmake.co change; the pinned canon review before 15 November; the AGENTS.md change in Phase 4.
+**Now:** this plan, and his go on Phase 1.
+
+**Recurring, two a week:**
+- Monday's one ask: the spec and its questions, last week's good-meeting counts, and any asset version by its SHA.
+- Friday's review.
+
+A Codex card's yes comes when the guard asks. His daily presses stay as they are.
+
+**Once each:**
+- the Cowork kit session (he logs in and opens the folder);
+- kit approval;
+- one-sheet mock approval;
+- the three talk titles;
+- the exact PDF bytes before the mindmake PR is opened;
+- merging that PR;
+- granting Control Center read access to the library listing;
+- the pinned canon review before 15 November;
+- confirming the Canva reading above;
+- whether the stopgap stands in for the metric;
+- whether the weekly count may appear in NOW.md;
+- the proposed corpus rules;
+- the AGENTS.md, GET-GOING.md and NOW.md change in Phase 4;
+- his go on Phases 2 to 5 under U4.
 
 ## 11. Assumptions and counterpoints
 
+**Assumptions:**
 - **Control Center builds what it owes after its 1.9.0 work.** Until then the Monday stopgap measures the number, so it is never left unmeasured to 30 November.
 - **The Canva connector has no brand-kit write.** If one appears, it replaces the Cowork step.
 - **Vercel analytics may be off for mindmake.co.** Then page views read unknown until SendLinks receipts arrive.
-- **Counterpoint: a wider number can reward meetings that never buy.** The qualified subset and the paid-proof path stay on every report, and the Friday review compares them.
-- **Counterpoint: signals rely on Control Center collecting LinkedIn comments,** and the corpus treats scraping LinkedIn as a hard limit. This engine never collects, but the risk sits with his LinkedIn identity and is worth his look.
-- **Counterpoint: press.** The code treats press as a relationship, never a stage. If PR visibility should include journalists and newsletters as their own lane, that is his ruling to make on the first spec.
+
+**Counterpoints:**
+- **A wider number can reward meetings that never buy.** The qualified subset and the paid-proof path stay on every report, and the Friday review compares them.
+- **Signals rely on Control Center collecting from LinkedIn at this engine's request.** The corpus treats scraping LinkedIn as a hard limit, and the risk sits with his LinkedIn identity. It is worth his look.
+- **Press.** The code treats press as a relationship, never a stage. If PR visibility should include journalists and newsletters as their own lane, that is his ruling to make on the first spec.
 
 ## Verification of this filing
 
-The seven repository checks pass; the brief and the Cowork prompt contain no live people, ids or tokens; the NORTH_STAR block still parses with the ladder unchanged; a Drive readback of 03_Growth shows its skeleton, READ ME and index with no loose files and no sharing change.
+The seven repository checks pass. The brief and the Cowork prompt contain no live people, ids or tokens. The NORTH_STAR block still parses, with the ladder unchanged. A Drive readback of 03_Growth shows its skeleton, READ ME and index, with no loose files and no sharing change.
