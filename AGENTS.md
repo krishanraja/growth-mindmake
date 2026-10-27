@@ -63,6 +63,14 @@ How the plan reads it (docs/briefs/2026-10-27-bulletproof-growth-engine.md, vers
 - Every reading says "Counts only visitors who press Allow, so it is a floor and a trend, not a total", compares week on week, and is null with a reason when unknown.
 - Links on public placements may carry `utm_source=growth-<path>&utm_medium=referral` from a fixed list. His one-to-one notes and source citations are never tagged, and no tag names a person, a show or a proposal.
 
+## Control Center reads and reports; this engine owns the strategy (Ruling, Krish, 2026-10-27)
+
+In his words: "make sure all the old growth machinery from control-center is brought in to your machine. Control center should just be where you read from and where you report to, it does not own the strategy for how to grow mindmake as a business"
+
+- Every decision about how to grow Mindmake lives in this repository: who to reach, ranking, scoring, choosing the next move, the words and the learning.
+- Control Center is the store and the executor: it collects data, serves it through the protocol, holds records and his list, and carries out what he approves. It never ranks, scores or chooses a Mindmake growth move.
+- Growth logic that still lives in Control Center for Mindmake is moved here, one piece per pull request, and Control Center's copy is retired in the same change on its side. The inventory and order are in docs/briefs/2026-10-27-bulletproof-growth-engine.md, section 12.
+
 ## Current release boundary
 
 Krish authorised implementation across growth-mindmake and Control Center on 22 October 2026. Extend the shared protocol and the existing daily `cc-growth-directive` dispatch. docs/CONTROL-CENTER-BRIEF.md supersedes the historical producer-only handoff.

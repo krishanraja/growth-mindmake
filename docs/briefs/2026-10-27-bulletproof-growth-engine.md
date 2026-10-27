@@ -634,6 +634,14 @@ A Codex card's yes comes when the guard asks. His daily presses stay as they are
 - **The one-sheet link costs makeyourmindup.ai some visits** from pitches; the show is still named, and the one-sheet prints its link.
 - **Press.** The code treats press as a relationship, never a stage. If PR visibility should include journalists and newsletters as their own lane, that is his ruling to make on the first spec.
 
+## 12. Moving the growth machinery out of Control Center (Ruling, Krish, 2026-10-27)
+
+Krish: "make sure all the old growth machinery from control-center is brought in to your machine. Control center should just be where you read from and where you report to, it does not own the strategy for how to grow mindmake as a business".
+
+- **The split.** This engine owns every Mindmake growth decision: who, rank, scores, standards, the next move, the words and the learning. Control Center keeps collection, records, his one list, the widget, the research desk runner, and the drafting and sending executor.
+- **How each piece moves.** One pull request per piece, in two halves. Here, the logic is ported with its tests and reached through the protocol. In Control Center, the Mindmake path is retired in the same change, and other ventures keep what they use. Nothing is retired before this engine's version has run live.
+- **The inventory** of every piece, its classification and its order is filled in by the next change, from a read-only pass over Control Center.
+
 ## Verification of this filing
 
 The seven repository checks pass. The brief and the Cowork prompt contain no live people, ids or tokens. The NORTH_STAR block still parses, with the ladder unchanged. A Drive readback of 03_Growth shows its skeleton, READ ME and index, with no loose files and no sharing change.

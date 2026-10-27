@@ -1,5 +1,9 @@
 # Release state
 
+## Each wake is its own run (N01), 27 October 2026
+
+Merged by the session; not live until Control Center's next wake. The daily and refill wakes run `dispatch --kind dispatch-<run number>`, so a same-day refill reports new rows under its own run id instead of replaying the morning's report; a re-run of the same wake keeps its number and reuses its report (F15 unchanged). OPERATIONS.md states the dispatch job's ten-minute timeout (F22). tests/workflow.test.mjs pins both. The seven repository checks pass.
+
 ## The number, wired (plan Phase 1), 27 October 2026
 
 Built and tested; merged by the session per Krish's go of 27 October. Not live until the dispatch's next run reports, and the first count needs his answer.
