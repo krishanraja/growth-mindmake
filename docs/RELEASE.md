@@ -1,5 +1,11 @@
 # Release state
 
+## The suppression list and taxonomy sent where Control Center applies them (plan section 12, M10), 28 October 2026
+
+- **Built and tested.** The copied report schema carries the two optional fields with Control Center's bounds (references only, each list at most 500, the taxonomy identifiers and integers only). `suppressionFields` in src/stages/suppression.mjs builds them from his answers, both or neither, and holds `suppression_too_large` rather than send a list over 64 KB or a taxonomy over 2 KB. The dispatch sends them only where the capabilities say `features.suppression: true`, and the shadow line then says they were sent. Tests: tests/suppression-report.test.mjs; mutation `suppression-sent-unserved`.
+- **Live.** Not sent yet: Control Center does not serve `features.suppression` at this merge. Its retirement of `answeredLike`, `rows_rule` and its own taxonomy lists follows once it does and a live report carrying them is read back.
+- **Read back, 28 October.** The M7, M10 and M13 shadow lines ran live after krishanraja/growth-mindmake#37: suppression agreed with Control Center on every check; Control Center's focus plays disagreed with the engine on every pick it would draft for Mindmake; places and questions compared nothing, since the probes, touchpoints and home city are not served yet.
+
 ## The focus playbooks, the suppression of his Nos and the places and questions, moved here in shadow (plan section 12, M7, M10 and M13), 27 October 2026
 
 Built and tested; in shadow on every run that is served a context. No report shape, word file or word an existing stage writes changed (every golden digest still matches), and nothing in Control Center is turned off yet. Krish's ruling (27 October): "Control center should just be where you read from and where you report to, it does not own the strategy for how to grow mindmake as a business".

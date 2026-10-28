@@ -182,6 +182,24 @@ export function suppressionList(feedback, at) {
 }
 const ORDER_OF = Object.freeze({ unknown: 0, under_1k: 1, '1k_10k': 2, '10k_100k': 3, '100k_1m': 4, over_1m: 5 });
 
+/** The report bounds Control Center checks: the whole suppression field and the taxonomy, in bytes of JSON. */
+export const SUPPRESSION_BYTES = 65536;
+export const TAXONOMY_BYTES = 2048;
+
+/**
+ * The two report fields as the engine sends them once Control Center's
+ * capabilities say features.suppression: the list from his answers and the
+ * taxonomy, or null with why when either is over its bound. Pure.
+ */
+export function suppressionFields(context, at) {
+  const feedback = Array.isArray(context?.feedback) ? context.feedback.filter(f => f && typeof f === 'object') : null;
+  if (!feedback) return { fields: null, hold: null };
+  const list = suppressionList(feedback, at), tx = taxonomy();
+  const bytes = v => Buffer.byteLength(JSON.stringify(v), 'utf8');
+  if (bytes(list) > SUPPRESSION_BYTES || bytes(tx) > TAXONOMY_BYTES) return { fields: null, hold: { reason: 'suppression_too_large', detail: 'The suppression list or the taxonomy is over the size Control Center accepts, so neither was sent and Control Center keeps the last list it had.' } };
+  return { fields: { suppression: list, taxonomy: tx }, hold: null };
+}
+
 /**
  * How Control Center would apply the list, with no rule of its own: the
  * engine's refusedBy over the list instead of over his answers. The parity
@@ -261,7 +279,7 @@ const bump = (o, k) => { o[k] = (o[k] ?? 0) + 1; };
  * the checks, where the two agree, every difference by code, and the size of
  * the list the engine would send. Nothing is held, hidden or changed. Pure.
  */
-export function suppressionShadow({ context, canon = null, at }) {
+export function suppressionShadow({ context, canon = null, at, sent = false }) {
   const feedback = Array.isArray(context?.feedback) ? context.feedback.filter(f => f && typeof f === 'object') : [];
   const seen = new Set(), checks = [];
   for (const f of feedback) {
@@ -285,7 +303,7 @@ export function suppressionShadow({ context, canon = null, at }) {
   });
   const list = suppressionList(feedback, at);
   const otherwise = named.reason_named_otherwise ? `, ${named.reason_named_otherwise} of them naming another reason` : '';
-  const tail = ` The engine's list: ${list.never.length} never, ${list.not_on_row.length} off a row, ${list.paused.length} paused, ${list.reach_floor.length} reach floors, ${list.audiences.length} audiences, ${list.topics.length} topics; taxonomy version ${TAXONOMY_VERSION}, not sent until Control Center serves it.`;
+  const tail = ` The engine's list: ${list.never.length} never, ${list.not_on_row.length} off a row, ${list.paused.length} paused, ${list.reach_floor.length} reach floors, ${list.audiences.length} audiences, ${list.topics.length} topics; taxonomy version ${TAXONOMY_VERSION}, ${sent ? 'both sent with this report for Control Center to apply' : 'not sent until Control Center serves it'}.`;
   const line = shadowLine('Suppression', ['check', 'checks'], { read: checks.length, agree, differ, more: ` from ${feedback.length} answer${feedback.length === 1 ? '' : 's'}` }).replace(/\.$/, `${otherwise}.`) + tail;
   return { verdicts, list, line, source_revision: Array.isArray(canon?.files) ? canon.files : [] };
 }

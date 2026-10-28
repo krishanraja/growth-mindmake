@@ -730,6 +730,305 @@
         }
       }
     },
+    "suppression": {
+      "type": "object",
+      "description": "Optional, sent only when Control Center's capabilities say features.suppression (plan section 12, M10): the engine's suppression of what Krish said No to, as references only. It replaces every earlier list. Control Center applies it with schema checks only.",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "as_of",
+        "never",
+        "not_on_row",
+        "paused",
+        "reach_floor",
+        "audiences",
+        "topics"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "as_of": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 40,
+          "format": "date-time"
+        },
+        "never": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z_]{2,20}:[A-Za-z0-9._:-]{1,120}$"
+          }
+        },
+        "not_on_row": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "row",
+              "subject_ref"
+            ],
+            "properties": {
+              "row": {
+                "type": "string",
+                "pattern": "^[a-z_]{2,20}$"
+              },
+              "subject_ref": {
+                "type": "string",
+                "pattern": "^[a-z_]{2,20}:[A-Za-z0-9._:-]{1,120}$"
+              }
+            }
+          }
+        },
+        "paused": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "subject_ref",
+              "until"
+            ],
+            "properties": {
+              "subject_ref": {
+                "type": "string",
+                "pattern": "^[a-z_]{2,20}:[A-Za-z0-9._:-]{1,120}$"
+              },
+              "until": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 40,
+                "format": "date-time"
+              }
+            }
+          }
+        },
+        "reach_floor": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "at_or_below"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "pattern": "^[a-z_]{2,30}$"
+              },
+              "at_or_below": {
+                "type": "string",
+                "pattern": "^[a-z0-9_]{2,20}$"
+              }
+            }
+          }
+        },
+        "audiences": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "sector"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "pattern": "^[a-z_]{2,30}$"
+              },
+              "sector": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1,
+                "maxLength": 59
+              }
+            }
+          }
+        },
+        "topics": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 59
+          }
+        }
+      }
+    },
+    "taxonomy": {
+      "type": "object",
+      "description": "Optional, sent beside suppression only when features.suppression is served (plan section 12, M10): the engine's row taxonomy and card doctrine, identifiers and integers only, at most 2 KB. Control Center checks against it in place of its own lists.",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "rows",
+        "kinds",
+        "bands",
+        "reasons",
+        "carried_out",
+        "ask_for",
+        "row_for",
+        "doctrine"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]{1,40}$"
+          }
+        },
+        "kinds": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]{1,40}$"
+          }
+        },
+        "bands": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]{1,40}$"
+          }
+        },
+        "reasons": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]{1,40}$"
+          }
+        },
+        "carried_out": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]{1,40}$"
+          }
+        },
+        "ask_for": {
+          "type": "object",
+          "maxProperties": 20,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]{1,40}$"
+          }
+        },
+        "row_for": {
+          "type": "object",
+          "maxProperties": 20,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]{1,40}$"
+          }
+        },
+        "doctrine": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "title_max",
+            "because_max",
+            "title_max_with_because",
+            "brief_lines",
+            "card_lines",
+            "card_sources_max",
+            "angle_title_max"
+          ],
+          "properties": {
+            "title_max": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "because_max": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "title_max_with_because": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "brief_lines": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "min",
+                "max"
+              ],
+              "properties": {
+                "min": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                },
+                "max": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                }
+              }
+            },
+            "card_lines": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "min",
+                "max"
+              ],
+              "properties": {
+                "min": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                },
+                "max": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                }
+              }
+            },
+            "card_sources_max": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "angle_title_max": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            }
+          }
+        }
+      }
+    },
     "payload_sha256": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"

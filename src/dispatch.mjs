@@ -27,7 +27,7 @@ import { pilotsShadow } from './stages/pilots.mjs';
 import { briefsShadow } from './stages/pitches.mjs';
 import { qualifyShadow } from './stages/qualify.mjs';
 import { playsShadow } from './stages/plays.mjs';
-import { suppressionShadow } from './stages/suppression.mjs';
+import { suppressionShadow, suppressionFields } from './stages/suppression.mjs';
 import { placesShadow } from './stages/places.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
 
@@ -319,7 +319,7 @@ export function deadPlans(context, proposing = new Set()) {
 }
 
 /** Build the report envelope exactly as engine-report.schema.json, then check it against that schema. */
-export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null }) {
+export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null, suppression = null, taxonomy = null }) {
   const body = {
     schema_version, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
     objectives, activity: activity.slice(0, 40).map(line => ({ line: cut(line, 500), evidence_url: null })),
@@ -327,7 +327,9 @@ export function buildReport({ run_id, mode, observed_at, source, status, objecti
     // 1.10.0: where each unanswered meeting came from, only when there is one to say.
     ...(origin_candidates?.length ? { origin_candidates } : {}),
     // 1.10.0: its own pending plans it takes back, only when there is one.
-    ...(withdrawn?.length ? { withdrawn } : {})
+    ...(withdrawn?.length ? { withdrawn } : {}),
+    // Plan section 12, M10: the engine's suppression list and taxonomy, both or neither, only when Control Center serves features.suppression.
+    ...(suppression && taxonomy ? { suppression, taxonomy } : {})
   };
   const report = { ...body, payload_sha256: reportDigest(body) };
   const errors = schemaErrors(REPORT_SCHEMA, report);
@@ -723,8 +725,11 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // Center, in shadow beside its own verdicts: one counted line each, nothing held or changed. A fault here never fails the run.
     // Plan section 12, M6, M9 and M12: the pilot machine, the outreach briefs and the legacy ingest gate, the same way.
     // Plan section 12, M7, M10 and M13: the focus playbooks, the suppression of his Nos and the places and questions, the same way.
+    // M10's list and taxonomy go out only once Control Center's capabilities say it applies them; its own rules then stop deciding.
+    const suppressed = capabilities?.features?.suppression === true && suppliedContext ? suppressionFields(suppliedContext, at) : { fields: null, hold: null };
+    if (suppressed.hold) holds.push(suppressed.hold);
     if (suppliedContext) for (const shadow of [guestsShadow, visibilityShadow, roomsShadow, pilotsShadow, briefsShadow, qualifyShadow, playsShadow, suppressionShadow, placesShadow]) {
-      try { const { line } = shadow({ context: suppliedContext, canon: rowsRun?.canon ?? null, at }); if (typeof line === 'string' && line) activity.push(line); }
+      try { const { line } = shadow({ context: suppliedContext, canon: rowsRun?.canon ?? null, at, sent: !!suppressed.fields }); if (typeof line === 'string' && line) activity.push(line); }
       catch { activity.push(`${shadow.name}: could not be read this run, so it says nothing rather than a guess.`); }
     }
     // The Phase 5 switch (src/crew/switch.mjs): one readiness line every run. Only this week's signed spec with
@@ -747,7 +752,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const report = buildReport({
       run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.some(h => !STANDING_HOLDS.has(h.reason)) ? 'held' : 'ready',
       source: strategicSource ?? { revision: snapshot && snapshot.source_revision.length <= 128 ? snapshot.source_revision : revision, captured_at: snapshot?.generated_at ?? observed_at },
-      objectives, activity, proposals: mapped.proposals, events: events.slice(0, 40), holds, schema_version, origin_candidates, withdrawn
+      objectives, activity, proposals: mapped.proposals, events: events.slice(0, 40), holds, schema_version, origin_candidates, withdrawn,
+      ...(suppressed.fields ?? {})
     });
     // A live run that read nothing to plan from is held by its class (F48): the report says degraded, and the attempt says why, never succeeded.
     // A synthetic run is a harness for one path, so it keeps reporting how the protocol went.
