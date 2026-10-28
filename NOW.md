@@ -1,7 +1,7 @@
 ---
 repo: krishanraja/growth-mindmake
 product: Mindmake growth engine
-as_of: 2026-10-27
+as_of: 2026-10-28
 head: 5d2877d
 lifecycle: building
 production_url: none
@@ -22,7 +22,7 @@ Mindmake's growth engine: relationships, introductions, researched named outreac
 
 The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish's calendar with the right conversations.
 
-## Where it is right now (as of 2026-10-27)
+## Where it is right now (as of 2026-10-28)
 
 <!-- north-star-state {"week_of": "2026-10-26", "week_target": 2, "current": null, "current_as_of": null, "current_source": null, "urgency": 4, "urgency_reason": "not measured yet"} --> **North Star number: U4, far behind.** Good meetings a week, each marked good by Krish after it and traced to where it came from: not measured yet, against 2 this week, on the way to 20 by 30 November 2026. A bold swing every day; work that does not move the number waits.
 
@@ -32,6 +32,7 @@ This session's trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What changed recently
 
+- 2026-10-28 **A visit from a growth placement now reaches the brief request.** krishanraja/mindmake#255 records `utm_source` and `utm_medium` (the `growth-<path>` shape only) on the brief request, and /privacy says so (Ruling, Krish, 2026-10-28); proved live on the canary inbox and cleaned to zero.
 - 2026-10-28 **Control Center reads and reports; this engine decides (plan section 12 done).** krishanraja/control-center#596 retired Control Center's last Mindmake decisions (M6, M9, M10, M12, M13) and added per-recipient SendLinks links (C3, Control Center's side). mindmake.co carries GA4 events for the brief's steps and keeps this engine's `growth-*` tags through `/start` until consent (krishanraja/mindmake#254); recording the tag on the brief request waits on his read of one privacy-page line.
 - 2026-10-28 **A merge to the engine's source re-runs the dispatch at once.** His widget went empty after the guest-invite change merged at about 02:15: every row proposal names `src/stages/pitches.mjs` among its sources, and Control Center rightly hides words whose source moved. A run at 02:43 rewrote 26 row proposals at the current sources, and `operate.yml` now runs the dispatch on any merge to main that changes `src/`. The pinned `APPROVED_CANON` lapses on 15 November by decision: it gates only the snapshot route, which the live dispatch no longer uses.
 - 2026-10-28 **Guest invites lean to volume (Rulings, Krish, 2026-10-28).** A show with no one left to invite gives its room to the other inside the week's total, a tie goes to the stronger guest on the three axes, and a past Signal & Noise guest may be invited onto Make Your Mind Up; Control Center's Monday drafting for Mindmake is being retired and the post-link backfill ran once under a 5 dollar cap. Plan step 2 is superseded: the live route holds no snapshot prospects.
@@ -52,8 +53,8 @@ This session's trusted-distribution closeout is in [the dated handoff](docs/hist
 ## What is next and what is waiting on Krish
 
 - Krish approved the whole plan on 27 October and asked the session to merge its own pull requests; the brand kit is built. Build order: kit check, Phase 0, Phase 1, Control Center 1.10.0, Phase 1b, then Phases 2 to 5 and the visibility track. Control Center owes protocol 1.10.0 (first the held meetings, the one-tap good prompt and `origin_candidates` that wire the number, then the web part and the show-notes kind), and three approved mindmake-repository changes follow: Analytics events for the brief (marking them as key events is his own change in the Analytics property), tags kept until a visitor answers the banner, and the brief recording its `growth-*` source with the site's privacy page updated. Merging that site change publishes it, so it waits for his yes at the time.
-- North Star check (2026-10-27, the plan): holds. Wiring the number by path comes first, and the one-sheet aims the visibility rows at bookings; traffic to mindmake.co is a supporting reading that never moves the number; the number is still unmeasured.
-- **Next:** Phase 5 (prove the new route on real runs beside the old one, then switch), and the first real Codex card, run from a session on Krish's PC (docs/codex/TASK-CARD.md). Read tomorrow's 05:10 report for the first calendar read of his meetings.
+- North Star check (2026-10-28): holds. Control Center now only reads and reports for Mindmake, guest invites lean to volume, and a visit from a growth placement now reaches the brief request (krishanraja/mindmake#255), so the number can be tied to its path; the number itself is still unmeasured, so it stays U4.
+- **Next:** read the 05:10 report for the first calendar read of his meetings and measure the number; Krish signs the week spec on Monday 9 November so Phase 5's proof runs can start; the Canva Cowork session finishes C1 and C2, after which this engine attaches `asset_ref` to the one-sheet's link (C3). Waiting on Krish: the bin of the 8 Gmail pilot drafts from an operator session (`scripts/bin-pilot-drafts.mts` in control-center), and the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 
 ### Existing integration gates to retain
 
