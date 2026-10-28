@@ -11,7 +11,7 @@
  */
 import { seal, clean, DAY } from '../guards.mjs';
 import { firstName, cleanName, cutClean, fitTitleWithin, NOT_A_SOURCE, CARD_LINE_MAX, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
-import { stageKind, hostOf } from './pitches.mjs';
+import { stageKind, hostOf, networkLane, networkListed, NETWORK_HOLD } from './pitches.mjs';
 import { tagged } from './traffic.mjs';
 
 export const SHOW_NOTES_KIND = 'show_notes_ask';
@@ -54,11 +54,15 @@ export function showNoteWords({ name, host, kind, canon }) {
  * at most `room`, with an address Control Center can draft to. Each is a
  * version 2 email action naming Jonny's box and kind show_notes_ask, on the
  * visibility row for a podcast and the events row for a stage. No objective:
- * traffic never steers the work. Pure.
+ * traffic never steers the work. A host in Krish's network is his to write
+ * to, never Jonny's (Ruling, Krish, 2026-10-28), so the note is held, not
+ * rewritten: network_is_krish, or jonny_network_unknown while Control Center
+ * cannot say and a network list names the host. Pure.
  */
-export function showNoteRows({ context, canon, files, at, room, titleMax = TITLE_MAX }) {
+export function showNoteRows({ context, canon, files, at, room, titleMax = TITLE_MAX, networkRoutes = false }) {
   const { booked, asked } = bookedStages(context);
   const routes = context?.routes ?? {};
+  const listed = networkListed(context);
   const out = [], held = [];
   for (const t of Array.isArray(context?.records?.visibility) ? context.records.visibility : []) {
     const id = typeof t?.id === 'string' ? t.id.toLowerCase() : null;
@@ -68,6 +72,8 @@ export function showNoteRows({ context, canon, files, at, room, titleMax = TITLE
     if (!kind) { held.push('show_notes_not_a_stage'); continue; }
     const to = typeof t.booking_contact_id === 'string' && UUID.test(t.booking_contact_id) ? t.booking_contact_id : null;
     if (!to || routes[to]?.email === 'none') { held.push('show_notes_no_address'); continue; }
+    const lane = networkLane(to, { routes, listed, served: networkRoutes, booking: true });
+    if (lane !== 'jonny') { held.push(NETWORK_HOLD[lane]); continue; }
     if (out.length >= room) { held.push('show_notes_day_cap'); continue; }
     const name = cleanName(t.title);
     const host = hostOf(t);

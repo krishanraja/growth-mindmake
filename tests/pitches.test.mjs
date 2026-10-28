@@ -351,7 +351,8 @@ const guest = (n, over = {}) => ({ contact_id: id(300 + n), name: NAMES[(n - 1) 
   ...GUEST.take, buried_at: null, recorded_at: null, published_at: null,
   one_liner: 'Chief Marketing Officer at Example Retail, rebuilding a marketing team around AI', why_fit: 'Runs a marketing team that changed how it works with AI.',
   evidence: [{ url: `https://talks.example/guest-${n}`, label: 'How marketing teams change with AI', at: '2026-10-01T00:00:00Z', kind: 'talk' }], ...over });
-const route = (...ns) => Object.fromEntries(ns.map(n => [id(300 + n), { email: 'verified' }]));
+// Control Center says these guests are outside his network (Ruling, Krish, 2026-10-28), so Jonny's lane invites them.
+const route = (...ns) => Object.fromEntries(ns.map(n => [id(300 + n), { email: 'verified', in_network: false }]));
 const invitedOn = (n, decided_at, over = {}) => ({ proposal_id: `gmp-${n}`, state: 'done', stage: null, decided_at, reference: 'visibility:invite', row: 'visibility', subject_ref: `contact:${id(300 + n)}`, carried_out: 'draft', reason_code: null, reason_text: null, amplifier_kind: null, features: null, reach: null, ...over });
 
 test('the week\'s invites follow the shows\' shares, and Make Your Mind Up gets one every week', () => {
@@ -497,7 +498,7 @@ test('an invite\'s card says who the guest is, how Krish knows them, why them, w
 
 test('invites rank first on visibility, take their two from the run\'s ten, and leave the podcasts the rest', () => {
   const guests = [guest(1, GUEST.stretch), guest(2), guest(3), guest(4, { invite_show: 'signal_noise' }), guest(5, { invite_show: 'signal_noise', invite_state: 'drafted' }), guest(2)];
-  const r = pitchRows({ context: { ...ctx(Array.from({ length: 12 }, (_, i) => stage(i + 1))), records: { visibility: Array.from({ length: 12 }, (_, i) => stage(i + 1)), drafts: [], guests }, routes: route(1, 2, 3, 4, 5) }, weekGoals: GOALS, canon, record: RECORD, files: FILES, at: NOW, titleMax: TITLE_MAX_BRIEF });
+  const r = pitchRows({ context: { ...ctx(Array.from({ length: 12 }, (_, i) => stage(i + 1))), records: { visibility: Array.from({ length: 12 }, (_, i) => stage(i + 1)), drafts: [], guests }, routes: route(1, 2, 3, 4, 5) }, weekGoals: GOALS, canon, record: RECORD, files: FILES, at: NOW, titleMax: TITLE_MAX_BRIEF , networkRoutes: true });
   const invites = r.proposals.filter(p => p.close_condition.reference === 'visibility:invite');
   const pods = r.proposals.filter(p => p.close_condition.reference === 'visibility:pitch');
   assert.deepEqual(invites.map(p => p.target), [id(302), id(304)], 'the best judged guest of each show, Make Your Mind Up first');
@@ -524,9 +525,9 @@ test('invites rank first on visibility, take their two from the run\'s ten, and 
   assert.equal(a.subject, 'A conversation for Make Your Mind Up');
   assert.ok(a.body.startsWith('Hi Sam,'));
   assert.equal(a.body.includes(RECORD.line), false, 'an invite asks for nothing about Krish beyond who he is');
-  const again = pitchRows({ context: { records: { visibility: [], drafts: [], guests: [guest(1), guest(2)] }, routes: route(1, 2), feedback: [invitedOn(9, '2026-10-26T08:00:00Z'), invitedOn(8, '2026-10-26T08:00:00Z'), invitedOn(7, '2026-10-26T08:00:00Z')] }, weekGoals: GOALS, canon, files: FILES, at: NOW });
+  const again = pitchRows({ context: { records: { visibility: [], drafts: [], guests: [guest(1), guest(2)] }, routes: route(1, 2), feedback: [invitedOn(9, '2026-10-26T08:00:00Z'), invitedOn(8, '2026-10-26T08:00:00Z'), invitedOn(7, '2026-10-26T08:00:00Z')] }, weekGoals: GOALS, canon, files: FILES, at: NOW , networkRoutes: true });
   assert.equal(again.proposals.length, 2, 'invites to guests not on record count for no show');
-  const full = pitchRows({ context: { records: { visibility: [], drafts: [], guests: [guest(1), guest(2), guest(7), guest(8), guest(9)] }, routes: route(1, 2), feedback: [invitedOn(9, '2026-10-26T08:00:00Z'), invitedOn(8, '2026-10-26T08:00:00Z'), invitedOn(7, '2026-10-26T08:00:00Z')] }, weekGoals: GOALS, canon, files: FILES, at: NOW });
+  const full = pitchRows({ context: { records: { visibility: [], drafts: [], guests: [guest(1), guest(2), guest(7), guest(8), guest(9)] }, routes: route(1, 2), feedback: [invitedOn(9, '2026-10-26T08:00:00Z'), invitedOn(8, '2026-10-26T08:00:00Z'), invitedOn(7, '2026-10-26T08:00:00Z')] }, weekGoals: GOALS, canon, files: FILES, at: NOW , networkRoutes: true });
   assert.equal(full.proposals.length, 1, 'three Make Your Mind Up invites fill its share, and the week\'s fourth goes to the one with someone to invite');
   assert.ok(full.inviteHeld.includes('invite_week_or_run_cap'));
 });
@@ -548,7 +549,7 @@ test('a dispatch run at 1.9.0 reports invites with the pitches, counts them, and
   const served = ['1.6.0', '1.7.0', '1.8.0', '1.9.0'];
   const reports = [];
   const cc = { recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: '1.9.0', week_goals: GOALS }),
-    capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true } }),
+    capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true, network_routes: true } }),
     context: async () => ({ ok: true, context: { schema_version: '1.9.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }], records: { advisory: [], visibility: [stage(1)], drafts: [], guests: [guest(1), guest(2, { invite_state: 'booked' }), guest(3, GUEST.rejected)] }, amplifier_candidates: [], routes: route(1, 2, 3), feedback: [], research: [] } }),
     decisions: async () => [], postReport: async rep => { reports.push(golden(rep)); return { replayed: false }; }, readReport: async () => reports.at(-1) };
   const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-invite-190-1234', clock: () => NOW,

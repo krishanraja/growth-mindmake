@@ -398,14 +398,20 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   }
   const amplifiers = ctx === context ? amplifiersFirst : amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor });
   const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax });
-  const { kept, dropped, off } = rankRows([...amplifiers.rows, ...signals.rows], caps.rows);
   // 1.9.0: pitches for Jonny's box, after the rows he presses himself: guests
   // invited onto his own shows and podcasts on visibility, stages to speak on
   // on events. With them, the forms of stages that asked, for his Submit. An
   // older Control Center gets none.
   // 1.10.0: notes asking a booked show for the brief link, only where Control Center drafts them.
   const showNotes = capabilities?.features?.show_notes === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes('1.10.0');
-  const pitched = pitches ? pitchRows({ context: ctx, weekGoals: directive.week_goals, canon, record: await recordReader(), files, at, titleMax, caps: caps.pitches, showNotes }) : { proposals: [], held: [], stageHeld: [], inviteHeld: [], formHeld: [], notesHeld: [], jonny: null };
+  // Ruling (Krish, 2026-10-28): who is in his network is Control Center's routes[id].in_network, read only where it says it serves it.
+  const networkRoutes = capabilities?.features?.network_routes === true;
+  const pitched = pitches ? pitchRows({ context: ctx, weekGoals: directive.week_goals, canon, record: await recordReader(), files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes }) : { proposals: [], krishRows: [], held: [], stageHeld: [], inviteHeld: [], formHeld: [], notesHeld: [], jonny: null };
+  // Someone in his network goes on his own rows instead, ranked with the rest; one person already on a row keeps that row.
+  const onRows = new Set([...amplifiers.rows, ...signals.rows].map(e => e.proposal.target));
+  const krishRows = (pitched.krishRows ?? []).filter(e => !onRows.has(e.proposal.target));
+  const sameRow = (pitched.krishRows ?? []).length - krishRows.length;
+  const { kept, dropped, off } = rankRows([...amplifiers.rows, ...signals.rows, ...krishRows], caps.rows);
   const isForm = p => p.channel === 'form';
   // A stage that asked leads its row, one tap from done: the people ranked on that row come after its forms (at most two a row).
   const lead = {};
@@ -428,9 +434,12 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   for (const [reason, count] of tally(held)) holds.push({ reason: holdCode('row', reason), detail: `${count} possible row action${count === 1 ? '' : 's'} held: ${reason.replace(/_/g, ' ')}.` });
   const sixEach = ROWS.every(r => caps.rows[r]?.max === PER_ROW);
   if (dropped) holds.push({ reason: 'row_per_row_cap', detail: `${dropped} more row action${dropped === 1 ? '' : 's'} ranked below ${sixEach ? 'the six a row shows' : "the cap the week's spec sets for its row"}.` });
+  if (sameRow) holds.push({ reason: 'row_network_same_person', detail: `${sameRow} invite${sameRow === 1 ? '' : 's'} or pitch${sameRow === 1 ? '' : 'es'} to someone in his network left off his rows: that person already has one.` });
   if (off) holds.push({ reason: 'row_lane_off', detail: `${off} possible row action${off === 1 ? '' : 's'} on a row the week's spec turned off.` });
   activity.push(`Rows from Mindmake's canon as it is today (${canon.files.map(f => f.sha.slice(0, 7)).join(', ')}): ${ROWS.map(r => `${proposals.filter(p => p.row === r && !isPitch(p) && !isForm(p)).length} ${r.replace('_', ' ')}`).join(', ')}.`);
   if (pitches) activity.push(`Pitches for Jonny's Gmail: ${counts.invites} guests invited onto his shows, ${counts.pitches} podcasts, ${counts.speaking_pitches} stages to speak on.`);
+  const unsure = [...(pitched.inviteHeld ?? []), ...pitched.held, ...(pitched.stageHeld ?? []), ...(pitched.notesHeld ?? [])].filter(r => r === 'jonny_network_unknown').length;
+  if (pitches && ((pitched.krishRows ?? []).length || unsure)) activity.push(`His network, never Jonny's box: ${(pitched.krishRows ?? []).length} invite${(pitched.krishRows ?? []).length === 1 ? '' : 's'} or pitch${(pitched.krishRows ?? []).length === 1 ? '' : 'es'} to someone in it written as his own row${(pitched.krishRows ?? []).length === 1 ? '' : 's'}; ${unsure} held because Control Center ${networkRoutes ? 'could not say' : 'does not yet say'} whether the person is in it.`);
   if (pitches) activity.push(`Forms for his tap: ${counts.forms} stage${counts.forms === 1 ? '' : 's'} asked through their own form, every answer written; only his Submit sends one.`);
   if (counts.research_asked) activity.push(`Asked Control Center for ${counts.research_asked} lookups; ${counts.research_answered} answered.`);
   // Control Center drafts ten a day into Jonny's Gmail; a wake later the same day writes only what is left.

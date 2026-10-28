@@ -1,8 +1,8 @@
 import { seal, clean, DAY } from '../guards.mjs';
-import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
+import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, actionFor, rowProposal, score, channelOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
 import { showNoteRows } from './shownotes.mjs';
 import { shadowLine, stageVerdict, stageStrength, ccStageVerdict, isDeadDate } from './visibility.mjs';
-import { guestVerdictOf, guestStrength } from './guests.mjs';
+import { guestVerdictOf, guestStrength, WARM_TIERS } from './guests.mjs';
 
 /**
  * Podcast pitches, written in Jonny's voice for Krish (protocol 1.9.0, playbook 11).
@@ -198,14 +198,14 @@ export function speakWords({ event, host, ask, talk, canon, record }) {
 const dayMonth = value => { const d = new Date(Date.parse(value ?? '')); return Number.isFinite(d.getTime()) ? `${d.getUTCDate()} ${monthYear(value).split(' ')[0]}` : null; };
 
 /** The full card for a speaking pitch, from the stage alone: what the event is, that Krish does not know them, why, what he gets, the angles. */
-export function speakCard({ t, event, ask, talk, topic, canon, serves }) {
+export function speakCard({ t, event, ask, talk, topic, canon, serves, known: knownLine = null }) {
   const org = t.organizer && cleanName(t.organizer) !== event ? cleanName(t.organizer) : '';
   const when = monthYear(t.event_start_at);
   const where = typeof t.location === 'string' && t.location.trim() ? cleanName(t.location) : '';
   const room = typeof t.audience === 'string' && t.audience.trim() ? t.audience.trim().replace(/[.!?]+$/, '') : typeof t.who_is_in_the_room === 'string' && t.who_is_in_the_room.trim() ? leadFacts(t.who_is_in_the_room, 160).replace(/[.!?]+$/, '') : '';
   const kind = SPEAKING_FORMAT.exec(`${t.title ?? ''} ${t.format ?? ''}`)?.[0]?.toLowerCase().replace(/s$/, '') ?? (t.type === 'cfp' ? 'call for speakers' : 'event');
   const who = within([`${event} is ${/^[aeiou]/.test(kind) ? 'an' : 'a'} ${kind}${org ? ` run by ${org}` : ''}${when ? `, in ${when}` : ''}${where ? `, ${where}` : ''}.`, room ? leadFacts(`Its room: ${room}.`, 200) : ''].filter(Boolean).join(' '), CARD_WHO_MAX) || `${event} is an event.`;
-  const known = "You do not know them yet. The event's own page gives this address for speakers, and Jonny writes first.";
+  const known = knownLine || "You do not know them yet. The event's own page gives this address for speakers, and Jonny writes first.";
   const closes = dayMonth(t.deadline_at);
   const why = [leadFacts(t.why_him, CARD_LINE_MAX), leadFacts(t.why_now, CARD_LINE_MAX), closes ? `Its call for speakers closes on ${closes}, so now is the time to ask.` : 'It is open for speakers now.']
     .filter(Boolean).filter((l, i, a) => a.findIndex(x => x.slice(0, 40) === l.slice(0, 40)) === i).slice(0, CARD_LINES);
@@ -252,12 +252,12 @@ export function pitchWords({ show, host, topic, canon, record }) {
 }
 
 /** The full card a tap would open (1.8.0), from the stage alone: who the show is, that Krish does not know them, why, what he gets, the angles. */
-export function pitchCard({ t, show, host, topic, canon, serves, at, noun = 'podcast' }) {
+export function pitchCard({ t, show, host, topic, canon, serves, at, noun = 'podcast', known: knownLine = null }) {
   const eps = Number.isInteger(t.episodes) && t.episodes > 0 ? t.episodes : null;
   const by = host ? `, hosted by ${host}` : t.organizer && cleanName(t.organizer) !== show ? `, published by ${cleanName(t.organizer)}` : '';
   const audience = typeof t.audience === 'string' && t.audience.trim() ? leadFacts(`Its audience: ${t.audience.trim().replace(/[.!?]+$/, '')}.`, 200) : '';
   const who = within([`${show} is a ${noun}${eps ? ` with ${eps} episodes` : ''}${by}.`, audience].filter(Boolean).join(' '), CARD_WHO_MAX) || `${show} is a ${noun}.`;
-  const known = 'You do not know them yet. The show publishes this address in its own feed, and Jonny writes first.';
+  const known = knownLine || 'You do not know them yet. The show publishes this address in its own feed, and Jonny writes first.';
   const why = [leadFacts(t.why_him, CARD_LINE_MAX), leadFacts(t.why_now, CARD_LINE_MAX), monthYear(t.latest_episode_at) ? `Its latest episode was out in ${monthYear(t.latest_episode_at)}, so it is taking guests now.` : '']
     .filter(Boolean).filter((l, i, a) => a.findIndex(x => x.slice(0, 40) === l.slice(0, 40)) === i).slice(0, CARD_LINES);
   const goal = serves ? within(`It serves this week's goal: ${serves.replace(/[.!?]+$/, '')}.`) : '';
@@ -376,15 +376,20 @@ const evidencePages = g => (Array.isArray(g?.evidence) ? g.evidence : [])
 /** The show an invite is to, in the words the run reads: the publication's name from the canon, Signal & Noise by the ruling. Pure. */
 export function inviteShow(slug, canon) {
   return slug === 'makeyourmindup'
-    ? { name: canon.publication.name, who: `who writes ${canon.publication.name} (${canon.publication.url})`, ask: 'for one of its weekly conversations' }
-    : { name: 'Signal & Noise', who: KRISH_TITLE, ask: 'on the show for a conversation' };
+    ? { name: canon.publication.name, who: `who writes ${canon.publication.name} (${canon.publication.url})`, self: `I write ${canon.publication.name} (${canon.publication.url})`, ask: 'for one of its weekly conversations' }
+    : { name: 'Signal & Noise', who: KRISH_TITLE, self: `I'm ${KRISH_TITLE}`, ask: 'on the show for a conversation' };
 }
+
+/** A page's own title as an invite may quote it: a few words long, never a bare word or an address; else ''. Pure. */
+const quotable = page => {
+  const label = page ? clean(page.label).replace(/[.!?]+$/, '') : '';
+  return label && label.length <= 100 && /\S\s+\S/.test(label) && !/https?:|www\.|@/i.test(label) ? label : '';
+};
 
 /** The invite in Jonny's words: one point, one ask, Krish in the third person, signed Jonny. Pure. */
 export function inviteWords({ name, show, page }) {
-  // A page's own title, a few words long, never a bare word or an address.
-  const label = page ? clean(page.label).replace(/[.!?]+$/, '') : '';
-  const seen = label && label.length <= 100 && /\S\s+\S/.test(label) && !/https?:|www\.|@/i.test(label) ? `We came across "${label}", and it is exactly the kind of thinking we'd love to hear more of.` : '';
+  const label = quotable(page);
+  const seen = label ? `We came across "${label}", and it is exactly the kind of thinking we'd love to hear more of.` : '';
   const lines = [
     `I work with Krish Raja, ${show.who}. We'd love to have you ${show.ask}.`,
     ...(seen ? [seen] : []),
@@ -396,10 +401,87 @@ export function inviteWords({ name, show, page }) {
   };
 }
 
-/** The full card for an invite: who the guest is, how Krish knows them, why them, what he gets, the angles. */
-export function inviteCard({ g, name, show, topic, canon, contact, serves, weekly }) {
+// ── Who writes to someone in his network (Ruling, Krish, 2026-10-28) ──────
+//
+// "anyone that comes from inside my Network, should only ever be emailed by
+// me." Control Center says who is: routes[contact_id].in_network, true when
+// the contact's network tier is one of his own networks (reciprocated, core,
+// known or owned), false when it is not, null when it cannot say, advertised
+// by features.network_routes. Jonny's box never writes to anyone it says is
+// in his network, nor to anyone it cannot say about. Someone in his network
+// is not dropped: the same approach goes on Krish's own row, in his own
+// words and signed by him, for his Draft press into his own box.
+
+/** Jonny's lane's hold for a recipient who is not his to write to. */
+export const NETWORK_HOLD = Object.freeze({ krish: 'network_is_krish', unknown: 'jonny_network_unknown' });
+/** A card's line for someone in his network when nothing more is on record. */
+const IN_NETWORK_KNOWN = 'They are in your own network, so you write to them yourself.';
+
+/** The tier each network list the context serves gives a contact (network, quiet_ties, amplifier_candidates), by lower-cased id; one of his own tiers wins. Pure. */
+export function networkListed(context) {
+  const out = new Map();
+  const lists = [context?.network, context?.quiet_ties, context?.amplifier_candidates].flatMap(l => Array.isArray(l) ? l : []);
+  for (const c of lists) {
+    if (typeof c?.contact_id !== 'string') continue;
+    const id = c.contact_id.toLowerCase(), tier = typeof c.network_tier === 'string' ? c.network_tier : null;
+    if (!out.has(id) || WARM_TIERS.includes(tier)) out.set(id, tier);
+  }
+  return out;
+}
+
+/**
+ * Whose box may write to one recipient: 'krish' when Control Center says they
+ * are in his network, or a list it serves puts them on one of his own tiers;
+ * 'jonny' when, serving the flag, it says they are not; otherwise 'unknown'.
+ * One exception: a podcast's or a stage's booking address (booking) that no
+ * network list names is the show's own, so Jonny may still write to it. A
+ * false read without the flag advertised says nothing. Pure.
+ */
+export function networkLane(contactId, { routes, listed, served = false, booking = false }) {
+  if (typeof contactId !== 'string' || !UUID.test(contactId)) return 'unknown';
+  const flag = routes?.[contactId]?.in_network;
+  if (flag === true || WARM_TIERS.includes(listed.get(contactId.toLowerCase()))) return 'krish';
+  if (served && flag === false) return 'jonny';
+  return booking && !listed.has(contactId.toLowerCase()) ? 'jonny' : 'unknown';
+}
+
+/** The invite in Krish's own words, for someone in his network: the same show and the same page as Jonny's, one ask. actionFor signs it Krish. Pure. */
+export function krishInviteWords({ show, page }) {
+  const label = quotable(page);
+  return {
+    subject: clean(`A conversation for ${show.name}`).slice(0, 200),
+    lines: [
+      `${show.self}, and I'd love to have you ${show.ask}.`,
+      ...(label ? [`I came across "${label}", and it's the kind of thinking I'd like more of on the show.`] : []),
+      'Would you be up for it in the coming weeks? I can send a short brief and a few dates.',
+    ],
+  };
+}
+
+/** Who he is to a booker he knows, in his own words, from the canon this run reads. */
+const selfLine = canon => `I'm ${KRISH_TITLE} and I write ${canon.publication.name} (${canon.publication.url}). At Mindmake I help leaders build their AI brain: "${canon.brain}"`;
+
+/** A podcast pitch in Krish's own words, to someone in his network who books the show: the same topic as Jonny's, one ask. Pure. */
+export function krishPitchWords({ show, topic, canon }) {
+  const [about, short] = TOPIC_PITCH[topic] ?? TOPIC_PITCH.leadership;
+  return {
+    subject: clean(`A guest for ${show}: ${short}`).slice(0, 200),
+    lines: [`I'd love to come on ${show} and talk about ${about}.`, selfLine(canon), 'Would you have me on? I can send a short brief and a few dates.'],
+  };
+}
+
+/** A speaking pitch in Krish's own words, to someone in his network who books the speakers: the same talk as Jonny's, one ask. Pure. */
+export function krishSpeakWords({ event, ask, talk, canon }) {
+  return {
+    subject: clean(`A speaker for ${event}: ${talk}`).slice(0, 200),
+    lines: [`I'd like to put myself forward for ${ask} at ${event}: "${talk}".`, selfLine(canon), 'Would you consider me for the programme? I can send a short abstract and a bio.'],
+  };
+}
+
+/** The full card for an invite: who the guest is, how Krish knows them, why them, what he gets, the angles. By Jonny, or by Krish to someone in his network. */
+export function inviteCard({ g, name, show, topic, canon, contact, serves, weekly, by = 'jonny' }) {
   const who = within(`${name}${g.one_liner ? `: ${leadFacts(g.one_liner, CARD_WHO_MAX - name.length - 2).replace(/[.!?]+$/, '')}` : ''}.`, CARD_WHO_MAX) || `${name}.`;
-  const known = (contact ? knownWords(contact) : '') || 'You do not know them yet. Jonny writes first, from his own Gmail.';
+  const known = (contact ? knownWords(contact) : '') || (by === 'krish' ? IN_NETWORK_KNOWN : 'You do not know them yet. Jonny writes first, from his own Gmail.');
   const pages = evidencePages(g);
   const why = [leadFacts(g.why_fit, CARD_LINE_MAX), pages[0] ? within(`Seen online: ${clean(pages[0].label)}.`) : '', guestVerdictOf(g) === 'take' ? `The guest standard judged them worth having on ${show.name}.` : `The guest standard judged them a stretch for ${show.name}, worth asking.`]
     .filter(Boolean).filter((l, i, a) => a.findIndex(x => x.slice(0, 40) === l.slice(0, 40)) === i).slice(0, CARD_LINES);
@@ -853,7 +935,7 @@ export function formRows({ context, weekGoals, canon, record = null, files, at, 
  * its pitch waits behind it; the pitches rank after the forms on their row.
  * Ranks start at 1 within each row.
  */
-export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false }) {
+export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false, networkRoutes = false }) {
   const L = lessons(context?.feedback, at);
   const pitched = pitchedStages(context);
   const lanes = { ...LANES_ON, ...(caps.lanes ?? {}) };
@@ -863,11 +945,15 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   const used = jonnyDraftsToday(context, at);
   const lead = { visibility: forms.proposals.filter(p => p.row === 'visibility').length, events: forms.proposals.filter(p => p.row === 'events').length };
   // 1.10.0: a booked show's note asking for the brief link comes before any new pitch, inside the day's room (shownotes.mjs).
-  const notes = showNotes ? showNoteRows({ context, canon, files, at, titleMax, room: Math.max(0, Math.min(caps.per_run, (caps.jonny_per_day ?? PITCHES_PER_RUN) - used)) }) : { proposals: [], held: [] };
+  const notes = showNotes ? showNoteRows({ context, canon, files, at, titleMax, room: Math.max(0, Math.min(caps.per_run, (caps.jonny_per_day ?? PITCHES_PER_RUN) - used)), networkRoutes }) : { proposals: [], held: [] };
   for (const n of notes.proposals) n.rank = ++lead[n.row];
   const room = Math.max(0, Math.min(caps.per_run, (caps.jonny_per_day ?? PITCHES_PER_RUN) - used) - notes.proposals.length);
-  const held = [], stageHeld = [], pods = [], stages = [];
+  const held = [], stageHeld = [], pods = [], stages = [], krishPods = [], krishStages = [];
   const seen = new Set();
+  // Ruling (Krish, 2026-10-28): nobody in his network is written to from Jonny's box, nor anyone Control Center cannot say about.
+  const routes = context?.routes ?? {};
+  const listed = networkListed(context);
+  const laneOf = (id, booking) => networkLane(id, { routes, listed, served: networkRoutes, booking });
   for (const t of Array.isArray(context?.records?.visibility) ? context.records.visibility : []) {
     if (typeof t?.id !== 'string' || !UUID.test(t.id) || seen.has(t.id)) continue;
     seen.add(t.id);
@@ -875,17 +961,22 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     // A stage of neither kind is not counted as held from one. One whose own form is the route is not pitched as well.
     if (kind === 'podcast') {
       const why = pitchHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? (lanes.visibility ? null : 'lane_off');
-      if (why) held.push(why); else pods.push({ t, score: pitchScore(t, at) });
+      const lane = why ? null : laneOf(t.booking_contact_id, true);
+      if (why) held.push(why);
+      else if (lane === 'jonny') pods.push({ t, score: pitchScore(t, at) });
+      else { held.push(NETWORK_HOLD[lane]); if (lane === 'krish') krishPods.push({ t, score: pitchScore(t, at) }); }
     } else if (kind === 'stage') {
       const why = speakHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? (lanes.events ? null : 'lane_off');
-      if (why) stageHeld.push(why); else stages.push({ t, score: speakScore(t, at) });
+      const lane = why ? null : laneOf(t.booking_contact_id, true);
+      if (why) stageHeld.push(why);
+      else if (lane === 'jonny') stages.push({ t, score: speakScore(t, at) });
+      else { stageHeld.push(NETWORK_HOLD[lane]); if (lane === 'krish') krishStages.push({ t, score: speakScore(t, at) }); }
     }
   }
   const byScore = (a, b) => b.score - a.score || a.t.id.localeCompare(b.t.id);
   pods.sort(byScore);
   stages.sort(byScore);
   // Guests he might have on his own shows: up to two a run, before the pitches.
-  const routes = context?.routes ?? {};
   const invited = invitedGuests(context);
   const guests = Array.isArray(context?.records?.guests) ? context.records.guests : [];
   const people = new Map([...(context?.network ?? []), ...(context?.amplifier_candidates ?? []), ...(context?.quiet_ties ?? [])].filter(c => typeof c?.contact_id === 'string').map(c => [c.contact_id, c]));
@@ -894,12 +985,21 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     if (typeof g?.contact_id === 'string' && seenGuest.has(g.contact_id)) continue;
     if (typeof g?.contact_id === 'string') seenGuest.add(g.contact_id);
     const why = inviteHold(g, { L, invited, routes, at }) ?? (lanes.visibility ? null : 'lane_off');
-    if (why) inviteHeld.push(why); else { const standard = guestVerdictOf(g); open.push({ g, standard, score: GUEST_VERDICT[standard] ?? 0 }); }
+    const lane = why ? null : laneOf(g.contact_id, false);
+    if (why) inviteHeld.push(why);
+    else if (lane === 'unknown') inviteHeld.push(NETWORK_HOLD.unknown);
+    else { const standard = guestVerdictOf(g); open.push({ g, standard, lane, score: GUEST_VERDICT[standard] ?? 0 }); }
   }
   // Take before stretch, then the stronger guest on the three axes, then the contact id (Ruling, Krish, 2026-10-28).
   open.sort((a, b) => b.score - a.score || guestStrength(b.g) - guestStrength(a.g) || a.g.contact_id.localeCompare(b.g.contact_id));
-  const invites = pickInvites(open, invitesThisWeek(context, guests, at), Math.min(caps.invites_per_run, room), weeklyInvites(caps.invites_per_week, caps.show_shares));
-  if (open.length > invites.length) inviteHeld.push(...Array(open.length - invites.length).fill('invite_week_or_run_cap'));
+  // The week's invites are one pick whoever writes them; only Jonny's take room in his box. A shorter pick is a prefix of a longer one.
+  const picked = pickInvites(open, invitesThisWeek(context, guests, at), caps.invites_per_run, weeklyInvites(caps.invites_per_week, caps.show_shares));
+  const invites = [], krishInvites = [], jonnyRoom = Math.min(caps.invites_per_run, room);
+  for (const o of picked) {
+    if (o.lane === 'krish') { krishInvites.push(o); inviteHeld.push(NETWORK_HOLD.krish); }
+    else if (invites.length < jonnyRoom) invites.push(o);
+  }
+  if (open.length > invites.length + krishInvites.length) inviteHeld.push(...Array(open.length - invites.length - krishInvites.length).fill('invite_week_or_run_cap'));
   const take = shares(pods.length, stages.length, room - invites.length, caps.stage_share);
   const usedFiles = [...files, ...(record?.file ? [record.file] : [])].slice(0, 8);
   const serves = servesOf('visibility', weekGoals);
@@ -983,10 +1083,73 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
       card,
     };
   });
+  const krishRows = [
+    ...krishInvites.map(({ g, standard }) => krishInviteRow({ g, standard, canon, contact: people.get(g.contact_id) ?? null, routes, serves, files, at, titleMax })),
+    ...krishPods.map(({ t }) => krishPitchRow({ t, kind: 'podcast', canon, contact: people.get(t.booking_contact_id) ?? null, routes, serves, files: usedFiles, at, titleMax })),
+    ...krishStages.map(({ t }) => krishPitchRow({ t, kind: 'stage', canon, contact: people.get(t.booking_contact_id) ?? null, routes, serves: speakServes, files: usedFiles, at, titleMax })),
+  ];
   if (pods.length > take.podcasts) held.push(...Array(pods.length - take.podcasts).fill('pitch_per_run_cap'));
   if (stages.length > take.stages) stageHeld.push(...Array(stages.length - take.stages).fill('pitch_per_run_cap'));
   // Forms first: a report keeps at most forty, and a pitch left out waits for the next run.
-  return { proposals: [...forms.proposals, ...notes.proposals, ...inviteProposals, ...podcastProposals, ...stageProposals], held, stageHeld, inviteHeld, formHeld: forms.held, notesHeld: notes.held, jonny: { used, room } };
+  // His own rows for those in his network go with the rows he presses himself (rows.mjs rankRows), never in Jonny's ten.
+  return { proposals: [...forms.proposals, ...notes.proposals, ...inviteProposals, ...podcastProposals, ...stageProposals], krishRows, held, stageHeld, inviteHeld, formHeld: forms.held, notesHeld: notes.held, jonny: { used, room } };
+}
+
+/** The route weight his own row would draft on: an address on record, else one Control Center has not checked. */
+const emailWeight = (routes, id) => routes?.[id]?.email === 'verified' ? channelOf({ email: 'verified' }, 'visibility').weight : channelOf({ email: 'unchecked' }, 'visibility').weight;
+
+/**
+ * A guest invite to someone in his network, as one of his own rows (rows.mjs
+ * rowProposal): the visibility row, a version 2 email action with no mailbox,
+ * so his Draft press drafts it into his own box, in his own words, signed
+ * Krish, from the same facts Jonny's invite would have used. Pure.
+ */
+export function krishInviteRow({ g, standard, canon, contact, routes, serves, files, at, titleMax = TITLE_MAX }) {
+  const name = guestName(g), f = firstName(name);
+  const show = inviteShow(g.invite_show, canon);
+  const topic = guestTopic(g);
+  const card = inviteCard({ g, name, show, topic, canon, contact, serves, weekly: INVITE_SHOWS[g.invite_show].weekly, by: 'krish' });
+  const reach = { value: null, band: 'unknown', basis: "a guest's audience not yet measured", source_url: null, as_of: null };
+  const because = `In your network. You invite them onto ${show.name}.`;
+  return { score: score(reach, standard === 'take' ? 1 : 0.8, emailWeight(routes, g.contact_id), serves, true), proposal: rowProposal({
+    row: 'visibility', ask: 'invite', contactId: g.contact_id, name, at, files,
+    title: fitTitleWithin(titleMax, `Invite ${name} onto ${show.name}`, `Invite ${f} onto ${show.name}`, `Invite a guest onto ${show.name}`),
+    why: `${name} is in your own network, so you invite them yourself, not Jonny. The guest standard judged them ${standard === 'take' ? 'worth having' : 'a stretch'} for ${show.name}. One ask: a conversation on the show.`,
+    because: because.length <= BECAUSE_MAX ? because : `In your network. You invite them.`,
+    brief: [card.who, card.known, ...card.why.slice(0, 2), `The ask: you invite ${f} onto ${show.name}, from your own Gmail.`],
+    card, action: actionFor('email', g.contact_id, name, krishInviteWords({ show, page: evidencePages(g)[0] ?? null })),
+    reach, kind: null, features: { sector: null, topic, seniority: null }, serves, evidence: [],
+  }) };
+}
+
+/**
+ * A podcast or a stage pitch whose booking contact is in his network, as one
+ * of his own rows: visibility for a podcast, events for a stage, a version 2
+ * email action with no mailbox, in his own words and signed Krish, about the
+ * show or stage it names (target:<id>), so it is never pitched twice. Pure.
+ */
+export function krishPitchRow({ t, kind, canon, contact, routes, serves, files, at, titleMax = TITLE_MAX }) {
+  const name = cleanName(t.title), host = hostOf(t), topic = showTopic(t);
+  const to = t.booking_contact_id, greet = cleanName(contact?.contacts?.full_name ?? '') || host || '';
+  const podcast = kind === 'podcast';
+  const ask = podcast ? null : speakingAsk(t), talk = podcast ? null : talkTitle(t, topic);
+  const known = (contact ? knownWords(contact) : '') || (podcast ? "The show's booking contact is in your own network, so you write to them yourself." : "The event's speaker contact is in your own network, so you write to them yourself.");
+  const card = podcast ? pitchCard({ t, show: name, host, topic, canon, serves, at, known }) : speakCard({ t, event: name, ask, talk, topic, canon, serves, known });
+  const words = podcast ? krishPitchWords({ show: name, topic, canon }) : krishSpeakWords({ event: name, ask, talk, canon });
+  const reach = podcast ? reachOf(t, 'people in its audience, as Nova read it', 'a podcast audience not yet measured') : reachOf(t, 'people in its room, as Nova read it', "an event's room not yet measured");
+  const row = podcast ? 'visibility' : 'events';
+  const because = podcast ? 'Someone in your network books this show.' : 'Someone in your network books its speakers.';
+  const p = rowProposal({
+    row, ask: 'pitch', contactId: to, name: greet || name, at, files,
+    title: podcast ? fitTitleWithin(titleMax, `Ask to go on ${name}`, 'Ask to go on a podcast') : fitTitleWithin(titleMax, `Ask to speak at ${name}`, 'Ask to speak at an event'),
+    why: `${name} ${podcast ? 'takes guests' : 'is open for speakers'}, and the person who books it is in your own network, so you ask yourself, not Jonny. ${standardSays(t, at)} One ask: ${podcast ? 'have you on' : `${ask} for you`}.`,
+    because, card,
+    brief: [card.who, card.known, ...card.why.slice(0, 2), podcast ? `The ask: you ask ${name} to have you on as a guest, from your own Gmail.` : `The ask: you ask ${name} for ${ask}, from your own Gmail.`],
+    action: actionFor('email', to, greet || 'there', words),
+    reach, kind: podcast ? 'broadcaster' : 'ceo_educator', features: { sector: null, topic, seniority: null }, serves, evidence: [],
+  });
+  // One booker may book two shows: the row is keyed by the show, never by the person alone.
+  return { score: score(reach, standardWeight(t, at) / 3, emailWeight(routes, to), serves, true), proposal: { ...p, proposal_id: `gmw-${seal({ subject: `target:${t.id}`, row, ask: 'pitch' }).slice(0, 32)}`, subject_ref: `target:${t.id}` } };
 }
 
 // ── The caps a run reads (plan Phase 2, N04) ───────────────────────────────

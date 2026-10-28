@@ -579,6 +579,76 @@
       "tests": [
         "tests/pitches.test.mjs"
       ]
+    },
+    {
+      "id": "jonny-invites-in-network",
+      "what": "Jonny's lane invites a guest Control Center says is in Krish's network",
+      "file": "src/stages/pitches.mjs",
+      "find": "    if (o.lane === 'krish') { krishInvites.push(o); inviteHeld.push(NETWORK_HOLD.krish); }\n",
+      "replace": "",
+      "tests": [
+        "tests/network.test.mjs"
+      ]
+    },
+    {
+      "id": "jonny-pitches-in-network",
+      "what": "Jonny's lane pitches a show whose booker is in Krish's network",
+      "file": "src/stages/pitches.mjs",
+      "find": "      else if (lane === 'jonny') pods.push({ t, score: pitchScore(t, at) });",
+      "replace": "      else if (lane) pods.push({ t, score: pitchScore(t, at) });",
+      "tests": [
+        "tests/network.test.mjs"
+      ]
+    },
+    {
+      "id": "jonny-flag-true-ignored",
+      "what": "Control Center's in_network true no longer keeps a recipient out of Jonny's lane",
+      "file": "src/stages/pitches.mjs",
+      "find": "  if (flag === true || WARM_TIERS.includes(listed.get(contactId.toLowerCase()))) return 'krish';",
+      "replace": "  if (WARM_TIERS.includes(listed.get(contactId.toLowerCase()))) return 'krish';\n  if (flag === true) return 'jonny';",
+      "tests": [
+        "tests/network.test.mjs"
+      ]
+    },
+    {
+      "id": "jonny-unknown-guest-invited",
+      "what": "a guest whose network Control Center cannot say about is invited by Jonny instead of held",
+      "file": "src/stages/pitches.mjs",
+      "find": "    else if (lane === 'unknown') inviteHeld.push(NETWORK_HOLD.unknown);\n",
+      "replace": "",
+      "tests": [
+        "tests/network.test.mjs"
+      ]
+    },
+    {
+      "id": "jonny-unknown-is-jonny",
+      "what": "an unknown recipient falls to Jonny's lane rather than being held",
+      "file": "src/stages/pitches.mjs",
+      "find": "  return booking && !listed.has(contactId.toLowerCase()) ? 'jonny' : 'unknown';",
+      "replace": "  return 'jonny';",
+      "tests": [
+        "tests/network.test.mjs"
+      ]
+    },
+    {
+      "id": "jonny-false-unserved",
+      "what": "a false read is trusted while Control Center does not advertise network_routes",
+      "file": "src/stages/pitches.mjs",
+      "find": "  if (served && flag === false) return 'jonny';",
+      "replace": "  if (flag === false) return 'jonny';",
+      "tests": [
+        "tests/network.test.mjs"
+      ]
+    },
+    {
+      "id": "show-notes-in-network",
+      "what": "Jonny's show-notes note goes to a host in Krish's network",
+      "file": "src/stages/shownotes.mjs",
+      "find": "    if (lane !== 'jonny') { held.push(NETWORK_HOLD[lane]); continue; }\n",
+      "replace": "",
+      "tests": [
+        "tests/network.test.mjs"
+      ]
     }
   ]
 }
