@@ -559,6 +559,26 @@
       "tests": [
         "tests/plays.test.mjs"
       ]
+    },
+    {
+      "id": "invite-past-guest-held",
+      "what": "a past Signal & Noise guest is never invited onto Make Your Mind Up",
+      "file": "src/stages/pitches.mjs",
+      "find": "&& (!g.podcast_target || g.podcast_target === g.invite_show)) return 'recorded';",
+      "replace": ") return 'recorded';",
+      "tests": [
+        "tests/pitches.test.mjs"
+      ]
+    },
+    {
+      "id": "invite-room-not-shared",
+      "what": "a show with no one left to invite keeps its room empty instead of giving it to the other",
+      "file": "src/stages/pitches.mjs",
+      "find": "if (!picked.includes(o) && o.g.invite_show in room) { picked.push(o); week -= 1; }",
+      "replace": "if (false) { picked.push(o); week -= 1; }",
+      "tests": [
+        "tests/pitches.test.mjs"
+      ]
     }
   ]
 }

@@ -378,6 +378,8 @@ test('a guest is invited only when judged worth having, with an address, a full 
   assert.equal(hold({ invite_show: 'another_show' }), 'no_show');
   assert.equal(hold({ buried_at: '2026-10-01T00:00:00Z' }), 'buried');
   assert.equal(hold({ recorded_at: '2026-10-01T00:00:00Z' }), 'recorded');
+  assert.equal(hold({ recorded_at: '2026-10-01T00:00:00Z', podcast_target: 'makeyourmindup' }), 'recorded', 'recorded on the show he would be invited to');
+  assert.equal(hold({ recorded_at: '2026-10-01T00:00:00Z', podcast_target: 'signal_noise' }), null, 'a past Signal & Noise guest may be invited onto Make Your Mind Up');
   assert.equal(hold({ published_at: '2026-10-01T00:00:00Z' }), 'recorded');
   assert.equal(hold({ status: 'scouted' }), null, 'scouted is open');
   assert.equal(hold({ status: 'booked' }), 'not_open');
@@ -439,8 +441,11 @@ test('a run invites Make Your Mind Up first, then Signal & Noise, within the wee
   assert.deepEqual(ids(pickInvites(open, { makeyourmindup: 3, signal_noise: 0 })), [id(304)], 'a full week for one show leaves the other');
   assert.deepEqual(ids(pickInvites(open, { makeyourmindup: 1, signal_noise: 1 })), [id(301), id(302)], 'the show with room takes both');
   assert.deepEqual(ids(pickInvites(open, { makeyourmindup: 3, signal_noise: 1 })), [], 'a full week invites nobody');
-  assert.deepEqual(ids(pickInvites(open.slice(3), none)), [id(304)], 'Signal & Noise alone takes its one');
+  assert.deepEqual(ids(pickInvites(open.slice(3), none)), [id(304), id(305)], 'Signal & Noise alone takes its one, then the room Make Your Mind Up cannot fill');
   assert.deepEqual(ids(pickInvites(open, none, 4)), [id(301), id(304), id(302), id(303)]);
+  const mymuOnly = open.filter(o => o.g.invite_show === 'makeyourmindup');
+  assert.deepEqual(ids(pickInvites(mymuOnly, none, 4)), ids(mymuOnly).slice(0, 4), 'a show with no one left gives its room to the other, inside the week');
+  assert.equal(pickInvites(mymuOnly, { makeyourmindup: 3, signal_noise: 0 }, 4).length, 1, 'never past the week\'s total');
 });
 
 test('an invite is one ask in Jonny\'s words, to the show it was judged for, signed Jonny', () => {
@@ -522,7 +527,7 @@ test('invites rank first on visibility, take their two from the run\'s ten, and 
   const again = pitchRows({ context: { records: { visibility: [], drafts: [], guests: [guest(1), guest(2)] }, routes: route(1, 2), feedback: [invitedOn(9, '2026-10-26T08:00:00Z'), invitedOn(8, '2026-10-26T08:00:00Z'), invitedOn(7, '2026-10-26T08:00:00Z')] }, weekGoals: GOALS, canon, files: FILES, at: NOW });
   assert.equal(again.proposals.length, 2, 'invites to guests not on record count for no show');
   const full = pitchRows({ context: { records: { visibility: [], drafts: [], guests: [guest(1), guest(2), guest(7), guest(8), guest(9)] }, routes: route(1, 2), feedback: [invitedOn(9, '2026-10-26T08:00:00Z'), invitedOn(8, '2026-10-26T08:00:00Z'), invitedOn(7, '2026-10-26T08:00:00Z')] }, weekGoals: GOALS, canon, files: FILES, at: NOW });
-  assert.equal(full.proposals.length, 0, 'three Make Your Mind Up invites this week fill its week');
+  assert.equal(full.proposals.length, 1, 'three Make Your Mind Up invites fill its share, and the week\'s fourth goes to the one with someone to invite');
   assert.ok(full.inviteHeld.includes('invite_week_or_run_cap'));
 });
 

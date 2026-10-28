@@ -66,3 +66,13 @@ Plan Phase 4 asked for one change across AGENTS.md, docs/GET-GOING.md and NOW.md
 - NOW.md keeps its most recent changes; older ones move verbatim to docs/history/LOG.md.
 - A session starts from `npm run pack` and reads runtime/pack.md, 36 KB or less; other files are opened only when a task needs them.
 - A Codex task card is dispatched only through scripts/dispatch-card.mjs, with a dated usage reading at 80% or less and his yes on that card's digest, and accepted only when scripts/verify-card.mjs passes outside the sandbox.
+
+## Volume, the Monday drafts, the backfill and the tools (Rulings, Krish, 2026-10-28)
+
+In his words: "Happy with your recommendation for #1. Price up #2. Happy to do this as long as it's not more than 5 bucks. You make the call on the 3 guest invite rules but just make sure they're aligned and pushing towards the north star of the growth repo. I'd prefer volume right now." Then: "You are more than welcome to add the MindMake repository to this session. On the canvas visibility track I think spin that off into a separate session in Cowork that we can log into the browser in." And: "Regarding send links you have a repository in my GitHub called sendlinks. Just use that. Shouldn't need an account. I'm not bothered with the rest of the things you've raised. You make the decision." And, on the price: "happy with that apify price".
+
+- Control Center stops drafting Mindmake's Monday five, and the drafts it already made are binned; Mindmake's notes are this engine's.
+- The post-link backfill runs once, capped at 5 US dollars.
+- Guest invites lean to volume: a show with no one left to invite gives its room to the other inside the week's total, a tie goes to the stronger guest on the three axes, and a past Signal & Noise guest may be invited onto Make Your Mind Up.
+- The mindmake repository is in reach of these sessions; the Canva work runs in its own Cowork session on his machine; per-recipient asset links use the sendlinks repository, with no outside account.
+- The remaining calls he raised no objection to are the session's to make, inside the approval walls.

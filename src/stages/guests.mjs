@@ -34,14 +34,15 @@ import { shadowLine } from './visibility.mjs';
  * pitches.mjs already holds a rule Control Center also holds: the 70/30
  * shares (src/lib/shows.ts SHOWS), the verdicts that may be invited (take or
  * stretch, readGuests), a guest already invited (invite_state), and the
- * order within a show (take before stretch). Three differ, and stay as they
- * are until the switch: weeklyInvites rounds Make Your Mind Up's share up,
- * where quotaByShare takes the largest remainder (they part at 3 and 6 a
- * week); pickInvites breaks a tie by contact id, where byStrength uses the
- * guest score and then the name; and inviteHold holds anyone recorded or not
- * scouted or enriched, so a past Signal & Noise guest proposed onto Make Your
- * Mind Up (Control Center's first source for that show) is never invited.
- * guestsShadow counts that last one.
+ * order within a show (take before stretch). Three differ, decided for
+ * volume (Ruling, Krish, 2026-10-28: "I'd prefer volume right now"):
+ * weeklyInvites rounds Make Your Mind Up's share up, where quotaByShare takes
+ * the largest remainder (they part at 3 and 6 a week), and a show with no one
+ * left to invite gives its room to the other inside the week's total;
+ * the invite order breaks a tie on the guest score, then the contact id,
+ * never a name; and a past Signal & Noise guest proposed onto Make Your Mind
+ * Up (Control Center's first source for that show) may be invited, while
+ * anyone recorded on the show he would be invited to is not.
  *
  * What stays in Control Center: collection (the scout's searches, its
  * research, the past-guest catalogue, the guests table) and the one model call
@@ -170,6 +171,9 @@ export function standingFromAxes(g) {
  * from the axes, so a guest refused only for that reads on its axes. Pure.
  */
 export const guestVerdictOf = g => standingFromAxes(g)?.guest_verdict ?? 'unjudged';
+
+/** The engine's own strength for a guest: the least of the three axes it computes, or -1 when they are not served. Pure. */
+export const guestStrength = g => standingFromAxes(g)?.guest_score ?? -1;
 
 // ── The shows' shares (src/lib/shows.ts) ────────────────────────────────────
 
