@@ -60,8 +60,10 @@ test('NOW.md keeps its front matter keys, its state line byte for byte and its h
   const keys = [...(/^---\n([\s\S]*?)\n---/.exec(now)?.[1] ?? '').matchAll(/^([a-z_]+):/gm)].map(m => m[1]);
   assert.deepEqual(keys, fixture.now.front_matter_keys);
   assert.equal(sha(now.split('\n').find(l => l.includes('<!-- north-star-state'))), fixture.now.state_line_sha256);
-  const headings = new Set(now.split('\n').filter(l => /^#{1,6} /.test(l)));
-  for (const h of fixture.now.headings) assert.ok(headings.has(h), `NOW.md lost the heading ${h}`);
+  // The close-out re-dates "Where it is right now (as of ...)" each session, so a heading is compared without its date.
+  const undated = h => h.replace(/ \(as of \d{4}-\d{2}-\d{2}\)$/, '');
+  const headings = new Set(now.split('\n').filter(l => /^#{1,6} /.test(l)).map(undated));
+  for (const h of fixture.now.headings) assert.ok(headings.has(undated(h)), `NOW.md lost the heading ${h}`);
   const lines = new Set([...now.split('\n'), ...log.split('\n')].map(sha));
   for (const b of fixture.now.changed_bullets) assert.ok(lines.has(b), 'a "What changed recently" bullet is in neither NOW.md nor docs/history/LOG.md');
   assert.match(log, /Moved here verbatim from NOW\.md's "What changed recently"/);
