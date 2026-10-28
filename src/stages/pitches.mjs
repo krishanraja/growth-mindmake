@@ -2,7 +2,7 @@ import { seal, clean, DAY } from '../guards.mjs';
 import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
 import { showNoteRows } from './shownotes.mjs';
 import { shadowLine, stageVerdict, stageStrength, ccStageVerdict, isDeadDate } from './visibility.mjs';
-import { guestVerdictOf } from './guests.mjs';
+import { guestVerdictOf, guestStrength } from './guests.mjs';
 
 /**
  * Podcast pitches, written in Jonny's voice for Krish (protocol 1.9.0, playbook 11).
@@ -346,8 +346,11 @@ export function inviteHold(g, { L, invited, routes, at }) {
   if (typeof g?.contact_id !== 'string' || !UUID.test(g.contact_id)) return 'no_contact';
   if (!(g.invite_show in INVITE_SHOWS)) return 'no_show';
   if (g.buried_at) return 'buried';
-  if (g.recorded_at || g.published_at) return 'recorded';
-  if (!OPEN_GUEST.has(g.status)) return 'not_open';
+  // Recorded on the show he would be invited to is done; recorded on his other show is a past guest worth having again
+  // (Ruling, Krish, 2026-10-28: volume now), so a past Signal & Noise guest may be invited onto Make Your Mind Up.
+  if ((g.recorded_at || g.published_at) && (!g.podcast_target || g.podcast_target === g.invite_show)) return 'recorded';
+  const pastOther = ['recorded', 'published'].includes(String(g.status)) && g.podcast_target && g.podcast_target !== g.invite_show;
+  if (!OPEN_GUEST.has(g.status) && !pastOther) return 'not_open';
   if (g.invite_state && g.invite_state !== 'proposed') return 'already_invited';
   const verdict = guestVerdictOf(g);
   if (verdict === 'rejected') return 'guest_rejected';
@@ -424,6 +427,12 @@ export function pickInvites(open, done, perRun = INVITES_PER_RUN, quota = weekly
   take('makeyourmindup');
   take('signal_noise');
   while (take('makeyourmindup') || take('signal_noise'));
+  // A show with no one left to invite gives its room to the other, inside the week's total (Ruling, Krish, 2026-10-28: volume now).
+  let week = Math.max(0, quota.makeyourmindup + quota.signal_noise - done.makeyourmindup - done.signal_noise) - picked.length;
+  for (const o of open) {
+    if (week <= 0 || picked.length >= perRun) break;
+    if (!picked.includes(o) && o.g.invite_show in room) { picked.push(o); week -= 1; }
+  }
   return picked;
 }
 
@@ -887,7 +896,8 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     const why = inviteHold(g, { L, invited, routes, at }) ?? (lanes.visibility ? null : 'lane_off');
     if (why) inviteHeld.push(why); else { const standard = guestVerdictOf(g); open.push({ g, standard, score: GUEST_VERDICT[standard] ?? 0 }); }
   }
-  open.sort((a, b) => b.score - a.score || a.g.contact_id.localeCompare(b.g.contact_id));
+  // Take before stretch, then the stronger guest on the three axes, then the contact id (Ruling, Krish, 2026-10-28).
+  open.sort((a, b) => b.score - a.score || guestStrength(b.g) - guestStrength(a.g) || a.g.contact_id.localeCompare(b.g.contact_id));
   const invites = pickInvites(open, invitesThisWeek(context, guests, at), Math.min(caps.invites_per_run, room), weeklyInvites(caps.invites_per_week, caps.show_shares));
   if (open.length > invites.length) inviteHeld.push(...Array(open.length - invites.length).fill('invite_week_or_run_cap'));
   const take = shares(pods.length, stages.length, room - invites.length, caps.stage_share);
