@@ -539,6 +539,16 @@
       "tests": [
         "tests/places.test.mjs"
       ]
+    },
+    {
+      "id": "suppression-sent-unserved",
+      "what": "the engine sends its suppression list and taxonomy where Control Center has not said it applies them",
+      "file": "src/dispatch.mjs",
+      "find": "capabilities?.features?.suppression === true && suppliedContext ?",
+      "replace": "suppliedContext ?",
+      "tests": [
+        "tests/suppression-report.test.mjs"
+      ]
     }
   ]
 }
