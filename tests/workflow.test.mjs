@@ -19,3 +19,10 @@ test("OPERATIONS.md states the dispatch job's real timeout and run id (F22)", ()
   assert.match(operations, new RegExp(`runs with a ${words}-minute timeout`));
   assert.match(operations, /mindmake:<London date>:dispatch-<run number>/);
 });
+
+test('a merge that changes the engine\'s source re-runs the dispatch at once, so his rows are never left citing a moved file', () => {
+  assert.match(workflow, /\n  push:\n    branches: \[main\]\n    paths: \['src\/\*\*'\]\n/);
+  assert.match(workflow, /github\.event_name == 'push' \|\| inputs\.mode == 'dispatch'/);
+  assert.match(workflow, /if: \$\{\{ github\.event_name == 'push' \}\}\n\s*run: node src\/cli\.mjs dispatch --kind merge-\$\{\{ github\.run_number \}\}/);
+  assert.match(operations, /mindmake:<London date>:merge-<run number>/);
+});
