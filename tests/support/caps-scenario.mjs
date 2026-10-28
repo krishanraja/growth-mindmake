@@ -46,7 +46,7 @@ export function capsContext() {
   const hosts = fits.map((fit, i) => person(i + 1, `Host of Example Show ${i + 1}`, fit));
   const connectors = [20, 21, 22, 23].map(n => person(n, 'Chapter Chair, Example Leaders Forum', 50 + n));
   const guests = [guest(1, 'makeyourmindup'), guest(2, 'makeyourmindup'), guest(3, 'makeyourmindup'), guest(4, 'signal_noise')];
-  const routes = Object.fromEntries([...hosts, ...connectors].map(p => [p.contact_id, route()]).concat(guests.map(g => [g.contact_id, { email: 'verified' }])));
+  const routes = Object.fromEntries([...hosts, ...connectors].map(p => [p.contact_id, route()]).concat(guests.map(g => [g.contact_id, { email: 'verified', in_network: false }])));
   return {
     schema_version: '1.9.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: AT,
     coverage: [{ source: 'advisory', available: true, complete: true }],
@@ -63,7 +63,8 @@ export async function capsReport({ runDispatch, directiveFixture, parseCanon, bl
   const reports = [];
   const cc = {
     recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: '1.9.0', week_goals: GOALS }),
-    capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true } }),
+    // Control Center says who is in his network (Ruling, Krish, 2026-10-28): these guests are not, so Jonny invites them as before.
+    capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true, network_routes: true } }),
     context: async () => ({ ok: true, context: capsContext() }),
     decisions: async () => [], postReport: async rep => { reports.push(record(rep)); return { replayed: false }; }, readReport: async () => reports.at(-1)
   };

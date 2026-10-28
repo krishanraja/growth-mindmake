@@ -76,3 +76,11 @@ In his words: "Happy with your recommendation for #1. Price up #2. Happy to do t
 - Guest invites lean to volume: a show with no one left to invite gives its room to the other inside the week's total, a tie goes to the stronger guest on the three axes, and a past Signal & Noise guest may be invited onto Make Your Mind Up.
 - The mindmake repository is in reach of these sessions; the Canva work runs in its own Cowork session on his machine; per-recipient asset links use the sendlinks repository, with no outside account.
 - The remaining calls he raised no objection to are the session's to make, inside the approval walls.
+
+## Anyone inside his network is emailed only by him (Ruling, Krish, 2026-10-28)
+
+In his words: "anyone that comes from inside my Network, should only ever be emailed by me."
+
+- No recipient inside his network is ever given a `mailbox: 'jonny'` action: no guest invite, no podcast or stage pitch and no show-notes note from Jonny's box. Who is inside it is Control Center's `routes[contact_id].in_network` (true when the contact's network tier is one of his own networks: reciprocated, core, known or owned), advertised by `features.network_routes`; a network list the context serves that puts someone on one of his own tiers says the same.
+- While the flag is not served, or reads null or missing, a recipient is treated as possibly inside his network, and Jonny's lane holds them (`jonny_network_unknown`, counted). The one exception is a podcast's or a stage's booking address that no network list in the context names: it is the show's own, so Jonny may still pitch it. A false read counts only where the flag is served, and then Jonny's lane goes on as before.
+- Someone inside his network is not dropped: the same invite or pitch is proposed as one of his own rows (visibility for a guest or a podcast, events for a stage), a version 2 email action with no mailbox, so his Draft press drafts it into his own box, in his own first person and signed by him. Jonny's lane holds that person with `network_is_krish`. The show-notes note to a host inside his network is held, not rewritten.

@@ -321,6 +321,25 @@ shows share guests Make Your Mind Up 70, Signal & Noise 30.
   as a guest draft for that show, marks the guest drafted, and books it from
   his calendar; Jonny sends.
 
+## Someone inside his network (Ruling, Krish, 2026-10-28)
+
+"anyone that comes from inside my Network, should only ever be emailed by
+me." The ruling is in [docs/RULINGS.md](../RULINGS.md).
+
+- **Never from Jonny's box.** No guest invite, podcast or stage pitch or
+  show-notes note goes to Jonny's box for someone Control Center's
+  `routes[id].in_network` says is in his network, or a network list puts on
+  one of his own tiers (`network_is_krish`), nor for someone it cannot place
+  (`jonny_network_unknown`). A show's own booking address that no network list
+  names may still be pitched by Jonny; a false read counts only where Control
+  Center advertises `features.network_routes`.
+- **His own row instead.** The same invite or pitch, from the same facts, goes
+  on his own row (visibility for a guest or a podcast, events for a stage): a
+  version 2 email action with no mailbox, in his first person, signed Krish,
+  for his Draft press into his own box. It keeps the week's invite picks but
+  never takes Jonny's ten. A show-notes note to a host in his network is held,
+  never rewritten.
+
 ## Signals from his buyers (Rulings, Krish, 2026-10-26)
 
 Shown a LinkedIn post ("AI's next job casualty could be your boss"), Krish
