@@ -137,6 +137,8 @@ test('playsShadow: counts and codes beside Control Center\'s picks, the context 
   assert.match(line, /^Focus playbooks, in shadow: 3 picks read; agrees with Control Center on 1, differs on 2 \(no_booking_address 1, press_not_a_lane 1\)\. Plays: 15 of Control Center's for Mindmake; 7 on an engine row, 5 stay on his list, 1 ruled out \(hosted rooms\), 1 with no lane, 1 unwired\. Caps: it would draft 3 of 3 today/);
   assert.match(line, /Rooms: 1 read, not compared \(his city is not served\)\.$/);
   const city = playsShadow({ context, canon, at: AT, homeCity: 'london' }).line;
+  assert.equal(playsShadow({ context: { ...context, home_city: 'london' }, canon, at: AT }).line, city, "the city Control Center serves is the one the rooms are compared in");
+  assert.match(playsShadow({ context: { ...context, home_city: null }, canon, at: AT }).line, /his city is not served/);
   assert.match(city, /Rooms: it would bring 1 of 1; the engine's room gate holds 1 \(date_unverified\)\.$/);
   assert.doesNotMatch(line, /[0-9a-f]{8}-[0-9a-f]{4}-|@|https?:\/\/|Example/, 'counts and codes only');
   assert.ok(line.length <= 500, 'inside the report\'s line');

@@ -549,6 +549,16 @@
       "tests": [
         "tests/suppression-report.test.mjs"
       ]
+    },
+    {
+      "id": "plays-city-unread",
+      "what": "the focus playbooks' shadow ignores the home city Control Center serves, so rooms are never compared",
+      "file": "src/stages/plays.mjs",
+      "find": "homeCity = typeof context?.home_city === 'string' && context.home_city ? context.home_city : null }",
+      "replace": "homeCity = null }",
+      "tests": [
+        "tests/plays.test.mjs"
+      ]
     }
   ]
 }

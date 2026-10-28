@@ -248,7 +248,7 @@ const bump = (o, k) => { o[k] = (o[k] ?? 0) + 1; };
  * compared; the founder ruling's stored answer is not served, so the queue is
  * read as if he said yes. Nothing is held, hidden or changed. Pure.
  */
-export function playsShadow({ context, canon = null, at, homeCity = null }) {
+export function playsShadow({ context, canon = null, at, homeCity = typeof context?.home_city === 'string' && context.home_city ? context.home_city : null }) {
   const records = context?.records ?? {};
   const targets = Array.isArray(records.visibility) ? records.visibility.filter(r => typeof r?.id === 'string') : [];
   const guests = Array.isArray(records.guests) ? records.guests.filter(g => typeof g?.id === 'string') : [];
