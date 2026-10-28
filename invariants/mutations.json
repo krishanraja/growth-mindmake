@@ -449,6 +449,96 @@
         "tests/pitches.test.mjs",
         "tests/section12.test.mjs"
       ]
+    },
+    {
+      "id": "plays-one-approach-a-contact",
+      "what": "Control Center's one approach a contact is dropped from the ported pickApproach, so a hop guest and a hop show through one mutual make two",
+      "file": "src/stages/plays.mjs",
+      "find": " && typeof p.contact_id === 'string' && !taken.contacts.has(p.contact_id);",
+      "replace": " && typeof p.contact_id === 'string';",
+      "tests": [
+        "tests/plays.test.mjs"
+      ]
+    },
+    {
+      "id": "plays-room-https",
+      "what": "a room with no https page comes forward in the ported selectRooms",
+      "file": "src/stages/plays.mjs",
+      "find": "!e.decision && https(e.url))",
+      "replace": "!e.decision)",
+      "tests": [
+        "tests/plays.test.mjs"
+      ]
+    },
+    {
+      "id": "plays-hosted-room-row",
+      "what": "the hosted room play is given a row, against his ruling that rooms are guest seats only",
+      "file": "src/stages/plays.mjs",
+      "find": "{ id: 'host_room', book: 'visibility', home: 'ruled_out', row: null, by: null,",
+      "replace": "{ id: 'host_room', book: 'visibility', home: 'row', row: 'events', by: 'rows.mjs',",
+      "tests": [
+        "tests/plays.test.mjs"
+      ]
+    },
+    {
+      "id": "suppression-list-references-only",
+      "what": "the suppression list carries a subject that is not a reference, so a name or an address could reach Control Center",
+      "file": "src/stages/suppression.mjs",
+      "find": "    never: cap([...L.never].filter(subj).sort()),",
+      "replace": "    never: cap([...L.never].sort()),",
+      "tests": [
+        "tests/suppression.test.mjs"
+      ]
+    },
+    {
+      "id": "suppression-floor-off-by-one",
+      "what": "the list's reach floor lets the band he called too small through",
+      "file": "src/stages/suppression.mjs",
+      "find": "if (floor && ORDER_OF[c.band] <= ORDER_OF[floor.at_or_below]) return 'below_reach_floor';",
+      "replace": "if (floor && ORDER_OF[c.band] < ORDER_OF[floor.at_or_below]) return 'below_reach_floor';",
+      "tests": [
+        "tests/suppression.test.mjs"
+      ]
+    },
+    {
+      "id": "suppression-cc-carried-any",
+      "what": "the port of Control Center's rowAnswers counts a submit as carried out, hiding the carried_state difference",
+      "file": "src/stages/suppression.mjs",
+      "find": "const carried = !declined && (f.carried_out === 'draft' || f.carried_out === 'message');",
+      "replace": "const carried = !declined && !!f.carried_out;",
+      "tests": [
+        "tests/suppression.test.mjs"
+      ]
+    },
+    {
+      "id": "places-whole-host",
+      "what": "a citation is matched as a substring, so another site whose name holds Mindmake's counts",
+      "file": "src/stages/places.mjs",
+      "find": "(?![a-z0-9-]|\\\\.[a-z0-9])`, 'i');",
+      "replace": "`, 'i');",
+      "tests": [
+        "tests/places.test.mjs"
+      ]
+    },
+    {
+      "id": "places-retired-question",
+      "what": "a question naming an offer the canon retired is probed",
+      "file": "src/stages/places.mjs",
+      "find": "    if (offerFindings(question, canon?.offer).includes('retired_offer')) { held.push({ touchpoint_id: t.id, question, code: 'question_names_retired_offer' }); continue; }\n",
+      "replace": "",
+      "tests": [
+        "tests/places.test.mjs"
+      ]
+    },
+    {
+      "id": "places-mindmake-only",
+      "what": "the engine's plan takes every product's touchpoints, not Mindmake's alone",
+      "file": "src/stages/places.mjs",
+      "find": "filter(t => live(t) && t.product_slug === PRODUCT);",
+      "replace": "filter(t => live(t));",
+      "tests": [
+        "tests/places.test.mjs"
+      ]
     }
   ]
 }

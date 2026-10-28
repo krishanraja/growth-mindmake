@@ -107,6 +107,9 @@ export function roomRank(e) {
   return Math.round(((e?.draw_score ?? 0) * RANK_DRAW + (e?.demand_score ?? 0) * RANK_DEMAND) * 10) / 10;
 }
 
+/** events_for(): a room's Demand axis, the one a buyer room ranks by after its buyer density. Pure. */
+export const roomDemand = e => e?.demand_score ?? 0;
+
 /** api/_focus.ts buyerRoom: a room with some buyers in it, by density or by Demand. Pure. */
 export const buyerRoom = e => (e?.buyer_density ?? 0) > 0 || (e?.demand_score ?? 0) > 0;
 

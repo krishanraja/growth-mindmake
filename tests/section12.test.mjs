@@ -7,12 +7,14 @@ import { directiveFixture } from './support/engine-protocol-service.mjs';
 import { canon, AT, id } from './support/section12.mjs';
 import { withoutCrew } from './support/golden.mjs';
 
-// Plan section 12, M6, M9 and M12 on the protocol stand-in: each ported piece
-// reports one counted line beside Control Center's own answers, after the M3
-// to M5 lines, and holds, hides or changes nothing. Synthetic throughout.
+// Plan section 12, M6, M9 and M12, then M7, M10 and M13, on the protocol
+// stand-in: each ported piece reports one counted line beside Control Center's
+// own answers, after the M3 to M5 lines, and holds, hides or changes nothing.
+// Synthetic throughout.
 
 const policy = JSON.parse(await readFile(new URL('../config/policy.json', import.meta.url), 'utf8'));
-const HEADS = ['Guest standard, in shadow: ', 'Visibility standard, in shadow: ', 'Room scoring, in shadow: ', 'Pilot machine, in shadow: ', 'Outreach briefs, in shadow: ', 'Ingest gate, in shadow: '];
+const HEADS = ['Guest standard, in shadow: ', 'Visibility standard, in shadow: ', 'Room scoring, in shadow: ', 'Pilot machine, in shadow: ', 'Outreach briefs, in shadow: ', 'Ingest gate, in shadow: ',
+  'Focus playbooks, in shadow: ', 'Suppression, in shadow: ', 'Places and questions, in shadow: '];
 
 function context() {
   const base = capsContext();
@@ -39,13 +41,13 @@ async function run(ctx) {
   return { result, report: reports[0] ?? null };
 }
 
-test('plan section 12, M6, M9 and M12: each reports one counted line after M3 to M5, carries counts only and holds nothing', async () => {
+test('plan section 12, M6, M9, M12, then M7, M10 and M13: each reports one counted line after M3 to M5, carries counts only and holds nothing', async () => {
   const ctx = context();
   const frozen = structuredClone(ctx);
   const { report } = await run(ctx);
   const lines = report.activity.map(a => a.line);
   const at = HEADS.map(h => { const found = lines.filter(l => l.startsWith(h)); assert.equal(found.length, 1, h); return lines.indexOf(found[0]); });
-  assert.deepEqual([...at].sort((a, b) => a - b), at, 'in order, the new three after the first three');
+  assert.deepEqual([...at].sort((a, b) => a - b), at, 'in order, each three after the three before');
   for (const i of at.slice(3)) {
     assert.doesNotMatch(lines[i], /[0-9a-f]{8}-[0-9a-f]{4}-|@|https?:\/\/|Avery|Example|three week|pilot\?/, `${lines[i]} carries counts and codes only, never an id, an address, a link, a name or a word of a note`);
     assert.doesNotMatch(lines[i], /could not be read this run/, 'each read cleanly');
@@ -53,9 +55,16 @@ test('plan section 12, M6, M9 and M12: each reports one counted line after M3 to
   assert.match(lines[at[3]], /^Pilot machine, in shadow: 2 Advisory rows read; agrees with Control Center on 1, differs on 1 \(buyer_outside_canon_groups 1\)\./);
   assert.match(lines[at[3]], /Words: 1 drafted note read, 0 say only what the canon supports \(duration_promise 1, offer_named_otherwise 1\)\.$/);
   assert.match(lines[at[5]], /^Ingest gate, in shadow: 0 contacts read; .*Pinned offer copy: not compared this run\.$/, 'no legacy snapshot served, so nothing compared and nothing assumed');
-  assert.equal(report.holds.some(h => /pilot|brief|ingest|canon_buyer|offer/i.test(h.reason)), false, 'nothing is held by them');
+  // Plan section 12, M7, M10 and M13: three more lines after those six, counts and codes only, and the switch's line still after them.
+  assert.match(lines[at[6]], /^Focus playbooks, in shadow: 3 picks read; agrees with Control Center on 3, differs on 0\. Plays: 15 of Control Center's for Mindmake; .* Rooms: 0 read, not compared \(his city is not served\)\.$/);
+  assert.match(lines[at[7]], /^Suppression, in shadow: 0 checks read from 0 answers; agrees with Control Center on 0, differs on 0\. The engine's list: 0 never/);
+  assert.match(lines[at[8]], /^Places and questions, in shadow: Control Center's probes are not served this run, so none are compared\. .* Domains: the canon names 2, not compared with Control Center's list this run\.$/);
+  for (const i of at.slice(6)) assert.ok(lines[i].length < 500, 'whole inside the report line');
+  assert.ok(lines.findIndex(l => /^Switch readiness: /.test(l)) > at[8], "the switch's readiness line is still reported, after every shadow line");
+  assert.ok(report.activity.length <= 40, 'inside the report\'s forty lines');
+  assert.equal(report.holds.some(h => /pilot|brief|ingest|canon_buyer|offer|focus|suppress|places/i.test(h.reason)), false, 'nothing is held by them');
   assert.deepEqual(ctx, frozen, 'the context is read, never changed');
-  // Without the six shadow lines the report is the one the same run gives with the shadows unable to see anything.
+  // Without the nine shadow lines the report is the one the same run gives with the shadows unable to see anything.
   const blind = await run({ ...context(), records: { ...context().records, advisory: [] }, network: [] });
   assert.equal(blind.report.proposals.length, report.proposals.length, 'the proposals do not depend on what the shadows read');
   assert.notEqual(withoutCrew(report), report.payload_sha256, 'the golden filter leaves the new lines out');

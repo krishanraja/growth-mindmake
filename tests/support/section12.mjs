@@ -84,3 +84,10 @@ export const CC_DOOR = 'A paid four week workshop, flat fee, that shows an examp
 export const CC_MINDMAKE_ANGLE = 'An example sprint that takes the team from noise to a shipped system in a matter of weeks.';
 /** api/pilot-deals/seed.ts INDUSTRY, for the parity table only. */
 export const CC_INDUSTRY = ['media', 'advertising', 'adtech', 'publishing', 'broadcast', 'data', 'martech'];
+/**
+ * A stand-in for api/growth/geo-probe.ts OUR_DOMAINS (plan section 12, M13), invented so that it trips the same findings
+ * against this canon as the real list does against the real one: a retired property, two sibling products and a parent
+ * brand outside the canon, a subdomain of the main site, the main site, the publication's subdomain without its own
+ * host, and the publication's old address.
+ */
+export const CC_DOMAINS = ['circle.example.net', 'pulse.example.net', 'ctrl.mindmake.example.org', 'mindmake.example.org', 'example.net', 'home.publication.example.org', 'oldletter.example.com'];

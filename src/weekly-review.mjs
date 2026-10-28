@@ -2,6 +2,18 @@ import { parseReviewContext, parseWeeklyReview, commercialDiagnosis } from '../c
 import { chooseImprovement } from './stages/report.mjs';
 import { ageDays, seal } from './guards.mjs';
 import { parseImprovement } from '../contracts/reporting.ts';
+import { placesReview } from './stages/places.mjs';
+
+/**
+ * Plan section 12, M13: where Mindmake's buyers already go and which questions
+ * to ask the AI answer engines, the weekly review's to decide (src/stages/places.mjs).
+ * Control Center serves no touchpoints, probes or accounts to this engine yet,
+ * so each part is null until it does, and the review's own output is unchanged.
+ */
+export function weeklyPlaces({ touchpoints = null, probes = null, accounts = null, canon = null }, at) {
+  if (!Number.isFinite(Date.parse(at))) throw new Error('Weekly places need the review time');
+  return placesReview({ touchpoints, probes, accounts, canon, at });
+}
 
 export function weeklyReview(input, policy, at) {
   const context = parseReviewContext(input), age = ageDays(context.generated_at, at) * 24;
