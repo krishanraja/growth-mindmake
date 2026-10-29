@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { derive, sections, sha, RULING } from './support/rulings.mjs';
+import { derive, sections, sha, RULING, controlCenterStateLine } from './support/rulings.mjs';
 
 // Plan Phase 4 shortened AGENTS.md and NOW.md so the session pack fits in
 // 36 KB. Nothing Krish ruled may be lost or reworded on the way: every ruling
@@ -59,7 +59,10 @@ test('the owner list moved to docs/OWNERS.md line for line, and AGENTS.md names 
 test('NOW.md keeps its front matter keys, its state line byte for byte and its headings; older changes are in the log verbatim', () => {
   const keys = [...(/^---\n([\s\S]*?)\n---/.exec(now)?.[1] ?? '').matchAll(/^([a-z_]+):/gm)].map(m => m[1]);
   assert.deepEqual(keys, fixture.now.front_matter_keys);
-  assert.equal(sha(now.split('\n').find(l => l.includes('<!-- north-star-state'))), fixture.now.state_line_sha256);
+  // The state line stays as main held it, unless Control Center's North Star reader rewrote it with the
+  // good-meetings count, which may stay public (Ruling, Krish, 2026-10-29).
+  const state = now.split('\n').find(l => l.includes('<!-- north-star-state'));
+  assert.ok(sha(state) === fixture.now.state_line_sha256 || controlCenterStateLine(state), 'the North Star state line changed in a way Control Center\'s reader would not write');
   // The close-out re-dates "Where it is right now (as of ...)" each session, so a heading is compared without its date.
   const undated = h => h.replace(/ \(as of \d{4}-\d{2}-\d{2}\)$/, '');
   const headings = new Set(now.split('\n').filter(l => /^#{1,6} /.test(l)).map(undated));
@@ -67,4 +70,19 @@ test('NOW.md keeps its front matter keys, its state line byte for byte and its h
   const lines = new Set([...now.split('\n'), ...log.split('\n')].map(sha));
   for (const b of fixture.now.changed_bullets) assert.ok(lines.has(b), 'a "What changed recently" bullet is in neither NOW.md nor docs/history/LOG.md');
   assert.match(log, /Moved here verbatim from NOW\.md's "What changed recently"/);
+});
+
+test('the good-meetings count may stand on the state line, and nothing else may (Ruling, Krish, 2026-10-29)', () => {
+  const line = (state, sentence = 'Good meetings a week: 3 good meetings, against 2 this week, on the way to 20 by 30 November 2026. Push.') =>
+    `<!-- north-star-state ${JSON.stringify(state)} --> **North Star number: U2, behind.** ${sentence}`;
+  const counted = { week_of: '2026-10-26', week_target: 2, current: 3, current_as_of: '2026-10-29', current_source: 'Control Center calendar', urgency: 2, urgency_reason: 'behind' };
+  assert.equal(controlCenterStateLine(now.split('\n').find(l => l.includes('<!-- north-star-state'))), true, 'today\'s line has the reader\'s shape');
+  assert.equal(controlCenterStateLine(line(counted)), true);
+  assert.equal(controlCenterStateLine(line({ ...counted, current: null })), true);
+  assert.equal(controlCenterStateLine(line({ ...counted, current: 'private' })), false);
+  assert.equal(controlCenterStateLine(line({ ...counted, current: 2.5 })), false);
+  assert.equal(controlCenterStateLine(line({ ...counted, revenue: 5000 })), false, 'no other figure rides on the line');
+  assert.equal(controlCenterStateLine(line(counted, 'Good meetings a week: 3, and $5,000 in proofs.')), false);
+  assert.equal(controlCenterStateLine(line(counted, 'Good meetings a week: at 40% of this week.')), false);
+  assert.equal(controlCenterStateLine('a line with no state'), false);
 });
