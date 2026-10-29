@@ -23,6 +23,6 @@ From 05-trust-and-speaking.md, Speaking and hosts:
 
 ## Sources
 
-- docs/playbooks/11-trusted-distribution.md, "Speaking pitches on EVENTS (Krish, 2026-10-27)": sha256 a656bb05e4e42d39
-- docs/playbooks/11-trusted-distribution.md, "Forms on his tap (Ruling, Krish, 2026-10-26)": sha256 a656bb05e4e42d39
+- docs/playbooks/11-trusted-distribution.md, "Speaking pitches on EVENTS (Krish, 2026-10-27)": sha256 0fcebc8e9036e584
+- docs/playbooks/11-trusted-distribution.md, "Forms on his tap (Ruling, Krish, 2026-10-26)": sha256 0fcebc8e9036e584
 - docs/playbooks/05-trust-and-speaking.md, "Speaking and hosts": sha256 9618ac6baa4a7d5e

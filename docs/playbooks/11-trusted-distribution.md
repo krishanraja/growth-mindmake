@@ -340,6 +340,34 @@ me." The ruling is in [docs/RULINGS.md](../RULINGS.md).
   never takes Jonny's ten. A show-notes note to a host in his network is held,
   never rewritten.
 
+## A missing address is looked up, not left (2026-10-29)
+
+A podcast or stage held only for `no_booking_address`, and a guest held only
+for `no_email` or `no_contact`, would be pitched or invited if an address were
+on record. A hold that waits for someone else to find it never clears, so the
+same run asks Control Center's research desk to find where it takes pitches.
+
+- **Only where the address is all it lacks.** The hold is asked again as if an
+  address were on record; a show that is buried, quiet, ruled out, already
+  pitched or routed to its own form, a stage past its deadline, or a guest not
+  judged worth having files nothing.
+- **Bounded.** At most four a run (`LOOKUPS_PER_RUN`), first in the research
+  round and inside its ten and the desk's daily caps, as `search` requests:
+  stages first, then podcasts by `pitchScore`, then guests, each kind by its
+  own rank. The query names the show, the stage or the person, never an
+  address.
+- **Once.** One request a subject a London month (`booking:<target>:<month>`,
+  `email:<contact>:<month>`, `email:guest:<record>:<month>` for a guest with no
+  contact). A lookup already asked is not asked again while it waits or once it
+  has answered; one over the cap or failed is asked again the next day under
+  that day's id, as the desk requires.
+- **The hold keeps its code** until Control Center records the address on the
+  stage or the guest's route. Every run says how many it looked up and how
+  many wait, and the summary counts `lookups_asked` inside `research_asked`.
+- **A found address grants nothing.** The pitch or invite it allows is still a
+  proposal for his yes, and the network rule above still decides whose box it
+  goes in.
+
 ## Signals from his buyers (Rulings, Krish, 2026-10-26)
 
 Shown a LinkedIn post ("AI's next job casualty could be your boss"), Krish

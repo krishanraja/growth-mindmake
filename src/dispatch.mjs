@@ -364,7 +364,7 @@ const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.s
 export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS }) {
   // 1.7.0: the title shares the card with the line under it, so it is shorter.
   const titleMax = briefs ? TITLE_MAX_BRIEF : TITLE_MAX;
-  const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0 };
+  const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0, lookups_asked: 0 };
   let canon, files;
   try { canon = await canonReader(); files = [...canon.files, ...await wordFiles()]; }
   catch (error) {
@@ -375,14 +375,24 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   let research = Array.isArray(ctx.research) ? [...ctx.research] : [];
   // The caps come from the week spec in force (src/crew/compile.mjs): today's unless he signed others.
   const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor });
+  // Ruling (Krish, 2026-10-28): who is in his network is Control Center's routes[id].in_network, read only where it says it serves it.
+  const networkRoutes = capabilities?.features?.network_routes === true;
+  const record = pitches ? await recordReader() : null;
+  // 1.10.0: notes asking a booked show for the brief link, only where Control Center drafts them.
+  const showNotes = capabilities?.features?.show_notes === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes('1.10.0');
+  const pitchArgs = c => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes });
+  let lookups = { requests: [], waiting: 0, by: { stages: 0, podcasts: 0, guests: 0 } };
   if (mode === 'live' && capabilities?.features?.research === true) {
-    // The engine's own asks first (a cited reach, a profile for a card too thin to show), then the signals' collection.
-    let pending = [...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, 10);
+    // A stage, show or guest held only for want of an address asks the desk to find it in the same run (C2), up to four, first in the round.
+    if (pitches) lookups = pitchRows(pitchArgs(ctx)).lookups;
+    // The engine's own asks first (an address a pitch lacks, a cited reach, a profile for a card too thin to show), then the signals' collection.
+    let pending = [...lookups.requests, ...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, 10);
     for (let round = 0; round < 2 && pending.length; round++) {
       try {
         const got = await cc.research(pending);
         counts.research_asked += pending.length;
         counts.research_answered += got.filter(r => r.status === 'answered').length;
+        if (round === 0) counts.lookups_asked = lookups.requests.length;
         research = mergeResearch(got, research);
       } catch {
         holds.push({ reason: 'research_unavailable', detail: 'Control Center could not run the lookups asked for this run; rows use what was already known.' });
@@ -402,11 +412,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // invited onto his own shows and podcasts on visibility, stages to speak on
   // on events. With them, the forms of stages that asked, for his Submit. An
   // older Control Center gets none.
-  // 1.10.0: notes asking a booked show for the brief link, only where Control Center drafts them.
-  const showNotes = capabilities?.features?.show_notes === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes('1.10.0');
-  // Ruling (Krish, 2026-10-28): who is in his network is Control Center's routes[id].in_network, read only where it says it serves it.
-  const networkRoutes = capabilities?.features?.network_routes === true;
-  const pitched = pitches ? pitchRows({ context: ctx, weekGoals: directive.week_goals, canon, record: await recordReader(), files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes }) : { proposals: [], krishRows: [], held: [], stageHeld: [], inviteHeld: [], formHeld: [], notesHeld: [], jonny: null };
+  const pitched = pitches ? pitchRows(pitchArgs(ctx)) : { proposals: [], krishRows: [], held: [], stageHeld: [], inviteHeld: [], formHeld: [], notesHeld: [], jonny: null };
   // Someone in his network goes on his own rows instead, ranked with the rest; one person already on a row keeps that row.
   const onRows = new Set([...amplifiers.rows, ...signals.rows].map(e => e.proposal.target));
   const krishRows = (pitched.krishRows ?? []).filter(e => !onRows.has(e.proposal.target));
@@ -442,6 +448,9 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   if (pitches && ((pitched.krishRows ?? []).length || unsure)) activity.push(`His network, never Jonny's box: ${(pitched.krishRows ?? []).length} invite${(pitched.krishRows ?? []).length === 1 ? '' : 's'} or pitch${(pitched.krishRows ?? []).length === 1 ? '' : 'es'} to someone in it written as his own row${(pitched.krishRows ?? []).length === 1 ? '' : 's'}; ${unsure} held because Control Center ${networkRoutes ? 'could not say' : 'does not yet say'} whether the person is in it.`);
   if (pitches) activity.push(`Forms for his tap: ${counts.forms} stage${counts.forms === 1 ? '' : 's'} asked through their own form, every answer written; only his Submit sends one.`);
   if (counts.research_asked) activity.push(`Asked Control Center for ${counts.research_asked} lookups; ${counts.research_answered} answered.`);
+  // An address a held pitch or invite lacks: asked this run, or already asked and waiting. Each stays held with its code until Control Center records one.
+  const waitingLookups = lookups.waiting;
+  if (pitches && (counts.lookups_asked || waitingLookups)) activity.push(`Addresses for held pitches and invites: ${counts.lookups_asked} looked up this run (${lookups.by.stages} stages, ${lookups.by.podcasts} podcasts, ${lookups.by.guests} guests), ${waitingLookups} already asked and waiting. Each stays held with its code until Control Center records the address; a found one still needs his yes, and the network rule decides whose box it goes in.`);
   // Control Center drafts ten a day into Jonny's Gmail; a wake later the same day writes only what is left.
   if (pitched.jonny?.used) activity.push(`Jonny's Gmail already holds ${pitched.jonny.used} draft${pitched.jonny.used === 1 ? '' : 's'} made today, so this run writes at most ${pitched.jonny.room} more.`);
   return { proposals, holds, activity, counts, canonFiles: canon.files, canon, research };
