@@ -30,6 +30,8 @@ import { playsShadow } from './stages/plays.mjs';
 import { suppressionShadow, suppressionFields } from './stages/suppression.mjs';
 import { placesShadow } from './stages/places.mjs';
 import { gapOf, gapLine, intensify } from './stages/intensity.mjs';
+import { wins as readWins, winsLine } from './stages/wins.mjs';
+import { poolOf, lanesLine, laneHistory, starvedLanes, poolFlat, starvedProposal, sourcingRequests, checkIn, STARVED_RUNS, CHECK_IN_DAYS, CHECK_IN_PREFIX, STARVED_PREFIX } from './stages/momentum.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
@@ -362,10 +364,10 @@ const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.s
  * collect (at most two rounds of ten, inside its daily caps); a synthetic run
  * asks for nothing. Counts only leave this function for the printed outcome.
  */
-export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS }) {
+export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS, wins = null, sourcing = [] }) {
   // 1.7.0: the title shares the card with the line under it, so it is shorter.
   const titleMax = briefs ? TITLE_MAX_BRIEF : TITLE_MAX;
-  const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0, lookups_asked: 0 };
+  const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0, lookups_asked: 0, sourcing_asked: 0 };
   let canon, files;
   try { canon = await canonReader(); files = [...canon.files, ...await wordFiles()]; }
   catch (error) {
@@ -375,25 +377,27 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   let ctx = context;
   let research = Array.isArray(ctx.research) ? [...ctx.research] : [];
   // The caps come from the week spec in force (src/crew/compile.mjs): today's unless he signed others.
-  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor });
+  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins });
   // Ruling (Krish, 2026-10-28): who is in his network is Control Center's routes[id].in_network, read only where it says it serves it.
   const networkRoutes = capabilities?.features?.network_routes === true;
   const record = pitches ? await recordReader() : null;
   // 1.10.0: notes asking a booked show for the brief link, only where Control Center drafts them.
   const showNotes = capabilities?.features?.show_notes === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes('1.10.0');
-  const pitchArgs = c => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes });
+  const pitchArgs = c => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes, wins });
   let lookups = { requests: [], waiting: 0, by: { stages: 0, podcasts: 0, guests: 0 } };
   if (mode === 'live' && capabilities?.features?.research === true) {
     // A stage, show or guest held only for want of an address asks the desk to find it in the same run (C2), up to four, first in the round.
     if (pitches) lookups = pitchRows(pitchArgs(ctx)).lookups;
     // The engine's own asks first (an address a pitch lacks, a cited reach, a profile for a card too thin to show), then the signals' collection.
-    let pending = [...lookups.requests, ...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, 10);
+    // A pool that has stood still asks for new shows and stages after the addresses (C4, src/stages/momentum.mjs).
+    let pending = [...lookups.requests, ...sourcing, ...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, 10);
+    const sourced = pending.filter(r => sourcing.includes(r)).length;
     for (let round = 0; round < 2 && pending.length; round++) {
       try {
         const got = await cc.research(pending);
         counts.research_asked += pending.length;
         counts.research_answered += got.filter(r => r.status === 'answered').length;
-        if (round === 0) counts.lookups_asked = lookups.requests.length;
+        if (round === 0) { counts.lookups_asked = lookups.requests.length; counts.sourcing_asked = sourced; }
         research = mergeResearch(got, research);
       } catch {
         holds.push({ reason: 'research_unavailable', detail: 'Control Center could not run the lookups asked for this run; rows use what was already known.' });
@@ -407,7 +411,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
       catch { holds.push({ reason: 'context_reread_unavailable', detail: 'People found this run get their row on the next run.' }); }
     }
   }
-  const amplifiers = ctx === context ? amplifiersFirst : amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor });
+  const amplifiers = ctx === context ? amplifiersFirst : amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins });
   const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax });
   // 1.9.0: pitches for Jonny's box, after the rows he presses himself: guests
   // invited onto his own shows and podcasts on visibility, stages to speak on
@@ -431,6 +435,8 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   counts.speaking_pitches = pitched.proposals.filter(p => p.row === 'events' && !isForm(p)).length;
   counts.forms = pitched.proposals.filter(isForm).length;
   counts.prepared = proposals.length;
+  // Each lane's output this run, which the Lanes line carries for the runs after it (C4).
+  counts.lanes = { ...Object.fromEntries(ROWS.map(r => [r, proposals.filter(p => p.row === r && !isPitch(p) && !isForm(p)).length])), invites: counts.invites, podcasts: counts.pitches, stages: counts.speaking_pitches };
   for (const [reason, count] of tally(pitched.notesHeld ?? [])) holds.push({ reason: holdCode('notes', reason), detail: `${count} booked show${count === 1 ? '' : 's'} not asked for the brief link today: ${reason.replace(/_/g, ' ')}.` });
   for (const [reason, count] of tally(pitched.inviteHeld ?? [])) holds.push({ reason: holdCode('invite', reason), detail: `${count} guest${count === 1 ? '' : 's'} not invited today: ${reason.replace(/_/g, ' ')}.` });
   for (const [reason, count] of tally(pitched.held)) holds.push({ reason: holdCode('pitch', reason), detail: `${count} podcast${count === 1 ? '' : 's'} not pitched today: ${reason.replace(/_/g, ' ')}.` });
@@ -449,6 +455,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   if (pitches && ((pitched.krishRows ?? []).length || unsure)) activity.push(`His network, never Jonny's box: ${(pitched.krishRows ?? []).length} invite${(pitched.krishRows ?? []).length === 1 ? '' : 's'} or pitch${(pitched.krishRows ?? []).length === 1 ? '' : 'es'} to someone in it written as his own row${(pitched.krishRows ?? []).length === 1 ? '' : 's'}; ${unsure} held because Control Center ${networkRoutes ? 'could not say' : 'does not yet say'} whether the person is in it.`);
   if (pitches) activity.push(`Forms for his tap: ${counts.forms} stage${counts.forms === 1 ? '' : 's'} asked through their own form, every answer written; only his Submit sends one.`);
   if (counts.research_asked) activity.push(`Asked Control Center for ${counts.research_asked} lookups; ${counts.research_answered} answered.`);
+  if (counts.sourcing_asked) activity.push(`The pool has not grown in ${STARVED_RUNS} runs, so this run asked the research desk for new shows and stages (${counts.sourcing_asked} search${counts.sourcing_asked === 1 ? '' : 'es'}, no person and no address); what it finds comes back in the next context's research.`);
   // An address a held pitch or invite lacks: asked this run, or already asked and waiting. Each stays held with its code until Control Center records one.
   const waitingLookups = lookups.waiting;
   // The kinds are named only from a batch Control Center took: a round that failed sent none.
@@ -480,13 +487,18 @@ export function failureClass(e) {
 }
 
 /** A proposed week spec, specs/weeks/<monday>.json, as its text; null when none was proposed for that week. */
+/** This engine's recent live reports, where Control Center lists them (1.10.0, `features.recent_reports`); null otherwise. A synthetic run reads none. */
+export async function readHistory({ cc, mode, capabilities } = {}) {
+  if (mode !== 'live' || capabilities?.features?.recent_reports !== true || typeof cc?.recentReports !== 'function') return null;
+  return cc.recentReports(5);
+}
 export async function readSpecFile(week) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(week)) return null;
   try { return await readFile(new URL(`../specs/weeks/${week}.json`, import.meta.url), 'utf8'); }
   catch (e) { if (e?.code === 'ENOENT') return null; throw e; }
 }
 
-export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA, proofReader = readProofRuns }) {
+export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA, proofReader = readProofRuns, historyReader = readHistory }) {
   if (!['live','synthetic'].includes(mode) || !/^[a-z][a-z0-9-]{0,40}$/.test(kind) || !/^gma-[A-Za-z0-9-]{8,80}$/.test(attemptId)) throw new Error('Invalid dispatch options');
   const started_at = clock();
   const run_id = `${SLUG}:${londonDate(started_at)}:${kind}`;
@@ -691,6 +703,12 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     activity.push(...trafficLines({ web: directive.web, hosts: suppliedContext ? bookedHosts(suppliedContext) : new Set() }));
     // 1.6.0: the five rows on his home screen, after everything else, in the room a report has left.
     let schema_version = SCHEMA_VERSION, rowsRun = null;
+    // Momentum and wins (C4): the lane lines of this engine's recent reports, read from Control Center, and what has worked lately.
+    let history = null;
+    try { history = laneHistory(await historyReader({ cc, mode, capabilities })); } catch { history = null; }
+    const pool = poolOf(suppliedContext);
+    const won = suppliedContext ? readWins({ context: suppliedContext, meetings: taps?.meetings ?? null, at }) : null;
+    const sourcing = suppliedContext ? sourcingRequests({ flat: poolFlat({ pool, history }), research: suppliedContext.research ?? [], at, lanesOn: { visibility: caps.rows.visibility?.on, events: caps.rows.events?.on } }) : [];
     if (suppliedContext && capabilities?.features?.rows === true && Array.isArray(capabilities.schema_versions) && capabilities.schema_versions.includes(ROWS_VERSION)) {
       phase = 'rows';
       // 1.7.0 and 1.8.0 only where Control Center serves them; an older one gets the rows without what it cannot read.
@@ -698,7 +716,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       const cards = briefs && capabilities.schema_versions.includes(CARD_VERSION);
       const pitches = cards && capabilities.schema_versions.includes(PITCH_VERSION);
       schema_version = pitches ? PITCH_VERSION : cards ? CARD_VERSION : briefs ? BRIEF_VERSION : ROWS_VERSION;
-      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps });
+      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps, wins: won, sourcing });
       if (week.spec) activity.push(...compiledDrift(week.spec, { canon: rows.canonFiles }));
       if (!pitches) holds.push({ reason: 'pitch_needs_1_9_0', detail: "Control Center does not yet take pitches for Jonny's Gmail (protocol 1.9.0), so none were written." });
       const shown = cards ? rows.proposals : briefs ? rows.proposals.map(({ card, ...p }) => p) : rows.proposals.map(({ because, brief, card, ...p }) => p);
@@ -709,6 +727,20 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       outcome.rows = rows.counts;
       rowsRun = rows;
     }
+    if (won) activity.push(winsLine(won));
+    // A lane at 0 for three runs is one strategy ask a week; an open plan gets a check-in every other day (C4).
+    const laneOn = { ...Object.fromEntries(ROWS.map(r => [r, caps.rows[r]?.on !== false])), podcasts: caps.rows.visibility?.on !== false, invites: caps.rows.visibility?.on !== false, stages: caps.rows.events?.on !== false };
+    const starved = rowsRun ? starvedLanes({ lanes: rowsRun.counts.lanes, history, holds, on: laneOn }) : [];
+    const gapNow = gapLine(gap, directive.north_star.reason);
+    const askStarved = starvedProposal({ starved, weekOf: thisWeek.start, expiresAt: londonMidnight(thisWeek.end), gap: gapNow, decisions: decisionsRead ?? [] });
+    if (starved.length) activity.push(`Starved: ${starved.map(s => s.lane.replace('_', ' ')).join(', ')} at 0 for ${STARVED_RUNS} runs${askStarved ? '; one strategy ask on his list says what feeds each' : '; he has answered this week\'s ask'}.`);
+    else if (rowsRun && history === null && mode === 'live') activity.push(`Starved lanes: not known, because this engine's recent reports could not be read; no lane is assumed fed or starved.`);
+    if (askStarved) mapped.proposals.unshift(finishProposal(askStarved));
+    const checked = decisionsRead ? checkIn({ decisions: decisionsRead, weekOf: thisWeek.start, today, expiresAt: londonMidnight(addDays(today, CHECK_IN_DAYS)), gap: gapNow, lanes: rowsRun?.counts.lanes ?? null, starved }) : { proposal: null, holds: [], plan: null };
+    holds.push(...checked.holds);
+    if (checked.proposal) { mapped.proposals.unshift(finishProposal(checked.proposal)); activity.push(`Check-in on open plan ${checked.plan}: on his list, every ${CHECK_IN_DAYS} days while it is open.`); }
+    if (mapped.proposals.length > 40) { holds.push({ reason: 'row_cap', detail: `${mapped.proposals.length - 40} more row actions wait for a later run; a report carries at most 40.` }); mapped.proposals = mapped.proposals.slice(0, 40); }
+    const lanesNow = rowsRun ? lanesLine(rowsRun.counts.lanes, pool) : null;
     // Plans Control Center can never run, because the Advisory record each rests on is gone, are taken back (1.10.0).
     let withdrawn = capabilities?.features?.withdrawn === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes(MEETINGS_VERSION) && suppliedContext
       ? deadPlans(suppliedContext, new Set(mapped.proposals.map(p => p.proposal_id))) : [];
@@ -769,15 +801,16 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const way = route(readyNow, { mode, revision });
     if (way.line) activity.push(way.line);
     if (way.enforce) {
-      // His own signing asks are never held by the crew: they are how he turns the route off.
-      const held = enforce({ proposals: mapped.proposals, findings: crew.findings, exempt: id => id.startsWith(SPEC_PREFIX) || id.startsWith(STOPGAP_PREFIX) });
+      // His own signing asks are never held by the crew: they are how he turns the route off. Nor are the engine's asks of him (a check-in, a starved lane).
+      const held = enforce({ proposals: mapped.proposals, findings: crew.findings, exempt: id => [SPEC_PREFIX, STOPGAP_PREFIX, CHECK_IN_PREFIX, STARVED_PREFIX].some(x => id.startsWith(x)) });
       mapped.proposals = held.kept;
       holds.push(...held.holds);
       activity[activity.indexOf(crew.lines[0])] = crew.enforcedLine();
       activity[decisionsAt] = decisionsLine(mapped.proposals);
     }
     // Every report leads with the gap: X of Y, U-n, short by Z, unknown where it is unknown.
-    activity.unshift(gapLine(gap, directive.north_star.reason));
+    // The lane line comes next, so the 40 lines a report keeps always carry it for the runs after this one.
+    activity.unshift(gapNow, ...(lanesNow ? [lanesNow] : []));
     activity.push('Preparation used the existing daily dispatch. External actions require exact approval, a supported connector and independently verified receipts. Native drafts and human edits remain with their owners.');
     const report = buildReport({
       run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.some(h => !STANDING_HOLDS.has(h.reason)) ? 'held' : 'ready',

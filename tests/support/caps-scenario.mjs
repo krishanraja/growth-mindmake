@@ -63,18 +63,19 @@ export function capsKit({ parseCanon, blobSha, parseRecord }) {
 }
 
 /** One dispatch run of the fixture with the modules given; resolves to the report it posted. */
-export async function capsReport({ runDispatch, directiveFixture, parseCanon, blobSha, parseRecord, policy, record = r => r, directive = {}, context = capsContext }) {
+export async function capsReport({ runDispatch, directiveFixture, parseCanon, blobSha, parseRecord, policy, record = r => r, directive = {}, context = capsContext, features = {}, decisions = [], research = null, run = {} }) {
   const { canon, RECORD } = capsKit({ parseCanon, blobSha, parseRecord });
   const served = ['1.6.0', '1.7.0', '1.8.0', '1.9.0'];
   const reports = [];
   const cc = {
     recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: '1.9.0', week_goals: GOALS, ...directive }),
     // Control Center says who is in his network (Ruling, Krish, 2026-10-28): these guests are not, so Jonny invites them as before.
-    capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true, network_routes: true } }),
+    capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true, network_routes: true, ...features } }),
     context: async () => ({ ok: true, context: context() }),
-    decisions: async () => [], postReport: async rep => { reports.push(record(rep)); return { replayed: false }; }, readReport: async () => reports.at(-1)
+    ...(research ? { research } : {}),
+    decisions: async () => decisions, postReport: async rep => { reports.push(record(rep)); return { replayed: false }; }, readReport: async () => reports.at(-1)
   };
   const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-golden-caps-1234', clock: () => AT,
-    canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/pitches.mjs', sha: 'b'.repeat(40) }], recordReader: async () => RECORD });
+    canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/pitches.mjs', sha: 'b'.repeat(40) }], recordReader: async () => RECORD, ...run });
   return { result, report: reports[0] ?? null };
 }

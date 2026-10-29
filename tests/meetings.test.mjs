@@ -129,6 +129,9 @@ test('only campaign plans reach prepare-action; an amended one is used only afte
   await runDispatch({ cc: h.cc, source: async () => ({ hold: { reason: 'x', detail: 'y' } }), policy, registry: {}, mode: 'live', attemptId: 'gma-synthetic-12345678', clock: () => NOW });
   assert.deepEqual(h.prepared, ['gmc-plain']);
   assert.ok(h.reports[0].holds.some(x => x.reason === 'amended_digest_mismatch'));
+  // The approved plan is open, so the run checks in on it (C4): a strategy call naming it, never a send.
+  const k = h.reports[0].proposals.find(p => p.stage === 'check_in');
+  assert.ok(k && k.wall === 'strategy' && ['gmc-plain', 'gmc-tampered'].includes(k.parent_proposal_id));
 });
 
 test('a campaign plan longer than the protocol allows is held, and the report still goes (N16)', () => {
