@@ -32,7 +32,11 @@ test('this repository\'s pack with the three largest cards fits in 36 KB and nam
   assert.match(pack.text, /=== pack part: findings and holds ===\n\nUnknown: no report file was passed/);
   // Before 9 November the spec in force is the default spec, today's settings.
   assert.match(pack.text, /"spec":"growth-week\/1","week_of":"2026-10-26"/);
-  assert.match(pack.text, /- North Star: U4, not measured yet/);
+  // The North Star line follows NOW.md's own state line, read here on its own,
+  // so a count Control Center writes there keeps this test green.
+  const state = JSON.parse((await readFile(join(root, 'NOW.md'), 'utf8')).match(/<!-- north-star-state (\{.*?\}) -->/)[1]);
+  const said = state.current === null ? 'not measured yet' : `${state.current} good meetings`;
+  assert.ok(pack.text.includes(`- North Star: U${state.urgency}, ${said} against ${state.week_target} for the week of ${state.week_of} (NOW.md).`), 'the pack does not carry NOW.md\'s North Star line');
 });
 
 test('the limit is exact: 36,864 bytes fits, one byte more fails, and the command exits 1', async () => {
