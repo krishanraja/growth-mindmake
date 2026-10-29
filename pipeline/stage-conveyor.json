@@ -459,6 +459,7 @@
         "src/strategy.mjs",
         "src/stages/canon.mjs",
         "src/stages/meetings.mjs",
+        "src/stages/intensity.mjs",
         "src/stages/traffic.mjs",
         "src/stages/shownotes.mjs",
         "src/stages/rows.mjs",

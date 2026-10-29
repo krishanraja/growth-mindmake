@@ -50,6 +50,8 @@ export function readNorthStar(directive) {
   const u = v => Number.isInteger(v) && v >= 1 && v <= 5 ? v : null;
   return {
     week_target: num(own?.week_target),
+    // Control Center's own reading of the number, when it is a figure; "private" or absent is unknown, never 0.
+    current: num(own?.current),
     urgency: u(ns?.intensity?.urgency) ?? u(own?.urgency) ?? u(directive?.urgency),
     reason: typeof (own?.urgency_reason ?? directive?.urgency_reason) === 'string' ? String(own?.urgency_reason ?? directive?.urgency_reason).slice(0, 300) : null
   };

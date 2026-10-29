@@ -377,6 +377,25 @@ same run asks Control Center's research desk to find where it takes pitches.
   proposal for his yes, and the network rule above still decides whose box it
   goes in.
 
+## Urgency raises volume (Ruling, Krish, 2026-10-29)
+
+"At U3 to U5, engines and Control Center may raise volume caps up to each
+repo's existing policy bounds without a signed week spec. This is volume only:
+walls unchanged." The engine feels the gap in code, not only in a line.
+
+- **The gap leads every report.** The first activity line is "Gap: good
+  meetings X of Y this week, U-n, short by Z": his taps this week when every
+  meeting was read, else Control Center's reading, against this week's
+  target. Unknown stays unknown, never 0.
+- **At U3 and above, volume rises to its bounds.** On a week with no signed
+  spec in force, the caps config/policy.json's `intensity` block names go to
+  the top of their bounds: 8 a row, 4 guest invites a run and 8 a week, 4
+  forms a row (src/stages/intensity.mjs). A run's invites never pass its ten.
+- **His spec still rules.** A spec he signed keeps the caps he set, and a lane
+  he turned off stays off. Under U3, or with urgency unknown, nothing rises.
+- **Volume only.** The fit floor, the stage share, Jonny's ten drafts a day,
+  the walls and every approval stay as they are.
+
 ## Signals from his buyers (Rulings, Krish, 2026-10-26)
 
 Shown a LinkedIn post ("AI's next job casualty could be your boss"), Krish

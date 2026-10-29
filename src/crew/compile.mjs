@@ -17,6 +17,14 @@
  *   reproduces today's behaviour exactly.
  * - Which spec is in force: the one he signed for this week, else last week's
  *   signed one (up to 7 days old), else today's settings with `spec_unsigned`.
+ * - Caps move by a spec he signs, with one exception: at U3 and above, on a
+ *   week with no signed spec in force, src/stages/intensity.mjs lifts the
+ *   volume caps config/policy.json's `intensity` names to the top of their
+ *   bounds (Ruling, Krish, 2026-10-29: "At U3 to U5, engines and Control
+ *   Center may raise volume caps up to each repo's existing policy bounds
+ *   without a signed week spec. This is volume only: walls unchanged.").
+ *   A signed spec still sets every cap within bounds, and urgency never
+ *   overrules it.
  *
  * Pure: the dispatch reads the files and decisions and passes them in. It
  * stores nothing; his signature lives in Control Center's decisions.

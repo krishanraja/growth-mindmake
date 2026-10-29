@@ -12,8 +12,9 @@
   "recognition": { "podcasts_booked_per_week": 2, "stages_confirmed_per_fortnight": 1, "ruled": "2026-10-27", "counts_when": "the show or stage confirms a date" },
   "acquisition": { "multiplier_institution_share": 0.7, "direct_learning_share": 0.3, "rebalance_days": 14, "in_person": ["London", "New York"], "virtual": "global" },
   "pilot": { "free": true, "weeks": 2, "workflows": 1, "require_before_after": true, "portfolio_rollout": "separately_scoped" },
+  "intensity": { "raise_from": 3, "raises": ["rows.max", "pitches.invites_per_run", "pitches.invites_per_week", "pitches.forms_per_row"], "ruled": "2026-10-29", "rule": "At U3 and above, on a week with no signed spec in force, src/stages/intensity.mjs raises each volume cap named here to the top of its bound below; a signed spec keeps the caps he set. Volume only: no wall, send, spend, fit floor or authority moves." },
   "bounds": {
-    "rule": "The week spec sets each cap inside these bounds (src/crew/compile.mjs). A value outside one is refused, never clamped; no spec can change a bound, and none carries send or spend authority. direction says which way is the safer move from today's value.",
+    "rule": "The week spec sets each cap inside these bounds (src/crew/compile.mjs); at U3 and above with no signed spec, the intensity block above lifts its volume caps to their max (Ruling, Krish, 2026-10-29). A value outside one is refused, never clamped; no spec can change a bound, and none carries send or spend authority. direction says which way is the safer move from today's value.",
     "rows.max": { "min": 0, "max": 8, "direction": "down_is_safer" },
     "fit_floor": { "min": 40, "max": 90, "direction": "up_is_safer" },
     "pitches.per_run": { "min": 0, "max": 10, "direction": "down_is_safer" },

@@ -29,6 +29,7 @@ import { qualifyShadow } from './stages/qualify.mjs';
 import { playsShadow } from './stages/plays.mjs';
 import { suppressionShadow, suppressionFields } from './stages/suppression.mjs';
 import { placesShadow } from './stages/places.mjs';
+import { gapOf, gapLine, intensify } from './stages/intensity.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
@@ -677,6 +678,13 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     if (week.source === 'signed') events.push({ event: 'week_spec_signed', proposal_id: `${SPEC_PREFIX}${thisWeek.start}`, at, evidence_url: null });
     holds.push(...week.holds); activity.push(...week.lines);
     if (week.spec) activity.push(...compiledDrift(week.spec, { northStarSha, weekGoalsSha: payloadDigest(directive.week_goals) }));
+    // Intensity (C3; Ruling, Krish, 2026-10-29): the gap leads the report, and at U3 and above volume rises to the policy's bounds with no signed spec.
+    const thisWeekTaps = taps?.complete ? countGood(taps.meetings, thisWeek, londonDate).total : null;
+    const gap = gapOf({ northStar: directive.north_star, thisTarget, tapsThisWeek: thisWeekTaps });
+    const intense = intensify(week.caps, { urgency: gap.urgency, source: week.source, policy });
+    const caps = intense.caps;
+    activity.push(intense.line);
+    outcome.intensity = { urgency: gap.urgency, raised: intense.raised.length };
     const booked = suppliedContext ? bookings({ context: suppliedContext, at, weekStart: thisWeek.start, londonDate, addDays }) : null;
     activity.push(bookingLine(booked, visibilityTargets(policy)));
     // Traffic to mindmake.co: a supporting reading beside the number, never the number (Phase 1b).
@@ -690,7 +698,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       const cards = briefs && capabilities.schema_versions.includes(CARD_VERSION);
       const pitches = cards && capabilities.schema_versions.includes(PITCH_VERSION);
       schema_version = pitches ? PITCH_VERSION : cards ? CARD_VERSION : briefs ? BRIEF_VERSION : ROWS_VERSION;
-      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps: week.caps });
+      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps });
       if (week.spec) activity.push(...compiledDrift(week.spec, { canon: rows.canonFiles }));
       if (!pitches) holds.push({ reason: 'pitch_needs_1_9_0', detail: "Control Center does not yet take pitches for Jonny's Gmail (protocol 1.9.0), so none were written." });
       const shown = cards ? rows.proposals : briefs ? rows.proposals.map(({ card, ...p }) => p) : rows.proposals.map(({ because, brief, card, ...p }) => p);
@@ -739,7 +747,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       ...(outcomes ? outcomeScorecard(outcomes, observed_at) : objectiveReadings({ at: observed_at, activatedOn }))
     ].slice(0, 20);
     // The crew, in shadow until the switch (plan section 3): each specialist's lint and measured check, counted and reported, nothing held or hidden.
-    const crew = crewShadow({ proposals: mapped.proposals, context: suppliedContext, canon: rowsRun?.canon ?? null, research: rowsRun?.research ?? null, at, caps: week.caps, constraints: c, objectives, activity, origin_candidates, taps, lastWeek, londonDate });
+    const crew = crewShadow({ proposals: mapped.proposals, context: suppliedContext, canon: rowsRun?.canon ?? null, research: rowsRun?.research ?? null, at, caps, constraints: c, objectives, activity, origin_candidates, taps, lastWeek, londonDate });
     activity.push(...crew.lines);
     // Plan section 12, M3 to M5: the guest standard, the visibility standard and room scoring, ported from Control
     // Center, in shadow beside its own verdicts: one counted line each, nothing held or changed. A fault here never fails the run.
@@ -768,6 +776,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       activity[activity.indexOf(crew.lines[0])] = crew.enforcedLine();
       activity[decisionsAt] = decisionsLine(mapped.proposals);
     }
+    // Every report leads with the gap: X of Y, U-n, short by Z, unknown where it is unknown.
+    activity.unshift(gapLine(gap, directive.north_star.reason));
     activity.push('Preparation used the existing daily dispatch. External actions require exact approval, a supported connector and independently verified receipts. Native drafts and human edits remain with their owners.');
     const report = buildReport({
       run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.some(h => !STANDING_HOLDS.has(h.reason)) ? 'held' : 'ready',

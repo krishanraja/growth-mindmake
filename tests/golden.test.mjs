@@ -20,6 +20,9 @@ import { golden } from './support/golden.mjs';
 // It was re-recorded again on 2026-10-29, when every row and pitch began to
 // name good_meetings as its objective: mapping those keys back to
 // qualified_conversations reproduced every earlier digest in every file.
+// It was re-recorded on 2026-10-29 for intensity (C3), when every report began
+// to lead with the gap line and to say what urgency did to volume: leaving the
+// `Gap:` and `Intensity:` lines out reproduced every earlier digest in every file.
 const root = new URL('../', import.meta.url);
 const policy = JSON.parse(await readFile(new URL('config/policy.json', root), 'utf8'));
 
