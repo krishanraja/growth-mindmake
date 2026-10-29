@@ -110,14 +110,16 @@ export function hostOf(t) {
 /** Days since a show's latest episode, or null when it is not known. */
 const sinceLatest = (t, at) => { const l = Date.parse(t?.latest_episode_at ?? ''); return Number.isFinite(l) ? (Date.parse(at) - l) / DAY : null; };
 
-/** How a show ranks: the visibility standard's verdict, how recently it published, whether it is about a room his buyer is in, and how long it has run. Pure. */
-export function pitchScore(t, at) {
+/** What a win lifts a stage by (src/stages/wins.mjs): its topic and kind, 1 when nothing has won. Pure. */
+const winLift = (t, W) => typeof W?.lift === 'function' ? W.lift({ kind: stageKind(t), sector: null, topic: showTopic(t) }) : 1;
+/** How a show ranks: the visibility standard's verdict, how recently it published, whether it is about a room his buyer is in, how long it has run, and what of its kind has answered or booked before (`W`, src/stages/wins.mjs). Pure. */
+export function pitchScore(t, at, W = null) {
   const days = sinceLatest(t, at);
   const recent = days === null ? 0 : days <= 30 ? 1 : days <= 60 ? 0.85 : 0.7;
   const topic = showTopic(t);
   const fit = topic && BUYER_TOPICS.has(topic) ? 1 : 0.7;
   const eps = Number.isInteger(t?.episodes) && t.episodes > 0 ? t.episodes : 0;
-  return standardWeight(t, at) * recent * fit * Math.log10(eps + 10);
+  return standardWeight(t, at) * recent * fit * Math.log10(eps + 10) * winLift(t, W);
 }
 
 /** Why a stage is not pitched today, or null when it may be. Pure. */
@@ -162,14 +164,14 @@ export function speakHold(t, { L, pitched, at }) {
 }
 
 /** How a stage ranks: the visibility standard's verdict, its weakest axis when judged, how soon its call closes while still open, and whether his buyer is in the room. Pure. */
-export function speakScore(t, at) {
+export function speakScore(t, at, W = null) {
   const weakest = stageStrength(t);
   const judged = weakest === null ? 0.6 : Math.max(0.1, weakest / 100);
   const days = Number.isFinite(Date.parse(t?.deadline_at ?? '')) ? (Date.parse(t.deadline_at) - Date.parse(at)) / DAY : null;
   const soon = days === null ? 1 : days <= 14 ? 1.3 : days <= 30 ? 1.15 : 1;
   const topic = showTopic(t);
   const fit = topic && BUYER_TOPICS.has(topic) ? 1 : 0.7;
-  return standardWeight(t, at) * judged * soon * fit;
+  return standardWeight(t, at) * judged * soon * fit * winLift(t, W);
 }
 
 /** The talk Krish offers a stage: the one Nova suggested for it, else one from its topic. Pure. */
@@ -898,7 +900,7 @@ function formProposal(f, rank, { t, canon, record, files, weekGoals, at, titleMa
  * the form's own holds; and the stages whose pitch waits behind a form
  * (`routed`: form_route while a form is the route, form_sent once one went).
  */
-export function formRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, L = lessons(context?.feedback, at), pitched = pitchedStages(context), formsPerRow = FORMS_PER_ROW, lanes = LANES_ON }) {
+export function formRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, L = lessons(context?.feedback, at), pitched = pitchedStages(context), formsPerRow = FORMS_PER_ROW, lanes = LANES_ON, wins = null }) {
   const tries = Array.isArray(context?.records?.forms) ? context.records.forms : [];
   const held = [], routed = new Map(), open = { visibility: [], events: [] }, seen = new Set();
   for (const t of Array.isArray(context?.records?.visibility) ? context.records.visibility : []) {
@@ -911,7 +913,7 @@ export function formRows({ context, weekGoals, canon, record = null, files, at, 
       if (FORM_OWN.has(f.hold)) held.push(f.hold);
       continue;
     }
-    open[f.row].push({ f, t, score: f.row === 'events' ? speakScore(t, at) : pitchScore(t, at) });
+    open[f.row].push({ f, t, score: f.row === 'events' ? speakScore(t, at, wins) : pitchScore(t, at, wins) });
   }
   const proposals = [];
   for (const row of ['visibility', 'events']) {
@@ -993,21 +995,21 @@ export function lookupRequests({ stages = [], podcasts = [], guests = [], resear
   const requests = ask.map(c => ({ request_id: c.request_id, kind: 'search', subject_ref: c.subject_ref, query: c.query.slice(0, 400), why: c.why.slice(0, 300) }));
   return { requests, waiting, eligible: live.reduce((n, l) => n + l.length, 0) + waiting, by: { stages: ask.filter(c => c.lane === 'stage').length, podcasts: ask.filter(c => c.lane === 'podcast').length, guests: ask.filter(c => c.lane === 'guest').length } };
 }
-const podcastLookup = (t, at) => ({ lane: 'podcast', key: t.id, base: `booking:${t.id}`, score: pitchScore(t, at), subject_ref: `target:${t.id}`,
+const podcastLookup = (t, at, W = null) => ({ lane: 'podcast', key: t.id, base: `booking:${t.id}`, score: pitchScore(t, at, W), subject_ref: `target:${t.id}`,
   query: noAddress(`Where does the podcast "${noAddress(t.title) || 'this show'}"${hostOf(t) ? ` hosted by ${hostOf(t)}` : ''} take guest pitches? Give its guest booking page or application form, or the named host or producer who books guests, with the source and its date.`),
   why: noAddress(`Held for want of a booking address: finding it lets Jonny pitch Krish to ${noAddress(t.title) || 'the show'}, still only on his yes.`) });
-const stageLookup = (t, at) => ({ lane: 'stage', key: t.id, base: `booking:${t.id}`, score: speakScore(t, at), subject_ref: `target:${t.id}`,
+const stageLookup = (t, at, W = null) => ({ lane: 'stage', key: t.id, base: `booking:${t.id}`, score: speakScore(t, at, W), subject_ref: `target:${t.id}`,
   query: noAddress(`Who takes speaker submissions for ${noAddress(t.title) || 'this event'}${noAddress(t.organizer) ? `, run by ${noAddress(t.organizer)}` : ''}? Give its call-for-speakers page or the named organiser who books speakers, with the source and its date.`),
   why: noAddress(`Held for want of a booking address: finding it lets Jonny pitch Krish to speak at ${noAddress(t.title) || 'the event'}, still only on his yes.`) });
 const guestLookup = (g, key, contactId) => ({ lane: 'guest', key, base: `email:${contactId ? '' : 'guest:'}${key}`, score: (GUEST_VERDICT[guestVerdictOf(g)] ?? 0) * 1000 + (guestStrength(g) ?? 0), subject_ref: contactId ? `contact:${contactId}` : null,
   query: noAddress(`How can ${guestName(g)}${noAddress(g.company ?? g.organisation ?? '') ? ` of ${noAddress(g.company ?? g.organisation)}` : ''} be invited onto a podcast as a guest? Give their public booking page, agent or the route their own site gives for invitations, with the source and its date.`),
   why: noAddress(`Held for want of an address: finding one lets ${guestName(g) ?? 'this guest'} be invited onto Krish's show, still only on his yes.`) });
 
-export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false, networkRoutes = false }) {
+export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false, networkRoutes = false, wins = null }) {
   const L = lessons(context?.feedback, at);
   const pitched = pitchedStages(context);
   const lanes = { ...LANES_ON, ...(caps.lanes ?? {}) };
-  const forms = formRows({ context, weekGoals, canon, record, files, at, titleMax, L, pitched, formsPerRow: caps.forms_per_row, lanes });
+  const forms = formRows({ context, weekGoals, canon, record, files, at, titleMax, L, pitched, formsPerRow: caps.forms_per_row, lanes, wins });
   // Jonny's Gmail takes ten drafts a day (Control Center, api/_pitchDrafts.ts). What a wake earlier
   // today already drafted there comes out of this run's room, so a second wake never asks for more.
   const used = jonnyDraftsToday(context, at);
@@ -1031,17 +1033,17 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     if (kind === 'podcast') {
       const why = pitchHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? (lanes.visibility ? null : 'lane_off');
       const lane = why ? null : laneOf(t.booking_contact_id, true);
-      if (why === 'no_booking_address' && lanes.visibility && !forms.routed.has(t.id) && pitchHold({ ...t, booking_contact_id: SOME_ADDRESS }, { L, pitched, at }) === null) lookPods.push(podcastLookup(t, at));
+      if (why === 'no_booking_address' && lanes.visibility && !forms.routed.has(t.id) && pitchHold({ ...t, booking_contact_id: SOME_ADDRESS }, { L, pitched, at }) === null) lookPods.push(podcastLookup(t, at, wins));
       if (why) held.push(why);
-      else if (lane === 'jonny') pods.push({ t, score: pitchScore(t, at) });
-      else { held.push(NETWORK_HOLD[lane]); if (lane === 'krish') krishPods.push({ t, score: pitchScore(t, at) }); }
+      else if (lane === 'jonny') pods.push({ t, score: pitchScore(t, at, wins) });
+      else { held.push(NETWORK_HOLD[lane]); if (lane === 'krish') krishPods.push({ t, score: pitchScore(t, at, wins) }); }
     } else if (kind === 'stage') {
       const why = speakHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? (lanes.events ? null : 'lane_off');
       const lane = why ? null : laneOf(t.booking_contact_id, true);
-      if (why === 'no_booking_address' && lanes.events && !forms.routed.has(t.id) && speakHold({ ...t, booking_contact_id: SOME_ADDRESS }, { L, pitched, at }) === null) lookStages.push(stageLookup(t, at));
+      if (why === 'no_booking_address' && lanes.events && !forms.routed.has(t.id) && speakHold({ ...t, booking_contact_id: SOME_ADDRESS }, { L, pitched, at }) === null) lookStages.push(stageLookup(t, at, wins));
       if (why) stageHeld.push(why);
-      else if (lane === 'jonny') stages.push({ t, score: speakScore(t, at) });
-      else { stageHeld.push(NETWORK_HOLD[lane]); if (lane === 'krish') krishStages.push({ t, score: speakScore(t, at) }); }
+      else if (lane === 'jonny') stages.push({ t, score: speakScore(t, at, wins) });
+      else { stageHeld.push(NETWORK_HOLD[lane]); if (lane === 'krish') krishStages.push({ t, score: speakScore(t, at, wins) }); }
     }
   }
   const byScore = (a, b) => b.score - a.score || a.t.id.localeCompare(b.t.id);

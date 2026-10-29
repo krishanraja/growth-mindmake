@@ -38,8 +38,9 @@ test('the ladder is read from docs/NORTH_STAR.md itself, and a week takes its ow
 });
 
 test("the directive's private figures stay unknown, and its constraints are read as data", () => {
-  assert.deepEqual(readNorthStar({ north_star: { own: { week_target: 'private', urgency: 4, urgency_reason: 'not measured' }, intensity: { urgency: 4 } } }), { week_target: null, urgency: 4, reason: 'not measured' });
-  assert.deepEqual(readNorthStar({}), { week_target: null, urgency: null, reason: null });
+  assert.deepEqual(readNorthStar({ north_star: { own: { week_target: 'private', urgency: 4, urgency_reason: 'not measured' }, intensity: { urgency: 4 } } }), { week_target: null, current: null, urgency: 4, reason: 'not measured' });
+  assert.deepEqual(readNorthStar({}), { week_target: null, current: null, urgency: null, reason: null });
+  assert.equal(readNorthStar({ north_star: { own: { current: 3 } } }).current, 3);
   assert.deepEqual(readConstraints({ constraints: { spend_cap_usd: 0, max_actions: 5 } }), { max_actions: 5, spend_cap_usd: 0 });
   assert.equal(readConstraints({}), null);
 });
@@ -128,6 +129,9 @@ test('only campaign plans reach prepare-action; an amended one is used only afte
   await runDispatch({ cc: h.cc, source: async () => ({ hold: { reason: 'x', detail: 'y' } }), policy, registry: {}, mode: 'live', attemptId: 'gma-synthetic-12345678', clock: () => NOW });
   assert.deepEqual(h.prepared, ['gmc-plain']);
   assert.ok(h.reports[0].holds.some(x => x.reason === 'amended_digest_mismatch'));
+  // The approved plan is open, so the run checks in on it (C4): a strategy call naming it, never a send.
+  const k = h.reports[0].proposals.find(p => p.stage === 'check_in');
+  assert.ok(k && k.wall === 'strategy' && ['gmc-plain', 'gmc-tampered'].includes(k.parent_proposal_id));
 });
 
 test('a campaign plan longer than the protocol allows is held, and the report still goes (N16)', () => {

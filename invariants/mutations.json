@@ -594,8 +594,8 @@
       "id": "jonny-pitches-in-network",
       "what": "Jonny's lane pitches a show whose booker is in Krish's network",
       "file": "src/stages/pitches.mjs",
-      "find": "      else if (lane === 'jonny') pods.push({ t, score: pitchScore(t, at) });",
-      "replace": "      else if (lane) pods.push({ t, score: pitchScore(t, at) });",
+      "find": "      else if (lane === 'jonny') pods.push({ t, score: pitchScore(t, at, wins) });",
+      "replace": "      else if (lane) pods.push({ t, score: pitchScore(t, at, wins) });",
       "tests": [
         "tests/network.test.mjs"
       ]

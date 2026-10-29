@@ -178,9 +178,11 @@ test('enforcing: his signed version enables it, five proof runs read back and th
   const { result, report } = await run({ decisions: [signed], proofReader: five });
   assert.equal(result.status, 'succeeded');
   const l = lines(report);
+  // 23: the spec he signed is an open plan, so the run also carries its check-in (C4), which the crew never holds.
+  assert.ok(report.proposals.some(p => p.stage === 'check_in' && p.parent_proposal_id === `gms-${WEEK}`));
   assert.equal(l.find(x => x.startsWith('Switch readiness')), 'Switch readiness: signed spec yes, route enabled; proof runs 5 of 5; shadow reported yes; number measured yes.');
   assert.match(l.find(x => x.startsWith('Switch route')), /^Switch route: enforcing\./);
-  assert.match(l.find(x => x.startsWith('Crew lints')), /^Crew lints, enforcing: read 22 proposals; 5 findings \(multiplier\.beyond_linkedin 4, guard\.constraints 1\)\. Each finding that names a proposal holds it/);
+  assert.match(l.find(x => x.startsWith('Crew lints')), /^Crew lints, enforcing: read 23 proposals; 5 findings \(multiplier\.beyond_linkedin 4, guard\.constraints 1\)\. Each finding that names a proposal holds it/);
   const hold = report.holds.find(h => h.reason === 'multiplier.beyond_linkedin');
   assert.equal(hold.detail, "4 proposals held by the crew's multiplier.beyond_linkedin lint (multiplier-steward) and left out of this report.");
   assert.equal(report.proposals.length, shadow.report.proposals.length - 4, 'the four named proposals are left out');

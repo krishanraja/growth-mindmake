@@ -377,6 +377,53 @@ same run asks Control Center's research desk to find where it takes pitches.
   proposal for his yes, and the network rule above still decides whose box it
   goes in.
 
+## Urgency raises volume (Ruling, Krish, 2026-10-29)
+
+"At U3 to U5, engines and Control Center may raise volume caps up to each
+repo's existing policy bounds without a signed week spec. This is volume only:
+walls unchanged." The engine feels the gap in code, not only in a line.
+
+- **The gap leads every report.** The first activity line is "Gap: good
+  meetings X of Y this week, U-n, short by Z": his taps this week when every
+  meeting was read, else Control Center's reading, against this week's
+  target. Unknown stays unknown, never 0.
+- **At U3 and above, volume rises to its bounds.** On a week with no signed
+  spec in force, the caps config/policy.json's `intensity` block names go to
+  the top of their bounds: 8 a row, 4 guest invites a run and 8 a week, 4
+  forms a row (src/stages/intensity.mjs). A run's invites never pass its ten.
+- **His spec still rules.** A spec he signed keeps the caps he set, and a lane
+  he turned off stays off. Under U3, or with urgency unknown, nothing rises.
+- **Volume only.** The fit floor, the stage share, Jonny's ten drafts a day,
+  the walls and every approval stay as they are.
+
+## When work stalls, push; when it works, lean in (2026-10-29)
+
+A hold that counts itself every run and changes nothing is a dead end. The
+engine reads its own last reports back from Control Center (never a ledger of
+its own) and turns three stalls into a move (src/stages/momentum.mjs).
+
+- **Each run says what each lane made.** The second activity line is
+  `Lanes:`: the five rows, guest invites, podcast and stage pitches, and the
+  pool they drew from.
+- **A lane at 0 for three runs asks him.** One strategy ask a London week
+  (`gml-<monday>`) names the lanes, the holds that starve each and what would
+  feed it, for him to point the engine at a source, a kind of person, or a
+  lane to turn off. Answered, it is not asked again that week.
+- **A pool that stands still asks the desk.** When the people, stages and
+  guests served have not grown in three runs, the run asks the research desk
+  for new shows and stages (two `search` requests, no person, no address),
+  once a day while none waits or answered.
+- **An open plan gets a check-in every other day.** While a campaign plan he
+  approved, or this week's spec he signed, is open, a `check_in` behind
+  `strategy` names it with the gap, each lane's output and what starves it.
+  Clear keeps it going, his version redirects it, Purge stops its check-ins
+  for good.
+- **Wins lift what is like them** (src/stages/wins.mjs). A pitch answered or
+  booked lifts its show's kind and topic; a good meeting with someone a row he
+  carried out reached lifts that row's kind, sector and topic. Over 90 days,
+  at most 1.5 times, never under 1: a No still refuses what it refused, and
+  nothing that has not won sinks.
+
 ## Signals from his buyers (Rulings, Krish, 2026-10-26)
 
 Shown a LinkedIn post ("AI's next job casualty could be your boss"), Krish

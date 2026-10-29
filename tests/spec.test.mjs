@@ -11,6 +11,7 @@ import { parseCanon, blobSha } from '../src/stages/canon.mjs';
 import { engineClient } from '../src/control-center.mjs';
 import { directiveFixture, startProtocolService } from './support/engine-protocol-service.mjs';
 import { STAGE } from './support/standard.mjs';
+import { checkIn } from '../src/stages/momentum.mjs';
 
 // The week spec, compiled (plan Phase 2). Synthetic only: invented shows, ids and counts.
 // A Tuesday in the first signable week: this London week starts 2026-11-09.
@@ -335,4 +336,49 @@ test('the signed caps reach the stages in a dispatch run, and a second wake the 
   const second = await runWith([], 8);
   assert.equal(second.jonny, 2, 'a wake later the same day writes only the two left of Jonny\'s ten');
   assert.ok(lines(second.rep).some(l => l === "Jonny's Gmail already holds 8 drafts made today, so this run writes at most 2 more."));
+});
+
+test('where the caps came from: unread, unsure and stopped are never read as "no spec signed", so urgency cannot raise past them', () => {
+  const finish = p => ({ ...p, payload_sha256: payloadDigest(p) });
+  const base = { weekOf: WEEK, policy, finish, expiresAt: w => londonMidnight(w), specFor: w => ({ spec: defaultSpec({ weekOf: w }) }), ask: false };
+  assert.equal(weekSpec({ ...base, decisions: [] }).source, 'default', 'read, and nothing signed: known unsigned');
+  assert.equal(weekSpec({ ...base, decisions: null }).source, 'unread', 'decisions that cannot be read are not known unsigned');
+  assert.equal(weekSpec({ ...base, decisions: [amend(`gms-${WEEK}`, '{not json')] }).source, 'unsure', 'his version that cannot be used is not known unsigned');
+  assert.equal(weekSpec({ ...base, decisions: [amend(`gms-${WEEK}`, '{}', { amended_sha256: 'b'.repeat(64) })] }).source, 'unsure', 'a digest mismatch is not known unsigned');
+  assert.equal(weekSpec({ ...base, policy: { ...policy, venture: 'other' } }).source, 'unsafe');
+  // Signed, then his Purge on the spec's check-in: stopped, not in force, not asked again, and last week's does not stand in.
+  const post = weekSpec({ ...base, decisions: [] }).post;
+  const signed = weekSpec({ ...base, decisions: [clear(post)] });
+  assert.equal(signed.source, 'signed');
+  const check = checkIn({ decisions: [clear(post)], weekOf: WEEK, today: '2026-11-10', expiresAt: 'x' }).proposal;
+  const purge = { proposal_id: check.proposal_id, decision: 'declined', decided_at: '2026-11-10T09:00:00Z' };
+  const stopped = weekSpec({ ...base, decisions: [clear(post), purge] });
+  assert.equal(stopped.source, 'stopped');
+  assert.equal(stopped.post, null);
+  assert.equal(stopped.spec, null);
+  assert.deepEqual(stopped.caps, todaysCaps(policy, WEEK));
+  assert.ok(stopped.holds.some(h => h.reason === 'spec_stopped'));
+});
+
+test('an approved plan he stopped with a Purge on its check-in is never prepared again', async () => {
+  const plan = { proposal_id: 'gmc-plain', decision: 'approved', decided_at: NOW, payload_sha256: 'd'.repeat(64), stage: 'plan', amended: false };
+  const check = checkIn({ decisions: [plan], weekOf: WEEK, today: '2026-11-10', expiresAt: 'x' }).proposal;
+  const run = async decisions => {
+    const prepared = [], reports = [];
+    const cc = {
+      recordAttempt: async () => ({ ok: true }), directive: async () => directiveFixture(), capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, features: { exact_actions: true } }),
+      decisions: async () => decisions,
+      readReport: async () => { const r = reports.at(-1); if (!r) throw Object.assign(new Error('none'), { status: 404 }); return { accepted: true, run_id: r.run_id, payload_sha256: r.payload_sha256, report: r }; },
+      postReport: async r => { reports.push(r); return { accepted: true, run_id: r.run_id, payload_sha256: r.payload_sha256, replayed: false }; },
+      prepareAction: async id => { prepared.push(id); throw new Error('no route'); },
+      actionReceipt: async () => { throw Object.assign(new Error('none'), { status: 404 }); }, executeAction: async () => { throw new Error('no executor'); }
+    };
+    await runDispatch({ cc, source: hold, policy, registry: {}, mode: 'live', attemptId: 'gma-spec-stop-12345678', clock: () => NOW, specReader: noFiles });
+    return { prepared, report: reports.at(-1) };
+  };
+  assert.deepEqual((await run([plan])).prepared, ['gmc-plain']);
+  const stopped = await run([plan, { proposal_id: check.proposal_id, decision: 'declined', decided_at: NOW }]);
+  assert.deepEqual(stopped.prepared, []);
+  assert.ok(stopped.report.holds.some(h => h.reason === 'plan_stopped'));
+  assert.ok(!stopped.report.proposals.some(p => p.parent_proposal_id === 'gmc-plain'), 'no check-in for a stopped plan either');
 });

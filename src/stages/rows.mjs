@@ -985,7 +985,7 @@ const KIND_NOUN = { investor: 'portfolio', ai_capital: 'investments', connector:
  * and from close ties gone quiet (network). Also the reach questions worth
  * asking: the top few with no cited figure, once a month each.
  */
-export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR }) {
+export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR, wins = null }) {
   const L = lessons(context.feedback, at);
   const research = Array.isArray(context.research) ? context.research : [];
   const routes = context.routes ?? {};
@@ -1045,7 +1045,9 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
       continue;
     }
     const told = caseFor({ c, name, company, ask: best.ask, kind: best.kind, reach, fit, serves: best.serves, at });
-    out.push({ score: best.s, proposal: rowProposal({
+    // A kind, sector or topic that has led to a good meeting before ranks higher on its row (src/stages/wins.mjs); nothing that has not won sinks.
+    const lift = typeof wins?.lift === 'function' ? wins.lift({ kind: best.kind, sector: best.features.sector, topic: best.features.topic }) : 1;
+    out.push({ score: best.s * lift, proposal: rowProposal({
       row: best.row, ask: best.ask, contactId: id, name, at, files,
       title: titleFor(best.ask, best.kind, name, company, titleMax, show),
       why: `${name}${company ? ` (${company})` : ''} reads as ${best.kind.replace('_', ' ')}: ${clean(c.current_title ?? c.headline ?? c.contacts?.title ?? '')}. Reach: ${reach.band === 'unknown' ? 'not yet known' : reach.band.replace('_', ' ')} (${reach.basis}). Mindmake fit ${fit} of 100. One ask: ${best.ask}.`,

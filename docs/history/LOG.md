@@ -2,6 +2,14 @@
 
 The dated records of this engine's sessions, newest first. NOW.md names this file as its history log; scripts/check-drift.mjs fails when it is missing. The completion record stays docs/RELEASE.md.
 
+## 2026-10-29: older NOW.md changes
+
+Moved here verbatim from NOW.md's "What changed recently" on 2026-10-29 to keep the session pack under 36 KB; newest first, as NOW.md listed them.
+
+- 2026-10-27 **The crew as code (plan Phase 3).** Nine specialists, each with a lint, a measured check, a generated card and a lens; card grammar holds every live failure shape; all of it in shadow, two counted lines a run and nothing held; events[] says what closed, a twice-refused row's words go to the weekly review, and a live run that read nothing journals failed with its class, never a quiet success.
+- 2026-10-27 **First live run at 1.10.0: the dead plans left his list (Phase 0 done).** A manual dispatch run on main reported at 1.10.0; the four 22 October plans whose Advisory records are gone read back expired in Control Center with `withdrawn` evidence, the one real ask stays pending, both traffic lines arrived with the consent sentence, and no traffic figure reached the Actions log. Meetings read as unread, not none: Control Center first reads his calendar at its 05:10 push.
+- 2026-10-27 **The week spec, compiled (plan Phase 2).** From the week of 9 November Krish signs one spec each Monday (`gms-`, with last week's good meetings folded in, so one Monday ask): rows on or off and their caps, the fit floor, pitches, invites, the shows' split and forms, each inside bounds config/policy.json owns, never any spend. His Clear or his digest-verified version signs it; otherwise last week's signed spec, then today's settings, apply. A second wake the same day writes only what is left of Jonny's ten drafts. Every earlier fixture reports byte for byte as before. Built and tested; not live, and nothing changes before 9 November.
+
 ## 2026-10-27: older NOW.md changes
 
 Moved here verbatim from NOW.md's "What changed recently" on 2026-10-27 (plan Phase 4) to keep NOW.md short; newest first, as NOW.md listed them.
