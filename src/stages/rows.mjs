@@ -948,6 +948,13 @@ export function actionFor(channel, contactId, name, words) {
   return { version: 2, channel, recipient_contact_id: contactId, body: [greeting, ...words.lines.map(clean)].join('\n\n').slice(0, 1000) };
 }
 
+/**
+ * The objective every row and pitch moves: the North Star number, good meetings a
+ * week (docs/NORTH_STAR.md; Ruling, Krish, 2026-10-27), as config/policy.json's
+ * `north_star.objective` names it. Qualified buyer conversations stay a reported subset.
+ */
+export const OBJECTIVE = 'good_meetings';
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** One row proposal, shaped as dispatch's finishProposal expects. */
@@ -955,7 +962,7 @@ export function rowProposal({ row, ask, contactId, name, title, why, because, br
   return {
     proposal_id: `gmw-${seal({ subject: contactId, row, ask }).slice(0, 32)}`,
     title, why: clean(why).slice(0, 1000), kind: 'prepared', wall: 'send', channel: action.channel, amount_usd: 0,
-    objective_key: 'qualified_conversations', exact_payload: JSON.stringify(action), target: contactId,
+    objective_key: OBJECTIVE, exact_payload: JSON.stringify(action), target: contactId,
     evidence: evidence.slice(0, 12), close_condition: { event: 'outreach_sent', reference: `${row}:${ask}` },
     expires_at: new Date(Date.parse(at) + 14 * DAY).toISOString(), stage: null, parent_proposal_id: null,
     row, reach, amplifier_kind: kind, features, serves, source_revision: files.slice(0, 8), name,

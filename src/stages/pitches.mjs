@@ -1,5 +1,5 @@
 import { seal, clean, DAY } from '../guards.mjs';
-import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, actionFor, rowProposal, score, channelOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX } from './rows.mjs';
+import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, actionFor, rowProposal, score, channelOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX, OBJECTIVE } from './rows.mjs';
 import { showNoteRows } from './shownotes.mjs';
 import { shadowLine, stageVerdict, stageStrength, ccStageVerdict, isDeadDate } from './visibility.mjs';
 import { guestVerdictOf, guestStrength, WARM_TIERS } from './guests.mjs';
@@ -878,7 +878,7 @@ function formProposal(f, rank, { t, canon, record, files, weekGoals, at, titleMa
     title: events ? fitTitleWithin(titleMax, `Apply to speak at ${f.name}`, `Apply to ${f.name}`, 'Apply to speak at an event')
       : fitTitleWithin(titleMax, `Apply to be a guest on ${f.name}`, `Apply to ${f.name}`, `Apply to be a guest on a ${noun}`),
     why: clean(`${f.name} asks for ${events ? 'speakers' : 'guests'} through its own form, and every field it requires is answered from what the run reads.${f.retried ? ' His last tap sent nothing; what it lacked is answered now.' : ''} ${standardSays(t, at)} One ask: his tap sends it.`).slice(0, 1000),
-    kind: 'prepared', wall: 'send', channel: 'form', amount_usd: 0, objective_key: 'qualified_conversations',
+    kind: 'prepared', wall: 'send', channel: 'form', amount_usd: 0, objective_key: OBJECTIVE,
     exact_payload: f.exact, target: f.url, subject_ref: `target:${t.id}`,
     evidence: [], close_condition: { event: 'form_submitted', reference: `${f.row}:form` },
     expires_at: new Date(Math.min(Date.parse(at) + 14 * DAY, Number.isFinite(Date.parse(t.deadline_at ?? '')) ? Date.parse(t.deadline_at) : Infinity)).toISOString(), stage: null, parent_proposal_id: null,
@@ -1016,7 +1016,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
       proposal_id: `gmp-${seal({ subject: `contact:${g.contact_id}`, ask: 'invite' }).slice(0, 32)}`,
       title: fitTitleWithin(titleMax, `Jonny invites ${name} onto ${show.name}`, `Jonny invites ${firstName(name)} onto ${show.name}`, `Jonny invites a guest onto ${show.name}`),
       why: clean(`${name} is a guest the guest standard judged ${standard === 'take' ? 'worth having' : 'a stretch'} for ${show.name}, with an address on record. One ask: a conversation on the show.`).slice(0, 1000),
-      kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: 'qualified_conversations',
+      kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: OBJECTIVE,
       exact_payload: JSON.stringify(action), target: g.contact_id, subject_ref: `contact:${g.contact_id}`,
       evidence: [], close_condition: { event: 'outreach_sent', reference: 'visibility:invite' },
       expires_at: new Date(Date.parse(at) + 14 * DAY).toISOString(), stage: null, parent_proposal_id: null,
@@ -1042,7 +1042,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
       proposal_id: `gmp-${seal({ subject: `target:${t.id}`, ask: 'pitch' }).slice(0, 32)}`,
       title: fitTitleWithin(titleMax, `Jonny pitches you to ${show}`, 'Jonny pitches you to a podcast'),
       why: clean(`${show} is a podcast${eps ? ` with ${eps} episodes` : ''} taking guests, with an address of its own. ${standardSays(t, at)} One ask: have Krish on.`).slice(0, 1000),
-      kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: 'qualified_conversations',
+      kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: OBJECTIVE,
       exact_payload: JSON.stringify(action), target: t.booking_contact_id, subject_ref: `target:${t.id}`,
       evidence: [], close_condition: { event: 'outreach_sent', reference: 'visibility:pitch' },
       expires_at: new Date(Date.parse(at) + 14 * DAY).toISOString(), stage: null, parent_proposal_id: null,
@@ -1071,7 +1071,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
       proposal_id: `gmp-${seal({ subject: `target:${t.id}`, ask: 'speak' }).slice(0, 32)}`,
       title: fitTitleWithin(titleMax, `Jonny pitches you to speak at ${event}`, `Jonny pitches you to ${event}`, 'Jonny pitches you to speak at an event'),
       why: clean(`${event} is open for speakers, and its own page gives an address for them. ${standardSays(t, at)} One ask: ${ask} for Krish.`).slice(0, 1000),
-      kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: 'qualified_conversations',
+      kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: OBJECTIVE,
       exact_payload: JSON.stringify(action), target: t.booking_contact_id, subject_ref: `target:${t.id}`,
       evidence: [], close_condition: { event: 'outreach_sent', reference: 'events:pitch' },
       expires_at: new Date(Math.min(Date.parse(at) + 14 * DAY, Number.isFinite(Date.parse(t.deadline_at ?? '')) ? Date.parse(t.deadline_at) : Infinity)).toISOString(), stage: null, parent_proposal_id: null,

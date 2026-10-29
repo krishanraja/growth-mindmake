@@ -54,7 +54,7 @@ Every directive carries `in_house: { rule, counts }`, this week's Advisory, Netw
 | `engine_id` | `growth-mindmake` |
 | `product_slug` | `mindmake` |
 | Aim | Every paid proof starts from a warm path or a room, never a list, and leaders arrive already asking for the brain because someone they trust told them. By 2026-11-30 |
-| Objectives | `qualified_conversations`: target 5 people per week (Europe/London); `paid_proofs`: target 1 in the first 30 days (Europe/London) |
+| Objectives | `good_meetings`: the weekly ladder in docs/NORTH_STAR.md, 20 by 2026-11-30, the objective every row and pitch proposal names (since 2026-10-29); `qualified_conversations`: target 5 people per week (Europe/London), a reported subset; `paid_proofs`: target 1 in the first 30 days (Europe/London) |
 | Cadence | daily |
 | State | Switched on 2026-10-18, with dispatch on. Your bearer arrives in this repository's secrets as `CONTROL_CENTER_ENGINE_TOKEN`, with `CONTROL_CENTER_URL` as a variable. Until then, build against `mode: synthetic` |
 
