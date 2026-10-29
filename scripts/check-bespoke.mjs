@@ -14,7 +14,8 @@ import { resolve, relative } from 'node:path';
 /** Dated by design, each with its reason. A new entry needs a reason a reviewer accepts. */
 export const ALLOW = [
   { file: 'src/crew/compile.mjs', literal: '2026-11-09', reason: 'FIRST_SPEC_WEEK: the week the signed spec takes over, set by the plan (Phase 2)' },
-  { file: 'src/stages/pitches.mjs', literal: 'hello@krishraja.com', reason: "FORM_EMAIL: the one public business address a stage form is given for him (playbook 11)" }
+  { file: 'src/stages/pitches.mjs', literal: 'hello@krishraja.com', reason: "FORM_EMAIL: the one public business address a stage form is given for him (playbook 11)" },
+  { file: 'src/stages/pitches.mjs', literal: '00000000-0000-4000-8000-000000000000', reason: 'SOME_ADDRESS: an all-zero stand-in a lookup asks a hold with, to learn whether the address is all a subject lacks; never written to a proposal, a request or a report' }
 ];
 
 /** What a string literal must never carry. */

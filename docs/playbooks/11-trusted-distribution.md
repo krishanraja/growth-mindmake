@@ -340,6 +340,43 @@ me." The ruling is in [docs/RULINGS.md](../RULINGS.md).
   never takes Jonny's ten. A show-notes note to a host in his network is held,
   never rewritten.
 
+## A missing address is looked up, not left (2026-10-29)
+
+A podcast or stage held only for `no_booking_address`, and a guest held only
+for `no_email` or `no_contact`, would be pitched or invited if an address were
+on record. A hold that waits for someone else to find it never clears, so the
+same run asks Control Center's research desk to find where it takes pitches.
+
+- **Only where the address is all it lacks.** The hold is asked again as if an
+  address were on record; a show that is buried, quiet, ruled out, already
+  pitched or routed to its own form, a stage past its deadline, or a guest not
+  judged worth having files nothing.
+- **Bounded.** At most four a run (`LOOKUPS_PER_RUN`), first in the research
+  round and inside its ten and the desk's daily caps, as `search` requests.
+  The kinds take turns, a stage, then a podcast, then a guest, then the next
+  stage, each kind in its own rank (stages by `speakScore`, podcasts by
+  `pitchScore`, guests by verdict and strength), so no kind waits behind
+  another. The query names the show, the stage or the person, never an
+  address, and a run of nine digits the desk would read as a phone number is
+  taken out of it; a query that still carries one is left out on its own,
+  never sent to fail the batch.
+- **When it is asked again.** Never while Control Center's context still holds
+  a lookup for the subject that waits or has answered (the context carries the
+  desk's last 14 days, its 200 newest rows). One over the cap or failed is
+  asked again the next day. One that has left the context is asked again as a
+  new lookup, at most once a London day. Every attempt has an id of its own
+  (`booking:<target>`, `email:<contact>` or `email:guest:<record>`, then the
+  London day and an eight-character digest of the words), so a resend is
+  never the same id with other words, which the desk refuses for the whole
+  batch, and the same id is only ever the same words, whose stored answer the
+  desk replays.
+- **The hold keeps its code** until Control Center records the address on the
+  stage or the guest's route. Every run says how many it looked up and how
+  many wait, and the summary counts `lookups_asked` inside `research_asked`.
+- **A found address grants nothing.** The pitch or invite it allows is still a
+  proposal for his yes, and the network rule above still decides whose box it
+  goes in.
+
 ## Signals from his buyers (Rulings, Krish, 2026-10-26)
 
 Shown a LinkedIn post ("AI's next job casualty could be your boss"), Krish

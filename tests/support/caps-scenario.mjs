@@ -55,10 +55,16 @@ export function capsContext() {
   };
 }
 
-/** One dispatch run of the fixture with the modules given; resolves to the report it posted. */
-export async function capsReport({ runDispatch, directiveFixture, parseCanon, blobSha, parseRecord, policy, record = r => r }) {
+/** The fixture's canon, track record and week goals, built with the modules given. */
+export function capsKit({ parseCanon, blobSha, parseRecord }) {
   const canon = { ...parseCanon({ northStar: NORTH_STAR, canon: CANON }), files: [{ repo: 'krishanraja/mindmake', path: 'project-documentation/00_NORTH_STAR.md', sha: blobSha(NORTH_STAR) }, { repo: 'krishanraja/mindmake', path: 'project-documentation/01_CANON.md', sha: blobSha(CANON) }] };
   const RECORD = { line: parseRecord(RECEIPTS), file: { repo: 'krishanraja/krish-raja', path: 'src/content/receipts.ts', sha: blobSha(RECEIPTS) } };
+  return { canon, RECORD, GOALS };
+}
+
+/** One dispatch run of the fixture with the modules given; resolves to the report it posted. */
+export async function capsReport({ runDispatch, directiveFixture, parseCanon, blobSha, parseRecord, policy, record = r => r }) {
+  const { canon, RECORD } = capsKit({ parseCanon, blobSha, parseRecord });
   const served = ['1.6.0', '1.7.0', '1.8.0', '1.9.0'];
   const reports = [];
   const cc = {

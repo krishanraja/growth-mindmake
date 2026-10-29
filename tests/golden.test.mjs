@@ -17,6 +17,9 @@ import { golden } from './support/golden.mjs';
 // It was re-recorded once, when the stages began to act on the engine's own
 // verdicts (plan section 12, M3 to M5); with Control Center's verdicts forced
 // back in, the same fixture reproduces the report the old code gives it.
+// It was re-recorded again on 2026-10-29, when every row and pitch began to
+// name good_meetings as its objective: mapping those keys back to
+// qualified_conversations reproduced every earlier digest in every file.
 const root = new URL('../', import.meta.url);
 const policy = JSON.parse(await readFile(new URL('config/policy.json', root), 'utf8'));
 
@@ -27,6 +30,9 @@ test('a fixture that binds every cap gives the report it gave before the week sp
   const reasons = report.holds.map(h => h.reason);
   for (const cap of ['row_per_row_cap', 'row_low_fit', 'pitch_pitch_per_run_cap', 'speak_pitch_per_run_cap', 'invite_invite_week_or_run_cap', 'form_per_run_cap']) assert.ok(reasons.includes(cap), `${cap} is reached`);
   const jonny = report.proposals.filter(p => { try { return JSON.parse(p.exact_payload).mailbox === 'jonny'; } catch { return false; } });
+  // Every row and pitch names the North Star's own objective, good meetings (C1, 2026-10-29), never qualified conversations.
+  const aimed = report.proposals.filter(p => /^gm[wp]-/.test(p.proposal_id));
+  assert.ok(aimed.length > 0 && aimed.every(p => p.objective_key === policy.north_star.objective && p.objective_key === 'good_meetings'));
   assert.deepEqual([jonny.length, jonny.filter(p => p.close_condition.reference === 'visibility:invite').length, jonny.filter(p => p.row === 'events').length, report.proposals.filter(p => p.channel === 'form').length], [10, 2, 4, 2]);
 });
 
