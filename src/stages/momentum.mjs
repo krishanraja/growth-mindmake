@@ -4,8 +4,8 @@
  * these turn three of them into a move.
  *
  * - **Lanes.** Every run reports one `Lanes:` line, each lane's output (the
- *   five rows, guest invites, podcast pitches, stage pitches) and the pool it
- *   drew from. Later runs read it back from Control Center's own list of this
+ *   five rows, guest invites, podcast pitches, stage pitches, as posted) and
+ *   the pool it drew from. A lane a cap left at 0 reads `capped`, never 0. Later runs read it back from Control Center's own list of this
  *   engine's recent reports (`features.recent_reports`, 1.10.0), so the
  *   history lives in the reports already sent, never in a ledger of ours.
  * - **A lane at 0 for three runs** (this one and the two before it that
@@ -14,14 +14,17 @@
  *   ask a London week, `gml-<monday>`, kept current until he answers it.
  * - **A pool that has not grown in three runs** asks Control Center's research
  *   desk for new shows and stages to pitch (`search`, at most two, never a
- *   person or an address), once a London day while none waits or answered.
+ *   person or an address), at most once a London day, and not while one asked
+ *   this London week waits or answered.
  * - **A check-in every other day while a plan is open** (ENGINE-PROTOCOL.md,
  *   "Autonomy", 4; this repository sets how often): `stage: "check_in"` behind
  *   `strategy`, naming the plan, with the gap, each lane's output and what
  *   starves it in its exact words. A plan is open when his latest decision on
  *   it approved it and none says done: a `gmc-` campaign plan, or this week's
- *   `gms-` spec he signed. His Purge on a check-in stops that plan's check-ins
- *   for good.
+ *   `gms-` spec he signed. His Purge on a check-in stops that plan for good
+ *   (ENGINE-PROTOCOL.md: "Purge stops the plan"): no more check-ins, no
+ *   prepared action from it (src/dispatch.mjs), and a stopped spec is not in
+ *   force (src/crew/compile.mjs).
  *
  * Pure: the dispatch passes what it read. Nothing here sends, spends or
  * widens authority; every ask is a proposal for his answer.
@@ -38,6 +41,12 @@ export const CHECK_IN_PREFIX = 'gmk-';
 /** A check-in at least every other day while a plan is open. */
 export const CHECK_IN_DAYS = 2;
 export const SOURCING_PER_RUN = 2;
+/**
+ * A lane that made nothing because a cap was full (Jonny's ten a day, a run's
+ * or a week's share, or the 40 a report carries), not because nothing could
+ * feed it. Never 0, so it never counts toward a starved lane.
+ */
+export const CAPPED = 'capped';
 const DAY = 86400000;
 /** The holds that starve each lane, by the prefix the dispatch gives them. */
 const STARVED_BY = { invites: 'invite_', podcasts: 'pitch_', stages: 'speak_', reach_out: 'row_', network: 'row_', visibility: 'row_', events: 'row_', partners: 'row_' };
@@ -62,14 +71,14 @@ export function poolOf(context) {
 
 /** This run's lane line, the one later runs read back. Pure. */
 export function lanesLine(lanes, pool) {
-  return `Lanes: ${LANE_KEYS.map(k => `${k} ${Number.isInteger(lanes?.[k]) ? lanes[k] : 'unknown'}`).join(', ')}; pool ${Number.isInteger(pool) ? pool : 'unknown'}.`;
+  return `Lanes: ${LANE_KEYS.map(k => `${k} ${Number.isInteger(lanes?.[k]) ? lanes[k] : lanes?.[k] === CAPPED ? CAPPED : 'unknown'}`).join(', ')}; pool ${Number.isInteger(pool) ? pool : 'unknown'}.`;
 }
 
 /** One lane line read back: each lane's count and the pool, null where unknown or absent. Pure. */
 export function readLanesLine(line) {
   if (typeof line !== 'string' || !LANES_LINE.test(line)) return null;
   const lanes = {};
-  for (const k of LANE_KEYS) { const m = new RegExp(`\\b${k} (\\d+|unknown)\\b`).exec(line); lanes[k] = m && m[1] !== 'unknown' ? Number(m[1]) : null; }
+  for (const k of LANE_KEYS) { const m = new RegExp(`\\b${k} (\\d+|unknown|${CAPPED})\\b`).exec(line); lanes[k] = m && /^\d+$/.test(m[1]) ? Number(m[1]) : null; }
   const p = /; pool (\d+)\./.exec(line);
   return { lanes, pool: p ? Number(p[1]) : null };
 }
@@ -121,12 +130,17 @@ export function starvedProposal({ starved, weekOf, expiresAt, gap = null, decisi
   };
 }
 
-/** Research requests for new shows and stages when the pool stands still, each once a London day while none waits or answered. Pure. */
-export function sourcingRequests({ flat, research = [], at, lanesOn = { visibility: true, events: true } }) {
+/**
+ * Research requests for new shows and stages when the pool stands still: each
+ * at most once a London day, and not while one asked this London week waits
+ * or answered (the week is in the base, so last week's answer never blocks a
+ * pool that is still flat). Pure.
+ */
+export function sourcingRequests({ flat, research = [], at, weekOf, lanesOn = { visibility: true, events: true } }) {
   if (!flat) return [];
   const asks = [
-    lanesOn.visibility !== false && { base: 'source:podcasts', query: 'Podcasts that interview senior business leaders (chief executives, operating and marketing chiefs) about how AI changes the way a company works, with an episode in the last 60 days and a public way to pitch a guest. Give each show, its host, and its guest page, with the source and its date.', why: 'The pool of shows and stages has not grown in three runs; new shows give Jonny more to pitch, still only on his yes.' },
-    lanesOn.events !== false && { base: 'source:stages', query: 'Conferences, summits and executive roundtables in London, New York or online in the next six months with an open call for speakers on AI and leadership for senior business leaders. Give each event, its organiser, and its call for speakers page, with the source and its date.', why: 'The pool of stages has not grown in three runs; a new open call gives Krish a stage to apply to, still only on his yes.' }
+    lanesOn.visibility !== false && { base: `source:podcasts:${weekOf}`, query: 'Podcasts that interview senior business leaders (chief executives, operating and marketing chiefs) about how AI changes the way a company works, with an episode in the last 60 days and a public way to pitch a guest. Give each show, its host, and its guest page, with the source and its date.', why: 'The pool of shows and stages has not grown in three runs; new shows give Jonny more to pitch, still only on his yes.' },
+    lanesOn.events !== false && { base: `source:stages:${weekOf}`, query: 'Conferences, summits and executive roundtables in London, New York or online in the next six months with an open call for speakers on AI and leadership for senior business leaders. Give each event, its organiser, and its call for speakers page, with the source and its date.', why: 'The pool of stages has not grown in three runs; a new open call gives Krish a stage to apply to, still only on his yes.' }
   ].filter(Boolean);
   const out = [];
   for (const a of asks) {
@@ -138,10 +152,35 @@ export function sourcingRequests({ flat, research = [], at, lanesOn = { visibili
 
 const latest = (decisions, id) => (Array.isArray(decisions) ? decisions : []).filter(d => d?.proposal_id === id).sort((a, b) => String(b.decided_at).localeCompare(String(a.decided_at)))[0] ?? null;
 
-/** The plans open now, newest approval first: a campaign plan or this week's spec he approved, with no later done. Pure. */
-export function openPlans(decisions, weekOf) {
+/** A plan's check-in id, before its two-day window. */
+const checkInBase = plan => `${CHECK_IN_PREFIX}${seal({ plan }).slice(0, 24)}-`;
+
+/**
+ * The plans he stopped: every campaign plan or week spec in his decisions
+ * whose check-in he declined (Purge). ENGINE-PROTOCOL.md: "Purge stops the
+ * plan (the rule then never pushes it again)". Pure.
+ */
+export function stoppedPlans(decisions) {
+  const all = Array.isArray(decisions) ? decisions : [];
+  const declined = all.filter(d => d?.decision === 'declined' && typeof d.proposal_id === 'string' && d.proposal_id.startsWith(CHECK_IN_PREFIX)).map(d => d.proposal_id);
+  const plans = new Set();
+  for (const d of all) {
+    const id = d?.proposal_id;
+    if (typeof id === 'string' && (id.startsWith('gmc-') || id.startsWith('gms-')) && declined.some(c => c.startsWith(checkInBase(id)))) plans.add(id);
+  }
+  return plans;
+}
+
+/** The plans approved now, newest approval first: a campaign plan or this week's spec he approved, with no later done, stopped or not. Pure. */
+function approvedPlans(decisions, weekOf) {
   const ids = [...new Set((Array.isArray(decisions) ? decisions : []).map(d => d?.proposal_id).filter(id => typeof id === 'string' && (id.startsWith('gmc-') || id === `gms-${weekOf}`)))];
   return ids.map(id => latest(decisions, id)).filter(d => d && d.decision === 'approved' && (d.stage === 'plan' || d.proposal_id.startsWith('gms-'))).sort((a, b) => String(b.decided_at).localeCompare(String(a.decided_at))).map(d => d.proposal_id);
+}
+
+/** The plans open now, newest approval first: approved and not stopped by his Purge on a check-in. Pure. */
+export function openPlans(decisions, weekOf) {
+  const stopped = stoppedPlans(decisions);
+  return approvedPlans(decisions, weekOf).filter(p => !stopped.has(p));
 }
 
 /** Which two-day window a London date is in. Pure. */
@@ -155,13 +194,13 @@ export const checkInWindow = day => Math.floor(Date.parse(`${day}T12:00:00Z`) / 
  * window. Pure.
  */
 export function checkIn({ decisions, weekOf, today, expiresAt, gap = null, lanes = null, starved = [] }) {
-  const plans = openPlans(decisions, weekOf);
   const all = Array.isArray(decisions) ? decisions : [];
-  const stopped = plans.filter(p => all.some(d => d?.decision === 'declined' && typeof d.proposal_id === 'string' && d.proposal_id.startsWith(`${CHECK_IN_PREFIX}${seal({ plan: p }).slice(0, 24)}-`)));
-  const plan = plans.find(p => !stopped.includes(p)) ?? null;
-  const holds = stopped.length ? [{ reason: 'check_in_stopped', detail: `${stopped.length} open plan${stopped.length === 1 ? '' : 's'} he stopped with a Purge on a check-in get no more check-ins.` }] : [];
+  const halted = stoppedPlans(all);
+  const stopped = approvedPlans(all, weekOf).filter(p => halted.has(p));
+  const plan = openPlans(all, weekOf)[0] ?? null;
+  const holds = stopped.length ? [{ reason: 'check_in_stopped', detail: `${stopped.length} plan${stopped.length === 1 ? '' : 's'} he stopped with a Purge on a check-in ${stopped.length === 1 ? 'gets' : 'get'} no more check-ins and no prepared action.` }] : [];
   if (!plan) return { proposal: null, holds, plan: null };
-  const proposal_id = `${CHECK_IN_PREFIX}${seal({ plan }).slice(0, 24)}-${checkInWindow(today)}`;
+  const proposal_id = `${checkInBase(plan)}${checkInWindow(today)}`;
   if (all.some(d => d?.proposal_id === proposal_id)) return { proposal: null, holds, plan };
   return { plan, holds, proposal: {
     proposal_id,

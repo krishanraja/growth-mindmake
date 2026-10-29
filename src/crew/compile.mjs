@@ -34,6 +34,7 @@ import { canonicalJson, payloadDigest, schemaErrors } from '../guards.mjs';
 import { LANES, FIT_FLOOR } from '../stages/rows.mjs';
 import { PITCH_CAPS } from '../stages/pitches.mjs';
 import { PATHS } from '../stages/meetings.mjs';
+import { stoppedPlans } from '../stages/momentum.mjs';
 
 export const SPEC_ID = 'growth-week/1';
 /** The week spec's proposal id prefix: `gms-<week_of>`. A strategy plan; it never reaches prepare-action (only `gmc-` does). */
@@ -243,6 +244,7 @@ const NOT_SIGNED = {
   changed: 'The spec he signed is not the one proposed now, so his Clear does not carry over.',
   digest_mismatch: "His version's digest did not match its words, so it was not read.",
   amended_invalid: 'His version could not be used.',
+  stopped: 'He stopped it with a Purge on its check-in.',
   unread: 'His decisions could not be read this run.'
 };
 const summary = caps => {
@@ -263,7 +265,16 @@ const summary = caps => {
  * `specFor(week, ask)` gives the spec proposed for a week (a file, or the
  * default) as `{ spec, file }`, or `{ hold }` when the file cannot be used.
  * `finish` turns a proposal into its posted form with its payload_sha256.
- * `ask` is whether this week's spec carries last week's counts to confirm. Pure.
+ * `ask` is whether this week's spec carries last week's counts to confirm.
+ *
+ * `source` says where the caps came from: `signed`, `last_signed`, `today`
+ * (before the spec era), `default` (his decisions were read and no spec he
+ * signed is in force), `unread` (his decisions could not be read), `unsure`
+ * (his version of a spec could not be used), `stopped` (he Purged the spec's
+ * check-in: it is not in force, last week's does not carry on, and it is not
+ * asked again this week) or `unsafe` (the policy cannot bound a spec). Only
+ * `default` and `today` let urgency raise volume (src/stages/intensity.mjs).
+ * Pure.
  */
 export function weekSpec({ weekOf, decisions, policy, specFor, finish, expiresAt, ask = false }) {
   if (weekOf < FIRST_SPEC_WEEK) return { era: false, caps: todaysCaps(policy), source: 'today', post: null, holds: [], lines: [], spec: null };
@@ -271,7 +282,7 @@ export function weekSpec({ weekOf, decisions, policy, specFor, finish, expiresAt
   const unsafe = policyErrors(policy);
   if (unsafe.length) {
     holds.push({ reason: 'policy_unsafe', detail: `config/policy.json cannot bound a week spec (${unsafe[0]}), so none is posted or used and the stages' own settings apply.` });
-    return { era: true, caps: STAGE_CAPS, source: 'default', post: null, holds, lines, spec: null };
+    return { era: true, caps: STAGE_CAPS, source: 'unsafe', post: null, holds, lines, spec: null };
   }
   const candidatesFor = week => {
     const proposed = specFor(week);
@@ -292,18 +303,24 @@ export function weekSpec({ weekOf, decisions, policy, specFor, finish, expiresAt
     const c = compile(postable.spec, policy, { weekOf });
     if (!c.ok) { holds.push({ reason: c.reason === 'spec_too_long' ? 'spec_too_long' : 'spec_invalid', detail: `The spec proposed for ${weekOf} cannot be used: ${c.detail}` }); postable = null; }
   } else if (now.proposed && !now.proposed.hold) holds.push({ reason: 'spec_too_long', detail: `The week spec for ${weekOf} is longer than ${SPEC_MAX} characters, so it was not posted.` });
-  const sig = decisions === null ? { state: 'unread' } : signedSpec({ decisions, weekOf, candidates: now.list, policy });
+  // A spec whose check-in he Purged is stopped (momentum.mjs stoppedPlans): never in force, never asked again this week.
+  const stopped = decisions === null ? new Set() : stoppedPlans(decisions);
+  const signedOrStopped = (w, got) => got.state === 'signed' && stopped.has(`${SPEC_PREFIX}${w}`) ? { state: 'stopped' } : got;
+  const sig = decisions === null ? { state: 'unread' } : signedOrStopped(weekOf, signedSpec({ decisions, weekOf, candidates: now.list, policy }));
+  if (sig.state === 'stopped') holds.push({ reason: 'spec_stopped', detail: `He stopped the spec for ${weekOf} with a Purge on its check-in, so it is not in force and today's settings apply.` });
   if (sig.state === 'signed') {
     lines.push(`Week spec for the week of ${weekOf}: signed by ${sig.by}, in force: ${summary(sig.compiled.caps)}${sig.compiled.changes.length ? ` Changed from today: ${sig.compiled.changes.join(', ')}.` : ''}`);
     return { era: true, caps: sig.compiled.caps, source: 'signed', post: null, holds, lines, spec: sig.spec };
   }
   if (sig.state === 'amended_invalid') holds.push({ reason: sig.reason === 'spec_too_long' ? 'spec_too_long' : 'spec_amended_invalid', detail: `His version of the spec for ${weekOf} was not used: ${sig.detail} The last valid signed spec stays in force.` });
   if (sig.state === 'digest_mismatch') holds.push({ reason: 'amended_digest_mismatch', detail: `His version of the spec for ${weekOf} does not match its digest, so it was not used.` });
-  const post = postable && sig.state !== 'declined' ? postable.proposal : null;
+  const post = postable && sig.state !== 'declined' && sig.state !== 'stopped' ? postable.proposal : null;
   // Last week's signed spec carries on for up to 7 days.
   const lastWeek = new Date(`${weekOf}T12:00:00Z`); lastWeek.setUTCDate(lastWeek.getUTCDate() - 7);
   const prior = lastWeek.toISOString().slice(0, 10);
-  const last = decisions === null || prior < FIRST_SPEC_WEEK ? null : signedSpec({ decisions, weekOf: prior, candidates: candidatesFor(prior).list, policy });
+  // This week's spec stopped means stop: last week's does not carry on in its place.
+  const last = decisions === null || prior < FIRST_SPEC_WEEK || sig.state === 'stopped' ? null : signedOrStopped(prior, signedSpec({ decisions, weekOf: prior, candidates: candidatesFor(prior).list, policy }));
+  if (last?.state === 'stopped') holds.push({ reason: 'spec_stopped', detail: `He stopped the spec for ${prior} with a Purge on its check-in, so it does not carry on into ${weekOf}.` });
   if (last?.state === 'signed') {
     lines.push(`Week spec for the week of ${weekOf}: not signed (${NOT_SIGNED[sig.state]}), so the spec he signed for ${prior} stays in force, up to 7 days: ${summary(last.compiled.caps)}`);
     return { era: true, caps: last.compiled.caps, source: 'last_signed', post, holds, lines, spec: last.spec };
@@ -311,7 +328,10 @@ export function weekSpec({ weekOf, decisions, policy, specFor, finish, expiresAt
   const caps = todaysCaps(policy, weekOf);
   holds.push({ reason: 'spec_unsigned', detail: `No signed week spec is in force for ${weekOf} (${NOT_SIGNED[sig.state]}), so today's settings apply: ${summary(caps)}` });
   lines.push(`Week spec for the week of ${weekOf}: not signed, so today's settings apply.${post ? ' It is on his list to sign.' : ''}`);
-  return { era: true, caps, source: 'default', post, holds, lines, spec: null };
+  // Known unsigned only when his decisions were read and nothing he signed was unusable or stopped; urgency raises volume only then (intensity.mjs).
+  const unsure = s => s === 'amended_invalid' || s === 'digest_mismatch';
+  const source = decisions === null ? 'unread' : [sig.state, last?.state].includes('stopped') ? 'stopped' : unsure(sig.state) || unsure(last?.state) ? 'unsure' : 'default';
+  return { era: true, caps, source, post, holds, lines, spec: null };
 }
 
 /**

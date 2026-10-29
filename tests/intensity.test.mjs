@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { gapOf, gapLine, intensify, intensityPolicy, VOLUME_KEYS, RAISE_FROM, GAP_LINE } from '../src/stages/intensity.mjs';
+import { gapOf, gapLine, intensify, intensityPolicy, VOLUME_KEYS, RAISE_FROM, GAP_LINE, RAISE_ON } from '../src/stages/intensity.mjs';
 import { todaysCaps } from '../src/crew/compile.mjs';
-import { runDispatch } from '../src/dispatch.mjs';
+import { runDispatch, laneCounts } from '../src/dispatch.mjs';
 import { parseCanon, blobSha, parseRecord } from '../src/stages/canon.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
-import { capsReport } from './support/caps-scenario.mjs';
+import { capsReport, capsContext } from './support/caps-scenario.mjs';
+import { readLanesLine } from '../src/stages/momentum.mjs';
 
 // Intensity (C3). Ruling (Krish, 2026-10-29): "At U3 to U5, engines and Control
 // Center may raise volume caps up to each repo's existing policy bounds without a
@@ -83,4 +84,42 @@ test('a dispatch at U4 leads with the gap and invites to the bound; at U1 it inv
   assert.ok(invites(u4.report) <= policy.bounds['pitches.invites_per_run'].max);
   // Volume only: every walled proposal in either report still waits on his decision.
   for (const r of [u1.report, u4.report]) assert.ok(r.proposals.every(p => p.wall !== 'none' || p.kind === 'advice'));
+});
+
+test('volume rises only when it is known that no spec he signed is in force, and never on a policy the week spec would refuse', () => {
+  assert.deepEqual([...RAISE_ON], ['default', 'today']);
+  for (const [source, why] of [['unread', /could not be read/], ['unsure', /could not be used/], ['stopped', /stopped the week spec/], ['unsafe', /cannot bound a week spec/], ['signed', /he signed/], ['last_signed', /he signed/], [undefined, /unknown/]]) {
+    const r = intensify(today, { urgency: 5, source, policy });
+    assert.equal(r.caps, today, `${source}: the caps stand`);
+    assert.equal(r.raised.length, 0);
+    assert.match(r.line, why);
+  }
+  // policy_unsafe (here Jonny's daily limit is missing): the stages' own settings stand, and nothing rises from that policy either.
+  const unsafe = { ...policy, limits: { ...policy.limits, jonny_drafts_per_day: undefined } };
+  assert.equal(intensityPolicy(unsafe), null);
+  assert.equal(intensify(today, { urgency: 5, source: 'default', policy: unsafe }).raised.length, 0);
+});
+
+test('at U4 with a crowd, wider rows never push out a pitch, an invite or a form, and the Lanes line counts what was posted', async () => {
+  const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const person = (n, title) => ({ contact_id: id(n), network_tier: '2_core_network', current_title: title, followers: 20000 + n, plays: [], roles: [], mindmake_fit: 80, sells_competing_services: false, hook: 'Took two media software companies through a sale.', contacts: { id: id(n), full_name: `Avery Example${n}`, title, company: `Company ${n}`, company_domain: `c${n}.test`, status: 'active' } });
+  const titles = ['Host of Example Show', 'Chapter Chair, Example Leaders Forum', 'General Partner, Example Ventures', 'Head of Learning and Development, Example Academy', 'Community Lead, Example Founders Club', 'Podcast Host', 'Managing Partner, Example Capital', 'Professor of Management, Example Business School', 'Director, Example Leadership Institute'];
+  const crowd = () => {
+    const c = capsContext(); let n = 1000;
+    for (const t of titles) for (let i = 0; i < 12; i++) { const p = person(n++, `${t} ${i}`); c.amplifier_candidates.push(p); c.routes[p.contact_id] = { email: 'verified', x: false, linkedin: true, instagram: false, whatsapp: false }; }
+    return c;
+  };
+  const run = urgency => capsReport({ runDispatch, directiveFixture, parseCanon, blobSha, parseRecord, policy, context: crowd, directive: { north_star: { own: { week_target: 2, current: 0, urgency }, intensity: { urgency } } } });
+  const jonny = r => { const l = laneCounts(r.report.proposals); return l.invites + l.podcasts + l.stages; };
+  const u1 = await run(1), u4 = await run(4);
+  assert.ok(u4.report.holds.some(h => h.reason === 'row_cap'), 'the crowd overflows the report');
+  assert.ok(u4.report.proposals.length <= 40);
+  assert.ok(jonny(u4) >= jonny(u1), "urgency never lowers Jonny's pitches and invites");
+  assert.equal(jonny(u4), policy.limits.jonny_drafts_per_day, "Jonny's ten are all posted");
+  assert.ok(u4.report.proposals.filter(p => p.channel === 'form').length >= u1.report.proposals.filter(p => p.channel === 'form').length);
+  for (const r of [u1, u4]) {
+    const posted = laneCounts(r.report.proposals);
+    const line = readLanesLine(r.report.activity.find(a => /^Lanes: /.test(a.line)).line);
+    for (const [k, n] of Object.entries(posted)) if (n > 0) assert.equal(line.lanes[k], n, `${k} as posted`);
+  }
 });

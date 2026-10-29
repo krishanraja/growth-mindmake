@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { lanesLine, readLanesLine, laneHistory, starvedLanes, poolFlat, poolOf, starvedProposal, sourcingRequests, openPlans, checkIn, checkInWindow, LANE_KEYS, STARVED_RUNS, CHECK_IN_PREFIX, STARVED_PREFIX } from '../src/stages/momentum.mjs';
+import { lanesLine, readLanesLine, laneHistory, starvedLanes, poolFlat, poolOf, starvedProposal, sourcingRequests, openPlans, stoppedPlans, checkIn, checkInWindow, LANE_KEYS, STARVED_RUNS, CHECK_IN_PREFIX, STARVED_PREFIX, CAPPED } from '../src/stages/momentum.mjs';
 import { wins, winsLine, LIFT_MAX } from '../src/stages/wins.mjs';
 import { pitchScore, speakScore, showTopic } from '../src/stages/pitches.mjs';
-import { runDispatch, payloadDigest } from '../src/dispatch.mjs';
+import { runDispatch, payloadDigest, laneCounts, postedLanes, cutReport } from '../src/dispatch.mjs';
 import { parseCanon, blobSha, parseRecord } from '../src/stages/canon.mjs';
 import { directiveFixture } from './support/engine-protocol-service.mjs';
 import { capsReport, capsContext, AT } from './support/caps-scenario.mjs';
@@ -65,20 +65,25 @@ test('a pool that stands still for three runs asks for new shows and stages, nev
   assert.equal(poolFlat({ pool: 259, history: history.slice(0, 1) }), false);
   assert.equal(poolOf({ amplifier_candidates: [1, 2], quiet_ties: [1], records: { visibility: [1, 2, 3], guests: [1] } }), 7);
   assert.equal(poolOf(null), null);
-  const asks = sourcingRequests({ flat: true, research: [], at: AT });
+  const W = '2026-10-26';
+  const asks = sourcingRequests({ flat: true, research: [], at: AT, weekOf: W });
   assert.equal(asks.length, 2);
   for (const a of asks) {
     assert.equal(a.kind, 'search');
     assert.equal(a.subject_ref, null);
     assert.ok(a.query.length <= 400 && a.why.length <= 300 && !/@|https?:/.test(a.query));
-    assert.match(a.request_id, /^source:(podcasts|stages):2026-10-27:[0-9a-f]{8}$/);
+    assert.match(a.request_id, /^source:(podcasts|stages):2026-10-26:2026-10-27:[0-9a-f]{8}$/);
   }
-  // Waiting or answered: not asked again; over the cap: asked again the next day only.
-  assert.equal(sourcingRequests({ flat: true, research: asks.map(a => ({ request_id: a.request_id, status: 'answered' })), at: AT }).length, 0);
-  assert.equal(sourcingRequests({ flat: true, research: asks.map(a => ({ request_id: a.request_id, status: 'over_cap' })), at: AT }).length, 0);
-  assert.equal(sourcingRequests({ flat: true, research: asks.map(a => ({ request_id: a.request_id, status: 'over_cap' })), at: '2026-10-28T09:00:00Z' }).length, 2);
-  assert.deepEqual(sourcingRequests({ flat: true, at: AT, lanesOn: { visibility: false, events: true } }).map(a => a.request_id.split(':')[1]), ['stages']);
-  assert.deepEqual(sourcingRequests({ flat: false, at: AT }), []);
+  // Waiting or answered this week: not asked again; over the cap: asked again the next day only.
+  assert.equal(sourcingRequests({ flat: true, research: asks.map(a => ({ request_id: a.request_id, status: 'answered' })), at: AT, weekOf: W }).length, 0);
+  assert.equal(sourcingRequests({ flat: true, research: asks.map(a => ({ request_id: a.request_id, status: 'over_cap' })), at: AT, weekOf: W }).length, 0);
+  assert.equal(sourcingRequests({ flat: true, research: asks.map(a => ({ request_id: a.request_id, status: 'over_cap' })), at: '2026-10-28T09:00:00Z', weekOf: W }).length, 2);
+  // Last week's answer, still in the context, never blocks a pool that is still flat this week.
+  const nextWeek = sourcingRequests({ flat: true, research: asks.map(a => ({ request_id: a.request_id, status: 'answered' })), at: '2026-11-03T09:00:00Z', weekOf: '2026-11-02' });
+  assert.equal(nextWeek.length, 2);
+  assert.ok(nextWeek.every(a => a.request_id.includes(':2026-11-02:2026-11-03:')));
+  assert.deepEqual(sourcingRequests({ flat: true, at: AT, weekOf: W, lanesOn: { visibility: false, events: true } }).map(a => a.request_id.split(':')[1]), ['stages']);
+  assert.deepEqual(sourcingRequests({ flat: false, at: AT, weekOf: W }), []);
 });
 
 test('an open plan gets a check-in every other day, kept current until he answers, and his Purge stops it', () => {
@@ -107,6 +112,63 @@ test('an open plan gets a check-in every other day, kept current until he answer
   assert.equal(stopped.proposal, null);
   assert.deepEqual(stopped.holds.map(h => h.reason), ['check_in_stopped']);
   assert.equal(checkIn({ decisions: [], weekOf: '2026-10-26', today: '2026-10-27', expiresAt: 'x' }).proposal, null, 'no plan open, no check-in');
+});
+
+test('his Purge on a check-in stops the plan itself: it is no longer open, and a newer plan gets the check-ins', () => {
+  const NOW = '2026-10-27T09:00:00Z';
+  const plan = { proposal_id: 'gmc-route-one', decision: 'approved', decided_at: NOW, stage: 'plan', payload_sha256: 'a'.repeat(64) };
+  const older = { ...plan, proposal_id: 'gmc-route-old', decided_at: '2026-10-20T09:00:00Z' };
+  const first = checkIn({ decisions: [plan, older], weekOf: '2026-10-26', today: '2026-10-27', expiresAt: 'x' }).proposal;
+  assert.equal(first.parent_proposal_id, 'gmc-route-one');
+  const purge = { proposal_id: first.proposal_id, decision: 'declined', decided_at: NOW };
+  assert.deepEqual([...stoppedPlans([plan, older, purge])], ['gmc-route-one']);
+  assert.deepEqual(openPlans([plan, older, purge], '2026-10-26'), ['gmc-route-old'], 'a stopped plan is not open');
+  const next = checkIn({ decisions: [plan, older, purge], weekOf: '2026-10-26', today: '2026-10-29', expiresAt: 'x' });
+  assert.equal(next.proposal.parent_proposal_id, 'gmc-route-old', 'the next open plan gets the check-ins');
+  assert.deepEqual(next.holds.map(h => h.reason), ['check_in_stopped']);
+  // An approved check-in, or a Purge on another plan's check-in, stops nothing.
+  assert.deepEqual([...stoppedPlans([plan, { ...purge, decision: 'approved' }])], []);
+  assert.deepEqual([...stoppedPlans([older, purge])], []);
+  // A week spec's check-in Purged stops the spec too.
+  const spec = { ...plan, proposal_id: 'gms-2026-11-09' };
+  const specCheck = checkIn({ decisions: [spec], weekOf: '2026-11-09', today: '2026-11-10', expiresAt: 'x' }).proposal;
+  assert.deepEqual([...stoppedPlans([spec, { proposal_id: specCheck.proposal_id, decision: 'declined', decided_at: NOW }])], ['gms-2026-11-09']);
+});
+
+test('a lane a cap left at 0 reads capped, never 0, so a full day of Jonny drafts never reads as starved', () => {
+  const line = lanesLine({ ...fed, invites: CAPPED, podcasts: CAPPED, stages: CAPPED }, 10);
+  assert.match(line, /invites capped, podcasts capped, stages capped/);
+  assert.deepEqual(readLanesLine(line).lanes, { ...fed, invites: null, podcasts: null, stages: null });
+  // Two capped runs before a 0 are no streak of three.
+  const zero = { ...fed, invites: 0, podcasts: 0, stages: 0 };
+  const capped = { ...fed, invites: CAPPED, podcasts: CAPPED, stages: CAPPED };
+  const history = laneHistory([report(capped, 1), report(capped, 1)]);
+  assert.deepEqual(starvedLanes({ lanes: zero, history }).map(s => s.lane).filter(l => ['invites', 'podcasts', 'stages'].includes(l)), []);
+  // Posted, not prepared: a lane the report's cut took to 0 is capped; one never counted stays unknown.
+  const pitch = (row, ref = null) => ({ row, rank: 1, channel: 'email', exact_payload: JSON.stringify({ mailbox: 'jonny' }), close_condition: { reference: ref } });
+  const row = (r, rank) => ({ row: r, rank, channel: 'email', exact_payload: JSON.stringify({ mailbox: null }) });
+  const all = [row('reach_out', 1), row('reach_out', 2), pitch('visibility', 'visibility:invite'), pitch('visibility'), pitch('events')];
+  const before = laneCounts(all);
+  assert.deepEqual([before.reach_out, before.invites, before.podcasts, before.stages], [2, 1, 1, 1]);
+  assert.deepEqual(postedLanes(before, all.slice(2)).reach_out, CAPPED);
+  assert.equal(postedLanes(undefined, all), undefined);
+});
+
+test('the report cut takes the lowest-ranked row actions first and keeps every pitch, invite and form', () => {
+  const pitch = (row, i) => ({ id: `J${i}`, row, rank: 1, channel: 'email', exact_payload: JSON.stringify({ mailbox: 'jonny' }) });
+  const form = i => ({ id: `F${i}`, row: 'events', rank: 1, channel: 'form', exact_payload: '{}' });
+  const row = (r, rank) => ({ id: `${r}${rank}`, row: r, rank, channel: 'email', exact_payload: '{}' });
+  const rows = ['reach_out', 'visibility', 'events', 'partners', 'network'].flatMap(r => [1, 2, 3, 4, 5, 6, 7, 8].map(n => row(r, n)));
+  const ask = { id: 'ask' };
+  const list = [ask, ...rows, ...[1, 2, 3, 4].map(i => pitch('visibility', i)), ...[5, 6, 7].map(i => pitch('events', i)), form(1), form(2)];
+  const { kept, dropped } = cutReport(list, 38);
+  assert.equal(kept.length, 38);
+  assert.equal(dropped, list.length - 38);
+  assert.ok(kept.includes(ask));
+  assert.equal(kept.filter(p => p.id.startsWith('J') || p.id.startsWith('F')).length, 9, 'every pitch and form kept');
+  for (const r of ['reach_out', 'visibility', 'events', 'partners', 'network']) assert.ok(kept.some(p => p.id === `${r}1`), `${r} keeps its best`);
+  assert.ok(!kept.some(p => p.rank === 8 && p.row), 'the lowest ranks go first');
+  assert.deepEqual(cutReport(list.slice(0, 5), 38), { kept: list.slice(0, 5), dropped: 0 });
 });
 
 test('a reply, a booking or a good meeting lifts what is like it, capped, never under 1', () => {
@@ -166,4 +228,16 @@ test('a live run with three flat runs behind it leads with the gap and its lanes
   assert.ok(!bare.report.proposals.some(p => p.proposal_id.startsWith(STARVED_PREFIX)));
   assert.ok(!asked.some(r => r.request_id.startsWith('source:')));
   assert.ok(bare.report.activity.some(a => /^Starved lanes: not known/.test(a.line)));
+});
+
+test('a wake after Jonny\'s ten are drafted reads his lanes as capped, so the weekly ask never calls them starved', async () => {
+  const full = () => { const c = capsContext(); c.records.drafts = Array.from({ length: 10 }, (_, i) => ({ visibility_target_id: null, mailbox: 'jonny', created_at: `2026-10-27T0${Math.floor(i / 5) + 6}:1${i % 5}:00Z` })); return c; };
+  const zero = { ...fed, invites: 0, podcasts: 0, stages: 0 };
+  const history = async () => [report(zero, 1), report(zero, 1)];
+  const { report: rep } = await capsReport({ runDispatch, directiveFixture, parseCanon, blobSha, parseRecord, policy, context: full, run: { historyReader: history } });
+  const lanes = rep.activity.find(a => /^Lanes: /.test(a.line)).line;
+  assert.match(lanes, /podcasts capped/);
+  assert.match(lanes, /stages capped/);
+  const ask = rep.proposals.find(p => p.proposal_id.startsWith(STARVED_PREFIX));
+  assert.ok(!ask || !JSON.parse(ask.exact_payload).starved.some(s => ['invites', 'podcasts', 'stages'].includes(s.lane)), 'a capped lane is not starved');
 });

@@ -31,7 +31,7 @@ import { suppressionShadow, suppressionFields } from './stages/suppression.mjs';
 import { placesShadow } from './stages/places.mjs';
 import { gapOf, gapLine, intensify } from './stages/intensity.mjs';
 import { wins as readWins, winsLine } from './stages/wins.mjs';
-import { poolOf, lanesLine, laneHistory, starvedLanes, poolFlat, starvedProposal, sourcingRequests, checkIn, STARVED_RUNS, CHECK_IN_DAYS, CHECK_IN_PREFIX, STARVED_PREFIX } from './stages/momentum.mjs';
+import { poolOf, lanesLine, laneHistory, starvedLanes, poolFlat, starvedProposal, sourcingRequests, checkIn, stoppedPlans, STARVED_RUNS, CHECK_IN_DAYS, CHECK_IN_PREFIX, STARVED_PREFIX, CAPPED } from './stages/momentum.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
@@ -177,6 +177,41 @@ export function inHouseLines(inHouse) {
 
 /** A pitch for Jonny's box (1.9.0), which Control Center drafts itself. */
 const isPitch = p => { try { return JSON.parse(p.exact_payload ?? '').mailbox === 'jonny'; } catch { return false; } };
+const isForm = p => p.channel === 'form';
+const isInvite = p => p.close_condition?.reference === 'visibility:invite';
+/** A row action on one of the five rows (not a pitch for Jonny's box, not a form). */
+const isRowAction = p => ROWS.includes(p.row) && !isPitch(p) && !isForm(p);
+/** Each lane's output among these proposals: the five rows, guest invites, podcast pitches and stage pitches. Pure. */
+export function laneCounts(proposals) {
+  return {
+    ...Object.fromEntries(ROWS.map(r => [r, proposals.filter(p => p.row === r && isRowAction(p)).length])),
+    invites: proposals.filter(p => isPitch(p) && isInvite(p)).length,
+    podcasts: proposals.filter(p => isPitch(p) && p.row === 'visibility' && !isInvite(p) && !isForm(p)).length,
+    stages: proposals.filter(p => isPitch(p) && p.row === 'events' && !isForm(p)).length
+  };
+}
+/** The lanes as posted: a lane the report's cut took to 0, or one a cap left at 0, reads `capped`, never 0. Pure. */
+export function postedLanes(before, posted) {
+  // Lanes never counted (a run that wrote no rows) stay unknown, never 0.
+  if (!before || typeof before !== 'object') return before;
+  const now = laneCounts(posted);
+  return Object.fromEntries(Object.entries(now).map(([k, n]) => [k, n === 0 && (before[k] === CAPPED || before[k] > 0) ? CAPPED : Number.isInteger(before[k]) || before[k] === CAPPED ? n : null]));
+}
+/**
+ * A report cut to `max`: row actions go first, the lowest-ranked across every
+ * row first, so pitches, invites, forms and the asks before them keep their
+ * place and every row keeps its best. Only past that is the tail cut. Pure.
+ */
+export function cutReport(list, max) {
+  if (list.length <= max) return { kept: list, dropped: 0 };
+  const order = list.map((p, i) => ({ p, i })).filter(x => isRowAction(x.p)).sort((a, b) => (b.p.rank ?? 0) - (a.p.rank ?? 0) || b.i - a.i);
+  const drop = new Set(order.slice(0, list.length - max).map(x => x.i));
+  const kept = list.filter((_, i) => !drop.has(i)).slice(0, max);
+  return { kept, dropped: list.length - kept.length };
+}
+/** Room left in a report for the two asks a run may put first after the rows: the starved-lanes ask and a check-in. */
+const ASKS_AFTER_ROWS = 2;
+const REPORT_MAX = 40;
 const cut = (text, max) => { const s = String(text).replace(/\s+/g, ' ').trim(); return s.length <= max ? s : `${s.slice(0, max - 3).trimEnd()}...`; };
 function finishProposal(p) {
   const proposal = { amount_usd: null, channel: null, objective_key: null, exact_payload: null, evidence: [], expires_at: null, ...p };
@@ -423,20 +458,20 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const krishRows = (pitched.krishRows ?? []).filter(e => !onRows.has(e.proposal.target));
   const sameRow = (pitched.krishRows ?? []).length - krishRows.length;
   const { kept, dropped, off } = rankRows([...amplifiers.rows, ...signals.rows, ...krishRows], caps.rows);
-  const isForm = p => p.channel === 'form';
   // A stage that asked leads its row, one tap from done: the people ranked on that row come after its forms (at most two a row).
   const lead = {};
   for (const p of pitched.proposals.filter(isForm)) lead[p.row] = (lead[p.row] ?? 0) + 1;
   const proposals = kept.map(p => finishProposal({ ...p, rank: p.rank + (lead[p.row] ?? 0) }));
   proposals.push(...pitched.proposals.map(finishProposal));
-  const isInvite = p => p.close_condition?.reference === 'visibility:invite';
   counts.invites = pitched.proposals.filter(isInvite).length;
   counts.pitches = pitched.proposals.filter(p => p.row === 'visibility' && !isInvite(p) && !isForm(p)).length;
   counts.speaking_pitches = pitched.proposals.filter(p => p.row === 'events' && !isForm(p)).length;
   counts.forms = pitched.proposals.filter(isForm).length;
   counts.prepared = proposals.length;
   // Each lane's output this run, which the Lanes line carries for the runs after it (C4).
-  counts.lanes = { ...Object.fromEntries(ROWS.map(r => [r, proposals.filter(p => p.row === r && !isPitch(p) && !isForm(p)).length])), invites: counts.invites, podcasts: counts.pitches, stages: counts.speaking_pitches };
+  // A Jonny lane at 0 because its cap was full (his ten a day, the run's share, the week's invites) is capped, not starved (C4).
+  const full = { invites: (pitched.inviteHeld ?? []).includes('invite_week_or_run_cap'), podcasts: (pitched.held ?? []).includes('pitch_per_run_cap'), stages: (pitched.stageHeld ?? []).includes('pitch_per_run_cap') };
+  counts.lanes = Object.fromEntries(Object.entries(laneCounts(proposals)).map(([k, n]) => [k, n === 0 && full[k] ? CAPPED : n]));
   for (const [reason, count] of tally(pitched.notesHeld ?? [])) holds.push({ reason: holdCode('notes', reason), detail: `${count} booked show${count === 1 ? '' : 's'} not asked for the brief link today: ${reason.replace(/_/g, ' ')}.` });
   for (const [reason, count] of tally(pitched.inviteHeld ?? [])) holds.push({ reason: holdCode('invite', reason), detail: `${count} guest${count === 1 ? '' : 's'} not invited today: ${reason.replace(/_/g, ' ')}.` });
   for (const [reason, count] of tally(pitched.held)) holds.push({ reason: holdCode('pitch', reason), detail: `${count} podcast${count === 1 ? '' : 's'} not pitched today: ${reason.replace(/_/g, ' ')}.` });
@@ -599,7 +634,10 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       phase = 'prepare_action';
       const decisions = decisionsRead ?? await cc.decisions(new Date(Date.parse(started_at)-30*DAY).toISOString());
       // Only campaign plans reach prepare-action (N18). The pending 22 October route plans are campaign plans (gmc-), so none is stranded.
+      // A plan he stopped with a Purge on its check-in is never pushed again (ENGINE-PROTOCOL.md, "Purge stops the plan").
+      const halted = stoppedPlans(decisions);
       for (const decision of decisions.filter(d => d.decision === 'approved' && d.stage === 'plan' && typeof d.proposal_id === 'string' && d.proposal_id.startsWith(CAMPAIGN_PREFIX))) {
+        if (halted.has(decision.proposal_id)) { holds.push({ reason: 'plan_stopped', detail: 'An approved plan he stopped with a Purge on its check-in was not prepared again.' }); mapped.proposals = mapped.proposals.filter(p => p.proposal_id !== decision.proposal_id); continue; }
         try {
           // His amended version is acted on only after its digest is recomputed (N15).
           if (decision.amended === true && !amendedDigestOk(decision)) { holds.push({ reason: 'amended_digest_mismatch', detail: "An approved plan's amended version does not match its digest, so it was not acted on." }); continue; }
@@ -708,7 +746,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     try { history = laneHistory(await historyReader({ cc, mode, capabilities })); } catch { history = null; }
     const pool = poolOf(suppliedContext);
     const won = suppliedContext ? readWins({ context: suppliedContext, meetings: taps?.meetings ?? null, at }) : null;
-    const sourcing = suppliedContext ? sourcingRequests({ flat: poolFlat({ pool, history }), research: suppliedContext.research ?? [], at, lanesOn: { visibility: caps.rows.visibility?.on, events: caps.rows.events?.on } }) : [];
+    const sourcing = suppliedContext ? sourcingRequests({ flat: poolFlat({ pool, history }), research: suppliedContext.research ?? [], at, weekOf: thisWeek.start, lanesOn: { visibility: caps.rows.visibility?.on, events: caps.rows.events?.on } }) : [];
     if (suppliedContext && capabilities?.features?.rows === true && Array.isArray(capabilities.schema_versions) && capabilities.schema_versions.includes(ROWS_VERSION)) {
       phase = 'rows';
       // 1.7.0 and 1.8.0 only where Control Center serves them; an older one gets the rows without what it cannot read.
@@ -720,10 +758,16 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       if (week.spec) activity.push(...compiledDrift(week.spec, { canon: rows.canonFiles }));
       if (!pitches) holds.push({ reason: 'pitch_needs_1_9_0', detail: "Control Center does not yet take pitches for Jonny's Gmail (protocol 1.9.0), so none were written." });
       const shown = cards ? rows.proposals : briefs ? rows.proposals.map(({ card, ...p }) => p) : rows.proposals.map(({ because, brief, card, ...p }) => p);
-      const room = Math.max(0, 40 - mapped.proposals.length);
-      mapped.proposals.push(...shown.slice(0, room));
-      if (shown.length > room) holds.push({ reason: 'row_cap', detail: `${shown.length - room} more row actions wait for a later run; a report carries at most 40.` });
+      // The report's 40 leave room for the asks after the rows, and the cut takes the lowest-ranked row actions first, so urgency's
+      // wider rows never push out Jonny's pitches, invites or forms (cutReport).
+      const fit = cutReport([...mapped.proposals, ...shown], Math.max(mapped.proposals.length, REPORT_MAX - ASKS_AFTER_ROWS));
+      if (fit.dropped) holds.push({ reason: 'row_cap', detail: `${fit.dropped} more row actions wait for a later run; a report carries at most ${REPORT_MAX}, and the lowest-ranked row actions wait first.` });
+      const kept = new Set(fit.kept);
+      mapped.proposals = fit.kept;
       holds.push(...rows.holds); activity.push(...rows.activity);
+      // Each lane as posted, not as prepared (C4).
+      rows.counts.lanes = postedLanes(rows.counts.lanes, shown.filter(p => kept.has(p)));
+      rows.shown = shown;
       outcome.rows = rows.counts;
       rowsRun = rows;
     }
@@ -739,7 +783,12 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const checked = decisionsRead ? checkIn({ decisions: decisionsRead, weekOf: thisWeek.start, today, expiresAt: londonMidnight(addDays(today, CHECK_IN_DAYS)), gap: gapNow, lanes: rowsRun?.counts.lanes ?? null, starved }) : { proposal: null, holds: [], plan: null };
     holds.push(...checked.holds);
     if (checked.proposal) { mapped.proposals.unshift(finishProposal(checked.proposal)); activity.push(`Check-in on open plan ${checked.plan}: on his list, every ${CHECK_IN_DAYS} days while it is open.`); }
-    if (mapped.proposals.length > 40) { holds.push({ reason: 'row_cap', detail: `${mapped.proposals.length - 40} more row actions wait for a later run; a report carries at most 40.` }); mapped.proposals = mapped.proposals.slice(0, 40); }
+    if (mapped.proposals.length > REPORT_MAX) {
+      const fit = cutReport(mapped.proposals, REPORT_MAX);
+      holds.push({ reason: 'row_cap', detail: `${fit.dropped} more row actions wait for a later run; a report carries at most ${REPORT_MAX}, and the lowest-ranked row actions wait first.` });
+      mapped.proposals = fit.kept;
+      if (rowsRun) { const kept = new Set(fit.kept); rowsRun.counts.lanes = postedLanes(rowsRun.counts.lanes, rowsRun.shown.filter(p => kept.has(p))); }
+    }
     const lanesNow = rowsRun ? lanesLine(rowsRun.counts.lanes, pool) : null;
     // Plans Control Center can never run, because the Advisory record each rests on is gone, are taken back (1.10.0).
     let withdrawn = capabilities?.features?.withdrawn === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes(MEETINGS_VERSION) && suppliedContext

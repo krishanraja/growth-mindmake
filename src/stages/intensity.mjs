@@ -19,9 +19,18 @@
  *   it: he chose those caps inside the same bounds, and urgency never
  *   overrules his signature (src/crew/compile.mjs).
  *
+ * - Volume rises only when it is known that no spec he signed is in force
+ *   (`default`, or `today` before the spec era). When his decisions could not
+ *   be read (`unread`), his version of a spec could not be used (`unsure`),
+ *   he stopped the spec with a Purge on its check-in (`stopped`), or the
+ *   policy cannot bound a spec (`unsafe`), the caps in force stand: urgency
+ *   never guesses past a signature it could not see.
+ *
  * Pure: the dispatch passes the caps the week spec compiled, the policy and
  * what the directive and his taps say. It stores nothing.
  */
+import { policyErrors } from '../crew/compile.mjs';
+
 
 /** Urgency from which volume rises to its bounds (Ruling, Krish, 2026-10-29). */
 export const RAISE_FROM = 3;
@@ -29,6 +38,18 @@ export const RAISE_FROM = 3;
 export const VOLUME_KEYS = Object.freeze(['rows.max', 'pitches.invites_per_run', 'pitches.invites_per_week', 'pitches.forms_per_row']);
 /** The line every report leads with, so a reader (and a later run) can find it. */
 export const GAP_LINE = /^Gap: /;
+
+/** The week sources on which it is known that no spec he signed is in force: the only ones urgency may raise. */
+export const RAISE_ON = Object.freeze(['default', 'today']);
+/** Why the caps stand on every other source. */
+const STANDS = {
+  signed: 'the week spec he signed sets the caps, so they stand as he set them',
+  last_signed: 'the week spec he signed sets the caps, so they stand as he set them',
+  unread: 'his decisions could not be read, so whether a spec he signed is in force is unknown and the caps in force stand',
+  unsure: 'his version of the week spec could not be used, so whether a spec he signed is in force is unknown and the caps in force stand',
+  stopped: 'he stopped the week spec with a Purge on its check-in, so volume does not rise past the caps in force',
+  unsafe: 'config/policy.json cannot bound a week spec, so the stages\' own settings stand'
+};
 
 const whole = v => Number.isInteger(v) && v >= 0 ? v : null;
 const clone = v => JSON.parse(JSON.stringify(v));
@@ -64,23 +85,25 @@ export function intensityPolicy(policy) {
     if (!b || !Number.isInteger(b.max) || !Number.isInteger(b.min) || b.direction !== 'down_is_safer') return null;
   }
   if (policy?.send_authority !== 'none' || policy?.spend_authority !== 'none') return null;
+  // A policy the week spec would refuse raises nothing either (compile.mjs policyErrors).
+  if (policyErrors(policy).length) return null;
   return { raise_from: i.raise_from, raises };
 }
 
 /**
  * The caps this run uses. `caps` is what the week spec compiled, `source` where
- * it came from (`signed`, `last_signed`, `default` or `today`). At U3 and
- * above on unsigned caps, each volume cap rises to its bound, never past it
+ * it came from (`signed`, `last_signed`, `default`, `today`, `unread`,
+ * `unsure`, `stopped` or `unsafe`). At U3 and above, only on `default` or
+ * `today` (RAISE_ON), each volume cap rises to its bound, never past it
  * and never down. Returns the caps, what rose (as `path from to`), and one
  * activity line. Pure.
  */
 export function intensify(caps, { urgency, source, policy }) {
   const rule = intensityPolicy(policy);
-  const signed = source === 'signed' || source === 'last_signed';
   if (!Number.isInteger(urgency)) return { caps, raised: [], line: 'Intensity: urgency unknown this run, so volume stays at the caps in force.' };
   if (!rule) return { caps, raised: [], line: `Intensity: U${urgency}, but config/policy.json names no volume it may raise, so the caps in force stand.` };
   if (urgency < rule.raise_from) return { caps, raised: [], line: `Intensity: U${urgency}, under U${rule.raise_from}, so volume stays at the caps in force.` };
-  if (signed) return { caps, raised: [], line: `Intensity: U${urgency}, and the week spec he signed sets the caps, so they stand as he set them.` };
+  if (!RAISE_ON.includes(source)) return { caps, raised: [], line: `Intensity: U${urgency}, but ${STANDS[source] ?? 'where the caps in force came from is unknown, so they stand'}.` };
   const out = clone(caps), raised = [];
   const lift = (path, now, max, set) => { if (Number.isInteger(now) && now < max) { set(max); raised.push(`${path} ${now} to ${max}`); } };
   for (const key of rule.raises) {
