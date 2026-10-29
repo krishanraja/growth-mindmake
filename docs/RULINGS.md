@@ -94,3 +94,11 @@ In his words (answered in the 29 October fleet session): "At U3 to U5, engines a
 - A spec he signs still sets every cap within the same bounds, and urgency never overrules it. A lane he turned off stays off.
 - Volume only: no wall, send, spend, permission, fit floor, stage share or Jonny's ten drafts a day moves. Every row, pitch and invite is still a proposal for his yes.
 - Every report leads with the gap: "X of Y, U-n, short by Z", good meetings against this week's target, unknown where it is unknown.
+
+## The good-meetings count stays public (Ruling, Krish, 2026-10-29)
+
+In his words (answered in the 29 October fleet session, on Control Center's North Star reader writing this repository's good-meetings count into its public NOW.md): "Mindmake It's fine to stay public."
+
+- Control Center's North Star reader may write the good-meetings count into the North Star state line of this public repository's NOW.md (`current`, beside `week_target`, `urgency` and the sentence the contract renders), and commit it as `chore(north-star): ...`.
+- It is an exception to "never commit business figures" (AGENTS.md, Privacy and action authority) for that one count on that one line only. Every other business figure, traffic count and private reading stays out of git, NOW.md, Actions logs and the printed run result, as before.
+- tests/rulings.test.mjs allows the line to change only into the shape Control Center's reader writes: the same seven keys, a whole count or null, and no money or percentage in its sentence.

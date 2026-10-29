@@ -35,6 +35,7 @@ Each is in docs/RULINGS.md word for word, with his quotes; a line here says what
 - Volume, the Monday drafts, the backfill and the tools (Rulings, Krish, 2026-10-28): Control Center no longer drafts Mindmake's Monday five, the post-link backfill is capped at 5 dollars, guest invites lean to volume, the mindmake repository and the sendlinks repository are in reach, and the Canva work runs in its own Cowork session.
 - Anyone inside his network is emailed only by him (Ruling, Krish, 2026-10-28): nobody Control Center's `in_network` says is in his network, or cannot say about, gets an action from Jonny's box; the same invite or pitch goes on his own row in his own words, and a show's own booking address on no network list may still be pitched by Jonny.
 - Urgency raises volume to the policy's bounds (Ruling, Krish, 2026-10-29): at U3 to U5 with no signed week spec in force, the volume caps config/policy.json names rise to their bounds; a signed spec still sets them, and no wall moves.
+- The good-meetings count stays public (Ruling, Krish, 2026-10-29): Control Center may write the good-meetings count into this public repository's NOW.md North Star line, an exception to "never commit business figures" for that one count on that one line only.
 
 ## Current release boundary
 
