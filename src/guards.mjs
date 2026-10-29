@@ -44,9 +44,24 @@ export function canonicalJson(value) {
 export const payloadDigest = value => createHash('sha256').update(canonicalJson(value), 'utf8').digest('hex');
 
 const DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
-/** Minimal JSON Schema check for the keywords the protocol schema uses. Unknown fields fail. */
-export function schemaErrors(schema, value, path = '$') {
+/** A local `#/...` JSON pointer into the root schema, or null when it does not resolve. Pure. */
+function resolveRef(root, ref) {
+  if (typeof ref !== 'string' || !ref.startsWith('#/')) return null;
+  let node = root;
+  for (const part of ref.slice(2).split('/').map(p => p.replace(/~1/g, '/').replace(/~0/g, '~'))) {
+    if (!node || typeof node !== 'object' || !Object.hasOwn(node, part)) return null;
+    node = node[part];
+  }
+  return node && typeof node === 'object' ? node : null;
+}
+/** Minimal JSON Schema check for the keywords the protocol schema uses. Unknown fields fail; a `$ref` that does not resolve fails closed. */
+export function schemaErrors(schema, value, path = '$', root = schema) {
   const errors = [];
+  if (schema.$ref !== undefined) {
+    const target = resolveRef(root, schema.$ref);
+    if (!target) return [`${path}: unresolved reference ${schema.$ref}`];
+    errors.push(...schemaErrors(target, value, path, root));
+  }
   if (schema.const !== undefined && value !== schema.const) errors.push(`${path}: must equal ${JSON.stringify(schema.const)}`);
   if (schema.enum && !schema.enum.includes(value)) errors.push(`${path}: value not allowed`);
   if (schema.type !== undefined) {
@@ -63,15 +78,19 @@ export function schemaErrors(schema, value, path = '$') {
   }
   if (typeof value === 'number' && schema.minimum !== undefined && value < schema.minimum) errors.push(`${path}: below its minimum`);
   if (typeof value === 'number' && schema.maximum !== undefined && value > schema.maximum) errors.push(`${path}: above its maximum`);
+  if (typeof value === 'number' && schema.exclusiveMinimum !== undefined && value <= schema.exclusiveMinimum) errors.push(`${path}: not above its exclusive minimum`);
   if (Array.isArray(value)) {
     if (schema.maxItems !== undefined && value.length > schema.maxItems) errors.push(`${path}: too many items`);
     if (schema.minItems !== undefined && value.length < schema.minItems) errors.push(`${path}: too few items`);
-    if (schema.items) value.forEach((item, i) => errors.push(...schemaErrors(schema.items, item, `${path}[${i}]`)));
+    if (schema.uniqueItems === true && new Set(value.map(item => canonicalJson(item))).size !== value.length) errors.push(`${path}: repeated item`);
+    if (schema.items) value.forEach((item, i) => errors.push(...schemaErrors(schema.items, item, `${path}[${i}]`, root)));
   } else if (typeof value === 'object') {
     for (const key of schema.required ?? []) if (!Object.hasOwn(value, key)) errors.push(`${path}: missing ${key}`);
+    if (schema.maxProperties !== undefined && Object.keys(value).length > schema.maxProperties) errors.push(`${path}: too many fields`);
     for (const [key, child] of Object.entries(value)) {
-      if (schema.properties && Object.hasOwn(schema.properties, key)) errors.push(...schemaErrors(schema.properties[key], child, `${path}.${key}`));
+      if (schema.properties && Object.hasOwn(schema.properties, key)) errors.push(...schemaErrors(schema.properties[key], child, `${path}.${key}`, root));
       else if (schema.additionalProperties === false) errors.push(`${path}: unknown field ${key}`);
+      else if (schema.additionalProperties && typeof schema.additionalProperties === 'object') errors.push(...schemaErrors(schema.additionalProperties, child, `${path}.${key}`, root));
     }
   }
   return errors;

@@ -15,8 +15,10 @@ function canonical(v) {
   return JSON.stringify(v);
 }
 export const digest = report => { const { payload_sha256, ...rest } = report; return createHash('sha256').update(canonical(rest)).digest('hex'); };
-export function violations(s, v, path = '$') {
+const pointer = (root, ref) => typeof ref === 'string' && ref.startsWith('#/') ? ref.slice(2).split('/').reduce((n, k) => (n && typeof n === 'object' && Object.hasOwn(n, k) ? n[k] : null), root) : null;
+export function violations(s, v, path = '$', root = s) {
   const out = [];
+  if (s.$ref !== undefined) { const t = pointer(root, s.$ref); if (!t || typeof t !== 'object') return [`${path}:ref`]; out.push(...violations(t, v, path, root)); }
   if (s.const !== undefined && v !== s.const) out.push(path);
   if (s.enum && !s.enum.includes(v)) out.push(path);
   if (s.type) {
@@ -28,10 +30,11 @@ export function violations(s, v, path = '$') {
     if (s.pattern && !new RegExp(s.pattern).test(v)) out.push(`${path}:pattern`);
     if (s.format === 'date-time' && Number.isNaN(Date.parse(v))) out.push(`${path}:date`);
   }
-  if (Array.isArray(v)) { if (s.maxItems !== undefined && v.length > s.maxItems) out.push(`${path}:items`); v.forEach((x, i) => s.items && out.push(...violations(s.items, x, `${path}[${i}]`))); }
+  if (typeof v === 'number') { if (s.minimum !== undefined && v < s.minimum) out.push(`${path}:minimum`); if (s.maximum !== undefined && v > s.maximum) out.push(`${path}:maximum`); if (s.exclusiveMinimum !== undefined && v <= s.exclusiveMinimum) out.push(`${path}:exclusive`); }
+  if (Array.isArray(v)) { if (s.maxItems !== undefined && v.length > s.maxItems) out.push(`${path}:items`); if (s.uniqueItems === true && new Set(v.map(canonical)).size !== v.length) out.push(`${path}:unique`); v.forEach((x, i) => s.items && out.push(...violations(s.items, x, `${path}[${i}]`, root))); }
   else if (v && typeof v === 'object') {
     for (const k of s.required ?? []) if (!(k in v)) out.push(`${path}.${k}:required`);
-    for (const [k, x] of Object.entries(v)) if (s.properties?.[k]) out.push(...violations(s.properties[k], x, `${path}.${k}`)); else if (s.additionalProperties === false) out.push(`${path}.${k}:unknown`);
+    for (const [k, x] of Object.entries(v)) if (s.properties?.[k]) out.push(...violations(s.properties[k], x, `${path}.${k}`, root)); else if (s.additionalProperties === false) out.push(`${path}.${k}:unknown`); else if (s.additionalProperties && typeof s.additionalProperties === 'object') out.push(...violations(s.additionalProperties, x, `${path}.${k}`, root));
   }
   return out;
 }
