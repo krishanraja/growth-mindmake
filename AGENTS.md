@@ -36,6 +36,7 @@ Each is in docs/RULINGS.md word for word, with his quotes; a line here says what
 - Anyone inside his network is emailed only by him (Ruling, Krish, 2026-10-28): nobody Control Center's `in_network` says is in his network, or cannot say about, gets an action from Jonny's box; the same invite or pitch goes on his own row in his own words, and a show's own booking address on no network list may still be pitched by Jonny.
 - Urgency raises volume to the policy's bounds (Ruling, Krish, 2026-10-29): at U3 to U5 with no signed week spec in force, the volume caps config/policy.json names rise to their bounds; a signed spec still sets them, and no wall moves.
 - The good-meetings count stays public (Ruling, Krish, 2026-10-29): Control Center may write the good-meetings count into this public repository's NOW.md North Star line, an exception to "never commit business figures" for that one count on that one line only.
+- Prepaid credits are spent to the share (Ruling, Krish, 2026-10-29): the engine may spend up to its placement share of a prepaid credit pool each cycle with no per-batch approval and reports each spend in `credits_spent`; never past `remaining_for_you`, never new money, and nothing made is published, posted or sent without its own approval.
 
 ## Current release boundary
 

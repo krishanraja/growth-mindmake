@@ -102,3 +102,12 @@ In his words (answered in the 29 October fleet session, on Control Center's Nort
 - Control Center's North Star reader may write the good-meetings count into the North Star state line of this public repository's NOW.md (`current`, beside `week_target`, `urgency` and the sentence the contract renders), and commit it as `chore(north-star): ...`.
 - It is an exception to "never commit business figures" (AGENTS.md, Privacy and action authority) for that one count on that one line only. Every other business figure, traffic count and private reading stays out of git, NOW.md, Actions logs and the printed run result, as before.
 - tests/rulings.test.mjs allows the line to change only into the shape Control Center's reader writes: the same seven keys, a whole count or null, and no money or percentage in its sentence.
+
+## Prepaid credits are spent to the share (Ruling, Krish, 2026-10-29)
+
+In his words (recorded in Control Center's protocol, docs/control-center/ENGINE-PROTOCOL.md, 1.16.0): "Ultimately, we should be maxing out everything we can possibly max out that we're already paying for."
+
+- A growth engine may spend up to its placement share of a tool's prepaid credits each cycle with no per-batch approval, and reports what it made. The share and what is left arrive in the directive's `credits` (protocol 1.16.0); each spend goes back in the report's `credits_spent[]`.
+- Mindmake's pools are ElevenLabs `main` (about half of its monthly credits; it holds his cloned voice) and Apify `main` (about a fifth of the plan's included usage). The live amounts come from the directive, never from this repository.
+- Never past `remaining_for_you`, never a top-up, a plan change or new money; Apify beyond its included usage is new money.
+- Volume and spend only: nothing made with the credits is published, posted or sent without its own approval, anything in his cloned voice needs his yes, and the approved execution ruling (2026-10-22) still governs every external action.
