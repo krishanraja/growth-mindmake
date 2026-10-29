@@ -18,6 +18,7 @@ import { readCanon, readRecord, blobSha, CanonError } from './stages/canon.mjs';
 import { pitchRows } from './stages/pitches.mjs';
 import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, readSpecCounts, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, visibilityTargets, STOPGAP_PREFIX, MEETINGS_VERSION, meetingsServed, readMeetings, countGood, tappedObjective, tappedLine, originCandidates } from './stages/meetings.mjs';
 import { readWeb, trafficLines, bookedHosts } from './stages/traffic.mjs';
+import { readCredits, creditsLine, CREDITS_VERSION, CREDITS_SPENT_MAX } from './stages/credits.mjs';
 import { weekSpec, defaultSpec, parseSpec, compiledDrift, STAGE_CAPS, SPEC_PREFIX, FIRST_SPEC_WEEK } from './crew/compile.mjs';
 import { crewShadow } from './crew/shadow.mjs';
 import { guestsShadow } from './stages/guests.mjs';
@@ -150,6 +151,8 @@ export function readDirective(value) {
     constraints: readConstraints(d),
     // 1.10.0: mindmake.co's Google Analytics readings, for the Measurement Specialist's traffic lines. Never an objective.
     web: readWeb(d.web_analytics),
+    // 1.16.0: the prepaid credits block, kept raw: it is trusted only where the capabilities say features.credits (readCredits).
+    credits_block: d.credits && typeof d.credits === 'object' ? d.credits : null,
     decisions_since: d.decisions_since.filter(x => x && typeof x.proposal_id === 'string' && ['approved','declined'].includes(x.decision)).map(x => ({ proposal_id: x.proposal_id, decision: x.decision, payload_sha256: typeof x.payload_sha256 === 'string' ? x.payload_sha256 : null })),
     in_house: counts && typeof counts === 'object' ? {
       advisory: part(counts.advisory, ['drafted_waiting','sent_this_week','replied_waiting','calls_booked_this_week','paid']),
@@ -357,9 +360,11 @@ export function deadPlans(context, proposing = new Set()) {
 }
 
 /** Build the report envelope exactly as engine-report.schema.json, then check it against that schema. */
-export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null, suppression = null, taxonomy = null }) {
+export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null, suppression = null, taxonomy = null, credits_spent = null }) {
+  // 1.16.0: credits_spent goes out only when this run spent something, and raises the report to the version that carries it.
+  const spent = Array.isArray(credits_spent) && credits_spent.length ? credits_spent.slice(0, CREDITS_SPENT_MAX) : null;
   const body = {
-    schema_version, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
+    schema_version: spent ? CREDITS_VERSION : schema_version, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
     objectives, activity: activity.slice(0, 40).map(line => ({ line: cut(line, 500), evidence_url: null })),
     proposals, events, holds: holds.slice(0, 40).map(h => ({ reason: cut(h.reason, 200), detail: h.detail === null || h.detail === undefined ? null : cut(h.detail, 1000) })),
     // 1.10.0: where each unanswered meeting came from, only when there is one to say.
@@ -367,7 +372,8 @@ export function buildReport({ run_id, mode, observed_at, source, status, objecti
     // 1.10.0: its own pending plans it takes back, only when there is one.
     ...(withdrawn?.length ? { withdrawn } : {}),
     // Plan section 12, M10: the engine's suppression list and taxonomy, both or neither, only when Control Center serves features.suppression.
-    ...(suppression && taxonomy ? { suppression, taxonomy } : {})
+    ...(suppression && taxonomy ? { suppression, taxonomy } : {}),
+    ...(spent ? { credits_spent: spent } : {})
   };
   const report = { ...body, payload_sha256: reportDigest(body) };
   const errors = schemaErrors(REPORT_SCHEMA, report);
@@ -739,6 +745,10 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     activity.push(bookingLine(booked, visibilityTargets(policy)));
     // Traffic to mindmake.co: a supporting reading beside the number, never the number (Phase 1b).
     activity.push(...trafficLines({ web: directive.web, hosts: suppliedContext ? bookedHosts(suppliedContext) : new Set() }));
+    // 1.16.0: Mindmake's share of the prepaid credits, read only where Control Center serves it; the daily credits session spends it (docs/CREDITS-SESSION.md).
+    const credits = readCredits(directive.credits_block, capabilities?.features);
+    const creditsNow = creditsLine(credits);
+    if (creditsNow) activity.push(creditsNow);
     // 1.6.0: the five rows on his home screen, after everything else, in the room a report has left.
     let schema_version = SCHEMA_VERSION, rowsRun = null;
     // Momentum and wins (C4): the lane lines of this engine's recent reports, read from Control Center, and what has worked lately.

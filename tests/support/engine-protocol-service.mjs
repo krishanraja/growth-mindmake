@@ -110,7 +110,7 @@ export function directiveFixture(changes = {}) {
   };
 }
 
-export async function startProtocolService({ token = STAND_IN_TOKEN, directive = directiveFixture(), decisions = [], activatedOn = '2026-10-18', active = true, recorded = true } = {}) {
+export async function startProtocolService({ token = STAND_IN_TOKEN, directive = directiveFixture(), decisions = [], activatedOn = '2026-10-18', active = true, recorded = true, credits = false } = {}) {
   const reports = new Map(), attempts = new Map(), requests = [], faults = [];
   const base = '/api/growth/engines/mindmake/';
   const server = createServer(async (req, res) => {
@@ -125,7 +125,7 @@ export async function startProtocolService({ token = STAND_IN_TOKEN, directive =
     const i = faults.findIndex(f => f.method === req.method && f.route === route);
     if (i >= 0) { const [f] = faults.splice(i, 1); if (f.drop) { req.socket.destroy(); return; } reply(f.status, f.body ?? { error: 'synthetic_fault' }); return; }
     if (route === null) { reply(404, { error: 'not_found' }); return; }
-    if (req.method === 'GET' && route === 'capabilities') { reply(200, { schema_version: '1.2.0', schema_versions: ['1.0.0', '1.1.0', '1.2.0'], engine_id: 'growth-mindmake', product_slug: 'mindmake', idempotency: true, activation: { state: active ? 'active' : 'inactive', activated_on: activatedOn }, features: {} }); return; }
+    if (req.method === 'GET' && route === 'capabilities') { reply(200, { schema_version: credits ? '1.16.0' : '1.2.0', schema_versions: ['1.0.0', '1.1.0', '1.2.0', ...(credits ? ['1.16.0'] : [])], engine_id: 'growth-mindmake', product_slug: 'mindmake', idempotency: true, activation: { state: active ? 'active' : 'inactive', activated_on: activatedOn }, features: credits ? { credits: true } : {} }); return; }
     if (req.method === 'GET' && route === 'directive') { reply(200, directive); return; }
     if (req.method === 'GET' && route === 'decisions') { reply(200, { ok: true, decisions }); return; }
     if (route === 'attempts' && req.method === 'POST') {
@@ -145,6 +145,8 @@ export async function startProtocolService({ token = STAND_IN_TOKEN, directive =
       const problems = violations(schema, body);
       if (problems.length) { reply(400, { error: 'invalid_report', field: problems[0] }); return; }
       if (body.engine_id !== 'growth-mindmake' || body.product_slug !== 'mindmake') { reply(403, { error: 'wrong_engine' }); return; }
+      // 1.16.0: credits_spent only on a 1.16.0 report, and only where credits are served, as Control Center refuses a field newer than the version sent.
+      if ('credits_spent' in body && (body.schema_version !== '1.16.0' || !credits)) { reply(400, { error: 'invalid_report', field: 'credits_spent' }); return; }
       if (req.headers['idempotency-key'] !== body.run_id) { reply(400, { error: 'idempotency_key_mismatch' }); return; }
       if (digest(body) !== body.payload_sha256) { reply(400, { error: 'payload_sha256_mismatch' }); return; }
       if (body.mode === 'live' && !active) { reply(409, { error: 'engine_inactive' }); return; }
