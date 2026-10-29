@@ -29,6 +29,9 @@ import { qualifyShadow } from './stages/qualify.mjs';
 import { playsShadow } from './stages/plays.mjs';
 import { suppressionShadow, suppressionFields } from './stages/suppression.mjs';
 import { placesShadow } from './stages/places.mjs';
+import { gapOf, gapLine, intensify } from './stages/intensity.mjs';
+import { wins as readWins, winsLine } from './stages/wins.mjs';
+import { poolOf, lanesLine, laneHistory, starvedLanes, poolFlat, starvedProposal, sourcingRequests, checkIn, stoppedPlans, STARVED_RUNS, CHECK_IN_DAYS, CHECK_IN_PREFIX, STARVED_PREFIX, CAPPED } from './stages/momentum.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
@@ -174,6 +177,41 @@ export function inHouseLines(inHouse) {
 
 /** A pitch for Jonny's box (1.9.0), which Control Center drafts itself. */
 const isPitch = p => { try { return JSON.parse(p.exact_payload ?? '').mailbox === 'jonny'; } catch { return false; } };
+const isForm = p => p.channel === 'form';
+const isInvite = p => p.close_condition?.reference === 'visibility:invite';
+/** A row action on one of the five rows (not a pitch for Jonny's box, not a form). */
+const isRowAction = p => ROWS.includes(p.row) && !isPitch(p) && !isForm(p);
+/** Each lane's output among these proposals: the five rows, guest invites, podcast pitches and stage pitches. Pure. */
+export function laneCounts(proposals) {
+  return {
+    ...Object.fromEntries(ROWS.map(r => [r, proposals.filter(p => p.row === r && isRowAction(p)).length])),
+    invites: proposals.filter(p => isPitch(p) && isInvite(p)).length,
+    podcasts: proposals.filter(p => isPitch(p) && p.row === 'visibility' && !isInvite(p) && !isForm(p)).length,
+    stages: proposals.filter(p => isPitch(p) && p.row === 'events' && !isForm(p)).length
+  };
+}
+/** The lanes as posted: a lane the report's cut took to 0, or one a cap left at 0, reads `capped`, never 0. Pure. */
+export function postedLanes(before, posted) {
+  // Lanes never counted (a run that wrote no rows) stay unknown, never 0.
+  if (!before || typeof before !== 'object') return before;
+  const now = laneCounts(posted);
+  return Object.fromEntries(Object.entries(now).map(([k, n]) => [k, n === 0 && (before[k] === CAPPED || before[k] > 0) ? CAPPED : Number.isInteger(before[k]) || before[k] === CAPPED ? n : null]));
+}
+/**
+ * A report cut to `max`: row actions go first, the lowest-ranked across every
+ * row first, so pitches, invites, forms and the asks before them keep their
+ * place and every row keeps its best. Only past that is the tail cut. Pure.
+ */
+export function cutReport(list, max) {
+  if (list.length <= max) return { kept: list, dropped: 0 };
+  const order = list.map((p, i) => ({ p, i })).filter(x => isRowAction(x.p)).sort((a, b) => (b.p.rank ?? 0) - (a.p.rank ?? 0) || b.i - a.i);
+  const drop = new Set(order.slice(0, list.length - max).map(x => x.i));
+  const kept = list.filter((_, i) => !drop.has(i)).slice(0, max);
+  return { kept, dropped: list.length - kept.length };
+}
+/** Room left in a report for the two asks a run may put first after the rows: the starved-lanes ask and a check-in. */
+const ASKS_AFTER_ROWS = 2;
+const REPORT_MAX = 40;
 const cut = (text, max) => { const s = String(text).replace(/\s+/g, ' ').trim(); return s.length <= max ? s : `${s.slice(0, max - 3).trimEnd()}...`; };
 function finishProposal(p) {
   const proposal = { amount_usd: null, channel: null, objective_key: null, exact_payload: null, evidence: [], expires_at: null, ...p };
@@ -361,10 +399,10 @@ const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.s
  * collect (at most two rounds of ten, inside its daily caps); a synthetic run
  * asks for nothing. Counts only leave this function for the printed outcome.
  */
-export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS }) {
+export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS, wins = null, sourcing = [] }) {
   // 1.7.0: the title shares the card with the line under it, so it is shorter.
   const titleMax = briefs ? TITLE_MAX_BRIEF : TITLE_MAX;
-  const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0, lookups_asked: 0 };
+  const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0, lookups_asked: 0, sourcing_asked: 0 };
   let canon, files;
   try { canon = await canonReader(); files = [...canon.files, ...await wordFiles()]; }
   catch (error) {
@@ -374,25 +412,27 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   let ctx = context;
   let research = Array.isArray(ctx.research) ? [...ctx.research] : [];
   // The caps come from the week spec in force (src/crew/compile.mjs): today's unless he signed others.
-  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor });
+  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins });
   // Ruling (Krish, 2026-10-28): who is in his network is Control Center's routes[id].in_network, read only where it says it serves it.
   const networkRoutes = capabilities?.features?.network_routes === true;
   const record = pitches ? await recordReader() : null;
   // 1.10.0: notes asking a booked show for the brief link, only where Control Center drafts them.
   const showNotes = capabilities?.features?.show_notes === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes('1.10.0');
-  const pitchArgs = c => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes });
+  const pitchArgs = c => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes, wins });
   let lookups = { requests: [], waiting: 0, by: { stages: 0, podcasts: 0, guests: 0 } };
   if (mode === 'live' && capabilities?.features?.research === true) {
     // A stage, show or guest held only for want of an address asks the desk to find it in the same run (C2), up to four, first in the round.
     if (pitches) lookups = pitchRows(pitchArgs(ctx)).lookups;
     // The engine's own asks first (an address a pitch lacks, a cited reach, a profile for a card too thin to show), then the signals' collection.
-    let pending = [...lookups.requests, ...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, 10);
+    // A pool that has stood still asks for new shows and stages after the addresses (C4, src/stages/momentum.mjs).
+    let pending = [...lookups.requests, ...sourcing, ...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, 10);
+    const sourced = pending.filter(r => sourcing.includes(r)).length;
     for (let round = 0; round < 2 && pending.length; round++) {
       try {
         const got = await cc.research(pending);
         counts.research_asked += pending.length;
         counts.research_answered += got.filter(r => r.status === 'answered').length;
-        if (round === 0) counts.lookups_asked = lookups.requests.length;
+        if (round === 0) { counts.lookups_asked = lookups.requests.length; counts.sourcing_asked = sourced; }
         research = mergeResearch(got, research);
       } catch {
         holds.push({ reason: 'research_unavailable', detail: 'Control Center could not run the lookups asked for this run; rows use what was already known.' });
@@ -406,7 +446,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
       catch { holds.push({ reason: 'context_reread_unavailable', detail: 'People found this run get their row on the next run.' }); }
     }
   }
-  const amplifiers = ctx === context ? amplifiersFirst : amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor });
+  const amplifiers = ctx === context ? amplifiersFirst : amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins });
   const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax });
   // 1.9.0: pitches for Jonny's box, after the rows he presses himself: guests
   // invited onto his own shows and podcasts on visibility, stages to speak on
@@ -418,18 +458,20 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const krishRows = (pitched.krishRows ?? []).filter(e => !onRows.has(e.proposal.target));
   const sameRow = (pitched.krishRows ?? []).length - krishRows.length;
   const { kept, dropped, off } = rankRows([...amplifiers.rows, ...signals.rows, ...krishRows], caps.rows);
-  const isForm = p => p.channel === 'form';
   // A stage that asked leads its row, one tap from done: the people ranked on that row come after its forms (at most two a row).
   const lead = {};
   for (const p of pitched.proposals.filter(isForm)) lead[p.row] = (lead[p.row] ?? 0) + 1;
   const proposals = kept.map(p => finishProposal({ ...p, rank: p.rank + (lead[p.row] ?? 0) }));
   proposals.push(...pitched.proposals.map(finishProposal));
-  const isInvite = p => p.close_condition?.reference === 'visibility:invite';
   counts.invites = pitched.proposals.filter(isInvite).length;
   counts.pitches = pitched.proposals.filter(p => p.row === 'visibility' && !isInvite(p) && !isForm(p)).length;
   counts.speaking_pitches = pitched.proposals.filter(p => p.row === 'events' && !isForm(p)).length;
   counts.forms = pitched.proposals.filter(isForm).length;
   counts.prepared = proposals.length;
+  // Each lane's output this run, which the Lanes line carries for the runs after it (C4).
+  // A Jonny lane at 0 because its cap was full (his ten a day, the run's share, the week's invites) is capped, not starved (C4).
+  const full = { invites: (pitched.inviteHeld ?? []).includes('invite_week_or_run_cap'), podcasts: (pitched.held ?? []).includes('pitch_per_run_cap'), stages: (pitched.stageHeld ?? []).includes('pitch_per_run_cap') };
+  counts.lanes = Object.fromEntries(Object.entries(laneCounts(proposals)).map(([k, n]) => [k, n === 0 && full[k] ? CAPPED : n]));
   for (const [reason, count] of tally(pitched.notesHeld ?? [])) holds.push({ reason: holdCode('notes', reason), detail: `${count} booked show${count === 1 ? '' : 's'} not asked for the brief link today: ${reason.replace(/_/g, ' ')}.` });
   for (const [reason, count] of tally(pitched.inviteHeld ?? [])) holds.push({ reason: holdCode('invite', reason), detail: `${count} guest${count === 1 ? '' : 's'} not invited today: ${reason.replace(/_/g, ' ')}.` });
   for (const [reason, count] of tally(pitched.held)) holds.push({ reason: holdCode('pitch', reason), detail: `${count} podcast${count === 1 ? '' : 's'} not pitched today: ${reason.replace(/_/g, ' ')}.` });
@@ -448,6 +490,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   if (pitches && ((pitched.krishRows ?? []).length || unsure)) activity.push(`His network, never Jonny's box: ${(pitched.krishRows ?? []).length} invite${(pitched.krishRows ?? []).length === 1 ? '' : 's'} or pitch${(pitched.krishRows ?? []).length === 1 ? '' : 'es'} to someone in it written as his own row${(pitched.krishRows ?? []).length === 1 ? '' : 's'}; ${unsure} held because Control Center ${networkRoutes ? 'could not say' : 'does not yet say'} whether the person is in it.`);
   if (pitches) activity.push(`Forms for his tap: ${counts.forms} stage${counts.forms === 1 ? '' : 's'} asked through their own form, every answer written; only his Submit sends one.`);
   if (counts.research_asked) activity.push(`Asked Control Center for ${counts.research_asked} lookups; ${counts.research_answered} answered.`);
+  if (counts.sourcing_asked) activity.push(`The pool has not grown in ${STARVED_RUNS} runs, so this run asked the research desk for new shows and stages (${counts.sourcing_asked} search${counts.sourcing_asked === 1 ? '' : 'es'}, no person and no address); what it finds comes back in the next context's research.`);
   // An address a held pitch or invite lacks: asked this run, or already asked and waiting. Each stays held with its code until Control Center records one.
   const waitingLookups = lookups.waiting;
   // The kinds are named only from a batch Control Center took: a round that failed sent none.
@@ -479,13 +522,18 @@ export function failureClass(e) {
 }
 
 /** A proposed week spec, specs/weeks/<monday>.json, as its text; null when none was proposed for that week. */
+/** This engine's recent live reports, where Control Center lists them (1.10.0, `features.recent_reports`); null otherwise. A synthetic run reads none. */
+export async function readHistory({ cc, mode, capabilities } = {}) {
+  if (mode !== 'live' || capabilities?.features?.recent_reports !== true || typeof cc?.recentReports !== 'function') return null;
+  return cc.recentReports(5);
+}
 export async function readSpecFile(week) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(week)) return null;
   try { return await readFile(new URL(`../specs/weeks/${week}.json`, import.meta.url), 'utf8'); }
   catch (e) { if (e?.code === 'ENOENT') return null; throw e; }
 }
 
-export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA, proofReader = readProofRuns }) {
+export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA, proofReader = readProofRuns, historyReader = readHistory }) {
   if (!['live','synthetic'].includes(mode) || !/^[a-z][a-z0-9-]{0,40}$/.test(kind) || !/^gma-[A-Za-z0-9-]{8,80}$/.test(attemptId)) throw new Error('Invalid dispatch options');
   const started_at = clock();
   const run_id = `${SLUG}:${londonDate(started_at)}:${kind}`;
@@ -586,7 +634,10 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       phase = 'prepare_action';
       const decisions = decisionsRead ?? await cc.decisions(new Date(Date.parse(started_at)-30*DAY).toISOString());
       // Only campaign plans reach prepare-action (N18). The pending 22 October route plans are campaign plans (gmc-), so none is stranded.
+      // A plan he stopped with a Purge on its check-in is never pushed again (ENGINE-PROTOCOL.md, "Purge stops the plan").
+      const halted = stoppedPlans(decisions);
       for (const decision of decisions.filter(d => d.decision === 'approved' && d.stage === 'plan' && typeof d.proposal_id === 'string' && d.proposal_id.startsWith(CAMPAIGN_PREFIX))) {
+        if (halted.has(decision.proposal_id)) { holds.push({ reason: 'plan_stopped', detail: 'An approved plan he stopped with a Purge on its check-in was not prepared again.' }); mapped.proposals = mapped.proposals.filter(p => p.proposal_id !== decision.proposal_id); continue; }
         try {
           // His amended version is acted on only after its digest is recomputed (N15).
           if (decision.amended === true && !amendedDigestOk(decision)) { holds.push({ reason: 'amended_digest_mismatch', detail: "An approved plan's amended version does not match its digest, so it was not acted on." }); continue; }
@@ -677,12 +728,25 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     if (week.source === 'signed') events.push({ event: 'week_spec_signed', proposal_id: `${SPEC_PREFIX}${thisWeek.start}`, at, evidence_url: null });
     holds.push(...week.holds); activity.push(...week.lines);
     if (week.spec) activity.push(...compiledDrift(week.spec, { northStarSha, weekGoalsSha: payloadDigest(directive.week_goals) }));
+    // Intensity (C3; Ruling, Krish, 2026-10-29): the gap leads the report, and at U3 and above volume rises to the policy's bounds with no signed spec.
+    const thisWeekTaps = taps?.complete ? countGood(taps.meetings, thisWeek, londonDate).total : null;
+    const gap = gapOf({ northStar: directive.north_star, thisTarget, tapsThisWeek: thisWeekTaps });
+    const intense = intensify(week.caps, { urgency: gap.urgency, source: week.source, policy });
+    const caps = intense.caps;
+    activity.push(intense.line);
+    outcome.intensity = { urgency: gap.urgency, raised: intense.raised.length };
     const booked = suppliedContext ? bookings({ context: suppliedContext, at, weekStart: thisWeek.start, londonDate, addDays }) : null;
     activity.push(bookingLine(booked, visibilityTargets(policy)));
     // Traffic to mindmake.co: a supporting reading beside the number, never the number (Phase 1b).
     activity.push(...trafficLines({ web: directive.web, hosts: suppliedContext ? bookedHosts(suppliedContext) : new Set() }));
     // 1.6.0: the five rows on his home screen, after everything else, in the room a report has left.
     let schema_version = SCHEMA_VERSION, rowsRun = null;
+    // Momentum and wins (C4): the lane lines of this engine's recent reports, read from Control Center, and what has worked lately.
+    let history = null;
+    try { history = laneHistory(await historyReader({ cc, mode, capabilities })); } catch { history = null; }
+    const pool = poolOf(suppliedContext);
+    const won = suppliedContext ? readWins({ context: suppliedContext, meetings: taps?.meetings ?? null, at }) : null;
+    const sourcing = suppliedContext ? sourcingRequests({ flat: poolFlat({ pool, history }), research: suppliedContext.research ?? [], at, weekOf: thisWeek.start, lanesOn: { visibility: caps.rows.visibility?.on, events: caps.rows.events?.on } }) : [];
     if (suppliedContext && capabilities?.features?.rows === true && Array.isArray(capabilities.schema_versions) && capabilities.schema_versions.includes(ROWS_VERSION)) {
       phase = 'rows';
       // 1.7.0 and 1.8.0 only where Control Center serves them; an older one gets the rows without what it cannot read.
@@ -690,17 +754,42 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       const cards = briefs && capabilities.schema_versions.includes(CARD_VERSION);
       const pitches = cards && capabilities.schema_versions.includes(PITCH_VERSION);
       schema_version = pitches ? PITCH_VERSION : cards ? CARD_VERSION : briefs ? BRIEF_VERSION : ROWS_VERSION;
-      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps: week.caps });
+      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps, wins: won, sourcing });
       if (week.spec) activity.push(...compiledDrift(week.spec, { canon: rows.canonFiles }));
       if (!pitches) holds.push({ reason: 'pitch_needs_1_9_0', detail: "Control Center does not yet take pitches for Jonny's Gmail (protocol 1.9.0), so none were written." });
       const shown = cards ? rows.proposals : briefs ? rows.proposals.map(({ card, ...p }) => p) : rows.proposals.map(({ because, brief, card, ...p }) => p);
-      const room = Math.max(0, 40 - mapped.proposals.length);
-      mapped.proposals.push(...shown.slice(0, room));
-      if (shown.length > room) holds.push({ reason: 'row_cap', detail: `${shown.length - room} more row actions wait for a later run; a report carries at most 40.` });
+      // The report's 40 leave room for the asks after the rows, and the cut takes the lowest-ranked row actions first, so urgency's
+      // wider rows never push out Jonny's pitches, invites or forms (cutReport).
+      const fit = cutReport([...mapped.proposals, ...shown], Math.max(mapped.proposals.length, REPORT_MAX - ASKS_AFTER_ROWS));
+      if (fit.dropped) holds.push({ reason: 'row_cap', detail: `${fit.dropped} more row actions wait for a later run; a report carries at most ${REPORT_MAX}, and the lowest-ranked row actions wait first.` });
+      const kept = new Set(fit.kept);
+      mapped.proposals = fit.kept;
       holds.push(...rows.holds); activity.push(...rows.activity);
+      // Each lane as posted, not as prepared (C4).
+      rows.counts.lanes = postedLanes(rows.counts.lanes, shown.filter(p => kept.has(p)));
+      rows.shown = shown;
       outcome.rows = rows.counts;
       rowsRun = rows;
     }
+    if (won) activity.push(winsLine(won));
+    // A lane at 0 for three runs is one strategy ask a week; an open plan gets a check-in every other day (C4).
+    const laneOn = { ...Object.fromEntries(ROWS.map(r => [r, caps.rows[r]?.on !== false])), podcasts: caps.rows.visibility?.on !== false, invites: caps.rows.visibility?.on !== false, stages: caps.rows.events?.on !== false };
+    const starved = rowsRun ? starvedLanes({ lanes: rowsRun.counts.lanes, history, holds, on: laneOn }) : [];
+    const gapNow = gapLine(gap, directive.north_star.reason);
+    const askStarved = starvedProposal({ starved, weekOf: thisWeek.start, expiresAt: londonMidnight(thisWeek.end), gap: gapNow, decisions: decisionsRead ?? [] });
+    if (starved.length) activity.push(`Starved: ${starved.map(s => s.lane.replace('_', ' ')).join(', ')} at 0 for ${STARVED_RUNS} runs${askStarved ? '; one strategy ask on his list says what feeds each' : '; he has answered this week\'s ask'}.`);
+    else if (rowsRun && history === null && mode === 'live') activity.push(`Starved lanes: not known, because this engine's recent reports could not be read; no lane is assumed fed or starved.`);
+    if (askStarved) mapped.proposals.unshift(finishProposal(askStarved));
+    const checked = decisionsRead ? checkIn({ decisions: decisionsRead, weekOf: thisWeek.start, today, expiresAt: londonMidnight(addDays(today, CHECK_IN_DAYS)), gap: gapNow, lanes: rowsRun?.counts.lanes ?? null, starved }) : { proposal: null, holds: [], plan: null };
+    holds.push(...checked.holds);
+    if (checked.proposal) { mapped.proposals.unshift(finishProposal(checked.proposal)); activity.push(`Check-in on open plan ${checked.plan}: on his list, every ${CHECK_IN_DAYS} days while it is open.`); }
+    if (mapped.proposals.length > REPORT_MAX) {
+      const fit = cutReport(mapped.proposals, REPORT_MAX);
+      holds.push({ reason: 'row_cap', detail: `${fit.dropped} more row actions wait for a later run; a report carries at most ${REPORT_MAX}, and the lowest-ranked row actions wait first.` });
+      mapped.proposals = fit.kept;
+      if (rowsRun) { const kept = new Set(fit.kept); rowsRun.counts.lanes = postedLanes(rowsRun.counts.lanes, rowsRun.shown.filter(p => kept.has(p))); }
+    }
+    const lanesNow = rowsRun ? lanesLine(rowsRun.counts.lanes, pool) : null;
     // Plans Control Center can never run, because the Advisory record each rests on is gone, are taken back (1.10.0).
     let withdrawn = capabilities?.features?.withdrawn === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes(MEETINGS_VERSION) && suppliedContext
       ? deadPlans(suppliedContext, new Set(mapped.proposals.map(p => p.proposal_id))) : [];
@@ -739,7 +828,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       ...(outcomes ? outcomeScorecard(outcomes, observed_at) : objectiveReadings({ at: observed_at, activatedOn }))
     ].slice(0, 20);
     // The crew, in shadow until the switch (plan section 3): each specialist's lint and measured check, counted and reported, nothing held or hidden.
-    const crew = crewShadow({ proposals: mapped.proposals, context: suppliedContext, canon: rowsRun?.canon ?? null, research: rowsRun?.research ?? null, at, caps: week.caps, constraints: c, objectives, activity, origin_candidates, taps, lastWeek, londonDate });
+    const crew = crewShadow({ proposals: mapped.proposals, context: suppliedContext, canon: rowsRun?.canon ?? null, research: rowsRun?.research ?? null, at, caps, constraints: c, objectives, activity, origin_candidates, taps, lastWeek, londonDate });
     activity.push(...crew.lines);
     // Plan section 12, M3 to M5: the guest standard, the visibility standard and room scoring, ported from Control
     // Center, in shadow beside its own verdicts: one counted line each, nothing held or changed. A fault here never fails the run.
@@ -761,13 +850,16 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const way = route(readyNow, { mode, revision });
     if (way.line) activity.push(way.line);
     if (way.enforce) {
-      // His own signing asks are never held by the crew: they are how he turns the route off.
-      const held = enforce({ proposals: mapped.proposals, findings: crew.findings, exempt: id => id.startsWith(SPEC_PREFIX) || id.startsWith(STOPGAP_PREFIX) });
+      // His own signing asks are never held by the crew: they are how he turns the route off. Nor are the engine's asks of him (a check-in, a starved lane).
+      const held = enforce({ proposals: mapped.proposals, findings: crew.findings, exempt: id => [SPEC_PREFIX, STOPGAP_PREFIX, CHECK_IN_PREFIX, STARVED_PREFIX].some(x => id.startsWith(x)) });
       mapped.proposals = held.kept;
       holds.push(...held.holds);
       activity[activity.indexOf(crew.lines[0])] = crew.enforcedLine();
       activity[decisionsAt] = decisionsLine(mapped.proposals);
     }
+    // Every report leads with the gap: X of Y, U-n, short by Z, unknown where it is unknown.
+    // The lane line comes next, so the 40 lines a report keeps always carry it for the runs after this one.
+    activity.unshift(gapNow, ...(lanesNow ? [lanesNow] : []));
     activity.push('Preparation used the existing daily dispatch. External actions require exact approval, a supported connector and independently verified receipts. Native drafts and human edits remain with their owners.');
     const report = buildReport({
       run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.some(h => !STANDING_HOLDS.has(h.reason)) ? 'held' : 'ready',

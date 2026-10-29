@@ -84,3 +84,13 @@ In his words: "anyone that comes from inside my Network, should only ever be ema
 - No recipient inside his network is ever given a `mailbox: 'jonny'` action: no guest invite, no podcast or stage pitch and no show-notes note from Jonny's box. Who is inside it is Control Center's `routes[contact_id].in_network` (true when the contact's network tier is one of his own networks: reciprocated, core, known or owned), advertised by `features.network_routes`; a network list the context serves that puts someone on one of his own tiers says the same.
 - While the flag is not served, or reads null or missing, a recipient is treated as possibly inside his network, and Jonny's lane holds them (`jonny_network_unknown`, counted). The one exception is a podcast's or a stage's booking address that no network list in the context names: it is the show's own, so Jonny may still pitch it. A false read counts only where the flag is served, and then Jonny's lane goes on as before.
 - Someone inside his network is not dropped: the same invite or pitch is proposed as one of his own rows (visibility for a guest or a podcast, events for a stage), a version 2 email action with no mailbox, so his Draft press drafts it into his own box, in his own first person and signed by him. Jonny's lane holds that person with `network_is_krish`. The show-notes note to a host inside his network is held, not rewritten.
+
+## Urgency raises volume to the policy's bounds (Ruling, Krish, 2026-10-29)
+
+In his words (answered in the 29 October fleet session): "At U3 to U5, engines and Control Center may raise volume caps up to each repo's existing policy bounds without a signed week spec. This is volume only: walls unchanged."
+
+- It builds on "guest invites lean to volume" (Rulings, Krish, 2026-10-28, above).
+- At U3, U4 or U5, read from Control Center's directive, and only on a week with no signed spec in force, the volume caps config/policy.json's `intensity` block names rise to the top of their bounds: the rows (8 a row), guest invites (4 a run, 8 a week) and forms (4 a row). src/stages/intensity.mjs owns it.
+- A spec he signs still sets every cap within the same bounds, and urgency never overrules it. A lane he turned off stays off.
+- Volume only: no wall, send, spend, permission, fit floor, stage share or Jonny's ten drafts a day moves. Every row, pitch and invite is still a proposal for his yes.
+- Every report leads with the gap: "X of Y, U-n, short by Z", good meetings against this week's target, unknown where it is unknown.
