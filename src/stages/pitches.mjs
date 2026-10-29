@@ -941,37 +941,54 @@ export function formRows({ context, weekGoals, canon, record = null, files, at, 
  * be pitched or invited if an address were on record: the same run asks
  * Control Center's research desk to find where it takes pitches, so the hold
  * clears itself instead of sitting there every run. At most LOOKUPS_PER_RUN a
- * run, in the first research round and inside its ten and its daily caps,
- * stages first (none has been pitched without one), then podcasts by
- * pitchScore, then guests, each kind by its own rank. One a subject a London
- * month: a lookup already asked and not over the cap or failed is never asked
- * again while it waits or once it has answered; one over the cap or failed is
- * asked again the next day under that day's id, as the desk requires.
+ * run, in the first research round and inside its ten and its daily caps.
+ * The kinds take turns, a stage, then a podcast, then a guest, then the next
+ * stage, each kind in its own rank (stages by speakScore, podcasts by
+ * pitchScore, guests by verdict and strength), so no kind waits behind another.
+ *
+ * When it is asked again: never while Control Center's context still holds a
+ * lookup for the subject that waits or has answered (the context carries the
+ * desk's last 14 days, its 200 newest rows). One over the cap or failed is
+ * asked again the next day. One that has left the context is asked again as a
+ * new lookup, at most once a London day. Every attempt has an id of its own,
+ * the subject, the London day and the words' digest, so a resend is never the
+ * same id with other words (which the desk refuses for the whole batch), and
+ * the same id is only ever the same words, whose stored answer the desk replays.
  *
  * The hold keeps its code until Control Center records the address. A found
  * address grants nothing: the pitch it allows is still a proposal for his yes,
  * and the network rule still decides whose box it goes in (Ruling, Krish,
  * 2026-10-28). The query names the show, the stage or the person, never an
- * address. Pure.
+ * address or a number the desk would read as a phone. Pure.
  */
 export const LOOKUPS_PER_RUN = 4;
 /** A stand-in address for asking a hold whether the address is all a subject lacks. Never written anywhere. */
 const SOME_ADDRESS = '00000000-0000-4000-8000-000000000000';
 const RETRY = new Set(['over_cap', 'failed']);
-const noAddress = text => clean(String(text ?? '').replace(/\S*@\S*/g, ' ').replace(/https?:\/\/\S+/g, ' '));
-/** The request id for one subject's lookup, or null when one is waiting or answered. Pure. */
-export function lookupId(base, research, at) {
+/** A run of nine digits or more reads as a phone number to the desk (carriesPrivate in Control Center's api/_growthResearch.ts), and one such query fails the whole batch. */
+const PHONE_LIKE = /\+?\d[\d\s().-]{7,}\d/g;
+const longDigits = text => (text.match(PHONE_LIKE) ?? []).some(run => (run.match(/\d/g) ?? []).length >= 9);
+const noAddress = text => clean(String(text ?? '').replace(/\S*@\S*/g, ' ').replace(/https?:\/\/\S+/g, ' ').replace(PHONE_LIKE, run => ((run.match(/\d/g) ?? []).length >= 9 ? ' ' : run)));
+/** The request id for one attempt at a subject's lookup, or null when the context holds one waiting or answered, or one asked today. Pure. */
+export function lookupId(base, research, at, query = '') {
   const mine = (Array.isArray(research) ? research : []).filter(r => typeof r?.request_id === 'string' && r.request_id.startsWith(`${base}:`));
   if (mine.some(r => !RETRY.has(r.status))) return null;
   const day = londonDay(at);
-  if (!mine.length) return `${base}:${day.slice(0, 7)}`;
-  return mine.some(r => r.request_id === `${base}:${day}`) ? null : `${base}:${day}`;
+  if (mine.some(r => r.request_id.startsWith(`${base}:${day}`))) return null;
+  return `${base}:${day}:${seal({ query }).slice(0, 8)}`;
 }
 /** The lookups for subjects held only for want of an address, ranked and capped, and how many already wait. Pure. */
 export function lookupRequests({ stages = [], podcasts = [], guests = [], research = [], at, max = LOOKUPS_PER_RUN }) {
   const ask = [], lanes = [stages, podcasts, guests].map(l => [...l].sort((a, b) => b.score - a.score || a.key.localeCompare(b.key)));
   let waiting = 0;
-  const live = lanes.map(l => l.filter(c => { const id = lookupId(c.base, research, at); if (!id) { waiting++; return false; } c.request_id = id; return true; }));
+  const live = lanes.map(l => l.filter(c => {
+    const query = c.query.slice(0, 400), why = c.why.slice(0, 300);
+    // A query the desk would refuse is left out on its own, never sent to fail the batch.
+    if (!query || !why || longDigits(query) || longDigits(why) || /@/.test(query)) return false;
+    const id = lookupId(c.base, research, at, query);
+    if (!id) { waiting++; return false; }
+    c.request_id = id; return true;
+  }));
   for (let i = 0; ask.length < max && live.some(l => i < l.length); i++) for (const l of live) if (i < l.length && ask.length < max) ask.push(l[i]);
   const requests = ask.map(c => ({ request_id: c.request_id, kind: 'search', subject_ref: c.subject_ref, query: c.query.slice(0, 400), why: c.why.slice(0, 300) }));
   return { requests, waiting, eligible: live.reduce((n, l) => n + l.length, 0) + waiting, by: { stages: ask.filter(c => c.lane === 'stage').length, podcasts: ask.filter(c => c.lane === 'podcast').length, guests: ask.filter(c => c.lane === 'guest').length } };

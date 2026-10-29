@@ -276,13 +276,13 @@ test('a partial read of his meetings is never the number, and an unavailable one
   assert.ok(flagless.reports[0].proposals.some(p => p.proposal_id === 'gmg-2026-10-26'));
 });
 
-test('every row and pitch aims at the number the North Star counts: the policy names it and its target and deadline match docs/NORTH_STAR.md', async () => {
+test('every row and pitch aims at the number the North Star counts: the policy names it, and its target stays in docs/NORTH_STAR.md alone', async () => {
   const north = await readFile(new URL('../docs/NORTH_STAR.md', import.meta.url), 'utf8');
   const block = /```yaml north-star-metric\n([\s\S]*?)```/.exec(north)[1];
   assert.equal(OBJECTIVE, 'good_meetings');
   assert.equal(policy.north_star.objective, OBJECTIVE);
-  assert.equal(policy.north_star.target, Number(/^target:\s*(\d+)$/m.exec(block)[1]));
-  assert.equal(policy.north_star.deadline, /^deadline:\s*(\S+)$/m.exec(block)[1]);
+  assert.match(block, /^metric:\s*"Good meetings a week/m, "the policy's objective is the number the North Star counts");
+  for (const copy of ['target', 'deadline', 'week_target']) assert.equal(policy.north_star[copy], undefined, `${copy} lives in docs/NORTH_STAR.md, never a copy in the policy`);
   assert.equal(policy.north_star.ladder, 'docs/NORTH_STAR.md', 'the weekly target is read from the ladder, never copied');
   assert.equal(policy.north_star.subset, 'qualified_conversations', 'qualified conversations stay a reported subset with their 5/1 lock');
   assert.equal(policy.targets.qualified_conversations_per_week, 5);

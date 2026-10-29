@@ -450,7 +450,9 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   if (counts.research_asked) activity.push(`Asked Control Center for ${counts.research_asked} lookups; ${counts.research_answered} answered.`);
   // An address a held pitch or invite lacks: asked this run, or already asked and waiting. Each stays held with its code until Control Center records one.
   const waitingLookups = lookups.waiting;
-  if (pitches && (counts.lookups_asked || waitingLookups)) activity.push(`Addresses for held pitches and invites: ${counts.lookups_asked} looked up this run (${lookups.by.stages} stages, ${lookups.by.podcasts} podcasts, ${lookups.by.guests} guests), ${waitingLookups} already asked and waiting. Each stays held with its code until Control Center records the address; a found one still needs his yes, and the network rule decides whose box it goes in.`);
+  // The kinds are named only from a batch Control Center took: a round that failed sent none.
+  const kinds = counts.lookups_asked ? [['stage', lookups.by.stages], ['podcast', lookups.by.podcasts], ['guest', lookups.by.guests]].filter(([, n]) => n).map(([k, n]) => `${n} ${k}${n === 1 ? '' : 's'}`) : [];
+  if (pitches && (counts.lookups_asked || waitingLookups)) activity.push(`Addresses for held pitches and invites: ${counts.lookups_asked} looked up this run${kinds.length ? ` (${kinds.join(', ')})` : ''}, ${waitingLookups} already asked and waiting. Each stays held with its code until Control Center records the address; a found one still needs his yes, and the network rule decides whose box it goes in.`);
   // Control Center drafts ten a day into Jonny's Gmail; a wake later the same day writes only what is left.
   if (pitched.jonny?.used) activity.push(`Jonny's Gmail already holds ${pitched.jonny.used} draft${pitched.jonny.used === 1 ? '' : 's'} made today, so this run writes at most ${pitched.jonny.room} more.`);
   return { proposals, holds, activity, counts, canonFiles: canon.files, canon, research };

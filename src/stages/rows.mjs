@@ -1,4 +1,5 @@
 import { seal, clean, DAY } from '../guards.mjs';
+import policy from '../../config/policy.json' with { type: 'json' };
 
 /**
  * The five rows on Krish's home screen (protocol 1.6.0, playbook 11).
@@ -950,10 +951,10 @@ export function actionFor(channel, contactId, name, words) {
 
 /**
  * The objective every row and pitch moves: the North Star number, good meetings a
- * week (docs/NORTH_STAR.md; Ruling, Krish, 2026-10-27), as config/policy.json's
- * `north_star.objective` names it. Qualified buyer conversations stay a reported subset.
+ * week (docs/NORTH_STAR.md; Ruling, Krish, 2026-10-27), read from config/policy.json's
+ * `north_star.objective`, its one home. Qualified buyer conversations stay a reported subset.
  */
-export const OBJECTIVE = 'good_meetings';
+export const OBJECTIVE = policy.north_star.objective;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
