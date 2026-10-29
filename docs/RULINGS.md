@@ -111,3 +111,11 @@ In his words (recorded in Control Center's protocol, docs/control-center/ENGINE-
 - Mindmake's pools are ElevenLabs `main` (about half of its monthly credits; it holds his cloned voice) and Apify `main` (about a fifth of the plan's included usage). The live amounts come from the directive, never from this repository.
 - Never past `remaining_for_you`, never a top-up, a plan change or new money; Apify beyond its included usage is new money.
 - Volume and spend only: nothing made with the credits is published, posted or sent without its own approval, anything in his cloned voice needs his yes, and the approved execution ruling (2026-10-22) still governs every external action.
+
+## Engine credits are spent by a scheduled session (Ruling, Krish, 2026-10-29)
+
+In his words (asked in the 29 October fleet session who should spend the engines' prepaid credits, since no runner holds a generator key): "Scheduled sessions".
+
+- One scheduled Claude session a day, with the Control Center, Apify and ElevenLabs connectors, spends Mindmake's share (docs/CREDITS-SESSION.md). It reserves every generation through Control Center before it runs and settles it with the provider's actual cost after, and Control Center takes it off the share in the next directive.
+- The runner spends nothing; it reads the share where served and says what is left. A session's spend is never reported again in `credits_spent`.
+- The walls of the ruling above are unchanged: never past the share, never new money, and nothing made is published, posted or sent without its own approval.
