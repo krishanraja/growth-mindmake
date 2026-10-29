@@ -119,3 +119,12 @@ In his words (asked in the 29 October fleet session who should spend the engines
 - One scheduled Claude session a day, with the Control Center, Apify and ElevenLabs connectors, spends Mindmake's share (docs/CREDITS-SESSION.md). It reserves every generation through Control Center before it runs and settles it with the provider's actual cost after, and Control Center takes it off the share in the next directive.
 - The runner spends nothing; it reads the share where served and says what is left. A session's spend is never reported again in `credits_spent`.
 - The walls of the ruling above are unchanged: never past the share, never new money, and nothing made is published, posted or sent without its own approval.
+
+## Apify is a ceiling (Ruling, Krish, 2026-10-29)
+
+In his words (29 October fleet session, after the credits sessions were built): "bear in mind apify is pay as you go, always - we just need to ensure we don't blow out Apify API costs really, by learning whats efficient and useful in there for us."
+
+- Apify's share in the directive (`mode: ceiling`) is the most this engine may spend in a cycle, never a target. Nothing is lost by leaving it, so there is no pace and no "use it before the reset".
+- A run happens only when a `good_meetings` decision needs it, and Control Center's research desk goes first where it covers the need.
+- Every session run is settled with its actor, job, results returned and results kept (counts only), and the next run reads `get_apify_learnings`: prefer `keep` actors, give a new actor one small `trial`, never rerun a `drop`.
+- The walls of the prepaid credits rulings above are unchanged.
