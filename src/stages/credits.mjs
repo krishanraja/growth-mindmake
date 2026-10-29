@@ -26,7 +26,7 @@ export function readCredits(block, features) {
   if (features?.credits !== true || !block || typeof block !== 'object' || !Array.isArray(block.pools)) return null;
   const pools = block.pools
     .filter(p => p && POOL.test(p.pool ?? '') && typeof p.tool === 'string' && num(p.remaining_for_you) !== null && DAY.test(p.use_by ?? ''))
-    .map(p => ({ pool: p.pool, tool: p.tool.slice(0, 60), unit: typeof p.unit === 'string' ? p.unit.slice(0, 20) : 'credits', remaining_for_you: p.remaining_for_you, use_by: p.use_by, days_left: Number.isInteger(p.days_left) ? p.days_left : null }));
+    .map(p => ({ pool: p.pool, mode: p.mode === 'ceiling' ? 'ceiling' : 'use_it', tool: p.tool.slice(0, 60), unit: typeof p.unit === 'string' ? p.unit.slice(0, 20) : 'credits', remaining_for_you: p.remaining_for_you, use_by: p.use_by, days_left: Number.isInteger(p.days_left) ? p.days_left : null }));
   return { pools };
 }
 
@@ -34,7 +34,11 @@ export function readCredits(block, features) {
 export function creditsLine(credits) {
   if (!credits) return null;
   if (!credits.pools.length) return 'Prepaid credits: none placed on Mindmake this run.';
-  const left = credits.pools.map(p => `${p.tool} ${p.unit === 'usd' ? `$${p.remaining_for_you.toFixed(2)}` : `${Math.round(p.remaining_for_you)} ${p.unit}`} left, use by ${p.use_by}`);
+  const amount = p => p.unit === 'usd' ? `$${p.remaining_for_you.toFixed(2)}` : `${Math.round(p.remaining_for_you)} ${p.unit}`;
+  // A ceiling (Apify, pay as you go; Ruling, Krish, 2026-10-29) is a cap to stay under, never a target, and nothing is wiped.
+  const left = credits.pools.map(p => p.mode === 'ceiling'
+    ? `${p.tool} at most ${amount(p)} more until ${p.use_by}, a cap and not a target`
+    : `${p.tool} ${amount(p)} left, use by ${p.use_by}`);
   return `Prepaid credits: ${left.join('; ')}. The daily credits session spends them; this run spent none.`;
 }
 

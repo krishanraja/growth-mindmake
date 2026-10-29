@@ -73,3 +73,13 @@ test('a dispatch with credits served says what is left, spends nothing and keeps
   const unserved = await run({});
   assert.equal(unserved.activity.some(a => a.line.startsWith('Prepaid credits')), false, 'not served: no line, never a zero');
 });
+
+test('a ceiling pool (Apify, pay as you go) reads as a cap, never a target; a pool with no mode is use_it', () => {
+  const served = { credits: true };
+  const c = readCredits({ rule: 'r', pools: [
+    { pool: 'apify', mode: 'ceiling', tool: 'Apify', unit: 'usd', remaining_for_you: 5.8, use_by: '2026-11-20', days_left: 22 },
+    { pool: 'elevenlabs', tool: 'ElevenLabs', unit: 'characters', remaining_for_you: 50000, use_by: '2026-11-09', days_left: 11 },
+  ] }, served);
+  assert.deepEqual(c.pools.map(p => p.mode), ['ceiling', 'use_it']);
+  assert.equal(creditsLine(c), 'Prepaid credits: Apify at most $5.80 more until 2026-11-20, a cap and not a target; ElevenLabs 50000 characters left, use by 2026-11-09. The daily credits session spends them; this run spent none.');
+});
