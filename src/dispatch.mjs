@@ -408,21 +408,37 @@ export function errorCode(error, phase) {
 
 /** Found routes as the report carries them: at most FOUND_ROUTES_MAX, each the subject, the route and the result it was read from. Pure. */
 export const FOUND_ROUTES_MAX = 40;
-const FOUND_ROUTE_REASON = /^[a-z][a-z0-9_]{0,63}$/;
+/** The refusal reasons ENGINE-PROTOCOL.md names for found routes at 1.18.0. Any other key is counted as `unlisted`, never repeated. */
+export const FOUND_ROUTE_REASONS = new Set(['duplicate_in_report', 'request_not_found', 'request_not_answered', 'subject_mismatch', 'source_not_in_evidence', 'address_not_in_evidence', 'url_not_in_evidence', 'not_a_route_address', 'personal_without_booking_words', 'form_for_non_stage', 'form_not_same_site', 'form_not_readable', 'subject_not_found', 'not_a_guest', 'would_overwrite', 'address_on_another_contact', 'store_failed']);
 const tallyOf = n => Number.isInteger(n) && n >= 0 ? n : null;
 /**
+ * Whether a run may send found_routes: Control Center records them (features.found_routes), serves the version that
+ * carries them (1.18.0), and the report schema copied here has the field. Pure.
+ */
+export function takesFoundRoutes(capabilities, schema = REPORT_SCHEMA) {
+  return capabilities?.features?.found_routes === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes(FOUND_ROUTES_VERSION) && !!schema?.properties?.found_routes;
+}
+/**
  * Control Center's answer to the found routes a report carried (1.18.0, the acceptance's found_routes), as counts only:
- * recorded, already on record, and refused by reason. It never repeats an address or a page, and an answer it cannot read
- * is said to be unread, never counted as none. Null when the report carried no routes. Pure.
+ * recorded, already on record, and refused by reason. A reason the protocol does not name (a later 1.x one, or a malformed
+ * key) is counted under `unlisted`, so the total stays true and no foreign string is repeated. It never repeats an address
+ * or a page, and an answer it cannot read is said to be unread, never counted as none. Null when the report carried no routes. Pure.
  */
 export function foundRoutesAnswer(sent, answer) {
   if (!sent) return null;
   if (!answer || typeof answer !== 'object' || Array.isArray(answer)) return { state: 'unread', line: `Found routes: ${sent} sent; Control Center's answer could not be read, so none is counted as recorded or refused.` };
   if (answer.error === 'found_routes_unrecorded') return { state: 'unrecorded', line: `Found routes: ${sent} sent; Control Center's recorder failed this run (found_routes_unrecorded), so none was recorded and the report still stands.` };
   const recorded = tallyOf(answer.recorded), already = tallyOf(answer.already);
-  const refused = answer.refused && typeof answer.refused === 'object' && !Array.isArray(answer.refused)
-    ? Object.fromEntries(Object.entries(answer.refused).filter(([reason, n]) => FOUND_ROUTE_REASON.test(reason) && tallyOf(n)).sort(([a], [b]) => a.localeCompare(b)))
-    : null;
+  let refused = null;
+  if (answer.refused && typeof answer.refused === 'object' && !Array.isArray(answer.refused)) {
+    refused = {};
+    for (const [reason, n] of Object.entries(answer.refused)) {
+      if (!tallyOf(n)) continue;
+      const key = FOUND_ROUTE_REASONS.has(reason) ? reason : 'unlisted';
+      refused[key] = (refused[key] ?? 0) + n;
+    }
+    refused = Object.fromEntries(Object.entries(refused).sort(([a], [b]) => a.localeCompare(b)));
+  }
   if (recorded === null || already === null || refused === null) return { state: 'unread', line: `Found routes: ${sent} sent; Control Center's answer could not be read, so none is counted as recorded or refused.` };
   const dry = answer.dry_run === true;
   const refusedTotal = Object.values(refused).reduce((a, n) => a + n, 0);
@@ -547,9 +563,8 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const kinds = counts.lookups_asked ? [['stage', lookups.by.stages], ['podcast', lookups.by.podcasts], ['guest', lookups.by.guests]].filter(([, n]) => n).map(([k, n]) => `${n} ${k}${n === 1 ? '' : 's'}`) : [];
   const answeredAny = answered.addresses + answered.forms + answered.nothing;
   if (pitches && (counts.lookups_asked || waitingLookups || answeredAny)) activity.push(`Addresses for held pitches and invites: ${counts.lookups_asked} looked up this run${kinds.length ? ` (${kinds.join(', ')})` : ''}, ${waitingLookups} asked and waiting for an answer; answered: ${answered.addresses} with an address on the subject's own site, ${answered.forms} with its own form page, ${answered.nothing} with nothing usable (asked again in other words, at most once a day). A found route goes to Control Center to record; a found one still needs his yes, and the network rule decides whose box it goes in.`);
-  // Found routes go to Control Center only where it records them (features.found_routes), serves the version that carries them (1.18.0)
-  // and the report schema copied here has the field.
-  const takesRoutes = capabilities?.features?.found_routes === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes(FOUND_ROUTES_VERSION) && !!REPORT_SCHEMA.properties?.found_routes;
+  // Found routes go to Control Center only where it records them, serves 1.18.0 and the copied report schema has the field.
+  const takesRoutes = takesFoundRoutes(capabilities);
   if (pitches && counts.lookups_found && !takesRoutes) holds.push({ reason: 'found_routes_unrecorded', detail: `${counts.lookups_found} route${counts.lookups_found === 1 ? '' : 's'} found in answered lookups wait${counts.lookups_found === 1 ? 's' : ''} for Control Center to take found routes (features.found_routes at protocol 1.18.0, docs/CONTROL-CENTER-BRIEF.md); until it records them on the stage or the guest, the pitch or invite cannot name its recipient.` });
   // Control Center drafts ten a day into Jonny's Gmail; a wake later the same day writes only what is left.
   if (pitched.jonny?.used) activity.push(`Jonny's Gmail already holds ${pitched.jonny.used} draft${pitched.jonny.used === 1 ? '' : 's'} made today, so this run writes at most ${pitched.jonny.room} more.`);

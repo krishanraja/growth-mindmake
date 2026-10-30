@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, parseRecord } from '../src/stages/canon.mjs';
 import { routeFromEvidence, addressFrom, formFrom, ownSites, sameSite, roleRank, ownSentence, carriesWholeName } from '../src/stages/routes.mjs';
 import { pitchRows } from '../src/stages/pitches.mjs';
-import { runDispatch, foundRoutesField, foundRoutesAnswer, buildReport, laterVersion, REPORT_SCHEMA } from '../src/dispatch.mjs';
+import { runDispatch, foundRoutesField, foundRoutesAnswer, buildReport, laterVersion, takesFoundRoutes, FOUND_ROUTE_REASONS, REPORT_SCHEMA } from '../src/dispatch.mjs';
 import { schemaErrors } from '../src/guards.mjs';
 import { directiveFixture, violations, startProtocolService, STAND_IN_TOKEN, digest } from './support/engine-protocol-service.mjs';
 import { capsContext, capsKit, AT } from './support/caps-scenario.mjs';
@@ -251,8 +251,10 @@ test('the report goes to 1.18.0 only with a route in it, and to 1.16.0 with only
 test('Control Center\'s answer to the routes is counts and reasons only, a dry run says nothing was written, and an unreadable or failed answer counts nothing', () => {
   assert.equal(foundRoutesAnswer(0, ANSWER), null, 'no routes sent, no answer read');
   const refused = foundRoutesAnswer(3, { dry_run: false, checked: 3, recorded: 1, already: 0, refused: { source_not_in_evidence: 1, address_not_in_evidence: 1, 'Bad Reason!': 4, would_overwrite: 0 }, routes: [{ subject_ref: 'target:x', kind: 'email', request_id: 'r', outcome: 'recorded', address: 'leak@summit.example' }] });
-  assert.equal(refused.line, 'Found routes: 3 sent; 1 recorded, 0 already on record, 2 refused (address_not_in_evidence 1, source_not_in_evidence 1).');
-  assert.deepEqual(refused.refused, { address_not_in_evidence: 1, source_not_in_evidence: 1 });
+  // 'Bad Reason!' is not a reason the protocol names: its count stays in the total as unlisted, and its key is never repeated.
+  assert.equal(refused.line, 'Found routes: 3 sent; 1 recorded, 0 already on record, 6 refused (address_not_in_evidence 1, source_not_in_evidence 1, unlisted 4).');
+  assert.deepEqual(refused.refused, { address_not_in_evidence: 1, source_not_in_evidence: 1, unlisted: 4 });
+  assert.doesNotMatch(JSON.stringify(refused), /Bad Reason/);
   assert.doesNotMatch(JSON.stringify(refused), /leak@/, 'a route outcome is never copied');
   const dry = foundRoutesAnswer(2, { dry_run: true, checked: 2, recorded: 0, already: 0, refused: { form_not_same_site: 1 }, routes: [] });
   assert.equal(dry.state, 'dry_run');
@@ -277,4 +279,25 @@ test('the protocol stand-in refuses found_routes on a report below 1.18.0 or whe
     const { payload_sha256, ...body } = stale;
     assert.equal((await post(served, { ...body, payload_sha256: digest(body) })).status, 400, 'a field newer than the version sent is refused');
   } finally { await served.close(); await unserved.close(); }
+});
+
+test('a well-formed reason the protocol does not name is counted as unlisted, and every reason it names is kept by name', () => {
+  const later = foundRoutesAnswer(2, { dry_run: false, checked: 2, recorded: 0, already: 0, refused: { some_later_reason: 1, store_failed: 1 }, routes: [] });
+  assert.deepEqual(later.refused, { store_failed: 1, unlisted: 1 });
+  assert.doesNotMatch(later.line, /some_later_reason/);
+  assert.deepEqual(foundRoutesAnswer(3, { recorded: 0, already: 0, refused: { a_later_reason: 1, b_later_reason: 2 } }).refused, { unlisted: 3 }, 'two unlisted reasons add up');
+  assert.equal(FOUND_ROUTE_REASONS.size, 17);
+  for (const reason of FOUND_ROUTE_REASONS) assert.deepEqual(foundRoutesAnswer(1, { recorded: 0, already: 0, refused: { [reason]: 1 } }).refused, { [reason]: 1 }, reason);
+});
+
+test('found routes are sent only with the feature, the served version and the field in the copied schema, each one needed', () => {
+  const caps = { features: { found_routes: true }, schema_versions: ['1.17.0', '1.18.0'] };
+  assert.equal(takesFoundRoutes(caps), true);
+  assert.equal(takesFoundRoutes({ ...caps, features: { found_routes: false } }), false);
+  assert.equal(takesFoundRoutes({ ...caps, schema_versions: ['1.17.0'] }), false);
+  assert.equal(takesFoundRoutes(null), false);
+  // A copied schema without the field, as before the 1.18.0 refresh, sends nothing whatever Control Center serves.
+  const { found_routes, ...older } = REPORT_SCHEMA.properties;
+  assert.equal(takesFoundRoutes(caps, { ...REPORT_SCHEMA, properties: older }), false);
+  assert.ok(found_routes);
 });
