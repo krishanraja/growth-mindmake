@@ -404,9 +404,11 @@ same run asks Control Center's research desk to find where it takes pitches.
   names its recipient by contact id, and Control Center refuses any other key,
   so a found address cannot be pitched until Control Center files it as the
   stage's booking contact (or the guest's route) and a found form page until it
-  reads its fields. The report carries the routes as `found_routes` only where
-  Control Center serves `features.found_routes` and its report schema carries
-  the field (docs/CONTROL-CENTER-BRIEF.md); until then the hold
+  reads its fields. The report carries the routes as `found_routes`, at
+  protocol 1.18.0, only where Control Center serves `features.found_routes`
+  and 1.18.0 (krishanraja/control-center#636); its acceptance answers each
+  route, and the run counts that answer, recorded, already on record or
+  refused by reason, never an address. Where either is not served the hold
   `found_routes_unrecorded` names how many wait, and no address leaves the
   engine. Addresses live only in memory and that payload, never in a file, a
   fixture or a line of the report.

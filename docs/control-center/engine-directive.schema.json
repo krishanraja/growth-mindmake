@@ -1157,7 +1157,8 @@
                     "study_style",
                     "make_piece",
                     "visibility",
-                    "taste_only"
+                    "taste_only",
+                    "offday_post"
                   ]
                 }
               },
@@ -1253,6 +1254,7 @@
                 "type": "string",
                 "description": "service_registry key, the pool credits_spent names"
               },
+              "mode": {"enum": ["use_it", "ceiling"], "description": "use_it: prepaid and wiped at the reset, spend it. ceiling: pay as you go (Apify), the share is the most you may spend, never a target. Absent reads as use_it."},
               "tool": {
                 "type": "string"
               },

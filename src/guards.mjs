@@ -63,6 +63,9 @@ export function schemaErrors(schema, value, path = '$', root = schema) {
     errors.push(...schemaErrors(target, value, path, root));
   }
   if (schema.const !== undefined && value !== schema.const) errors.push(`${path}: must equal ${JSON.stringify(schema.const)}`);
+  // oneOf: exactly one branch holds; not: the branch must fail. Both judged against the same value and root.
+  if (Array.isArray(schema.oneOf) && schema.oneOf.filter(branch => !schemaErrors(branch, value, path, root).length).length !== 1) errors.push(`${path}: must match exactly one form`);
+  if (schema.not !== undefined && !schemaErrors(schema.not, value, path, root).length) errors.push(`${path}: matches a form it must not`);
   if (schema.enum && !schema.enum.includes(value)) errors.push(`${path}: value not allowed`);
   if (schema.type !== undefined) {
     const kind = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
