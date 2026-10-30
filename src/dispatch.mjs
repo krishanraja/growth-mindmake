@@ -360,7 +360,7 @@ export function deadPlans(context, proposing = new Set()) {
 }
 
 /** Build the report envelope exactly as engine-report.schema.json, then check it against that schema. */
-export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null, suppression = null, taxonomy = null, credits_spent = null }) {
+export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null, suppression = null, taxonomy = null, credits_spent = null, found_routes = null }) {
   // 1.16.0: credits_spent goes out only when this run spent something, and raises the report to the version that carries it.
   const spent = Array.isArray(credits_spent) && credits_spent.length ? credits_spent.slice(0, CREDITS_SPENT_MAX) : null;
   const body = {
@@ -373,7 +373,9 @@ export function buildReport({ run_id, mode, observed_at, source, status, objecti
     ...(withdrawn?.length ? { withdrawn } : {}),
     // Plan section 12, M10: the engine's suppression list and taxonomy, both or neither, only when Control Center serves features.suppression.
     ...(suppression && taxonomy ? { suppression, taxonomy } : {}),
-    ...(spent ? { credits_spent: spent } : {})
+    ...(spent ? { credits_spent: spent } : {}),
+    // Routes answered lookups found, only where Control Center records them (features.found_routes) and only when there is one.
+    ...(found_routes?.length ? { found_routes } : {})
   };
   const report = { ...body, payload_sha256: reportDigest(body) };
   const errors = schemaErrors(REPORT_SCHEMA, report);
@@ -396,6 +398,11 @@ export function errorCode(error, phase) {
   return `${phase}_unavailable`;
 }
 
+/** Found routes as the report carries them: at most FOUND_ROUTES_MAX, each the subject, the route and the result it was read from. Pure. */
+export const FOUND_ROUTES_MAX = 40;
+export function foundRoutesField(found) {
+  return (Array.isArray(found) ? found : []).slice(0, FOUND_ROUTES_MAX).map(f => ({ subject_ref: f.subject_ref, kind: f.kind, ...(f.kind === 'email' ? { address: f.address } : { url: f.url }), source_url: f.source_url, request_id: f.request_id }));
+}
 const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.some(f => f.request_id === r.request_id))];
 
 /**
@@ -424,8 +431,9 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const record = pitches ? await recordReader() : null;
   // 1.10.0: notes asking a booked show for the brief link, only where Control Center drafts them.
   const showNotes = capabilities?.features?.show_notes === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes('1.10.0');
-  const pitchArgs = c => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes, wins });
-  let lookups = { requests: [], waiting: 0, by: { stages: 0, podcasts: 0, guests: 0 } };
+  // The research the pitches read is this run's too: a lookup the desk answered this run gives its route in the same run.
+  const pitchArgs = (c, r = c?.research) => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes, wins, research: r });
+  let lookups = { requests: [], waiting: 0, asked_today: 0, by: { stages: 0, podcasts: 0, guests: 0 } };
   if (mode === 'live' && capabilities?.features?.research === true) {
     // A stage, show or guest held only for want of an address asks the desk to find it in the same run (C2), up to four, first in the round.
     if (pitches) lookups = pitchRows(pitchArgs(ctx)).lookups;
@@ -458,7 +466,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // invited onto his own shows and podcasts on visibility, stages to speak on
   // on events. With them, the forms of stages that asked, for his Submit. An
   // older Control Center gets none.
-  const pitched = pitches ? pitchRows(pitchArgs(ctx)) : { proposals: [], krishRows: [], held: [], stageHeld: [], inviteHeld: [], formHeld: [], notesHeld: [], jonny: null };
+  const pitched = pitches ? pitchRows(pitchArgs(ctx, mergeResearch(research, ctx.research ?? []))) : { proposals: [], krishRows: [], held: [], stageHeld: [], inviteHeld: [], formHeld: [], notesHeld: [], jonny: null, found: [], lookups: null };
   // Someone in his network goes on his own rows instead, ranked with the rest; one person already on a row keeps that row.
   const onRows = new Set([...amplifiers.rows, ...signals.rows].map(e => e.proposal.target));
   const krishRows = (pitched.krishRows ?? []).filter(e => !onRows.has(e.proposal.target));
@@ -497,14 +505,22 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   if (pitches) activity.push(`Forms for his tap: ${counts.forms} stage${counts.forms === 1 ? '' : 's'} asked through their own form, every answer written; only his Submit sends one.`);
   if (counts.research_asked) activity.push(`Asked Control Center for ${counts.research_asked} lookups; ${counts.research_answered} answered.`);
   if (counts.sourcing_asked) activity.push(`The pool has not grown in ${STARVED_RUNS} runs, so this run asked the research desk for new shows and stages (${counts.sourcing_asked} search${counts.sourcing_asked === 1 ? '' : 'es'}, no person and no address); what it finds comes back in the next context's research.`);
-  // An address a held pitch or invite lacks: asked this run, or already asked and waiting. Each stays held with its code until Control Center records one.
+  // An address a held pitch or invite lacks: asked this run, waiting (no answer yet), or answered (src/stages/routes.mjs reads what it found).
+  // Waiting is counted from the lookups read before this run's round; what answered is counted from the research after it.
   const waitingLookups = lookups.waiting;
+  const answered = pitched.lookups?.answered ?? { addresses: 0, forms: 0, nothing: 0 };
+  counts.lookups_found = answered.addresses + answered.forms;
+  counts.lookups_found_nothing = answered.nothing;
   // The kinds are named only from a batch Control Center took: a round that failed sent none.
   const kinds = counts.lookups_asked ? [['stage', lookups.by.stages], ['podcast', lookups.by.podcasts], ['guest', lookups.by.guests]].filter(([, n]) => n).map(([k, n]) => `${n} ${k}${n === 1 ? '' : 's'}`) : [];
-  if (pitches && (counts.lookups_asked || waitingLookups)) activity.push(`Addresses for held pitches and invites: ${counts.lookups_asked} looked up this run${kinds.length ? ` (${kinds.join(', ')})` : ''}, ${waitingLookups} already asked and waiting. Each stays held with its code until Control Center records the address; a found one still needs his yes, and the network rule decides whose box it goes in.`);
+  const answeredAny = answered.addresses + answered.forms + answered.nothing;
+  if (pitches && (counts.lookups_asked || waitingLookups || answeredAny)) activity.push(`Addresses for held pitches and invites: ${counts.lookups_asked} looked up this run${kinds.length ? ` (${kinds.join(', ')})` : ''}, ${waitingLookups} asked and waiting for an answer; answered: ${answered.addresses} with an address on the subject's own site, ${answered.forms} with its own form page, ${answered.nothing} with nothing usable (asked again in other words, at most once a day). A found route goes to Control Center to record; a found one still needs his yes, and the network rule decides whose box it goes in.`);
+  // Found routes go to Control Center only where it records them (features.found_routes) and the report it serves carries the field.
+  const takesRoutes = capabilities?.features?.found_routes === true && !!REPORT_SCHEMA.properties?.found_routes;
+  if (pitches && counts.lookups_found && !takesRoutes) holds.push({ reason: 'found_routes_unrecorded', detail: `${counts.lookups_found} route${counts.lookups_found === 1 ? '' : 's'} found in answered lookups wait${counts.lookups_found === 1 ? 's' : ''} for Control Center to take found routes (features.found_routes, docs/CONTROL-CENTER-BRIEF.md); until it records them on the stage or the guest, the pitch or invite cannot name its recipient.` });
   // Control Center drafts ten a day into Jonny's Gmail; a wake later the same day writes only what is left.
   if (pitched.jonny?.used) activity.push(`Jonny's Gmail already holds ${pitched.jonny.used} draft${pitched.jonny.used === 1 ? '' : 's'} made today, so this run writes at most ${pitched.jonny.room} more.`);
-  return { proposals, holds, activity, counts, canonFiles: canon.files, canon, research };
+  return { proposals, holds, activity, counts, canonFiles: canon.files, canon, research, found_routes: takesRoutes ? foundRoutesField(pitched.found ?? []) : null };
 }
 
 /**
@@ -874,7 +890,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const report = buildReport({
       run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.some(h => !STANDING_HOLDS.has(h.reason)) ? 'held' : 'ready',
       source: strategicSource ?? { revision: snapshot && snapshot.source_revision.length <= 128 ? snapshot.source_revision : revision, captured_at: snapshot?.generated_at ?? observed_at },
-      objectives, activity, proposals: mapped.proposals, events: events.slice(0, 40), holds, schema_version, origin_candidates, withdrawn,
+      objectives, activity, proposals: mapped.proposals, events: events.slice(0, 40), holds, schema_version, origin_candidates, withdrawn, found_routes: rowsRun?.found_routes ?? null,
       ...(suppressed.fields ?? {})
     });
     // A live run that read nothing to plan from is held by its class (F48): the report says degraded, and the attempt says why, never succeeded.

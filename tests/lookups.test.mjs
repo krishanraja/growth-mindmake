@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, parseRecord } from '../src/stages/canon.mjs';
-import { pitchRows, lookupId, lookupRequests, LOOKUPS_PER_RUN } from '../src/stages/pitches.mjs';
+import { pitchRows, lookupId, lookupRequests, lookupState, LOOKUPS_PER_RUN, LOOKUP_WORDINGS } from '../src/stages/pitches.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture, violations } from './support/engine-protocol-service.mjs';
 import { capsContext, capsKit, AT } from './support/caps-scenario.mjs';
@@ -38,14 +38,18 @@ function heldContext({ research = [] } = {}) {
 
 const DAY_ID = /^(?:booking|email):(?:guest:)?[0-9a-f-]{36}:2026-10-27:[0-9a-f]{8}$/;
 
-test('every attempt has its own id, never asked again while the context holds one waiting or answered, and at most once a London day', () => {
+test('every attempt has its own id, never asked again while one waits or found a route, a found-nothing answer asked again in the next wording, and at most once a London day', () => {
   const first = lookupId('booking:x', [], AT, 'where does x take pitches');
   assert.match(first, /^booking:x:2026-10-27:[0-9a-f]{8}$/, 'the subject, the London day and the words');
   assert.equal(lookupId('booking:x', [], AT, 'where does x take pitches'), first, 'the same words on the same day are the same id, which the desk replays');
   assert.notEqual(lookupId('booking:x', [], AT, 'where does the renamed x take pitches'), first, 'other words are another id, never the same id the desk would refuse with a 409');
-  assert.equal(lookupId('booking:x', [{ request_id: 'booking:x:2026-10-20:abcdef01', status: 'answered' }], AT), null, 'answered: wait for Control Center to record the address');
+  assert.match(lookupId('booking:x', [{ request_id: 'booking:x:2026-10-20:abcdef01', status: 'answered', evidence: [] }], AT, 'q2'), /^booking:x:2026-10-27:/, 'answered with nothing usable: asked again, in the next wording, on a later day');
   assert.equal(lookupId('booking:x', [{ request_id: 'booking:x:2026-10-20:abcdef01' }], AT), null, 'asked with no answer yet: waiting');
-  assert.equal(lookupId('booking:x', [{ request_id: 'booking:x:2026-10-20:abcdef01', status: 'empty' }], AT), null, 'nothing found is not asked again while the context holds it');
+  assert.match(lookupId('booking:x', [{ request_id: 'booking:x:2026-10-20:abcdef01', status: 'empty' }], AT, 'q2'), /^booking:x:2026-10-27:/, 'nothing found: asked again in other words');
+  assert.equal(lookupId('booking:x', [{ request_id: 'booking:x:2026-10-27:abcdef01', status: 'empty' }], AT, 'q2'), null, 'but never twice a London day');
+  const three = ['2026-10-20', '2026-10-21', '2026-10-22'].map(d => ({ request_id: `booking:x:${d}:abcdef01`, status: 'empty' }));
+  assert.equal(lookupState('booking:x', three).state, 'exhausted');
+  assert.equal(lookupId('booking:x', three, AT, 'q4'), null, `every one of the ${LOOKUP_WORDINGS} wordings answered with nothing: not asked again while the context holds them`);
   assert.match(lookupId('booking:x', [{ request_id: 'booking:x:2026-10-26:abcdef01', status: 'over_cap' }], AT, 'q'), /^booking:x:2026-10-27:/, 'over the cap: a new id the next day, as the desk requires');
   assert.equal(lookupId('booking:x', [{ request_id: 'booking:x:2026-10-26:abcdef01', status: 'over_cap' }, { request_id: 'booking:x:2026-10-27:12345678', status: 'failed' }], AT, 'q'), null, 'once a day');
   assert.match(lookupId('booking:x', [{ request_id: 'booking:xy:2026-10-20:abcdef01', status: 'answered' }], AT, 'q'), /^booking:x:2026-10-27:/, 'another subject is not this one');
@@ -78,7 +82,7 @@ test('a held stage, show and guest each file a bounded lookup, taking turns, and
 });
 
 test('a lookup already asked is not asked again while it waits, and is counted as waiting', () => {
-  const asked = [`booking:${id(601)}`, `booking:${id(401)}`, `email:${id(801)}`].map(base => ({ request_id: `${base}:2026-10-20:abcdef01`, kind: 'search', status: 'answered', requested_at: '2026-10-20T05:10:00Z' }));
+  const asked = [`booking:${id(601)}`, `booking:${id(401)}`, `email:${id(801)}`].map(base => ({ request_id: `${base}:2026-10-20:abcdef01`, kind: 'search', requested_at: '2026-10-20T05:10:00Z' }));
   const r = pitchRows({ context: heldContext({ research: asked }), weekGoals: GOALS, canon, record: RECORD, files: FILES, at: AT });
   assert.equal(r.lookups.waiting, 3);
   assert.deepEqual(r.lookups.requests.map(q => q.request_id.split(':').slice(0, -2).join(':')), [`booking:${id(602)}`, `email:guest:${id(902)}`], 'only the two never asked');
@@ -138,9 +142,12 @@ test('a live dispatch run asks the desk for the lookups first in its round, coun
   assert.deepEqual(first.batches[0].slice(0, 4).map(q => q.request_id.split(':')[0]), ['booking', 'booking', 'email', 'booking'], 'the lookups lead the first round');
   assert.equal(first.result.rows.lookups_asked, 4);
   assert.ok(first.result.rows.research_asked >= 4);
-  assert.ok(first.report.holds.some(h => h.reason === 'speak_no_booking_address') && first.report.holds.some(h => h.reason === 'invite_no_email'), 'the holds keep their codes');
+  // The desk answered all four with nothing this run: each is read in the same run and held as found nothing, never as waiting.
+  assert.ok(first.report.holds.some(h => h.reason === 'speak_lookup_found_nothing') && first.report.holds.some(h => h.reason === 'invite_lookup_found_nothing'), 'an answered lookup leaves its own hold');
+  assert.ok(first.report.holds.some(h => h.reason === 'invite_no_contact'), 'the guest not yet asked keeps its code');
+  assert.equal(first.result.rows.lookups_found_nothing, 4);
   const line = first.report.activity.find(a => a.line.startsWith('Addresses for held pitches and invites'))?.line;
-  assert.match(line, /^Addresses for held pitches and invites: 4 looked up this run \(2 stages, 1 podcast, 1 guest\), 0 already asked and waiting\./);
+  assert.match(line, /^Addresses for held pitches and invites: 4 looked up this run \(2 stages, 1 podcast, 1 guest\), 0 asked and waiting for an answer; answered: 0 with an address on the subject's own site, 0 with its own form page, 4 with nothing usable/);
   assert.match(line, /still needs his yes, and the network rule decides whose box it goes in/);
   assert.deepEqual(violations(schema, first.report), []);
   // The next run reads those lookups back in its context: none is asked again, and the one never asked is.
@@ -148,12 +155,12 @@ test('a live dispatch run asks the desk for the lookups first in its round, coun
   const again = second.batches.flat().filter(q => /^(?:booking|email):/.test(q.request_id));
   assert.equal(again.some(q => first.batches[0].slice(0, 4).some(f => f.request_id === q.request_id)), false, 'a pending or answered lookup is not asked again');
   assert.equal(second.result.rows.lookups_asked, 1);
-  assert.match(second.report.activity.find(a => a.line.startsWith('Addresses for held'))?.line ?? '', /1 looked up this run .* 4 already asked and waiting/);
+  assert.match(second.report.activity.find(a => a.line.startsWith('Addresses for held'))?.line ?? '', /1 looked up this run \(1 guest\), 0 asked and waiting for an answer; answered: 0 with an address on the subject's own site, 0 with its own form page, 5 with nothing usable/, 'answered lookups are never counted as waiting');
   // A round the desk could not run sends nothing: the line counts none and names no kinds.
   const down = await run(first.batches[0].slice(0, 3).map(q => ({ ...q, status: 'empty', requested_at: AT })), { fail: true });
   assert.equal(down.result.rows.lookups_asked, 0);
   assert.ok(down.report.holds.some(h => h.reason === 'research_unavailable'));
-  assert.match(down.report.activity.find(a => a.line.startsWith('Addresses for held'))?.line ?? '', /^Addresses for held pitches and invites: 0 looked up this run, 3 already asked and waiting\./);
+  assert.match(down.report.activity.find(a => a.line.startsWith('Addresses for held'))?.line ?? '', /^Addresses for held pitches and invites: 0 looked up this run, 0 asked and waiting for an answer; answered: 0 with an address on the subject's own site, 0 with its own form page, 3 with nothing usable/);
   // A synthetic run asks the desk for nothing.
   const synthetic = pitchRows({ context: heldContext(), weekGoals: GOALS, canon, record: RECORD, files: FILES, at: AT });
   assert.ok(synthetic.lookups.requests.length > 0, 'pure: the requests are built either way; only a live run with the research feature sends them');

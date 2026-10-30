@@ -468,6 +468,7 @@
         "src/stages/rows.mjs",
         "src/stages/signals.mjs",
         "src/stages/pitches.mjs",
+        "src/stages/routes.mjs",
         "src/stages/guests.mjs",
         "src/stages/visibility.mjs",
         "src/stages/rooms.mjs",
