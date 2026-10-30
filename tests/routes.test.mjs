@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, parseRecord } from '../src/stages/canon.mjs';
-import { routeFromEvidence, addressFrom, formFrom, ownSites, sameSite, roleRank } from '../src/stages/routes.mjs';
+import { routeFromEvidence, addressFrom, formFrom, ownSites, sameSite, roleRank, ownSentence, carriesWholeName } from '../src/stages/routes.mjs';
 import { pitchRows } from '../src/stages/pitches.mjs';
 import { runDispatch, foundRoutesField, REPORT_SCHEMA } from '../src/dispatch.mjs';
 import { directiveFixture, violations } from './support/engine-protocol-service.mjs';
@@ -66,9 +66,43 @@ test('with no address, the subject\'s own speaker page is the route to the form 
 
 test('a guest\'s own site gives a route only by a role address or one carrying the guest\'s name', () => {
   const guest = { name: 'Avery Sample', website: 'https://averysample.example' };
-  assert.equal(routeFromEvidence([item('https://averysample.example/contact', 'Contact', 'Write to avery@averysample.example.')], guest, 'guest')?.basis, 'own_name');
+  assert.equal(routeFromEvidence([item('https://averysample.example/contact', 'Contact', 'Write to avery.sample@averysample.example.')], guest, 'guest')?.basis, 'own_name');
+  assert.equal(routeFromEvidence([item('https://averysample.example/contact', 'Contact', 'Write to avery@averysample.example.')], guest, 'guest'), null, 'a first name alone is not the whole name');
+  assert.equal(carriesWholeName('sampleavery', 'Avery Sample'), true);
   assert.equal(routeFromEvidence([item('https://averysample.example/contact', 'Contact', 'Write to jordan@averysample.example.')], guest, 'guest'), null, 'someone else\'s address');
   assert.equal(routeFromEvidence([item('https://averysample.example/speak', 'Speaking', 'Apply here.')], guest, 'guest'), null, 'no form lane for a guest');
+});
+
+// Review of 2026-10-30: three ways a route could have named someone else's address or form.
+test('an inferred site must carry the subject\'s whole name as its label: a third party whose label only contains a word is refused, address and form alike', () => {
+  const coffee = { name: 'Marketing Over Coffee' };
+  const profs = item('https://marketingprofs.example/podcasts', 'Top 10 marketing podcasts: Marketing Over Coffee and more', 'Write to info@marketingprofs.example to suggest a show.');
+  const profsForm = item('https://marketingprofs.example/contact', 'Marketing Over Coffee - contact us', 'Marketing Over Coffee');
+  assert.deepEqual(ownSites(coffee, [profs, profsForm]), []);
+  assert.equal(routeFromEvidence([profs], coffee, 'podcast'), null);
+  assert.equal(routeFromEvidence([profsForm], coffee, 'podcast'), null, 'no third party\'s contact form for his Submit');
+  assert.equal(routeFromEvidence([item('https://foundersfeedspot.example/x', 'Future Proof Founders podcast', 'Future Proof Founders. Contact hello@foundersfeedspot.example')], { name: 'Future Proof Founders' }, 'podcast'), null);
+  assert.equal(routeFromEvidence([item('https://smithconsulting.example/contact', 'Jane Smith Consulting - contact Jane Smith', 'hello@smithconsulting.example')], { name: 'Jane Smith' }, 'guest'), null);
+  // Its own site, named in full, still gives a role address; a personal one never, on a site the record does not declare.
+  const own = item('https://marketingovercoffee.example/contact', 'Marketing Over Coffee: contact', 'Guests: guests@marketingovercoffee.example. To pitch, write to jordan.sample@marketingovercoffee.example.');
+  assert.deepEqual(routeFromEvidence([own], coffee, 'podcast'), { kind: 'email', address: 'guests@marketingovercoffee.example', source_url: own.url, basis: 'role' });
+  assert.equal(addressFrom([item(own.url, own.title, 'To pitch, write to jordan.sample@marketingovercoffee.example.')], coffee), null);
+  assert.equal(routeFromEvidence([item('https://janesmith.example/contact', 'Jane Smith', 'jane.smith@janesmith.example')], { name: 'Jane Smith' }, 'guest'), null, 'an own-name address only on a declared site');
+});
+
+test('booking words count only in the address\'s own sentence, with no other address between', () => {
+  const deep = { name: 'Deep Tech Talk', event_url: 'https://deeptechtalk.example' };
+  assert.equal(routeFromEvidence([item('https://deeptechtalk.example/about', 'Deep Tech Talk Show', 'For bookings use the form. Our host is jane.doe@deeptechtalk.example')], deep, 'podcast'), null);
+  assert.equal(addressFrom([item('https://deeptechtalk.example/about', 'About', 'To book, write to producer.sample@other.example or jane.doe@deeptechtalk.example')], deep), null, 'another address between');
+  assert.equal(addressFrom([item('https://deeptechtalk.example/about', 'About', 'Book: jane.doe@deeptechtalk.example')], deep)?.basis, 'named_booking');
+  assert.equal(ownSentence('For bookings use the form. Our host is '), ' Our host is ');
+});
+
+test('an address on the hosting platform\'s own domain is not the event\'s on its subdomain', () => {
+  const ai = { name: 'AI Builders Summit 2026', event_url: 'https://aibuilders2026.sched.example/' };
+  assert.equal(routeFromEvidence([item('https://aibuilders2026.sched.example/', 'AI Builders Summit 2026 schedule', 'Questions? hello@sched.example')], ai, 'stage'), null);
+  assert.equal(routeFromEvidence([item('https://aibuilders2026.sched.example/', 'AI Builders Summit 2026 schedule', 'Questions? speakers@aibuilders2026.sched.example')], ai, 'stage')?.address, 'speakers@aibuilders2026.sched.example');
+  assert.equal(sameSite('sched.example', 'aibuilders2026.sched.example'), false, 'never the parent');
 });
 
 test('answered evidence with a same-domain role address takes the stage out of no_booking_address, hands the route over, and the pitch is prepared once Control Center records it', () => {

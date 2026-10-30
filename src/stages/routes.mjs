@@ -8,21 +8,26 @@
  * What counts, for a stage or a show:
  * (a) an email address on the subject's own site domain: a role address first
  *     (booking@, guests@, speakers@, hello@, contact@, info@ and their kind),
- *     a personal-looking one only where the words right before it say it is
- *     the way to book, pitch or apply; never a no-reply, privacy, sales or
- *     press address. The page it was read on is the subject's own site, or a
+ *     a personal-looking one only on a site the record declares and only where
+ *     the words before it, in its own sentence with no other address between,
+ *     say it is the way to book, pitch or apply; never a no-reply, privacy,
+ *     sales or press address. The page it was read on is the subject's own site, or a
  *     listing that names the subject; an address read on a third party's page
  *     that does not name the subject is refused, whatever its domain.
  * (b) failing that, the subject's own application, speaker, guest or contact
  *     page on its own domain, which Control Center reads for its fields and
  *     the existing form lane then fills for his Submit.
- * For a guest only (a), on the guest's own site: a role address, or one whose
- * local part carries the guest's own name.
+ * For a guest only (a), on the guest's own site: a role address, or, only on
+ * the site the guest's record declares, one whose local part carries the
+ * guest's whole name (first and last).
  *
  * The subject's own site is the domain its record names (`event_url`,
  * `cfp_url`, a guest's `website`), never a listing, host or social site; or,
  * where the record names none, a result whose title names the subject and
- * whose domain carries one of the subject's own words. An address pattern is
+ * whose registrable label is the subject's name run together (or starts with
+ * it): marketingovercoffee for Marketing Over Coffee, never marketingprofs.
+ * An address belongs to a site only on that host or a part of it, never its
+ * parent: hello@sched.com is not an event's on aibuilders.sched.com. An address pattern is
  * never guessed: only an address the page shows is kept, with the page it came
  * from as provenance. Pure.
  */
@@ -52,12 +57,15 @@ const FILE_LIKE = /\.(?:png|jpe?g|gif|webp|svg|avif|ico|css|js)$/i;
 export function hostOf(url) {
   try { const u = new URL(String(url ?? '')); return /^https?:$/.test(u.protocol) ? u.hostname.toLowerCase().replace(/^www\./, '').replace(/\.$/, '') : null; } catch { return null; }
 }
-/** Whether two hosts are one site: the same, or one a part of the other, never a bare suffix such as co.uk. Pure. */
-export function sameSite(a, b) {
-  if (!a || !b) return false;
-  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
-  if (!short.includes('.') || SECOND_LEVEL.test(short)) return false;
-  return short === long || long.endsWith(`.${short}`);
+/**
+ * Whether a host is on a site: the site itself or a part of it, never its
+ * parent (an event platform's own domain is not the event hosted on its
+ * subdomain), and never a bare suffix such as co.uk. Pure.
+ */
+export function sameSite(host, site) {
+  if (!host || !site) return false;
+  if (!site.includes('.') || SECOND_LEVEL.test(site)) return false;
+  return host === site || host.endsWith(`.${site}`);
 }
 /** A site that is never anyone's own: a listing, a host, ticketing, social or search. Pure. */
 export const notOwnSite = host => !host || NOT_OWN_SITE.test(host);
@@ -82,14 +90,32 @@ const label = host => { const parts = host.split('.'); const keep = parts.length
  * registrable label carries one of the subject's own words. Pure.
  */
 export function ownSites(subject, evidence = []) {
-  const declared = [subject?.event_url, subject?.cfp_url, subject?.website].map(hostOf).filter(h => h && !notOwnSite(h));
-  if (declared.length) return [...new Set(declared)];
-  const words = ownWords(subject?.name);
-  if (!words.length) return [];
+  const declared = declaredSites(subject);
+  if (declared.length) return declared;
+  const runs = nameRuns(subject?.name);
+  if (!runs.length) return [];
   const inferred = (Array.isArray(evidence) ? evidence : []).map(e => ({ e, host: hostOf(e?.url) }))
-    .filter(({ e, host }) => host && !notOwnSite(host) && names(e, subject.name) && words.some(w => label(host).includes(w)))
+    .filter(({ e, host }) => host && !notOwnSite(host) && names(e, subject.name) && runs.some(r => label(host) === r || label(host).startsWith(r)))
     .map(({ host }) => host);
   return [...new Set(inferred)];
+}
+/** The sites the subject's own record names: `event_url`, `cfp_url`, a guest's `website`, never a listing or host. Pure. */
+export function declaredSites(subject) {
+  return [...new Set([subject?.event_url, subject?.cfp_url, subject?.website].map(hostOf).filter(h => h && !notOwnSite(h)))];
+}
+/** A name run together as a domain label would carry it: every word but "the", and its own words alone when two or more. Pure. */
+function nameRuns(name) {
+  const all = plain(name).split(' ').filter(w => w && w !== 'the').join('');
+  const own = ownWords(name);
+  return [...new Set([all.length >= 6 ? all : '', own.length >= 2 ? own.join('') : ''].filter(Boolean))];
+}
+/** The words before an address that speak for it: back to the end of the last sentence, and none if another address sits between. Pure. */
+export function ownSentence(before) {
+  const text = String(before ?? '');
+  let cut = 0;
+  for (const m of text.matchAll(/[.!?;](?=\s)|\n/g)) cut = m.index + m[0].length;
+  const tail = text.slice(cut);
+  return /@|[[(]\s*at\s*[\])]/i.test(tail) ? '' : tail;
 }
 
 /** Every address a result shows, with the words right before it. Pure. */
@@ -117,6 +143,8 @@ export function roleRank(local) {
  * Pure.
  */
 export function addressFrom(evidence, subject, sites = ownSites(subject, evidence)) {
+  // A personal-looking address counts only on a site the record itself declares.
+  const declared = declaredSites(subject).length > 0;
   const found = [];
   (Array.isArray(evidence) ? evidence : []).forEach((item, at) => {
     const page = hostOf(item?.url);
@@ -129,7 +157,7 @@ export function addressFrom(evidence, subject, sites = ownSites(subject, evidenc
       if (!sites.some(s => sameSite(domain, s))) continue;
       const rank = roleRank(local);
       if (rank === null) continue;
-      if (rank === Infinity && !BOOKING_WORDS.test(before.slice(-80))) continue;
+      if (rank === Infinity && (!declared || !BOOKING_WORDS.test(ownSentence(before)))) continue;
       found.push({ address, source_url: item.url, rank, own: onOwn ? 0 : 1, at, basis: rank === Infinity ? 'named_booking' : 'role' });
     }
   });
@@ -161,7 +189,7 @@ export function formFrom(evidence, subject, sites = ownSites(subject, evidence))
 export function guestAddressFrom(evidence, guest) {
   const sites = ownSites(guest, evidence);
   if (!sites.length) return null;
-  const parts = ownWords(guest?.name).concat(plain(guest?.name).split(' ').filter(w => w.length >= 3));
+  const declared = declaredSites(guest).length > 0;
   const found = [];
   (Array.isArray(evidence) ? evidence : []).forEach((item, at) => {
     const page = hostOf(item?.url);
@@ -171,13 +199,24 @@ export function guestAddressFrom(evidence, guest) {
       if (!sites.some(s => sameSite(domain, s))) continue;
       const rank = roleRank(local);
       if (rank === null) continue;
-      const own = rank === Infinity ? parts.some(p => local.replace(/[^a-z]/g, ' ').split(' ').includes(p)) : true;
+      const own = rank === Infinity ? declared && carriesWholeName(local, guest?.name) : true;
       if (!own) continue;
       found.push({ address, source_url: item.url, rank: rank === Infinity ? ROLE_LOCALS.length : rank, at, basis: rank === Infinity ? 'own_name' : 'role' });
     }
   });
   found.sort((a, b) => a.rank - b.rank || a.at - b.at);
   return found[0] ? { kind: 'email', address: found[0].address, source_url: found[0].source_url, basis: found[0].basis } : null;
+}
+
+/** Whether an address's local part carries a person's whole name: first and last, in either order, run together or apart. Pure. */
+export function carriesWholeName(local, name) {
+  const n = plain(name).split(' ').filter(w => w.length >= 2);
+  if (n.length < 2) return false;
+  const [first, last] = [n[0], n.at(-1)];
+  const l = String(local ?? '').toLowerCase();
+  const run = l.replace(/[^a-z]/g, '');
+  const tokens = l.split(/[^a-z]+/).filter(Boolean);
+  return run === n.join('') || run === first + last || run === last + first || (tokens.includes(first) && tokens.includes(last));
 }
 
 /**

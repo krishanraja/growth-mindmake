@@ -378,11 +378,17 @@ same run asks Control Center's research desk to find where it takes pitches.
   src/stages/routes.mjs). The desk answers a search with results in
   `evidence` and nothing in `answer`. A route is kept only by fixed rules: an
   address on the subject's own site domain (the domain its record names, or,
-  where it names none, a result whose title names the subject and whose domain
-  carries one of its own words), a role address first (booking@, guests@,
-  speakers@, hello@, contact@, info@ and their kind), a personal-looking one
-  only where the words before it say it is the way to book, pitch or apply,
-  never a no-reply, privacy, sales or press address; read on the subject's own
+  where it names none, a result whose title names the subject and whose
+  registrable label is the subject's name run together or starts with it:
+  marketingovercoffee for Marketing Over Coffee, never marketingprofs; and an
+  address on that host or a part of it, never its parent, so an event
+  platform's own address is never the event's), a role address first
+  (booking@, guests@, speakers@, hello@, contact@, info@ and their kind), a
+  personal-looking one only on a site the record declares and only where the
+  words before it, in its own sentence with no other address between, say it
+  is the way to book, pitch or apply (for a guest, only on the guest's declared
+  site and only one carrying the whole name), never a no-reply, privacy, sales
+  or press address; read on the subject's own
   site, or on a listing that names it. Failing an address, a stage's or show's
   own speaker, guest, application or contact page on its own domain, which goes
   to the form lane once Control Center has read its fields. A third party's
