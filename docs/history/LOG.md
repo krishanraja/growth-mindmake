@@ -2,6 +2,15 @@
 
 The dated records of this engine's sessions, newest first. NOW.md names this file as its history log; scripts/check-drift.mjs fails when it is missing. The completion record stays docs/RELEASE.md.
 
+## 2026-10-30: older NOW.md changes
+
+Moved here verbatim from NOW.md's "What changed recently" on 2026-10-30 to keep the session pack under 36 KB; newest first, as NOW.md listed them.
+
+- 2026-10-27 **The focus playbooks, the suppression of his Nos and the places and questions moved here (plan section 12, M7, M10 and M13).** In shadow: three more counted lines a run beside Control Center's answers; the suppression list and taxonomy the engine would send are specified for Control Center, not sent. Control Center's copies stay on until one live run is read back.
+- 2026-10-27 **The engine's version acts (plan section 12, M3 to M5).** The pitch, speaking, form and invite stages and the campaign gate decide on the engine's own visibility and guest verdicts, from the axes Control Center serves, and never read its stored verdicts; axes not served read as not yet judged. Not yet run live; Control Center's retirement change is next.
+- 2026-10-27 **The pilot machine, the outreach briefs and the legacy ingest gate moved here (plan section 12, M6, M9 and M12).** In shadow: three more counted lines a run beside Control Center's answers, with the buyer and the offer read live from Mindmake's canon; Control Center's copies stay on until one live run is read back.
+- 2026-10-27 **The guest standard, the visibility standard and room scoring moved here (plan section 12, M3 to M5).** Ported from Control Center with their tests, in shadow and not wired yet: three counted lines a run beside Control Center's own verdicts once the dispatch calls them. Control Center's copies stay on until the engine's version has run live.
+
 ## 2026-10-29: older NOW.md changes
 
 Moved here verbatim from NOW.md's "What changed recently" on 2026-10-29 to keep the session pack under 36 KB; newest first, as NOW.md listed them.

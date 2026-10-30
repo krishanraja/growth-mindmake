@@ -360,9 +360,13 @@ same run asks Control Center's research desk to find where it takes pitches.
   address, and a run of nine digits the desk would read as a phone number is
   taken out of it; a query that still carries one is left out on its own,
   never sent to fail the batch.
-- **When it is asked again.** Never while Control Center's context still holds
-  a lookup for the subject that waits or has answered (the context carries the
-  desk's last 14 days, its 200 newest rows). One over the cap or failed is
+- **When it is asked again.** Never while Control Center's context holds a
+  lookup for the subject with no answer yet, or one whose results gave a route
+  (the context carries the desk's last 14 days, its 200 newest rows). One that
+  answered with nothing usable is asked again in the next of three wordings
+  (`LOOKUP_WORDINGS`: the first question, then its own site's booking or
+  speaker page, then its organisers' or producer's contact), at most once a
+  London day, until the wordings run out. One over the cap or failed is
   asked again the next day. One that has left the context is asked again as a
   new lookup, at most once a London day. Every attempt has an id of its own
   (`booking:<target>`, `email:<contact>` or `email:guest:<record>`, then the
@@ -370,9 +374,42 @@ same run asks Control Center's research desk to find where it takes pitches.
   never the same id with other words, which the desk refuses for the whole
   batch, and the same id is only ever the same words, whose stored answer the
   desk replays.
-- **The hold keeps its code** until Control Center records the address on the
-  stage or the guest's route. Every run says how many it looked up and how
-  many wait, and the summary counts `lookups_asked` inside `research_asked`.
+- **An answer is read, the same run and every run after it** (2026-10-30,
+  src/stages/routes.mjs). The desk answers a search with results in
+  `evidence` and nothing in `answer`. A route is kept only by fixed rules: an
+  address on the subject's own site domain (the domain its record names, or,
+  where it names none, a result whose title names the subject and whose
+  registrable label is the subject's name run together or starts with it:
+  marketingovercoffee for Marketing Over Coffee, never marketingprofs; and an
+  address on that host or a part of it, never its parent, so an event
+  platform's own address is never the event's), a role address first
+  (booking@, guests@, speakers@, hello@, contact@, info@ and their kind), a
+  personal-looking one only on a site the record declares and only where the
+  words before it, in its own sentence with no other address between, say it
+  is the way to book, pitch or apply (for a guest, only on the guest's declared
+  site and only one carrying the whole name), never a no-reply, privacy, sales
+  or press address; read on the subject's own
+  site, or on a listing that names it. Failing an address, a stage's or show's
+  own speaker, guest, application or contact page on its own domain, which goes
+  to the form lane once Control Center has read its fields. A third party's
+  address is refused, and an address pattern is never guessed. Each route
+  keeps the result it came from (`source_url`, `request_id`).
+- **The hold says what the answer found.** `address_found` or `form_found`
+  while Control Center records the route; `lookup_found_nothing` when it found
+  nothing usable. Only a lookup with no answer yet is counted as waiting.
+  Every run says how many it looked up, how many wait, and how many answered
+  with an address, a form page or nothing; the summary counts `lookups_asked`
+  inside `research_asked`, and `lookups_found` and `lookups_found_nothing`.
+- **The route goes to Control Center to record.** A version 2 email action
+  names its recipient by contact id, and Control Center refuses any other key,
+  so a found address cannot be pitched until Control Center files it as the
+  stage's booking contact (or the guest's route) and a found form page until it
+  reads its fields. The report carries the routes as `found_routes` only where
+  Control Center serves `features.found_routes` and its report schema carries
+  the field (docs/CONTROL-CENTER-BRIEF.md); until then the hold
+  `found_routes_unrecorded` names how many wait, and no address leaves the
+  engine. Addresses live only in memory and that payload, never in a file, a
+  fixture or a line of the report.
 - **A found address grants nothing.** The pitch or invite it allows is still a
   proposal for his yes, and the network rule above still decides whose box it
   goes in.

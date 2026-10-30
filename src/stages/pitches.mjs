@@ -3,6 +3,7 @@ import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, serves
 import { showNoteRows } from './shownotes.mjs';
 import { shadowLine, stageVerdict, stageStrength, ccStageVerdict, isDeadDate } from './visibility.mjs';
 import { guestVerdictOf, guestStrength, WARM_TIERS } from './guests.mjs';
+import { routeFromEvidence, ownSites } from './routes.mjs';
 
 /**
  * Podcast pitches, written in Jonny's voice for Krish (protocol 1.9.0, playbook 11).
@@ -948,64 +949,129 @@ export function formRows({ context, weekGoals, canon, record = null, files, at, 
  * stage, each kind in its own rank (stages by speakScore, podcasts by
  * pitchScore, guests by verdict and strength), so no kind waits behind another.
  *
- * When it is asked again: never while Control Center's context still holds a
- * lookup for the subject that waits or has answered (the context carries the
- * desk's last 14 days, its 200 newest rows). One over the cap or failed is
- * asked again the next day. One that has left the context is asked again as a
+ * When it is asked again: never while Control Center's context holds a lookup
+ * for the subject with no answer yet, or one whose results gave a route (the
+ * context carries the desk's last 14 days, its 200 newest rows). One over the
+ * cap or failed is asked again the next day. One that has left the context is asked again as a
  * new lookup, at most once a London day. Every attempt has an id of its own,
  * the subject, the London day and the words' digest, so a resend is never the
  * same id with other words (which the desk refuses for the whole batch), and
  * the same id is only ever the same words, whose stored answer the desk replays.
  *
- * The hold keeps its code until Control Center records the address. A found
- * address grants nothing: the pitch it allows is still a proposal for his yes,
- * and the network rule still decides whose box it goes in (Ruling, Krish,
- * 2026-10-28). The query names the show, the stage or the person, never an
- * address or a number the desk would read as a phone. Pure.
+ * An answered lookup is read the same run and the runs after it
+ * (src/stages/routes.mjs, 2026-10-30): its results either give a route (an
+ * address on the subject's own site, or for a stage or a show its own form
+ * page), which is held as `address_found` or `form_found` and handed to
+ * Control Center (`found`, below), or give nothing, which is held as
+ * `lookup_found_nothing` and asked again in the next of LOOKUP_WORDINGS
+ * wordings, at most once a London day, until the wordings run out. Only a
+ * lookup with no status yet is waiting. A found address grants nothing: the
+ * pitch it allows is still a proposal for his yes, and the network rule still
+ * decides whose box it goes in (Ruling, Krish, 2026-10-28). The query names
+ * the show, the stage or the person, never an address or a number the desk
+ * would read as a phone. Pure.
  */
 export const LOOKUPS_PER_RUN = 4;
+/** The wordings a subject's lookup is asked in, one after another, while each answers with nothing. */
+export const LOOKUP_WORDINGS = 3;
 /** A stand-in address for asking a hold whether the address is all a subject lacks. Never written anywhere. */
 const SOME_ADDRESS = '00000000-0000-4000-8000-000000000000';
-const RETRY = new Set(['over_cap', 'failed']);
+/** The desk's statuses: anything else, or none, is a lookup still waiting. */
+const TERMINAL = new Set(['answered', 'empty', 'failed', 'over_cap']);
 /** A run of nine digits or more reads as a phone number to the desk (carriesPrivate in Control Center's api/_growthResearch.ts), and one such query fails the whole batch. */
 const PHONE_LIKE = /\+?\d[\d\s().-]{7,}\d/g;
 const longDigits = text => (text.match(PHONE_LIKE) ?? []).some(run => (run.match(/\d/g) ?? []).length >= 9);
 const noAddress = text => clean(String(text ?? '').replace(/\S*@\S*/g, ' ').replace(/https?:\/\/\S+/g, ' ').replace(PHONE_LIKE, run => ((run.match(/\d/g) ?? []).length >= 9 ? ' ' : run)));
-/** The request id for one attempt at a subject's lookup, or null when the context holds one waiting or answered, or one asked today. Pure. */
-export function lookupId(base, research, at, query = '') {
-  const mine = (Array.isArray(research) ? research : []).filter(r => typeof r?.request_id === 'string' && r.request_id.startsWith(`${base}:`));
-  if (mine.some(r => !RETRY.has(r.status))) return null;
+const newestFirst = (a, b) => String(b?.answered_at ?? b?.requested_at ?? b?.request_id ?? '').localeCompare(String(a?.answered_at ?? a?.requested_at ?? a?.request_id ?? ''));
+/**
+ * Where a subject's lookup stands: `found` (an answered lookup's results give
+ * a route, with it), `waiting` (one has no answer yet), `exhausted` (every
+ * wording answered with nothing), `nothing` (some wordings answered with
+ * nothing; `tried` says how many) or `none`. A failed or over-cap attempt is
+ * neither tried nor waiting. Pure.
+ */
+export function lookupState(base, research, { subject = null, lane = null } = {}) {
+  const seen = new Set();
+  const mine = (Array.isArray(research) ? research : []).filter(r => typeof r?.request_id === 'string' && r.request_id.startsWith(`${base}:`) && !seen.has(r.request_id) && seen.add(r.request_id));
+  const tried = mine.filter(r => r.status === 'answered' || r.status === 'empty').length;
+  if (subject) for (const r of mine.filter(x => x.status === 'answered').sort(newestFirst)) {
+    const route = routeFromEvidence(r.evidence, subject, lane);
+    if (route) return { state: 'found', route, request_id: r.request_id, tried };
+  }
+  if (mine.some(r => !TERMINAL.has(r.status))) return { state: 'waiting', tried };
+  return { state: tried >= LOOKUP_WORDINGS ? 'exhausted' : tried ? 'nothing' : 'none', tried };
+}
+/** The request id for one attempt at a subject's lookup, or null when one waits, has found a route, has run out of wordings, or was asked today. Pure. */
+export function lookupId(base, research, at, query = '', state = lookupState(base, research)) {
+  if (!['none', 'nothing'].includes(state.state)) return null;
   const day = londonDay(at);
-  if (mine.some(r => r.request_id.startsWith(`${base}:${day}`))) return null;
+  if ((Array.isArray(research) ? research : []).some(r => typeof r?.request_id === 'string' && r.request_id.startsWith(`${base}:${day}`))) return null;
   return `${base}:${day}:${seal({ query }).slice(0, 8)}`;
 }
-/** The lookups for subjects held only for want of an address, ranked and capped, and how many already wait. Pure. */
+/** The lookups for subjects held only for want of an address, ranked and capped, and how many truly wait (no answer yet). Pure. */
 export function lookupRequests({ stages = [], podcasts = [], guests = [], research = [], at, max = LOOKUPS_PER_RUN }) {
   const ask = [], lanes = [stages, podcasts, guests].map(l => [...l].sort((a, b) => b.score - a.score || a.key.localeCompare(b.key)));
-  let waiting = 0;
+  let waiting = 0, today = 0;
   const live = lanes.map(l => l.filter(c => {
+    const state = c.state ?? lookupState(c.base, research);
+    if (state.state === 'waiting') { waiting++; return false; }
+    if (!['none', 'nothing'].includes(state.state)) return false;
     const query = c.query.slice(0, 400), why = c.why.slice(0, 300);
     // A query the desk would refuse is left out on its own, never sent to fail the batch.
     if (!query || !why || longDigits(query) || longDigits(why) || /@/.test(query)) return false;
-    const id = lookupId(c.base, research, at, query);
-    if (!id) { waiting++; return false; }
+    const id = lookupId(c.base, research, at, query, state);
+    if (!id) { today++; return false; }
     c.request_id = id; return true;
   }));
   for (let i = 0; ask.length < max && live.some(l => i < l.length); i++) for (const l of live) if (i < l.length && ask.length < max) ask.push(l[i]);
   const requests = ask.map(c => ({ request_id: c.request_id, kind: 'search', subject_ref: c.subject_ref, query: c.query.slice(0, 400), why: c.why.slice(0, 300) }));
-  return { requests, waiting, eligible: live.reduce((n, l) => n + l.length, 0) + waiting, by: { stages: ask.filter(c => c.lane === 'stage').length, podcasts: ask.filter(c => c.lane === 'podcast').length, guests: ask.filter(c => c.lane === 'guest').length } };
+  return { requests, waiting, asked_today: today, eligible: live.reduce((n, l) => n + l.length, 0) + waiting + today, by: { stages: ask.filter(c => c.lane === 'stage').length, podcasts: ask.filter(c => c.lane === 'podcast').length, guests: ask.filter(c => c.lane === 'guest').length } };
 }
-const podcastLookup = (t, at, W = null) => ({ lane: 'podcast', key: t.id, base: `booking:${t.id}`, score: pitchScore(t, at, W), subject_ref: `target:${t.id}`,
-  query: noAddress(`Where does the podcast "${noAddress(t.title) || 'this show'}"${hostOf(t) ? ` hosted by ${hostOf(t)}` : ''} take guest pitches? Give its guest booking page or application form, or the named host or producer who books guests, with the source and its date.`),
-  why: noAddress(`Held for want of a booking address: finding it lets Jonny pitch Krish to ${noAddress(t.title) || 'the show'}, still only on his yes.`) });
-const stageLookup = (t, at, W = null) => ({ lane: 'stage', key: t.id, base: `booking:${t.id}`, score: speakScore(t, at, W), subject_ref: `target:${t.id}`,
-  query: noAddress(`Who takes speaker submissions for ${noAddress(t.title) || 'this event'}${noAddress(t.organizer) ? `, run by ${noAddress(t.organizer)}` : ''}? Give its call-for-speakers page or the named organiser who books speakers, with the source and its date.`),
-  why: noAddress(`Held for want of a booking address: finding it lets Jonny pitch Krish to speak at ${noAddress(t.title) || 'the event'}, still only on his yes.`) });
-const guestLookup = (g, key, contactId) => ({ lane: 'guest', key, base: `email:${contactId ? '' : 'guest:'}${key}`, score: (GUEST_VERDICT[guestVerdictOf(g)] ?? 0) * 1000 + (guestStrength(g) ?? 0), subject_ref: contactId ? `contact:${contactId}` : null,
-  query: noAddress(`How can ${guestName(g)}${noAddress(g.company ?? g.organisation ?? '') ? ` of ${noAddress(g.company ?? g.organisation)}` : ''} be invited onto a podcast as a guest? Give their public booking page, agent or the route their own site gives for invitations, with the source and its date.`),
-  why: noAddress(`Held for want of an address: finding one lets ${guestName(g) ?? 'this guest'} be invited onto Krish's show, still only on his yes.`) });
+/** The subject's own site, as words a search may carry (no address, no link): site:domain, or ''. Pure. */
+const siteWords = subject => { const s = ownSites(subject)[0]; return s ? ` site:${s}` : ''; };
+const stageSubject = t => ({ name: cleanName(t?.title ?? ''), event_url: t?.event_url ?? null, cfp_url: t?.cfp_url ?? null });
+const guestSubject = g => ({ name: guestName(g), website: typeof g?.website === 'string' ? g.website : null });
+const podcastLookup = (t, at, W = null, attempt = 0) => {
+  const title = noAddress(t.title) || 'this show', host = hostOf(t);
+  const query = [
+    `Where does the podcast "${title}"${host ? ` hosted by ${host}` : ''} take guest pitches? Give its guest booking page or application form, or the named host or producer who books guests, with the source and its date.`,
+    `"${title}" podcast guest booking contact or be a guest page on its own website.${siteWords(stageSubject(t))}`,
+    `Contact email for the producer or booking team of the podcast "${title}"${host ? ` with ${host}` : ''}, from the show's own website.`,
+  ][Math.min(attempt, LOOKUP_WORDINGS - 1)];
+  return { lane: 'podcast', key: t.id, base: `booking:${t.id}`, score: pitchScore(t, at, W), subject_ref: `target:${t.id}`, query: noAddress(query),
+    why: noAddress(`Held for want of a booking address: finding it lets Jonny pitch Krish to ${noAddress(t.title) || 'the show'}, still only on his yes.`) };
+};
+const stageLookup = (t, at, W = null, attempt = 0) => {
+  const title = noAddress(t.title) || 'this event', org = noAddress(t.organizer);
+  const query = [
+    `Who takes speaker submissions for ${title}${org ? `, run by ${org}` : ''}? Give its call-for-speakers page or the named organiser who books speakers, with the source and its date.`,
+    `"${title}" speaker application or call for speakers page on its own website.${siteWords(stageSubject(t))}`,
+    `Contact email for the organisers of ${title}${org ? ` (${org})` : ''} about speaking, from the event's own website.`,
+  ][Math.min(attempt, LOOKUP_WORDINGS - 1)];
+  return { lane: 'stage', key: t.id, base: `booking:${t.id}`, score: speakScore(t, at, W), subject_ref: `target:${t.id}`, query: noAddress(query),
+    why: noAddress(`Held for want of a booking address: finding it lets Jonny pitch Krish to speak at ${noAddress(t.title) || 'the event'}, still only on his yes.`) };
+};
+const guestLookup = (g, key, contactId, attempt = 0) => {
+  const name = guestName(g), org = noAddress(g.company ?? g.organisation ?? '');
+  const query = [
+    `How can ${name}${org ? ` of ${org}` : ''} be invited onto a podcast as a guest? Give their public booking page, agent or the route their own site gives for invitations, with the source and its date.`,
+    `${name}${org ? ` ${org}` : ''} official website contact or speaking enquiries page.${siteWords(guestSubject(g))}`,
+    `${name} speaker bureau, agent or booking contact for podcast interviews.`,
+  ][Math.min(attempt, LOOKUP_WORDINGS - 1)];
+  return { lane: 'guest', key, base: `email:${contactId ? '' : 'guest:'}${key}`, score: (GUEST_VERDICT[guestVerdictOf(g)] ?? 0) * 1000 + (guestStrength(g) ?? 0), subject_ref: contactId ? `contact:${contactId}` : null,
+    query: noAddress(query), why: noAddress(`Held for want of an address: finding one lets ${name ?? 'this guest'} be invited onto Krish's show, still only on his yes.`) };
+};
+/** The hold an answered lookup leaves: a found route by its kind, nothing found, or the hold the subject had. Pure. */
+const LOOKUP_HOLD = { email: 'address_found', form: 'form_found' };
+function afterLookup(state, held) {
+  if (state.state === 'found') return LOOKUP_HOLD[state.route.kind];
+  if (state.state === 'nothing' || state.state === 'exhausted') return 'lookup_found_nothing';
+  return held;
+}
+/** A found route as it goes to Control Center: the subject, the route and the result it was read from. Holds an address: never written to a file or a fixture. Pure. */
+const foundRoute = (subject_ref, lane, state) => ({ subject_ref, lane, kind: state.route.kind, ...(state.route.kind === 'email' ? { address: state.route.address, basis: state.route.basis } : { url: state.route.url }), source_url: state.route.source_url, request_id: state.request_id });
 
-export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false, networkRoutes = false, wins = null }) {
+export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false, networkRoutes = false, wins = null, research = context?.research }) {
   const L = lessons(context?.feedback, at);
   const pitched = pitchedStages(context);
   const lanes = { ...LANES_ON, ...(caps.lanes ?? {}) };
@@ -1020,6 +1086,9 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   const room = Math.max(0, Math.min(caps.per_run, (caps.jonny_per_day ?? PITCHES_PER_RUN) - used) - notes.proposals.length);
   const held = [], stageHeld = [], pods = [], stages = [], krishPods = [], krishStages = [];
   const lookPods = [], lookStages = [], lookGuests = [];
+  // What answered lookups found (src/stages/routes.mjs): the routes for Control Center, and how many answered with nothing.
+  const found = [], answered = { addresses: 0, forms: 0, nothing: 0 };
+  const tallyLookup = st => { if (st.state === 'found') answered[st.route.kind === 'form' ? 'forms' : 'addresses']++; else if (st.state === 'nothing' || st.state === 'exhausted') answered.nothing++; };
   const seen = new Set();
   // Ruling (Krish, 2026-10-28): nobody in his network is written to from Jonny's box, nor anyone Control Center cannot say about.
   const routes = context?.routes ?? {};
@@ -1031,16 +1100,28 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     const kind = stageKind(t);
     // A stage of neither kind is not counted as held from one. One whose own form is the route is not pitched as well.
     if (kind === 'podcast') {
-      const why = pitchHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? (lanes.visibility ? null : 'lane_off');
+      let why = pitchHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? (lanes.visibility ? null : 'lane_off');
       const lane = why ? null : laneOf(t.booking_contact_id, true);
-      if (why === 'no_booking_address' && lanes.visibility && !forms.routed.has(t.id) && pitchHold({ ...t, booking_contact_id: SOME_ADDRESS }, { L, pitched, at }) === null) lookPods.push(podcastLookup(t, at, wins));
+      if (why === 'no_booking_address' && lanes.visibility && !forms.routed.has(t.id) && pitchHold({ ...t, booking_contact_id: SOME_ADDRESS }, { L, pitched, at }) === null) {
+        const st = lookupState(`booking:${t.id}`, research, { subject: stageSubject(t), lane: 'podcast' });
+        tallyLookup(st);
+        if (st.state === 'found') found.push(foundRoute(`target:${t.id}`, 'podcast', st));
+        else lookPods.push({ ...podcastLookup(t, at, wins, st.tried), state: st });
+        why = afterLookup(st, why);
+      }
       if (why) held.push(why);
       else if (lane === 'jonny') pods.push({ t, score: pitchScore(t, at, wins) });
       else { held.push(NETWORK_HOLD[lane]); if (lane === 'krish') krishPods.push({ t, score: pitchScore(t, at, wins) }); }
     } else if (kind === 'stage') {
-      const why = speakHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? (lanes.events ? null : 'lane_off');
+      let why = speakHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? (lanes.events ? null : 'lane_off');
       const lane = why ? null : laneOf(t.booking_contact_id, true);
-      if (why === 'no_booking_address' && lanes.events && !forms.routed.has(t.id) && speakHold({ ...t, booking_contact_id: SOME_ADDRESS }, { L, pitched, at }) === null) lookStages.push(stageLookup(t, at, wins));
+      if (why === 'no_booking_address' && lanes.events && !forms.routed.has(t.id) && speakHold({ ...t, booking_contact_id: SOME_ADDRESS }, { L, pitched, at }) === null) {
+        const st = lookupState(`booking:${t.id}`, research, { subject: stageSubject(t), lane: 'stage' });
+        tallyLookup(st);
+        if (st.state === 'found') found.push(foundRoute(`target:${t.id}`, 'stage', st));
+        else lookStages.push({ ...stageLookup(t, at, wins, st.tried), state: st });
+        why = afterLookup(st, why);
+      }
       if (why) stageHeld.push(why);
       else if (lane === 'jonny') stages.push({ t, score: speakScore(t, at, wins) });
       else { stageHeld.push(NETWORK_HOLD[lane]); if (lane === 'krish') krishStages.push({ t, score: speakScore(t, at, wins) }); }
@@ -1057,14 +1138,21 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   for (const g of guests) {
     if (typeof g?.contact_id === 'string' && seenGuest.has(g.contact_id)) continue;
     if (typeof g?.contact_id === 'string') seenGuest.add(g.contact_id);
-    const why = inviteHold(g, { L, invited, routes, at }) ?? (lanes.visibility ? null : 'lane_off');
+    let why = inviteHold(g, { L, invited, routes, at }) ?? (lanes.visibility ? null : 'lane_off');
     const lane = why ? null : laneOf(g.contact_id, false);
     if ((why === 'no_email' || why === 'no_contact') && lanes.visibility) {
       // Asked as if the address were on record: a lookup only where the address is all the guest lacks.
       const cid = why === 'no_contact' ? null : g.contact_id;
       const key = cid ?? (typeof g?.id === 'string' && UUID.test(g.id) ? g.id : null);
       const as = cid ?? SOME_ADDRESS;
-      if (key && inviteHold({ ...g, contact_id: as }, { L, invited, routes: { ...routes, [as]: { ...(routes[as] ?? {}), email: 'verified' } }, at }) === null) lookGuests.push(guestLookup(g, key, cid));
+      if (key && inviteHold({ ...g, contact_id: as }, { L, invited, routes: { ...routes, [as]: { ...(routes[as] ?? {}), email: 'verified' } }, at }) === null) {
+        const base = `email:${cid ? '' : 'guest:'}${key}`;
+        const st = lookupState(base, research, { subject: guestSubject(g), lane: 'guest' });
+        tallyLookup(st);
+        if (st.state === 'found') found.push(foundRoute(cid ? `contact:${cid}` : `guest:${key}`, 'guest', st));
+        else lookGuests.push({ ...guestLookup(g, key, cid, st.tried), state: st });
+        why = afterLookup(st, why);
+      }
     }
     if (why) inviteHeld.push(why);
     else if (lane === 'unknown') inviteHeld.push(NETWORK_HOLD.unknown);
@@ -1173,7 +1261,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   // Forms first: a report keeps at most forty, and a pitch left out waits for the next run.
   // His own rows for those in his network go with the rows he presses himself (rows.mjs rankRows), never in Jonny's ten.
   return { proposals: [...forms.proposals, ...notes.proposals, ...inviteProposals, ...podcastProposals, ...stageProposals], krishRows, held, stageHeld, inviteHeld, formHeld: forms.held, notesHeld: notes.held, jonny: { used, room },
-    lookups: lookupRequests({ stages: lookStages, podcasts: lookPods, guests: lookGuests, research: context?.research, at, max: LOOKUPS_PER_RUN }) };
+    lookups: { ...lookupRequests({ stages: lookStages, podcasts: lookPods, guests: lookGuests, research, at, max: LOOKUPS_PER_RUN }), answered }, found };
 }
 
 /** The route weight his own row would draft on: an address on record, else one Control Center has not checked. */
