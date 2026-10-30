@@ -72,8 +72,8 @@ test('the report builder produces a schema-valid envelope, refuses unknown field
   const report = buildReport(fields);
   assert.deepEqual(violations(schema, report), []);
   assert.equal(report.payload_sha256, digest(report));
-  // origin_candidates and withdrawn (1.10.0), suppression and taxonomy (features.suppression) and credits_spent (1.16.0) are the optional fields: sent only when there is one.
-  assert.deepEqual(Object.keys(report).sort(), Object.keys(schema.properties).filter(k => !['origin_candidates', 'withdrawn', 'suppression', 'taxonomy', 'credits_spent'].includes(k)).sort());
+  // origin_candidates and withdrawn (1.10.0), suppression and taxonomy (features.suppression), credits_spent (1.16.0), buffer_channels, post_metrics and offdays (1.17.0, other engines) and found_routes (1.18.0) are the optional fields: sent only when there is one.
+  assert.deepEqual(Object.keys(report).sort(), Object.keys(schema.properties).filter(k => !['origin_candidates', 'withdrawn', 'suppression', 'taxonomy', 'credits_spent', 'buffer_channels', 'post_metrics', 'offdays', 'found_routes'].includes(k)).sort());
   assert.doesNotMatch(JSON.stringify([report.activity, report.holds]), /PRIVATE_SYNTHETIC/);
   const smuggled = structuredClone(mapped.proposals); smuggled[0].send_now = true;
   assert.throws(() => buildReport({ ...fields, proposals: smuggled }), e => e instanceof DispatchError && e.code === 'report_invalid');

@@ -4,8 +4,9 @@ import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, parseRecord } from '../src/stages/canon.mjs';
 import { routeFromEvidence, addressFrom, formFrom, ownSites, sameSite, roleRank, ownSentence, carriesWholeName } from '../src/stages/routes.mjs';
 import { pitchRows } from '../src/stages/pitches.mjs';
-import { runDispatch, foundRoutesField, REPORT_SCHEMA } from '../src/dispatch.mjs';
-import { directiveFixture, violations } from './support/engine-protocol-service.mjs';
+import { runDispatch, foundRoutesField, foundRoutesAnswer, buildReport, laterVersion, REPORT_SCHEMA } from '../src/dispatch.mjs';
+import { schemaErrors } from '../src/guards.mjs';
+import { directiveFixture, violations, startProtocolService, STAND_IN_TOKEN, digest } from './support/engine-protocol-service.mjs';
 import { capsContext, capsKit, AT } from './support/caps-scenario.mjs';
 
 // 2026-10-30: an answered lookup's evidence becomes a route, or a hold that says it found nothing.
@@ -149,28 +150,131 @@ test('empty evidence gives lookup_found_nothing, for a show and a guest too, and
   assert.ok(w.held.includes('no_booking_address'));
 });
 
-test('a live run reads this run\'s answer the same run, and no address leaves the engine until Control Center takes found routes', async () => {
+/** One live run over the held context, with the capabilities and acceptance given; the posted report and the result. */
+async function liveRun({ versions = ['1.6.0', '1.7.0', '1.8.0', '1.9.0'], features = {}, ack = {} } = {}) {
   const reports = [];
   const cc = {
-    recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: '1.9.0', week_goals: GOALS }),
-    capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: ['1.6.0', '1.7.0', '1.8.0', '1.9.0'], features: { context: true, rows: true, research: true, network_routes: true, found_routes: true } }),
+    recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: versions.at(-1), week_goals: GOALS }),
+    capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: versions, features: { context: true, rows: true, research: true, network_routes: true, ...features } }),
     context: async () => ({ ok: true, context: heldContext() }),
     research: async requests => requests.map(q => ({ ...q, status: 'answered', evidence: q.subject_ref === `target:${id(601)}` ? [ROLE] : [], answer: null, requested_at: AT, answered_at: AT })),
-    decisions: async () => [], postReport: async rep => { reports.push(rep); return { replayed: false }; }, readReport: async () => reports.at(-1)
+    decisions: async () => [], postReport: async rep => { reports.push(rep); return { accepted: true, run_id: rep.run_id, payload_sha256: rep.payload_sha256, replayed: false, ...ack }; }, readReport: async () => reports.at(-1)
   };
   const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-routes-12345', clock: () => AT,
     canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/pitches.mjs', sha: 'b'.repeat(40) }], recordReader: async () => RECORD });
+  return { result, report: reports[0] };
+}
+const SERVED = ['1.6.0', '1.7.0', '1.8.0', '1.9.0', '1.10.0', '1.16.0', '1.18.0'];
+const ANSWER = { dry_run: false, checked: 1, recorded: 1, already: 0, refused: {}, routes: [{ subject_ref: `target:${id(601)}`, kind: 'email', request_id: `booking:${id(601)}:2026-10-30:abcdef01`, outcome: 'recorded' }] };
+
+test('a live run reads this run\'s answer the same run, and no address leaves the engine while Control Center does not serve 1.18.0', async () => {
+  const { result, report } = await liveRun({ features: { found_routes: true } });
   assert.equal(result.status, 'succeeded');
   assert.equal(result.rows.lookups_found, 1, 'the answer this run gave is read this run');
-  const report = reports[0];
   assert.ok(report.holds.some(h => h.reason === 'speak_address_found'));
-  // The copied report schema does not carry found_routes yet, so the field is not sent and the hold says why.
-  assert.equal(REPORT_SCHEMA.properties.found_routes, undefined);
+  // The copied report schema carries found_routes (1.18.0), but the version is not served, so the field is not sent and the hold says why.
+  assert.ok(REPORT_SCHEMA.properties.found_routes);
   assert.equal('found_routes' in report, false);
+  assert.equal(report.schema_version, '1.9.0');
   assert.ok(report.holds.some(h => h.reason === 'found_routes_unrecorded'));
   assert.doesNotMatch(JSON.stringify(report), /@summit\.example/, 'no address in the report');
   assert.deepEqual(violations(schema, report), []);
+  assert.equal(result.found_routes, undefined, 'no answer is read for routes never sent');
   // The field it would carry: the subject, the address and where it was read, nothing else.
   assert.deepEqual(foundRoutesField([{ subject_ref: 'target:x', lane: 'stage', kind: 'email', address: 'speakers@summit.example', basis: 'role', source_url: ROLE.url, request_id: 'booking:x:2026-10-27:abcdef01' }]),
     [{ subject_ref: 'target:x', kind: 'email', address: 'speakers@summit.example', source_url: ROLE.url, request_id: 'booking:x:2026-10-27:abcdef01' }]);
+});
+
+test('where Control Center serves 1.18.0 and features.found_routes, the route goes out at 1.18.0 and its answer is counted, never repeated', async () => {
+  const { result, report } = await liveRun({ versions: SERVED, features: { found_routes: true }, ack: { found_routes: ANSWER } });
+  assert.equal(result.status, 'succeeded');
+  assert.equal(report.schema_version, '1.18.0');
+  assert.equal(report.found_routes.length, 1);
+  assert.deepEqual(Object.keys(report.found_routes[0]).sort(), ['address', 'kind', 'request_id', 'source_url', 'subject_ref']);
+  assert.equal(report.found_routes[0].subject_ref, `target:${id(601)}`);
+  assert.equal(report.found_routes[0].address, 'speakers@summit.example');
+  assert.equal(report.found_routes[0].source_url, ROLE.url);
+  assert.equal(report.holds.some(h => h.reason === 'found_routes_unrecorded'), false, 'nothing waits on Control Center');
+  assert.deepEqual(violations(schema, report), []);
+  assert.deepEqual(schemaErrors(REPORT_SCHEMA, report), []);
+  // Only the route itself carries the address; no line, hold or proposal repeats it.
+  const { found_routes, ...rest } = report;
+  assert.doesNotMatch(JSON.stringify(rest), /@summit\.example/);
+  assert.deepEqual(result.found_routes, { state: 'answered', sent: 1, recorded: 1, already: 0, refused: {}, line: 'Found routes: 1 sent; 1 recorded, 0 already on record, 0 refused.' });
+  assert.doesNotMatch(JSON.stringify(result), /@summit\.example|summit\.example\/1\/contact/, 'the printed outcome never carries an address or a page');
+});
+
+test('features.found_routes off, or the field missing from the served versions, sends no route whatever else is served', async () => {
+  const off = await liveRun({ versions: SERVED, features: { found_routes: false }, ack: { found_routes: ANSWER } });
+  assert.equal('found_routes' in off.report, false);
+  assert.ok(off.report.holds.some(h => h.reason === 'found_routes_unrecorded'));
+  assert.notEqual(off.report.schema_version, '1.18.0');
+  assert.equal(off.result.found_routes, undefined);
+  const older = await liveRun({ versions: SERVED.filter(v => v !== '1.18.0'), features: { found_routes: true } });
+  assert.equal('found_routes' in older.report, false);
+  assert.ok(older.report.holds.some(h => h.reason === 'found_routes_unrecorded'));
+});
+
+test('the copied schema takes a route as an email with an address or a form with a page, never both, never neither, in both checkers', () => {
+  const base = { schema_version: '1.18.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', run_id: 'mindmake:2026-10-30:synthetic', mode: 'synthetic', observed_at: AT, source: { revision: 'synthetic-revision-1', captured_at: AT }, status: 'ready', objectives: [], activity: [], proposals: [], events: [], holds: [], payload_sha256: 'a'.repeat(64) };
+  const email = { subject_ref: `target:${id(601)}`, kind: 'email', address: 'speakers@summit.example', source_url: ROLE.url, request_id: 'booking:x:2026-10-30:abcdef01' };
+  const form = { subject_ref: `target:${id(601)}`, kind: 'form', url: FORM.url, source_url: FORM.url, request_id: 'booking:x:2026-10-30:abcdef01' };
+  const check = routes => [violations(schema, { ...base, found_routes: routes }).length, schemaErrors(REPORT_SCHEMA, { ...base, found_routes: routes }).length];
+  assert.deepEqual(check([email, form]), [0, 0]);
+  for (const bad of [{ ...email, url: FORM.url }, { ...form, address: 'speakers@summit.example' }, (({ address, ...r }) => r)(email), (({ url, ...r }) => r)(form), { ...email, kind: 'phone' }, { ...email, subject_ref: 'person:x' }, { ...email, source_url: 'http://summit.example/' }]) {
+    const [a, b] = check([bad]);
+    assert.ok(a > 0 && b > 0, JSON.stringify(bad));
+  }
+  assert.ok(check(Array.from({ length: 41 }, () => email)).every(n => n > 0), 'at most 40');
+});
+
+test('the report goes to 1.18.0 only with a route in it, and to 1.16.0 with only a spend, whichever version the run chose', () => {
+  const fields = { run_id: 'mindmake:2026-10-30:synthetic', mode: 'synthetic', observed_at: AT, source: { revision: 'synthetic-revision-1', captured_at: AT }, status: 'ready', objectives: [], activity: [], proposals: [], holds: [], schema_version: '1.10.0' };
+  const route = { subject_ref: `target:${id(601)}`, kind: 'email', address: 'speakers@summit.example', source_url: ROLE.url, request_id: 'booking:x:2026-10-30:abcdef01' };
+  assert.equal(buildReport(fields).schema_version, '1.10.0');
+  assert.equal(buildReport({ ...fields, found_routes: [] }).schema_version, '1.10.0', 'an empty list is not sent and raises nothing');
+  assert.equal('found_routes' in buildReport({ ...fields, found_routes: [] }), false);
+  assert.equal(buildReport({ ...fields, found_routes: [route] }).schema_version, '1.18.0');
+  assert.equal(buildReport({ ...fields, found_routes: Array.from({ length: 45 }, () => route) }).found_routes.length, 40);
+  const spend = [{ pool: 'apify-main', amount: 0.42, asset: 'Booking routes for four podcasts', objective_key: 'good_meetings' }];
+  assert.equal(buildReport({ ...fields, credits_spent: spend }).schema_version, '1.16.0');
+  const both = buildReport({ ...fields, credits_spent: spend, found_routes: [route] });
+  assert.equal(both.schema_version, '1.18.0', 'the later of the two');
+  assert.deepEqual(schemaErrors(REPORT_SCHEMA, both), []);
+  assert.deepEqual(violations(schema, both), []);
+  assert.equal(buildReport({ ...fields, schema_version: '1.2.0', credits_spent: spend }).schema_version, '1.16.0');
+  assert.equal(laterVersion('1.9.0', '1.18.0'), '1.18.0');
+  assert.equal(laterVersion('1.18.0', '1.16.0'), '1.18.0');
+  assert.equal(laterVersion('1.10.0', '1.9.0'), '1.10.0');
+});
+
+test('Control Center\'s answer to the routes is counts and reasons only, a dry run says nothing was written, and an unreadable or failed answer counts nothing', () => {
+  assert.equal(foundRoutesAnswer(0, ANSWER), null, 'no routes sent, no answer read');
+  const refused = foundRoutesAnswer(3, { dry_run: false, checked: 3, recorded: 1, already: 0, refused: { source_not_in_evidence: 1, address_not_in_evidence: 1, 'Bad Reason!': 4, would_overwrite: 0 }, routes: [{ subject_ref: 'target:x', kind: 'email', request_id: 'r', outcome: 'recorded', address: 'leak@summit.example' }] });
+  assert.equal(refused.line, 'Found routes: 3 sent; 1 recorded, 0 already on record, 2 refused (address_not_in_evidence 1, source_not_in_evidence 1).');
+  assert.deepEqual(refused.refused, { address_not_in_evidence: 1, source_not_in_evidence: 1 });
+  assert.doesNotMatch(JSON.stringify(refused), /leak@/, 'a route outcome is never copied');
+  const dry = foundRoutesAnswer(2, { dry_run: true, checked: 2, recorded: 0, already: 0, refused: { form_not_same_site: 1 }, routes: [] });
+  assert.equal(dry.state, 'dry_run');
+  assert.equal(dry.line, 'Found routes: 2 sent; a dry run, nothing written: 2 checked, 1 refused (form_not_same_site 1).');
+  assert.equal(foundRoutesAnswer(2, { error: 'found_routes_unrecorded' }).state, 'unrecorded');
+  for (const bad of [undefined, null, [], 'yes', { recorded: 1 }, { recorded: -1, already: 0, refused: {} }, { recorded: 1, already: 0, refused: [] }]) assert.equal(foundRoutesAnswer(1, bad).state, 'unread', JSON.stringify(bad));
+});
+
+test('the protocol stand-in refuses found_routes on a report below 1.18.0 or where they are not served, and answers them where they are', async () => {
+  const route = { subject_ref: `target:${id(601)}`, kind: 'email', address: 'speakers@summit.example', source_url: ROLE.url, request_id: 'booking:x:2026-10-30:abcdef01' };
+  const fields = { run_id: 'mindmake:2026-10-30:synthetic', mode: 'synthetic', observed_at: AT, source: { revision: 'synthetic-revision-1', captured_at: AT }, status: 'ready', objectives: [], activity: [], proposals: [], holds: [], schema_version: '1.10.0' };
+  const post = async (svc, report) => { const r = await fetch(`${svc.localOrigin}/api/growth/engines/mindmake/reports`, { method: 'POST', headers: { authorization: `Bearer ${STAND_IN_TOKEN}`, 'content-type': 'application/json', 'idempotency-key': report.run_id }, body: JSON.stringify(report) }); return { status: r.status, body: await r.json() }; };
+  const withRoutes = buildReport({ ...fields, found_routes: [route] });
+  const served = await startProtocolService({ recorded: false, foundRoutes: routes => ({ dry_run: true, checked: routes.length, recorded: 0, already: 0, refused: {}, routes: routes.map(r => ({ subject_ref: r.subject_ref, kind: r.kind, request_id: r.request_id, outcome: 'would_record' })) }) });
+  const unserved = await startProtocolService({ recorded: false });
+  try {
+    const ok = await post(served, withRoutes);
+    assert.equal(ok.status, 200);
+    assert.equal(foundRoutesAnswer(1, ok.body.found_routes).line, 'Found routes: 1 sent; a dry run, nothing written: 1 checked, 0 refused.');
+    assert.equal((await post(unserved, withRoutes)).status, 400);
+    const stale = { ...withRoutes, schema_version: '1.16.0', run_id: 'mindmake:2026-10-29:synthetic' };
+    const { payload_sha256, ...body } = stale;
+    assert.equal((await post(served, { ...body, payload_sha256: digest(body) })).status, 400, 'a field newer than the version sent is refused');
+  } finally { await served.close(); await unserved.close(); }
 });

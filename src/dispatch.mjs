@@ -120,6 +120,10 @@ export const BRIEF_VERSION = '1.7.0';
 export const CARD_VERSION = '1.8.0';
 /** 1.9.0: a visibility pitch (a podcast) or an events pitch (a stage to speak on) may name Jonny's box; Control Center drafts it there each day with no press. */
 export const PITCH_VERSION = '1.9.0';
+/** 1.18.0: the report may carry found_routes, the booking addresses and form pages read out of answered lookups (features.found_routes). */
+export const FOUND_ROUTES_VERSION = '1.18.0';
+/** The later of two protocol versions, compared part by part. Pure. */
+export const laterVersion = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i] ? a : b; return a; };
 /** The engine files row words are written from, named in every row's source_revision. */
 export const ENGINE_REPO = 'krishanraja/growth-mindmake';
 export const WORD_FILES = ['src/stages/rows.mjs', 'src/stages/signals.mjs', 'src/stages/pitches.mjs', 'src/stages/shownotes.mjs'];
@@ -363,8 +367,12 @@ export function deadPlans(context, proposing = new Set()) {
 export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null, suppression = null, taxonomy = null, credits_spent = null, found_routes = null }) {
   // 1.16.0: credits_spent goes out only when this run spent something, and raises the report to the version that carries it.
   const spent = Array.isArray(credits_spent) && credits_spent.length ? credits_spent.slice(0, CREDITS_SPENT_MAX) : null;
+  // 1.18.0: found_routes goes out only when there is one, and raises the report to the version that carries it.
+  const routes = Array.isArray(found_routes) && found_routes.length ? found_routes.slice(0, FOUND_ROUTES_MAX) : null;
+  let version = spent ? laterVersion(schema_version, CREDITS_VERSION) : schema_version;
+  if (routes) version = laterVersion(version, FOUND_ROUTES_VERSION);
   const body = {
-    schema_version: spent ? CREDITS_VERSION : schema_version, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
+    schema_version: version, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
     objectives, activity: activity.slice(0, 40).map(line => ({ line: cut(line, 500), evidence_url: null })),
     proposals, events, holds: holds.slice(0, 40).map(h => ({ reason: cut(h.reason, 200), detail: h.detail === null || h.detail === undefined ? null : cut(h.detail, 1000) })),
     // 1.10.0: where each unanswered meeting came from, only when there is one to say.
@@ -375,7 +383,7 @@ export function buildReport({ run_id, mode, observed_at, source, status, objecti
     ...(suppression && taxonomy ? { suppression, taxonomy } : {}),
     ...(spent ? { credits_spent: spent } : {}),
     // Routes answered lookups found, only where Control Center records them (features.found_routes) and only when there is one.
-    ...(found_routes?.length ? { found_routes } : {})
+    ...(routes ? { found_routes: routes } : {})
   };
   const report = { ...body, payload_sha256: reportDigest(body) };
   const errors = schemaErrors(REPORT_SCHEMA, report);
@@ -400,6 +408,30 @@ export function errorCode(error, phase) {
 
 /** Found routes as the report carries them: at most FOUND_ROUTES_MAX, each the subject, the route and the result it was read from. Pure. */
 export const FOUND_ROUTES_MAX = 40;
+const FOUND_ROUTE_REASON = /^[a-z][a-z0-9_]{0,63}$/;
+const tallyOf = n => Number.isInteger(n) && n >= 0 ? n : null;
+/**
+ * Control Center's answer to the found routes a report carried (1.18.0, the acceptance's found_routes), as counts only:
+ * recorded, already on record, and refused by reason. It never repeats an address or a page, and an answer it cannot read
+ * is said to be unread, never counted as none. Null when the report carried no routes. Pure.
+ */
+export function foundRoutesAnswer(sent, answer) {
+  if (!sent) return null;
+  if (!answer || typeof answer !== 'object' || Array.isArray(answer)) return { state: 'unread', line: `Found routes: ${sent} sent; Control Center's answer could not be read, so none is counted as recorded or refused.` };
+  if (answer.error === 'found_routes_unrecorded') return { state: 'unrecorded', line: `Found routes: ${sent} sent; Control Center's recorder failed this run (found_routes_unrecorded), so none was recorded and the report still stands.` };
+  const recorded = tallyOf(answer.recorded), already = tallyOf(answer.already);
+  const refused = answer.refused && typeof answer.refused === 'object' && !Array.isArray(answer.refused)
+    ? Object.fromEntries(Object.entries(answer.refused).filter(([reason, n]) => FOUND_ROUTE_REASON.test(reason) && tallyOf(n)).sort(([a], [b]) => a.localeCompare(b)))
+    : null;
+  if (recorded === null || already === null || refused === null) return { state: 'unread', line: `Found routes: ${sent} sent; Control Center's answer could not be read, so none is counted as recorded or refused.` };
+  const dry = answer.dry_run === true;
+  const refusedTotal = Object.values(refused).reduce((a, n) => a + n, 0);
+  const why = refusedTotal ? ` (${Object.entries(refused).map(([reason, n]) => `${reason} ${n}`).join(', ')})` : '';
+  return {
+    state: dry ? 'dry_run' : 'answered', sent, recorded, already, refused,
+    line: `Found routes: ${sent} sent; ${dry ? `a dry run, nothing written: ${tallyOf(answer.checked) ?? sent} checked` : `${recorded} recorded, ${already} already on record`}, ${refusedTotal} refused${why}.`
+  };
+}
 export function foundRoutesField(found) {
   return (Array.isArray(found) ? found : []).slice(0, FOUND_ROUTES_MAX).map(f => ({ subject_ref: f.subject_ref, kind: f.kind, ...(f.kind === 'email' ? { address: f.address } : { url: f.url }), source_url: f.source_url, request_id: f.request_id }));
 }
@@ -515,9 +547,10 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const kinds = counts.lookups_asked ? [['stage', lookups.by.stages], ['podcast', lookups.by.podcasts], ['guest', lookups.by.guests]].filter(([, n]) => n).map(([k, n]) => `${n} ${k}${n === 1 ? '' : 's'}`) : [];
   const answeredAny = answered.addresses + answered.forms + answered.nothing;
   if (pitches && (counts.lookups_asked || waitingLookups || answeredAny)) activity.push(`Addresses for held pitches and invites: ${counts.lookups_asked} looked up this run${kinds.length ? ` (${kinds.join(', ')})` : ''}, ${waitingLookups} asked and waiting for an answer; answered: ${answered.addresses} with an address on the subject's own site, ${answered.forms} with its own form page, ${answered.nothing} with nothing usable (asked again in other words, at most once a day). A found route goes to Control Center to record; a found one still needs his yes, and the network rule decides whose box it goes in.`);
-  // Found routes go to Control Center only where it records them (features.found_routes) and the report it serves carries the field.
-  const takesRoutes = capabilities?.features?.found_routes === true && !!REPORT_SCHEMA.properties?.found_routes;
-  if (pitches && counts.lookups_found && !takesRoutes) holds.push({ reason: 'found_routes_unrecorded', detail: `${counts.lookups_found} route${counts.lookups_found === 1 ? '' : 's'} found in answered lookups wait${counts.lookups_found === 1 ? 's' : ''} for Control Center to take found routes (features.found_routes, docs/CONTROL-CENTER-BRIEF.md); until it records them on the stage or the guest, the pitch or invite cannot name its recipient.` });
+  // Found routes go to Control Center only where it records them (features.found_routes), serves the version that carries them (1.18.0)
+  // and the report schema copied here has the field.
+  const takesRoutes = capabilities?.features?.found_routes === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes(FOUND_ROUTES_VERSION) && !!REPORT_SCHEMA.properties?.found_routes;
+  if (pitches && counts.lookups_found && !takesRoutes) holds.push({ reason: 'found_routes_unrecorded', detail: `${counts.lookups_found} route${counts.lookups_found === 1 ? '' : 's'} found in answered lookups wait${counts.lookups_found === 1 ? 's' : ''} for Control Center to take found routes (features.found_routes at protocol 1.18.0, docs/CONTROL-CENTER-BRIEF.md); until it records them on the stage or the guest, the pitch or invite cannot name its recipient.` });
   // Control Center drafts ten a day into Jonny's Gmail; a wake later the same day writes only what is left.
   if (pitched.jonny?.used) activity.push(`Jonny's Gmail already holds ${pitched.jonny.used} draft${pitched.jonny.used === 1 ? '' : 's'} made today, so this run writes at most ${pitched.jonny.room} more.`);
   return { proposals, holds, activity, counts, canonFiles: canon.files, canon, research, found_routes: takesRoutes ? foundRoutesField(pitched.found ?? []) : null };
@@ -909,6 +942,9 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       if (stored.payload_sha256 !== report.payload_sha256) return await finish(error?.status === 409 ? 'failed' : 'unknown', error?.status === 409 ? 'report_conflict' : 'readback_unconfirmed');
     }
     outcome.report.replayed = ack ? ack.replayed : null;
+    // 1.18.0: what Control Center did with the found routes this report carried, counted, never an address.
+    const routesAnswer = foundRoutesAnswer(report.found_routes?.length ?? 0, ack?.found_routes);
+    if (routesAnswer) outcome.found_routes = routesAnswer;
     phase = 'readback';
     let stored;
     try { stored = await cc.readReport(run_id); } catch { return await finish('unknown', 'readback_unconfirmed'); }

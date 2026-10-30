@@ -14,12 +14,15 @@ function canonical(v) {
   if (v && typeof v === 'object') return `{${Object.keys(v).sort().map(k => `${JSON.stringify(k)}:${canonical(v[k])}`).join(',')}}`;
   return JSON.stringify(v);
 }
+const atLeast = (version, floor) => { const x = String(version).split('.').map(Number), y = floor.split('.').map(Number); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i]; return true; };
 export const digest = report => { const { payload_sha256, ...rest } = report; return createHash('sha256').update(canonical(rest)).digest('hex'); };
 const pointer = (root, ref) => typeof ref === 'string' && ref.startsWith('#/') ? ref.slice(2).split('/').reduce((n, k) => (n && typeof n === 'object' && Object.hasOwn(n, k) ? n[k] : null), root) : null;
 export function violations(s, v, path = '$', root = s) {
   const out = [];
   if (s.$ref !== undefined) { const t = pointer(root, s.$ref); if (!t || typeof t !== 'object') return [`${path}:ref`]; out.push(...violations(t, v, path, root)); }
   if (s.const !== undefined && v !== s.const) out.push(path);
+  if (Array.isArray(s.oneOf) && s.oneOf.filter(x => !violations(x, v, path, root).length).length !== 1) out.push(`${path}:oneOf`);
+  if (s.not !== undefined && !violations(s.not, v, path, root).length) out.push(`${path}:not`);
   if (s.enum && !s.enum.includes(v)) out.push(path);
   if (s.type) {
     const t = v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v;
@@ -110,7 +113,7 @@ export function directiveFixture(changes = {}) {
   };
 }
 
-export async function startProtocolService({ token = STAND_IN_TOKEN, directive = directiveFixture(), decisions = [], activatedOn = '2026-10-18', active = true, recorded = true, credits = false } = {}) {
+export async function startProtocolService({ token = STAND_IN_TOKEN, directive = directiveFixture(), decisions = [], activatedOn = '2026-10-18', active = true, recorded = true, credits = false, foundRoutes = null } = {}) {
   const reports = new Map(), attempts = new Map(), requests = [], faults = [];
   const base = '/api/growth/engines/mindmake/';
   const server = createServer(async (req, res) => {
@@ -125,7 +128,7 @@ export async function startProtocolService({ token = STAND_IN_TOKEN, directive =
     const i = faults.findIndex(f => f.method === req.method && f.route === route);
     if (i >= 0) { const [f] = faults.splice(i, 1); if (f.drop) { req.socket.destroy(); return; } reply(f.status, f.body ?? { error: 'synthetic_fault' }); return; }
     if (route === null) { reply(404, { error: 'not_found' }); return; }
-    if (req.method === 'GET' && route === 'capabilities') { reply(200, { schema_version: credits ? '1.16.0' : '1.2.0', schema_versions: ['1.0.0', '1.1.0', '1.2.0', ...(credits ? ['1.16.0'] : [])], engine_id: 'growth-mindmake', product_slug: 'mindmake', idempotency: true, activation: { state: active ? 'active' : 'inactive', activated_on: activatedOn }, features: credits ? { credits: true } : {} }); return; }
+    if (req.method === 'GET' && route === 'capabilities') { reply(200, { schema_version: foundRoutes ? '1.18.0' : credits ? '1.16.0' : '1.2.0', schema_versions: ['1.0.0', '1.1.0', '1.2.0', ...(credits ? ['1.16.0'] : []), ...(foundRoutes ? ['1.18.0'] : [])], engine_id: 'growth-mindmake', product_slug: 'mindmake', idempotency: true, activation: { state: active ? 'active' : 'inactive', activated_on: activatedOn }, features: { ...(credits ? { credits: true } : {}), ...(foundRoutes ? { found_routes: true } : {}) } }); return; }
     if (req.method === 'GET' && route === 'directive') { reply(200, directive); return; }
     if (req.method === 'GET' && route === 'decisions') { reply(200, { ok: true, decisions }); return; }
     if (route === 'attempts' && req.method === 'POST') {
@@ -146,14 +149,18 @@ export async function startProtocolService({ token = STAND_IN_TOKEN, directive =
       if (problems.length) { reply(400, { error: 'invalid_report', field: problems[0] }); return; }
       if (body.engine_id !== 'growth-mindmake' || body.product_slug !== 'mindmake') { reply(403, { error: 'wrong_engine' }); return; }
       // 1.16.0: credits_spent only on a 1.16.0 report, and only where credits are served, as Control Center refuses a field newer than the version sent.
-      if ('credits_spent' in body && (body.schema_version !== '1.16.0' || !credits)) { reply(400, { error: 'invalid_report', field: 'credits_spent' }); return; }
+      if ('credits_spent' in body && (!atLeast(body.schema_version, '1.16.0') || !credits)) { reply(400, { error: 'invalid_report', field: 'credits_spent' }); return; }
+      // 1.18.0: found_routes only on a 1.18.0 report, and only where found routes are served.
+      if ('found_routes' in body && (!atLeast(body.schema_version, '1.18.0') || !foundRoutes)) { reply(400, { error: 'invalid_report', field: 'found_routes' }); return; }
       if (req.headers['idempotency-key'] !== body.run_id) { reply(400, { error: 'idempotency_key_mismatch' }); return; }
       if (digest(body) !== body.payload_sha256) { reply(400, { error: 'payload_sha256_mismatch' }); return; }
       if (body.mode === 'live' && !active) { reply(409, { error: 'engine_inactive' }); return; }
       const prior = reports.get(body.run_id);
       if (prior && prior.payload_sha256 !== body.payload_sha256) { reply(409, { error: 'run_id_conflict' }); return; }
       if (!prior) reports.set(body.run_id, { payload_sha256: body.payload_sha256, mode: body.mode, accepted_at: '2026-10-19T05:11:00Z', report: structuredClone(body) });
-      reply(200, { accepted: true, run_id: body.run_id, payload_sha256: body.payload_sha256, replayed: Boolean(prior) }); return;
+      // 1.18.0: the acceptance answers what was done with each found route, counts and outcomes, never an address. The fixture decides the outcomes.
+      const routesAnswer = 'found_routes' in body ? foundRoutes(body.found_routes, body) : undefined;
+      reply(200, { accepted: true, run_id: body.run_id, payload_sha256: body.payload_sha256, replayed: Boolean(prior), ...(routesAnswer !== undefined ? { found_routes: routesAnswer } : {}) }); return;
     }
     if (route?.startsWith('reports/') && req.method === 'GET') {
       const r = reports.get(decodeURIComponent(route.slice(8)));
