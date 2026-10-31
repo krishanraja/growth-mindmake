@@ -194,6 +194,16 @@ test('a country field takes the UK or the US by where the event is, or global wh
   assert.deepEqual(eventPlace({ format: 'Virtual summit' }), { virtual: true, us: false });
   assert.deepEqual(eventPlace({ title: 'The Example Webinar' }), { virtual: true, us: false });
   assert.deepEqual(eventPlace({}), { virtual: false, us: false }, 'a stage that says nothing is taken as in person and not in the US: the UK');
+  // A state code that is also a country's ISO code is not the US alone; another country's code or name is abroad.
+  for (const location of ['Berlin, DE', 'Bangalore, IN', 'Toronto, ON, CA', 'Toronto, CA', 'Tel Aviv, IL', 'Bogota, CO', 'Casablanca, MA', 'Valletta, MT', 'Panama City, PA', 'Tbilisi, GA', 'Paris, FR', 'Boston, Lincolnshire', 'San Jose, Costa Rica'])
+    assert.equal(eventPlace({ location }).us, false, location);
+  for (const location of ['Boston, MA', 'Atlanta, GA', 'Denver, CO', 'Boston, MA, USA', 'Chicago', 'Seattle, WA', 'Santa Fe, New Mexico, USA', 'Albuquerque, New Mexico', 'Atlanta, Georgia'])
+    assert.equal(eventPlace({ location }).us, true, location);
+  // Virtual only when the location is only an online marker: a hybrid or in-person event is held where it says.
+  assert.deepEqual(eventPlace({ location: 'Hybrid: New York and online' }), { virtual: false, us: true });
+  assert.deepEqual(eventPlace({ location: 'London (with remote attendance)' }), { virtual: false, us: false });
+  assert.deepEqual(eventPlace({ location: 'Online', format: 'Hybrid' }), { virtual: false, us: false });
+  assert.equal(answerFor(field('Country'), said(eventPlace({ location: 'Berlin, DE' }))), 'United Kingdom', 'a Berlin summit is not answered United States');
   // A select: the option by its own words, never an invented value.
   const sel = options => field('Country', { type: 'select', required: true, options });
   assert.equal(countryAnswer(sel(['Select', 'France', 'United Kingdom', 'United States']), { us: false }), 'United Kingdom');
@@ -211,6 +221,11 @@ test('a country field takes the UK or the US by where the event is, or global wh
   assert.equal(answerFor(field('Country'), said(undefined)), 'United Kingdom', 'no place known: the UK');
   // Only a country: a city, a state, a region or an address stays empty.
   for (const label of ['City', 'State', 'Region', 'Where are you based?', 'Country and city', 'Address country', 'Time zone']) assert.equal(answerFor(field(label), said({ us: true })), null, label);
+  // A dialling code is a phone field, never given; his own country (residence, home, passport) is not the event's.
+  for (const label of ['Country code', 'Country dialling code', 'Country calling code']) { assert.equal(fieldAsk(field(label)), 'phone', label); assert.equal(answerFor(field(label), said({ us: true })), null, label); }
+  for (const label of ['Country of residence', 'Home country', 'Country you live in', 'Passport country', 'Country of origin']) assert.equal(answerFor(field(label), said({ us: true })), null, label);
+  // A prompt is never the global choice.
+  assert.equal(countryAnswer(sel(['Select country (international)', 'United States']), { virtual: true, us: true }), 'United States');
   // The association's form: answered in full for a US event; for a UK one its list as read has no United Kingdom, so it holds.
   const us = formAnswers(assoc(), said({ virtual: false, us: true }));
   assert.equal(us.hold, null);

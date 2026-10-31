@@ -222,6 +222,42 @@ const ASKS_AFTER_ROWS = 2;
 export const RESEARCH_BATCH = 10;
 /** The first research round: the run's lookups (LOOKUPS_PER_RUN, 12) first, then sourcing, reach and signals, two calls at most. */
 export const RESEARCH_ROUND = 20;
+/** Mindmake's searches a London day at the research desk (ENGINE-PROTOCOL.md, "The research desk"), when the capabilities do not say. */
+export const SEARCHES_PER_DAY = 40;
+const londonDay = at => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(at));
+/**
+ * The searches left today: the desk's daily cap (capabilities.research.per_day.search,
+ * else SEARCHES_PER_DAY) less this engine's searches already asked on this London
+ * day (one the desk refused over its cap ran nothing and is not counted). Pure.
+ */
+export function searchesLeft({ capabilities, research = [], at }) {
+  const cap = capabilities?.research?.per_day?.search;
+  const perDay = Number.isInteger(cap) && cap >= 0 ? cap : SEARCHES_PER_DAY;
+  const day = londonDay(at);
+  const used = (Array.isArray(research) ? research : []).filter(r => {
+    if (r?.kind !== 'search' || r?.status === 'over_cap') return false;
+    const when = Date.parse(r?.requested_at ?? r?.answered_at ?? '');
+    return Number.isFinite(when) ? londonDay(when) === day : typeof r?.request_id === 'string' && r.request_id.includes(`:${day}:`);
+  }).length;
+  return Math.max(0, perDay - used);
+}
+/**
+ * A round's requests inside the searches left: the lookups take at most half of
+ * what is left, so sourcing and reach searches keep room on a day of refills,
+ * and no search past the day's cap is sent. Other kinds keep their order. Pure.
+ */
+export function withinSearches(requests, lookupIds, left) {
+  let searches = 0, lookups = 0;
+  const lookupRoom = Math.floor(left / 2);
+  return requests.filter(r => {
+    if (r?.kind !== 'search') return true;
+    if (lookupIds.has(r.request_id) && lookups >= lookupRoom) return false;
+    if (searches >= left) return false;
+    searches++;
+    if (lookupIds.has(r.request_id)) lookups++;
+    return true;
+  });
+}
 const REPORT_MAX = 40;
 const cut = (text, max) => { const s = String(text).replace(/\s+/g, ' ').trim(); return s.length <= max ? s : `${s.slice(0, max - 3).trimEnd()}...`; };
 function finishProposal(p) {
@@ -462,7 +498,8 @@ const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.s
  * context, signals from his buyers through the research desk, every action
  * written from the canon read this run. Live runs ask Control Center to
  * collect (at most two rounds: the first of up to RESEARCH_ROUND, sent ten a
- * request, the second of up to ten, inside its daily caps); a synthetic run
+ * request, the second of up to ten, both cut to the searches left of the
+ * desk's daily cap by searchesLeft and withinSearches); a synthetic run
  * asks for nothing. Counts only leave this function for the printed outcome.
  */
 export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS, wins = null, sourcing = [] }) {
@@ -493,7 +530,11 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
     // The engine's own asks first (an address a pitch lacks, a cited reach, a profile for a card too thin to show), then the signals' collection.
     // A pool that has stood still asks for new shows and stages after the addresses (C4, src/stages/momentum.mjs).
     // The first round carries up to RESEARCH_ROUND, sent RESEARCH_BATCH at a time (Control Center takes 1 to 10 a request).
-    let pending = [...lookups.requests, ...sourcing, ...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, RESEARCH_ROUND);
+    // Searches are cut to what is left of the desk's day (40 for Mindmake): a refill run never spends the sourcing and reach searches on lookups.
+    const lookupIds = new Set(lookups.requests.map(r => r.request_id));
+    let left = searchesLeft({ capabilities, research, at });
+    const fit = list => { const kept = withinSearches(list, lookupIds, left); left -= kept.filter(r => r.kind === 'search').length; return kept; };
+    let pending = fit([...lookups.requests, ...sourcing, ...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, RESEARCH_ROUND));
     let down = false;
     for (let round = 0; round < 2 && pending.length && !down; round++) {
       for (let i = 0; i < pending.length; i += RESEARCH_BATCH) {
@@ -510,7 +551,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
           break;
         }
       }
-      pending = signalRequests({ voices: ctx.voices, research, at });
+      pending = fit(signalRequests({ voices: ctx.voices, research, at }));
     }
     // Someone filed this run has no routes in the context read before it: read it again once.
     if (research.some(r => r.kind === 'person_route' && r.status === 'answered' && !(ctx.research ?? []).some(x => x.request_id === r.request_id))) {

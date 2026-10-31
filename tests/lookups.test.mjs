@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, parseRecord } from '../src/stages/canon.mjs';
 import { pitchRows, lookupId, lookupRequests, lookupState, LOOKUPS_PER_RUN, LOOKUP_WORDINGS } from '../src/stages/pitches.mjs';
-import { runDispatch } from '../src/dispatch.mjs';
+import { runDispatch, searchesLeft, withinSearches, SEARCHES_PER_DAY } from '../src/dispatch.mjs';
 import { directiveFixture, violations } from './support/engine-protocol-service.mjs';
 import { capsContext, capsKit, AT } from './support/caps-scenario.mjs';
 
@@ -192,4 +192,24 @@ test('twelve lookups fit the first round: sent ten a call, the lookups first, ev
   assert.equal(sent.length, LOOKUPS_PER_RUN);
   assert.deepEqual(batches[0].map(q => q.request_id.split(':')[0]).every(k => k === 'booking' || k === 'email'), true, 'the first call is all lookups');
   assert.equal(result.rows.lookups_asked, LOOKUPS_PER_RUN);
+});
+
+test('the round keeps inside the desk\'s daily searches: lookups take at most half of what is left, and nothing past the cap is sent', () => {
+  const asked = n => Array.from({ length: n }, (_, i) => ({ request_id: `x:${i}`, kind: 'search', status: 'answered', requested_at: AT }));
+  assert.equal(searchesLeft({ capabilities: {}, research: [], at: AT }), SEARCHES_PER_DAY, 'forty a day when the capabilities do not say');
+  assert.equal(searchesLeft({ capabilities: { research: { per_day: { search: 40 } } }, research: asked(30), at: AT }), 10);
+  assert.equal(searchesLeft({ capabilities: {}, research: [...asked(5), { request_id: 'y', kind: 'search', status: 'over_cap', requested_at: AT }, { request_id: 'z', kind: 'question', requested_at: AT }], at: AT }), 35, 'a refused search and a question do not count');
+  assert.equal(searchesLeft({ capabilities: {}, research: [{ request_id: 'old', kind: 'search', status: 'answered', requested_at: '2026-10-20T09:00:00Z' }], at: AT }), 40, "another day's search does not count");
+  assert.equal(searchesLeft({ capabilities: {}, research: asked(45), at: AT }), 0);
+  const look = Array.from({ length: 12 }, (_, i) => ({ request_id: `booking:${i}`, kind: 'search' }));
+  const other = Array.from({ length: 6 }, (_, i) => ({ request_id: `src:${i}`, kind: 'search' }));
+  const posts = { request_id: 'p', kind: 'posts' };
+  const ids = new Set(look.map(r => r.request_id));
+  const first = withinSearches([...look, ...other, posts], ids, 40);
+  assert.equal(first.filter(r => ids.has(r.request_id)).length, 12, 'a fresh day sends all twelve');
+  const late = withinSearches([...look, ...other, posts], ids, 10);
+  assert.equal(late.filter(r => ids.has(r.request_id)).length, 5, 'late in the day the lookups take half of what is left');
+  assert.equal(late.filter(r => r.kind === 'search').length, 10, 'the rest goes to sourcing and reach');
+  assert.ok(late.includes(posts), 'other kinds keep their place');
+  assert.deepEqual(withinSearches([...look, posts], ids, 0), [posts], 'none left: no search is sent');
 });

@@ -131,7 +131,7 @@ In his words (29 October fleet session, after the credits sessions were built): 
 
 ## A speaker form's country is where the event is (Ruling, Krish, 2026-10-31)
 
-In his words (31 October fleet session, asked what a speaker form's required country should say, since every Conference Board form held on it): "UK & US or global if its virtual".
+In his words (31 October fleet session, asked what a speaker form's required country should say, since every speaker form of a large business association was held on it): "UK & US or global if its virtual".
 
 - A field that asks for a country is answered United States when the event is in the United States, United Kingdom otherwise, and a global choice when the event is virtual. A city, a state, a region or an address beside it stays empty, as before.
 - Where the event is comes from the stage Control Center holds: its `location`, its `format` and, for virtual or webinar, its title (`eventPlace` in src/stages/pitches.mjs). A stage that says nothing is taken as in person and not in the United States, so its form says United Kingdom.
