@@ -128,3 +128,20 @@ In his words (29 October fleet session, after the credits sessions were built): 
 - A run happens only when a `good_meetings` decision needs it, and Control Center's research desk goes first where it covers the need.
 - Every session run is settled with its actor, job, results returned and results kept (counts only), and the next run reads `get_apify_learnings`: prefer `keep` actors, give a new actor one small `trial`, never rerun a `drop`.
 - The walls of the prepaid credits rulings above are unchanged.
+
+## A speaker form's country is where the event is (Ruling, Krish, 2026-10-31)
+
+In his words (31 October fleet session, asked what a speaker form's required country should say, since every Conference Board form held on it): "UK & US or global if its virtual".
+
+- A field that asks for a country is answered United States when the event is in the United States, United Kingdom otherwise, and a global choice when the event is virtual. A city, a state, a region or an address beside it stays empty, as before.
+- Where the event is comes from the stage Control Center holds: its `location`, its `format` and, for virtual or webinar, its title (`eventPlace` in src/stages/pitches.mjs). A stage that says nothing is taken as in person and not in the United States, so its form says United Kingdom.
+- A select is answered only with one of its own options, by its own words (United Kingdom, UK or Great Britain; United States, USA or US; for a virtual event global, worldwide, international, anywhere, remote, virtual or online, else the in-person rule). No option that fits holds the form; a value is never invented. A text field takes "United Kingdom", "United States" or "Global".
+- Nothing else moves: the form is still a proposal his tap sends, and every other field rule stands.
+
+## Raise the daily address lookups (Ruling, Krish, 2026-10-31)
+
+In his words (31 October fleet session, on the lookups for addresses the held pitches and invites lack): "Raise the daily lookup".
+
+- A run files up to twelve lookups for a held podcast, stage or guest (`LOOKUPS_PER_RUN`), up from four, with the kinds still taking turns and each subject still asked at most once a London day.
+- They lead the first research round, which now carries up to twenty requests sent ten a call (`RESEARCH_ROUND`, `RESEARCH_BATCH` in src/dispatch.mjs), Control Center's limit per request, so the reach, sourcing and signal asks keep their room beside them.
+- Control Center's daily caps still bind (raised for Mindmake in its own change to 120 searches and 40 questions a day); over a cap nothing runs and the lookup is asked again the next day. No wall moves: a found address still needs his yes, and the network rule still decides whose box.

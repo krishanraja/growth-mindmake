@@ -39,6 +39,8 @@ Each is in docs/RULINGS.md word for word, with his quotes; a line here says what
 - Prepaid credits are spent to the share (Ruling, Krish, 2026-10-29): the engine may spend up to its placement share of a prepaid credit pool each cycle with no per-batch approval and reports each spend in `credits_spent`; never past `remaining_for_you`, never new money, and nothing made is published, posted or sent without its own approval.
 - Apify is a ceiling (Ruling, Krish, 2026-10-29): pay as you go, a cap and never a target; actors chosen by `get_apify_learnings`.
 - Engine credits are spent by a scheduled session (Ruling, Krish, 2026-10-29): one daily scheduled session spends the share through Control Center's connector, reserving before and settling after each generation (docs/CREDITS-SESSION.md); the runner spends nothing and never reports a session spend again.
+- A speaker form's country is where the event is (Ruling, Krish, 2026-10-31): a country field says United States for an event in the US, United Kingdom otherwise or when the stage says nothing, and global when it is virtual; a select only by its own options, else the form holds.
+- Raise the daily address lookups (Ruling, Krish, 2026-10-31): up to twelve lookups a run for held pitches and invites, first in a research round of twenty sent ten a call, inside Control Center's daily caps.
 
 ## Current release boundary
 

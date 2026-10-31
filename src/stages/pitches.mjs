@@ -601,12 +601,60 @@ const TOPIC_FIELD = /\b(?:topics?|track|theme|category|subject|stream|focus area
 /** An option that is a prompt, a catch-all or a different ask: never chosen. */
 const NOT_AN_OPTION = /^(?:select|choose|please|pick|none|n a|other|any)\b|\b(?:lightning|workshop|masterclass|tutorial|hands on|lab|poster|demo)\b/;
 const AI_OPTION = /\b(?:ai|a i|artificial intelligence|machine learning|generative|genai|gen ai|llms?)\b/;
+// The country a speaker form asks for (Ruling, Krish, 2026-10-31: "UK & US or global if its virtual").
+/** A field that asks for a country, and not for a city, a state or an address beside it. */
+const COUNTRY = /\b(?:country|countries|territory|nation)\b/;
+const NOT_COUNTRY = /\b(?:city|town|state|province|county|time ?zone|address|street|post ?code|zip|postal)\b/;
+/** An option, as formKey gives it, that is the United Kingdom, the United States, or no one country. */
+const UK_OPTION = /^(?:the )?(?:united kingdom|great britain|britain|uk|u k|gb)(?: (?:uk|u k|gb|of great britain and northern ireland))?$/;
+const US_OPTION = /^(?:the )?(?:united states|united states of america|usa|us|u s|u s a)(?: (?:usa|us|u s|u s a))?$/;
+const GLOBAL_OPTION = /\b(?:global|worldwide|international|anywhere|remote|virtual|online)\b/;
+/** Words that say an event is held online, in its own location or format, or a title that says so plainly. */
+const VIRTUAL = /\b(?:virtual|online|remote|webinar|webcast|livestream|live stream|zoom)\b/;
+const VIRTUAL_TITLE = /\b(?:virtual|webinar|webcast|online summit|online conference|online event)\b/;
+/** A location in the United States: the country named, a state after a comma, a state by name, or a city that is only American. */
+const US_PLACE = /\bUS\b|,\s*(?:AL|AK|AZ|AR|CA|CO|CT|DE|DC|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b/;
+/** A location that names another country is not American, whatever abbreviation follows a comma ("Perth, WA, Australia"). */
+const NOT_US = /\b(?:australia|canada|united kingdom|uk|england|scotland|wales|ireland|india|mexico)\b/;
+const US_NAMED = /\b(?:united states|usa|u s a|u s|alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|west virginia|wisconsin|wyoming|nyc|manhattan|brooklyn|san francisco|los angeles|las vegas|chicago|boston|austin|seattle|miami|atlanta|denver|dallas|houston|orlando|san diego|san jose|philadelphia|nashville|phoenix|silicon valley|washington d ?c)\b/;
+
+/**
+ * Where an event is, as far as the stage Control Center holds says: virtual
+ * when its location or format says it is held online (or its title says
+ * virtual or webinar), and in the United States when its location names the
+ * country, a state or a city that is only American. The stage's own
+ * `location`, `format` and `title` are all the engine knows of its place; a
+ * stage that says nothing is taken as neither virtual nor in the United
+ * States, so its form is answered United Kingdom. Pure.
+ */
+export function eventPlace(t) {
+  const location = typeof t?.location === 'string' ? t.location : '';
+  const format = typeof t?.format === 'string' ? t.format : '';
+  const title = typeof t?.title === 'string' ? t.title : '';
+  const virtual = VIRTUAL.test(formKey(`${location} ${format}`)) || VIRTUAL_TITLE.test(formKey(title));
+  const us = !NOT_US.test(formKey(location)) && (US_PLACE.test(location) || US_NAMED.test(formKey(location)));
+  return { virtual, us };
+}
+
+/** The country a country field takes, by his ruling: Global when the event is virtual, else United States or United Kingdom by where it is. Pure. */
+export function countryAnswer(field, place) {
+  const { virtual = false, us = false } = place ?? {};
+  const type = String(field?.type ?? 'text').toLowerCase();
+  const country = us ? US_OPTION : UK_OPTION;
+  if (type !== 'select') return virtual ? 'Global' : us ? 'United States' : 'United Kingdom';
+  // A choice only from the field's own options, by their own words; none that fits holds the form.
+  const real = (Array.isArray(field?.options) ? field.options : []).filter(o => typeof o === 'string' && formKey(o));
+  const pick = re => real.find(o => re.test(formKey(o)));
+  const hit = (virtual ? pick(GLOBAL_OPTION) : undefined) ?? pick(country);
+  return hit ? clean(hit) : null;
+}
 
 /**
  * What a form's field asks, from its own label and type: one of the answers
  * the run can give (full_name, first_name, last_name, email, company,
- * job_title, website, bio, talk_title, abstract, format, topic), one the
- * canon does not give yet (linkedin, location), one never given for him
+ * job_title, website, bio, talk_title, abstract, format, topic, and location
+ * where it asks for a country), one the canon does not give yet (linkedin,
+ * and location where it asks for a city or a region), one never given for him
  * (terms, phone, payment, password, birth, demographic, someone_else,
  * number, address), or null for anything else. Pure.
  */
@@ -694,7 +742,7 @@ function choose(options, preferences) {
 }
 
 /** Which kinds of field a value may go in: an email in an email field, a link in a link field, a choice only from a field's own options, and text in text. */
-const FITS = { email: ['email'], url: ['website'], select: ['format', 'topic'] };
+const FITS = { email: ['email'], url: ['website'], select: ['format', 'topic', 'location'] };
 function fits(type, ask) {
   if (FITS[type]) return FITS[type].includes(ask);
   return ['text', 'textarea', 'search', ''].includes(type) && ask !== 'format';
@@ -720,7 +768,9 @@ export function answerFor(field, said) {
     case 'talk_title': return whole(said.talk, 200);
     case 'format': return type === 'select' ? choose(field.options, said.formats) : null;
     case 'topic': return type === 'select' ? choose(field.options, said.topics) : whole(said.topicLine, 200);
-    // linkedin and location: the canon names no profile and no city today. The rest are never his to give here.
+    // A country by his ruling (2026-10-31), from where the event is (said.place, eventPlace); a city, a state or a region stays empty.
+    case 'location': { const k = formKey(field.label); return COUNTRY.test(k) && !NOT_COUNTRY.test(k) ? countryAnswer(field, said?.place) : null; }
+    // linkedin: the canon names no profile today. The rest are never his to give here.
     default: return null;
   }
 }
@@ -848,6 +898,8 @@ export function stageForm(t, { L, pitched, at, tries = [], canon, record = null 
     formats: row !== 'events' ? [] : ask === 'a panel seat' ? [/\bpanel/, /\btalk\b/, /\bkeynote\b/, /\bpresentation\b/] : [/\btalk\b/, /\bkeynote\b/, /\bpresentation\b/, /\bsession\b/],
     // Every talk he gives is about AI, so a track named for it first, then one for the stage's own topic.
     topics: [AI_OPTION, ...(topicRe ? [topicRe] : [])],
+    // Where the event is, for a country field: what the stage's own location, format and title say (eventPlace).
+    place: eventPlace(t),
   };
   const { answers, hold: why } = formAnswers(t.form_fields, said, Array.isArray(last?.missing) ? last.missing : []);
   if (why) return hold(why);
@@ -944,7 +996,10 @@ export function formRows({ context, weekGoals, canon, record = null, files, at, 
  * be pitched or invited if an address were on record: the same run asks
  * Control Center's research desk to find where it takes pitches, so the hold
  * clears itself instead of sitting there every run. At most LOOKUPS_PER_RUN a
- * run, in the first research round and inside its ten and its daily caps.
+ * run (twelve since 2026-10-31: Ruling, Krish, "Raise the daily lookup"), first
+ * in the research round, which carries twenty sent ten a request
+ * (RESEARCH_ROUND and RESEARCH_BATCH in src/dispatch.mjs), and inside the
+ * desk's daily caps.
  * The kinds take turns, a stage, then a podcast, then a guest, then the next
  * stage, each kind in its own rank (stages by speakScore, podcasts by
  * pitchScore, guests by verdict and strength), so no kind waits behind another.
@@ -971,7 +1026,7 @@ export function formRows({ context, weekGoals, canon, record = null, files, at, 
  * the show, the stage or the person, never an address or a number the desk
  * would read as a phone. Pure.
  */
-export const LOOKUPS_PER_RUN = 4;
+export const LOOKUPS_PER_RUN = 12;
 /** The wordings a subject's lookup is asked in, one after another, while each answers with nothing. */
 export const LOOKUP_WORDINGS = 3;
 /** A stand-in address for asking a hold whether the address is all a subject lacks. Never written anywhere. */

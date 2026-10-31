@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, parseRecord, RECORD_REPO, RECORD_PATH } from '../src/stages/canon.mjs';
-import { pitchRows, formRows, stageForm, formAnswers, fieldAsk, formKey, answerFor, runnerPick, overlaps, labelLimit, wholeWithin, formRow, formBio, pitchedStages,
+import { pitchRows, formRows, stageForm, formAnswers, fieldAsk, formKey, answerFor, runnerPick, eventPlace, countryAnswer, overlaps, labelLimit, wholeWithin, formRow, formBio, pitchedStages,
   FORM_EMAIL, FORM_SITE, SPEAKER_SITE, FORMS_PER_ROW, PITCHES_PER_RUN, BIO_MAX } from '../src/stages/pitches.mjs';
 import { lessons, KRISH_TITLE, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, BECAUSE_MAX, TITLE_MAX_BRIEF } from '../src/stages/rows.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
@@ -171,6 +171,56 @@ test('the email is always his public business address, and no other address and 
   }
   assert.equal(answersOf(forms.find(p => p.subject_ref === `target:${id(2)}`))['Contact email'], FORM_EMAIL);
   assert.equal(stageForm(summit(4, { form_fields: [field('Full name', { required: true }), field('Talk title', { required: true })] }), opts).hold, 'no_email', 'a form that asks no email cannot answer him');
+});
+
+test('a country field takes the UK or the US by where the event is, or global when it is virtual (Ruling, Krish, 2026-10-31)', () => {
+  // Synthetic copy of the shape a large association's speaker form reads as: an email-typed company email and a
+  // required country select whose first option is a prompt and whose list Control Center read only in part.
+  const COUNTRIES = ['Country/Territory*', 'United States', 'Afghanistan', 'Albania', 'Botswana'];
+  const assoc = (place, options = COUNTRIES) => [
+    field('Enter Business Email Address'), field('remember', { type: 'checkbox' }), field('Search our network', { type: 'search' }),
+    field('Your Company/Institution Email', { type: 'email', required: true }),
+    field('country', { type: 'select', required: true, options }),
+    field('AI & GenAI Strategy', { type: 'checkbox', name: 'aoe:1:AI & GenAI Strategy' }), field('North America', { type: 'checkbox', name: 'radio' }),
+  ];
+  const said = place => ({ bio: 'b.', abstract: 'a.', talk: 't', topicLine: 'AI', formats: [], topics: [], place });
+  // Where the event is, from the stage's own location, format and title.
+  assert.deepEqual(eventPlace({ location: 'New York, NY' }), { virtual: false, us: true });
+  assert.deepEqual(eventPlace({ location: 'Austin, TX' }), { virtual: false, us: true });
+  assert.deepEqual(eventPlace({ location: 'Washington, D.C.' }), { virtual: false, us: true });
+  assert.deepEqual(eventPlace({ location: 'London' }), { virtual: false, us: false });
+  assert.deepEqual(eventPlace({ location: 'Perth, WA, Australia' }), { virtual: false, us: false }, 'another country named is not American');
+  assert.deepEqual(eventPlace({ location: 'Online' }), { virtual: true, us: false });
+  assert.deepEqual(eventPlace({ format: 'Virtual summit' }), { virtual: true, us: false });
+  assert.deepEqual(eventPlace({ title: 'The Example Webinar' }), { virtual: true, us: false });
+  assert.deepEqual(eventPlace({}), { virtual: false, us: false }, 'a stage that says nothing is taken as in person and not in the US: the UK');
+  // A select: the option by its own words, never an invented value.
+  const sel = options => field('Country', { type: 'select', required: true, options });
+  assert.equal(countryAnswer(sel(['Select', 'France', 'United Kingdom', 'United States']), { us: false }), 'United Kingdom');
+  assert.equal(countryAnswer(sel(['Select', 'U.K.', 'U.S.A.']), { us: true }), 'U.S.A.');
+  assert.equal(countryAnswer(sel(['Great Britain', 'USA']), {}), 'Great Britain');
+  assert.equal(countryAnswer(sel(['Ukraine', 'United States Minor Outlying Islands']), { us: true }), null, 'a near name is not the country');
+  assert.equal(countryAnswer(sel(['United Kingdom', 'United States', 'Global / Remote']), { virtual: true }), 'Global / Remote');
+  assert.equal(countryAnswer(sel(['United Kingdom', 'United States']), { virtual: true, us: true }), 'United States', 'virtual with no global choice falls back to where it is');
+  assert.equal(countryAnswer(sel(['United Kingdom', 'United States']), { virtual: true }), 'United Kingdom');
+  assert.equal(countryAnswer(sel(['France', 'Germany']), {}), null, 'no option fits: held');
+  // A text field: the words themselves.
+  assert.equal(answerFor(field('Country'), said({ us: false })), 'United Kingdom');
+  assert.equal(answerFor(field('Country'), said({ us: true })), 'United States');
+  assert.equal(answerFor(field('Country'), said({ virtual: true })), 'Global');
+  assert.equal(answerFor(field('Country'), said(undefined)), 'United Kingdom', 'no place known: the UK');
+  // Only a country: a city, a state, a region or an address stays empty.
+  for (const label of ['City', 'State', 'Region', 'Where are you based?', 'Country and city', 'Address country', 'Time zone']) assert.equal(answerFor(field(label), said({ us: true })), null, label);
+  // The association's form: answered in full for a US event; for a UK one its list as read has no United Kingdom, so it holds.
+  const us = formAnswers(assoc(), said({ virtual: false, us: true }));
+  assert.equal(us.hold, null);
+  assert.deepEqual(us.answers.map(a => [a.label, a.value]), [['Enter Business Email Address', FORM_EMAIL], ['Your Company/Institution Email', FORM_EMAIL], ['country', 'United States']]);
+  assert.equal(formAnswers(assoc(), said({ virtual: false, us: false })).hold, 'unanswerable', 'no United Kingdom among the options read: never invented');
+  assert.equal(formAnswers(assoc(null, [...COUNTRIES, 'United Kingdom']), said({})).answers.at(-1).value, 'United Kingdom');
+  // Through the stage: a US summit's form is proposed with its country.
+  const p = run([summit(1, { location: 'Chicago, IL', form_fields: [...FIELDS, field('Country', { type: 'select', required: true, options: ['Select', 'United Kingdom', 'United States'] })] })]).proposals.find(isForm);
+  assert.equal(answersOf(p).Country, 'United States');
+  assert.equal(answersOf(run([summit(2, { form_fields: [...FIELDS, field('Country', { required: true })] })]).proposals.find(isForm)).Country, 'United Kingdom', 'a London summit');
 });
 
 test('a required field with no answer the run is sure of holds the form, and the stage falls to its Jonny pitch', () => {

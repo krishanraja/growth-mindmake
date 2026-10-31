@@ -218,6 +218,10 @@ export function cutReport(list, max) {
 }
 /** Room left in a report for the two asks a run may put first after the rows: the starved-lanes ask and a check-in. */
 const ASKS_AFTER_ROWS = 2;
+/** Control Center's research desk takes 1 to 10 requests a call (ENGINE-PROTOCOL.md, "The research desk"). */
+export const RESEARCH_BATCH = 10;
+/** The first research round: the run's lookups (LOOKUPS_PER_RUN, 12) first, then sourcing, reach and signals, two calls at most. */
+export const RESEARCH_ROUND = 20;
 const REPORT_MAX = 40;
 const cut = (text, max) => { const s = String(text).replace(/\s+/g, ' ').trim(); return s.length <= max ? s : `${s.slice(0, max - 3).trimEnd()}...`; };
 function finishProposal(p) {
@@ -457,7 +461,8 @@ const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.s
  * The five rows (playbook 11): amplifiers and close ties gone quiet from the
  * context, signals from his buyers through the research desk, every action
  * written from the canon read this run. Live runs ask Control Center to
- * collect (at most two rounds of ten, inside its daily caps); a synthetic run
+ * collect (at most two rounds: the first of up to RESEARCH_ROUND, sent ten a
+ * request, the second of up to ten, inside its daily caps); a synthetic run
  * asks for nothing. Counts only leave this function for the printed outcome.
  */
 export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS, wins = null, sourcing = [] }) {
@@ -483,22 +488,27 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const pitchArgs = (c, r = c?.research) => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes, wins, research: r });
   let lookups = { requests: [], waiting: 0, asked_today: 0, by: { stages: 0, podcasts: 0, guests: 0 } };
   if (mode === 'live' && capabilities?.features?.research === true) {
-    // A stage, show or guest held only for want of an address asks the desk to find it in the same run (C2), up to four, first in the round.
+    // A stage, show or guest held only for want of an address asks the desk to find it in the same run (C2), up to LOOKUPS_PER_RUN, first in the round.
     if (pitches) lookups = pitchRows(pitchArgs(ctx)).lookups;
     // The engine's own asks first (an address a pitch lacks, a cited reach, a profile for a card too thin to show), then the signals' collection.
     // A pool that has stood still asks for new shows and stages after the addresses (C4, src/stages/momentum.mjs).
-    let pending = [...lookups.requests, ...sourcing, ...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, 10);
-    const sourced = pending.filter(r => sourcing.includes(r)).length;
-    for (let round = 0; round < 2 && pending.length; round++) {
-      try {
-        const got = await cc.research(pending);
-        counts.research_asked += pending.length;
-        counts.research_answered += got.filter(r => r.status === 'answered').length;
-        if (round === 0) { counts.lookups_asked = lookups.requests.length; counts.sourcing_asked = sourced; }
-        research = mergeResearch(got, research);
-      } catch {
-        holds.push({ reason: 'research_unavailable', detail: 'Control Center could not run the lookups asked for this run; rows use what was already known.' });
-        break;
+    // The first round carries up to RESEARCH_ROUND, sent RESEARCH_BATCH at a time (Control Center takes 1 to 10 a request).
+    let pending = [...lookups.requests, ...sourcing, ...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, RESEARCH_ROUND);
+    let down = false;
+    for (let round = 0; round < 2 && pending.length && !down; round++) {
+      for (let i = 0; i < pending.length; i += RESEARCH_BATCH) {
+        const batch = pending.slice(i, i + RESEARCH_BATCH);
+        try {
+          const got = await cc.research(batch);
+          counts.research_asked += batch.length;
+          counts.research_answered += got.filter(r => r.status === 'answered').length;
+          if (round === 0) { counts.lookups_asked += batch.filter(r => lookups.requests.includes(r)).length; counts.sourcing_asked += batch.filter(r => sourcing.includes(r)).length; }
+          research = mergeResearch(got, research);
+        } catch {
+          holds.push({ reason: 'research_unavailable', detail: 'Control Center could not run the lookups asked for this run; rows use what was already known.' });
+          down = true;
+          break;
+        }
       }
       pending = signalRequests({ voices: ctx.voices, research, at });
     }

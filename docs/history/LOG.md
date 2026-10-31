@@ -2,6 +2,14 @@
 
 The dated records of this engine's sessions, newest first. NOW.md names this file as its history log; scripts/check-drift.mjs fails when it is missing. The completion record stays docs/RELEASE.md.
 
+## 2026-10-31: older NOW.md changes
+
+Moved here verbatim from NOW.md's "What changed recently" on 2026-10-31 to keep the session pack under 36 KB; newest first, as NOW.md listed them.
+
+- 2026-10-28 **Guest invites lean to volume (Rulings, Krish, 2026-10-28).** A show with no one left to invite gives its room to the other inside the week's total, a tie goes to the stronger guest on the three axes, and a past Signal & Noise guest may be invited onto Make Your Mind Up; Control Center's Monday drafting for Mindmake is being retired and the post-link backfill ran once under a 5 dollar cap. Plan step 2 is superseded: the live route holds no snapshot prospects.
+- 2026-10-28 **Control Center serves the places inputs and accepts the suppression list (krishanraja/control-center#593), read back live.** The 01:03 UTC live run sent `suppression` and `taxonomy`, accepted; suppression agreed on 340 of 340 checks and places on 174 of 176 probes. The focus playbooks' shadow now reads the home city Control Center serves, so its rooms are compared too.
+- 2026-10-28 **The suppression list and taxonomy go out where Control Center applies them (plan section 12, M10).** The report carries `suppression` and `taxonomy`, both or neither, on a run where Control Center's capabilities say `features.suppression`; until then nothing changes. The 28 October live run read back the M7, M10 and M13 shadow lines: suppression agrees on every check, Control Center's focus plays disagree with the engine on every Mindmake pick, and places wait on context Control Center does not serve yet.
+
 ## 2026-10-30: older NOW.md changes
 
 Moved here verbatim from NOW.md's "What changed recently" on 2026-10-30 to keep the session pack under 36 KB; newest first, as NOW.md listed them.
