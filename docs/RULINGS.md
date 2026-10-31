@@ -145,3 +145,12 @@ In his words (31 October fleet session, on the lookups for addresses the held pi
 - A run files up to twelve lookups for a held podcast, stage or guest (`LOOKUPS_PER_RUN`), up from four, with the kinds still taking turns and each subject still asked at most once a London day.
 - They lead the first research round, which now carries up to twenty requests sent ten a call (`RESEARCH_ROUND`, `RESEARCH_BATCH` in src/dispatch.mjs), Control Center's limit per request, so the reach, sourcing and signal asks keep their room beside them.
 - Control Center's daily caps still bind (raised for Mindmake in its own change to 120 searches and 40 questions a day); over a cap nothing runs and the lookup is asked again the next day. No wall moves: a found address still needs his yes, and the network rule still decides whose box.
+
+## Jonny's emails take Krish's email style (Ruling, Krish, 2026-10-31)
+
+In his words (31 October voice-profile session, on the voice of the Mindmake emails Jonny sends): "jonny just needs to mimic my email style".
+
+- Every email drafted for Jonny's box (podcast and speaking pitches, guest invites, the show-notes note) is written in Krish's shared email voice, `outbound-email-voice.md` in ai-harness's `krish-voice`: the point first, contractions, varied sentences, one low-friction ask, nothing invented.
+- Jonny still speaks as himself: Krish in the third person, signed Jonny, never Krish's "I" or his name in the sign-off. The voice profile's Jonny branch (`references/voice-profile.md`, ruling 6) is the record, read live, never copied here.
+- Nothing else moves: who goes in Jonny's box (the network rule), the caps and every wall stand.
+
