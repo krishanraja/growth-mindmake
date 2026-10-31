@@ -14,6 +14,7 @@ import { validateStrategicRead, strategicPlan, outcomeScorecard } from './strate
 import { readVoice } from './stages/draft.mjs';
 import { amplifierRows, rankRows, pitchOffReviews, ROWS, PER_ROW, TITLE_MAX, TITLE_MAX_BRIEF } from './stages/rows.mjs';
 import { signalRequests, signalRows } from './stages/signals.mjs';
+import { podcastRequests, podcastFinds } from './stages/podcasts.mjs';
 import { readCanon, readRecord, blobSha, CanonError } from './stages/canon.mjs';
 import { pitchRows } from './stages/pitches.mjs';
 import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, readSpecCounts, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, visibilityTargets, STOPGAP_PREFIX, MEETINGS_VERSION, meetingsServed, readMeetings, countGood, tappedObjective, tappedLine, originCandidates } from './stages/meetings.mjs';
@@ -502,10 +503,10 @@ const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.s
  * desk's daily cap by searchesLeft and withinSearches); a synthetic run
  * asks for nothing. Counts only leave this function for the printed outcome.
  */
-export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS, wins = null, sourcing = [] }) {
+export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS, wins = null, sourcing = [], podcastAsks = [] }) {
   // 1.7.0: the title shares the card with the line under it, so it is shorter.
   const titleMax = briefs ? TITLE_MAX_BRIEF : TITLE_MAX;
-  const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0, lookups_asked: 0, sourcing_asked: 0 };
+  const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0, lookups_asked: 0, sourcing_asked: 0, podcasts_asked: 0, podcasts_found: 0 };
   let canon, files;
   try { canon = await canonReader(); files = [...canon.files, ...await wordFiles()]; }
   catch (error) {
@@ -535,6 +536,8 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
     let left = searchesLeft({ capabilities, research, at });
     const fit = list => { const kept = withinSearches(list, lookupIds, left); left -= kept.filter(r => r.kind === 'search').length; return kept; };
     let pending = fit([...lookups.requests, ...sourcing, ...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, RESEARCH_ROUND));
+    // Podchaser searches on prepaid points (src/stages/podcasts.mjs) go after the round, so they never crowd out a lookup or a search.
+    pending.push(...podcastAsks);
     let down = false;
     for (let round = 0; round < 2 && pending.length && !down; round++) {
       for (let i = 0; i < pending.length; i += RESEARCH_BATCH) {
@@ -543,7 +546,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
           const got = await cc.research(batch);
           counts.research_asked += batch.length;
           counts.research_answered += got.filter(r => r.status === 'answered').length;
-          if (round === 0) { counts.lookups_asked += batch.filter(r => lookups.requests.includes(r)).length; counts.sourcing_asked += batch.filter(r => sourcing.includes(r)).length; }
+          if (round === 0) { counts.lookups_asked += batch.filter(r => lookups.requests.includes(r)).length; counts.sourcing_asked += batch.filter(r => sourcing.includes(r)).length; counts.podcasts_asked += batch.filter(r => podcastAsks.includes(r)).length; }
           research = mergeResearch(got, research);
         } catch {
           holds.push({ reason: 'research_unavailable', detail: 'Control Center could not run the lookups asked for this run; rows use what was already known.' });
@@ -603,6 +606,11 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   if (pitches && ((pitched.krishRows ?? []).length || unsure)) activity.push(`His network, never Jonny's box: ${(pitched.krishRows ?? []).length} invite${(pitched.krishRows ?? []).length === 1 ? '' : 's'} or pitch${(pitched.krishRows ?? []).length === 1 ? '' : 'es'} to someone in it written as his own row${(pitched.krishRows ?? []).length === 1 ? '' : 's'}; ${unsure} held because Control Center ${networkRoutes ? 'could not say' : 'does not yet say'} whether the person is in it.`);
   if (pitches) activity.push(`Forms for his tap: ${counts.forms} stage${counts.forms === 1 ? '' : 's'} asked through their own form, every answer written; only his Submit sends one.`);
   if (counts.research_asked) activity.push(`Asked Control Center for ${counts.research_asked} lookups; ${counts.research_answered} answered.`);
+  // Shows Podchaser found that Control Center does not hold yet: counted here, kept in its research store, never given a contact.
+  const finds = podcastFinds({ research: mergeResearch(research, ctx.research ?? []), context: ctx });
+  counts.podcasts_found = finds.length;
+  if (counts.podcasts_asked || finds.length) activity.push(`Podchaser: asked ${counts.podcasts_asked} podcast search${counts.podcasts_asked === 1 ? '' : 'es'} on prepaid points; ${finds.length} show${finds.length === 1 ? '' : 's'} found that the visibility list does not hold yet.`);
+  if (finds.length) holds.push({ reason: 'podcast_finds_no_intake', detail: `${finds.length} show${finds.length === 1 ? '' : 's'} Podchaser found wait in Control Center's research store: it has no intake for a new show from this engine yet, so none is pitched until it is on the visibility list.` });
   if (counts.sourcing_asked) activity.push(`The pool has not grown in ${STARVED_RUNS} runs, so this run asked the research desk for new shows and stages (${counts.sourcing_asked} search${counts.sourcing_asked === 1 ? '' : 'es'}, no person and no address); what it finds comes back in the next context's research.`);
   // An address a held pitch or invite lacks: asked this run, waiting (no answer yet), or answered (src/stages/routes.mjs reads what it found).
   // Waiting is counted from the lookups read before this run's round; what answered is counted from the research after it.
@@ -872,6 +880,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const pool = poolOf(suppliedContext);
     const won = suppliedContext ? readWins({ context: suppliedContext, meetings: taps?.meetings ?? null, at }) : null;
     const sourcing = suppliedContext ? sourcingRequests({ flat: poolFlat({ pool, history }), research: suppliedContext.research ?? [], at, weekOf: thisWeek.start, lanesOn: { visibility: caps.rows.visibility?.on, events: caps.rows.events?.on } }) : [];
+    const podcastAsks = suppliedContext ? podcastRequests({ capabilities, research: suppliedContext.research ?? [], at, visibilityOn: caps.rows.visibility?.on !== false }) : [];
     if (suppliedContext && capabilities?.features?.rows === true && Array.isArray(capabilities.schema_versions) && capabilities.schema_versions.includes(ROWS_VERSION)) {
       phase = 'rows';
       // 1.7.0 and 1.8.0 only where Control Center serves them; an older one gets the rows without what it cannot read.
@@ -879,7 +888,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       const cards = briefs && capabilities.schema_versions.includes(CARD_VERSION);
       const pitches = cards && capabilities.schema_versions.includes(PITCH_VERSION);
       schema_version = pitches ? PITCH_VERSION : cards ? CARD_VERSION : briefs ? BRIEF_VERSION : ROWS_VERSION;
-      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps, wins: won, sourcing });
+      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps, wins: won, sourcing, podcastAsks });
       if (week.spec) activity.push(...compiledDrift(week.spec, { canon: rows.canonFiles }));
       if (!pitches) holds.push({ reason: 'pitch_needs_1_9_0', detail: "Control Center does not yet take pitches for Jonny's Gmail (protocol 1.9.0), so none were written." });
       const shown = cards ? rows.proposals : briefs ? rows.proposals.map(({ card, ...p }) => p) : rows.proposals.map(({ because, brief, card, ...p }) => p);

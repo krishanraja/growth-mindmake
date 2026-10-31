@@ -26,7 +26,7 @@ This file is the session's whole brief. Read AGENTS.md first, then this file.
      - Every connector call that is not `get_usage` or `get_reference` costs one request. Read `get_usage` at the start and the end of the run; the difference is what the run cost.
      - Reserve the requests you plan to use, then settle with the real difference. The `job` is `show_check`.
      - What you find is private research, never committed, and a contact found is never emailed from here.
-     - The `podchaser` pool (the 25,000 API points, wiped on the 1st) is spent by Control Center's own Podchaser key, not by this session. Read its line, but do not reserve from it.
+     - The `podchaser` pool (the 25,000 API points, wiped on the 1st) is spent by the runner's daily `podcasts` lookups through Control Center's research desk (src/stages/podcasts.mjs), not by this session. Read its line, but do not reserve from it.
    - **ElevenLabs:** only drafts that wait for Krish's yes, because it is his cloned voice. Examples are a voice-over for the one-sheet, or a short audio intro a pitch could carry. A draft is never published, posted, sent or shared.
 4. **Every generation, in order:**
    1. `reserve_credit_spend` with `{ engine: 'mindmake', pool, amount, asset, objective_key: 'good_meetings' }`.

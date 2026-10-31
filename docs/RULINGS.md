@@ -145,3 +145,10 @@ In his words (31 October fleet session, on the lookups for addresses the held pi
 - A run files up to twelve lookups for a held podcast, stage or guest (`LOOKUPS_PER_RUN`), up from four, with the kinds still taking turns and each subject still asked at most once a London day.
 - They lead the first research round, which now carries up to twenty requests sent ten a call (`RESEARCH_ROUND`, `RESEARCH_BATCH` in src/dispatch.mjs), Control Center's limit per request, so the reach, sourcing and signal asks keep their room beside them.
 - Control Center's daily caps still bind (raised for Mindmake in its own change to 120 searches and 40 questions a day); over a cap nothing runs and the lookup is asked again the next day. No wall moves: a found address still needs his yes, and the network rule still decides whose box.
+
+## Spend Podchaser's points every day (Ruling, Krish, 2026-10-31)
+
+In his words (31 October fleet session, on Podchaser's 25,000 API points a month that mostly lapsed): "yes on the podcast lookup".
+
+- Each run asks Control Center's research desk for `podcasts`, Podchaser searches on prepaid points, up to the desk's daily cap, on rotated topics his buyer listens to, none asked again inside 30 days, after the round's lookups (src/stages/podcasts.mjs).
+- A show found is a candidate for the visibility row only: no contact, no address, and no pitch until Control Center holds it on the visibility list. No wall moves.

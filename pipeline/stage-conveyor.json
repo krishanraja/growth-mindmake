@@ -464,6 +464,7 @@
         "src/stages/wins.mjs",
         "src/stages/traffic.mjs",
         "src/stages/credits.mjs",
+        "src/stages/podcasts.mjs",
         "src/stages/shownotes.mjs",
         "src/stages/rows.mjs",
         "src/stages/signals.mjs",
