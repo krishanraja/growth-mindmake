@@ -1,6 +1,6 @@
 # The daily credits session
 
-Mindmake's share of the prepaid credits (protocol 1.16.0) is spent by one scheduled Claude session a day, not by the runner. The runner on GitHub holds no generator keys. The session has the connectors: Control Center, Apify and ElevenLabs.
+Mindmake's share of the prepaid credits (protocol 1.16.0) is spent by one scheduled Claude session a day, not by the runner. The runner on GitHub holds no generator keys. The session has the connectors: Control Center, Apify, ElevenLabs and Podchaser.
 
 - Ruling (Krish, 2026-10-29): a growth engine may spend up to its placement share each cycle with no per-batch approval (docs/RULINGS.md).
 - Ruling (Krish, 2026-10-29): engine credits are spent by one scheduled session per engine, recording each spend through Control Center.
@@ -13,7 +13,7 @@ This file is the session's whole brief. Read AGENTS.md first, then this file.
 1. **Read the share.** Call `get_engine_credits` with `{ engine: 'mindmake' }`.
    - If it answers `held: true`, `credits: null` or an error, stop. Say why in one line. Unknown is never a share of zero, and it spends nothing.
 2. **Pace it, by the pool's `mode`.**
-   - `use_it` (ElevenLabs, and any pool with no `mode`): today's budget is `remaining_for_you / days_left`. Inside the last three days before `use_by`, the budget is all of `remaining_for_you`. Credits left at the reset are money lost.
+   - `use_it` (ElevenLabs, `podchaser-connector`, and any pool with no `mode`): today's budget is `remaining_for_you / days_left`. Inside the last three days before `use_by`, the budget is all of `remaining_for_you`. Credits left at the reset are money lost.
    - `ceiling` (Apify): pay as you go. `remaining_for_you` is the most you may spend until `use_by`, never a target, and there is no pace. Nothing is lost by leaving it; every dollar run is a dollar spent.
 3. **Pick the work.** Choose work that moves `good_meetings` (docs/NORTH_STAR.md), best first.
    - **Apify, only what a decision needs:** booking routes, hosts and organisers for the podcasts and stages the five rows work on, when a row cannot move without them.
@@ -22,6 +22,11 @@ This file is the session's whole brief. Read AGENTS.md first, then this file.
      - The cheapest run that answers the question, never a broad sweep to fill the cap.
      - Results are private research. They go back through Control Center or stay under ignored `runtime/`, and are never committed (this repository is public).
      - Never a bulk scrape of people.
+   - **Podchaser connector (`podchaser-connector`, requests, wiped on the 16th):** show checks for the podcasts the five rows are about to pitch, best show first: its recent episodes and guests, what it talks about, its reach, and its listed contacts, so the pitch names something real and goes to the right person.
+     - Every connector call that is not `get_usage` or `get_reference` costs one request. Read `get_usage` at the start and the end of the run; the difference is what the run cost.
+     - Reserve the requests you plan to use, then settle with the real difference. The `job` is `show_check`.
+     - What you find is private research, never committed, and a contact found is never emailed from here.
+     - The `podchaser` pool (the 25,000 API points, wiped on the 1st) is spent by Control Center's own Podchaser key, not by this session. Read its line, but do not reserve from it.
    - **ElevenLabs:** only drafts that wait for Krish's yes, because it is his cloned voice. Examples are a voice-over for the one-sheet, or a short audio intro a pitch could carry. A draft is never published, posted, sent or shared.
 4. **Every generation, in order:**
    1. `reserve_credit_spend` with `{ engine: 'mindmake', pool, amount, asset, objective_key: 'good_meetings' }`.
