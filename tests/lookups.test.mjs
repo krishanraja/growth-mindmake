@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, parseRecord } from '../src/stages/canon.mjs';
 import { pitchRows, lookupId, lookupRequests, lookupState, LOOKUPS_PER_RUN, LOOKUP_WORDINGS } from '../src/stages/pitches.mjs';
-import { runDispatch } from '../src/dispatch.mjs';
+import { runDispatch, searchesLeft, withinSearches, SEARCHES_PER_DAY } from '../src/dispatch.mjs';
 import { directiveFixture, violations } from './support/engine-protocol-service.mjs';
 import { capsContext, capsKit, AT } from './support/caps-scenario.mjs';
 
@@ -58,12 +58,17 @@ test('every attempt has its own id, never asked again while one waits or found a
 test('a held stage, show and guest each file a bounded lookup, taking turns, and nothing held for another reason does', () => {
   const r = pitchRows({ context: heldContext(), weekGoals: GOALS, canon, record: RECORD, files: FILES, at: AT });
   const { requests, waiting, eligible, by } = r.lookups;
-  assert.equal(requests.length, LOOKUPS_PER_RUN, 'at most four a run');
+  assert.equal(LOOKUPS_PER_RUN, 12, 'twelve a run since 2026-10-31 (Ruling, Krish: "Raise the daily lookup")');
+  assert.equal(requests.length, 5, 'every eligible subject, inside the twelve');
   assert.equal(eligible, 5, 'two summits, one show, two guests: the late summit and the buried show are held for their own reasons');
   assert.equal(waiting, 0);
-  assert.deepEqual(requests.map(q => q.subject_ref), [`target:${id(601)}`, `target:${id(401)}`, `contact:${id(801)}`, `target:${id(602)}`], 'round robin: a stage, a show, a guest, then the next stage');
-  assert.deepEqual(by, { stages: 2, podcasts: 1, guests: 1 });
-  assert.deepEqual(requests.map(q => q.request_id.split(':').slice(0, -2).join(':')), [`booking:${id(601)}`, `booking:${id(401)}`, `email:${id(801)}`, `booking:${id(602)}`]);
+  assert.deepEqual(requests.map(q => q.subject_ref), [`target:${id(601)}`, `target:${id(401)}`, `contact:${id(801)}`, `target:${id(602)}`, null], 'round robin: a stage, a show, a guest, then the next stage and the next guest');
+  assert.deepEqual(by, { stages: 2, podcasts: 1, guests: 2 });
+  assert.deepEqual(requests.map(q => q.request_id.split(':').slice(0, -2).join(':')), [`booking:${id(601)}`, `booking:${id(401)}`, `email:${id(801)}`, `booking:${id(602)}`, `email:guest:${id(902)}`]);
+  // Bounded: twenty held stages file twelve, and a smaller cap still takes turns.
+  const many = Array.from({ length: 20 }, (_, i) => ({ lane: 'stage', key: `s${String(i).padStart(2, '0')}`, base: `booking:s${i}`, score: 1, subject_ref: null, query: `q${i}`, why: 'w' }));
+  assert.equal(lookupRequests({ stages: many, at: AT }).requests.length, LOOKUPS_PER_RUN, 'at most twelve a run');
+  assert.equal(lookupRequests({ stages: many, at: AT, max: 4 }).requests.length, 4);
   for (const q of requests) assert.match(q.request_id, DAY_ID);
   for (const q of requests) {
     assert.equal(q.kind, 'search');
@@ -138,16 +143,16 @@ test('a live dispatch run asks the desk for the lookups first in its round, coun
   };
   const first = await run([]);
   assert.equal(first.result.status, 'succeeded');
-  assert.ok(first.batches[0].length <= 10, 'inside the round of ten');
-  assert.deepEqual(first.batches[0].slice(0, 4).map(q => q.request_id.split(':')[0]), ['booking', 'booking', 'email', 'booking'], 'the lookups lead the first round');
-  assert.equal(first.result.rows.lookups_asked, 4);
-  assert.ok(first.result.rows.research_asked >= 4);
-  // The desk answered all four with nothing this run: each is read in the same run and held as found nothing, never as waiting.
+  assert.ok(first.batches.every(b => b.length >= 1 && b.length <= 10), 'each call inside the desk\'s ten');
+  assert.deepEqual(first.batches[0].slice(0, 5).map(q => q.request_id.split(':')[0]), ['booking', 'booking', 'email', 'booking', 'email'], 'the lookups lead the first round');
+  assert.equal(first.result.rows.lookups_asked, 5);
+  assert.ok(first.result.rows.research_asked >= 5);
+  // The desk answered all five with nothing this run: each is read in the same run and held as found nothing, never as waiting.
   assert.ok(first.report.holds.some(h => h.reason === 'speak_lookup_found_nothing') && first.report.holds.some(h => h.reason === 'invite_lookup_found_nothing'), 'an answered lookup leaves its own hold');
-  assert.ok(first.report.holds.some(h => h.reason === 'invite_no_contact'), 'the guest not yet asked keeps its code');
-  assert.equal(first.result.rows.lookups_found_nothing, 4);
+  assert.equal(first.report.holds.some(h => h.reason === 'invite_no_contact'), false, 'inside the twelve every held guest was asked, so none is left on its plain code');
+  assert.equal(first.result.rows.lookups_found_nothing, 5);
   const line = first.report.activity.find(a => a.line.startsWith('Addresses for held pitches and invites'))?.line;
-  assert.match(line, /^Addresses for held pitches and invites: 4 looked up this run \(2 stages, 1 podcast, 1 guest\), 0 asked and waiting for an answer; answered: 0 with an address on the subject's own site, 0 with its own form page, 4 with nothing usable/);
+  assert.match(line, /^Addresses for held pitches and invites: 5 looked up this run \(2 stages, 1 podcast, 2 guests\), 0 asked and waiting for an answer; answered: 0 with an address on the subject's own site, 0 with its own form page, 5 with nothing usable/);
   assert.match(line, /still needs his yes, and the network rule decides whose box it goes in/);
   assert.deepEqual(violations(schema, first.report), []);
   // The next run reads those lookups back in its context: none is asked again, and the one never asked is.
@@ -164,4 +169,47 @@ test('a live dispatch run asks the desk for the lookups first in its round, coun
   // A synthetic run asks the desk for nothing.
   const synthetic = pitchRows({ context: heldContext(), weekGoals: GOALS, canon, record: RECORD, files: FILES, at: AT });
   assert.ok(synthetic.lookups.requests.length > 0, 'pure: the requests are built either way; only a live run with the research feature sends them');
+});
+
+test('twelve lookups fit the first round: sent ten a call, the lookups first, every one counted', async () => {
+  const c = heldContext();
+  const summit = c.records.visibility.find(t => t.id === id(601));
+  // Ten more invented summits held only for want of an address: fifteen eligible, twelve asked.
+  for (let n = 0; n < 10; n++) c.records.visibility.push({ ...summit, id: id(700 + n), title: `Invented Summit ${String.fromCharCode(65 + n)}`, event_url: `https://summit${n}.example/`, cfp_url: null, form_fields: null });
+  const reports = [], batches = [];
+  const cc = {
+    recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: '1.9.0', week_goals: GOALS }),
+    capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: ['1.6.0', '1.7.0', '1.8.0', '1.9.0'], features: { context: true, rows: true, research: true, network_routes: true } }),
+    context: async () => ({ ok: true, context: c }),
+    research: async requests => { batches.push(requests); return requests.map(q => ({ ...q, status: 'empty', evidence: [], answer: null, requested_at: AT, answered_at: AT })); },
+    decisions: async () => [], postReport: async rep => { reports.push(rep); return { replayed: false }; }, readReport: async () => reports.at(-1)
+  };
+  const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-lookups-twelve', clock: () => AT,
+    canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/pitches.mjs', sha: 'b'.repeat(40) }], recordReader: async () => RECORD });
+  assert.equal(result.status, 'succeeded');
+  assert.ok(batches.length >= 2 && batches.every(b => b.length >= 1 && b.length <= 10), 'no call carries more than the desk takes');
+  const sent = batches.flat().filter(q => /^(?:booking|email):/.test(q.request_id));
+  assert.equal(sent.length, LOOKUPS_PER_RUN);
+  assert.deepEqual(batches[0].map(q => q.request_id.split(':')[0]).every(k => k === 'booking' || k === 'email'), true, 'the first call is all lookups');
+  assert.equal(result.rows.lookups_asked, LOOKUPS_PER_RUN);
+});
+
+test('the round keeps inside the desk\'s daily searches: lookups take at most half of what is left, and nothing past the cap is sent', () => {
+  const asked = n => Array.from({ length: n }, (_, i) => ({ request_id: `x:${i}`, kind: 'search', status: 'answered', requested_at: AT }));
+  assert.equal(searchesLeft({ capabilities: {}, research: [], at: AT }), SEARCHES_PER_DAY, 'forty a day when the capabilities do not say');
+  assert.equal(searchesLeft({ capabilities: { research: { per_day: { search: 40 } } }, research: asked(30), at: AT }), 10);
+  assert.equal(searchesLeft({ capabilities: {}, research: [...asked(5), { request_id: 'y', kind: 'search', status: 'over_cap', requested_at: AT }, { request_id: 'z', kind: 'question', requested_at: AT }], at: AT }), 35, 'a refused search and a question do not count');
+  assert.equal(searchesLeft({ capabilities: {}, research: [{ request_id: 'old', kind: 'search', status: 'answered', requested_at: '2026-10-20T09:00:00Z' }], at: AT }), 40, "another day's search does not count");
+  assert.equal(searchesLeft({ capabilities: {}, research: asked(45), at: AT }), 0);
+  const look = Array.from({ length: 12 }, (_, i) => ({ request_id: `booking:${i}`, kind: 'search' }));
+  const other = Array.from({ length: 6 }, (_, i) => ({ request_id: `src:${i}`, kind: 'search' }));
+  const posts = { request_id: 'p', kind: 'posts' };
+  const ids = new Set(look.map(r => r.request_id));
+  const first = withinSearches([...look, ...other, posts], ids, 40);
+  assert.equal(first.filter(r => ids.has(r.request_id)).length, 12, 'a fresh day sends all twelve');
+  const late = withinSearches([...look, ...other, posts], ids, 10);
+  assert.equal(late.filter(r => ids.has(r.request_id)).length, 5, 'late in the day the lookups take half of what is left');
+  assert.equal(late.filter(r => r.kind === 'search').length, 10, 'the rest goes to sourcing and reach');
+  assert.ok(late.includes(posts), 'other kinds keep their place');
+  assert.deepEqual(withinSearches([...look, posts], ids, 0), [posts], 'none left: no search is sent');
 });

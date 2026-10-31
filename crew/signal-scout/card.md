@@ -18,5 +18,5 @@ From 09-privacy-and-suppression.md, Research and prompt safety:
 
 ## Sources
 
-- docs/playbooks/11-trusted-distribution.md, "Signals from his buyers (Rulings, Krish, 2026-10-26)": sha256 39665d1dd4671758
+- docs/playbooks/11-trusted-distribution.md, "Signals from his buyers (Rulings, Krish, 2026-10-26)": sha256 92f081e7c013d049
 - docs/playbooks/09-privacy-and-suppression.md, "Research and prompt safety": sha256 c010051a9b12dfa9

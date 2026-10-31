@@ -271,8 +271,15 @@ automated next best route."
   stage says panel; a track named for AI, then one for the stage's topic).
   Never a phone, an address, a payment, a password, a date of birth, a
   demographic question, someone else's details, a number or a date, and never a
-  box or a choice ticked for him. The canon names no LinkedIn profile and no
-  city today, so those stay empty.
+  box or a choice ticked for him. A country by where the event is (Ruling,
+  Krish, 2026-10-31: "UK & US or global if its virtual"): United States for an
+  event in the US, United Kingdom otherwise, global when it is virtual, read
+  from the stage's own `location`, `format` and title (`eventPlace`); a stage
+  that says nothing is answered United Kingdom. A select takes only its own
+  option by its own words (no option that fits holds the form); a text field
+  takes "United Kingdom", "United States" or "Global". The canon names no
+  LinkedIn profile and no city today, so those, and a state, a region or an
+  address, stay empty.
 - **When it cannot be.** A required field the run is not sure of, a required
   terms box (ticking one is a legal yes in his name), no email to answer him
   on, or an answer Control Center's runner would put where it should not (it
@@ -351,8 +358,10 @@ same run asks Control Center's research desk to find where it takes pitches.
   address were on record; a show that is buried, quiet, ruled out, already
   pitched or routed to its own form, a stage past its deadline, or a guest not
   judged worth having files nothing.
-- **Bounded.** At most four a run (`LOOKUPS_PER_RUN`), first in the research
-  round and inside its ten and the desk's daily caps, as `search` requests.
+- **Bounded.** At most twelve a run (`LOOKUPS_PER_RUN`; Ruling, Krish,
+  2026-10-31: "Raise the daily lookup"), first in the research round, which
+  carries up to twenty sent ten a call (`RESEARCH_ROUND`, `RESEARCH_BATCH`),
+  and inside the desk's daily caps, as `search` requests.
   The kinds take turns, a stage, then a podcast, then a guest, then the next
   stage, each kind in its own rank (stages by `speakScore`, podcasts by
   `pitchScore`, guests by verdict and strength), so no kind waits behind
