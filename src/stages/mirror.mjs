@@ -3,8 +3,8 @@
  *
  * Ruling (Krish, 2026-11-05): before he meets someone, show them privately
  * what the AI answer engines say about them and their companies. Control
- * Center runs these on his press (api/_mirror.ts) against Perplexity, ChatGPT
- * and Claude, and reads them against what it knows. The questions are the
+ * Center runs these on his press (api/_mirror.ts) against Perplexity, ChatGPT,
+ * Claude and Gemini, and reads them against what it knows. The questions are the
  * engine's: what a curious stranger would ask, so the mirror shows the
  * person how they are found, not how they would like to be. {name} and
  * {company} are the only fills. Pure.

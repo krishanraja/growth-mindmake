@@ -955,7 +955,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["version", "questions"],
-      "description": "1.19.0, optional, Mindmake only (features.mirror): the questions an AI mirror asks Perplexity, ChatGPT and Claude about one person, run on Krish's press. Each names the person as {name}; {company} is the only other fill.",
+      "description": "1.19.0, optional, Mindmake only (features.mirror): the questions an AI mirror asks Perplexity, ChatGPT, Claude and Gemini about one person, run on Krish's press. Each names the person as {name}; {company} is the only other fill.",
       "properties": {
         "version": { "const": 1 },
         "questions": { "type": "array", "minItems": 3, "maxItems": 8, "items": { "type": "string", "maxLength": 300, "pattern": "\\{name\\}" } }

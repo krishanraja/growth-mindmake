@@ -162,4 +162,5 @@ In his words (5 November, on who to reach): "I still think the crazy rich and cr
 - The engine finds 50 people outside his network for the circle lane by its own cited lookups (src/stages/circle.mjs) and sends who they are, never how to reach them, in the report's `circle` (protocol 1.19.0). Control Center matches each to his network and files a stranger with no address.
 - Each is invited onto Make Your Mind Up, his own channel, in his own name. Someone he knows is his own row in his own box; only a stranger is ever Jonny's, as the 2026-10-28 network ruling says. An unscored circle guest stands as a stretch, never a take.
 - The AI mirror's questions are the engine's (src/stages/mirror.mjs, the report's `mirror`); Control Center runs them on his press and when a circle guest says yes, at most three a day, and keeps the read private. Nothing is sent or published.
+- The same day he added Gemini: "Gemini would be good too as that's the most common one and it's probably going to get things wrong quite a lot." The mirror asks Perplexity, ChatGPT, Claude and Gemini.
 - No wall moves: every send, post and spend still takes his yes.
