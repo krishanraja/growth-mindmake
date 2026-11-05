@@ -42,6 +42,7 @@ Each is in docs/RULINGS.md word for word, with his quotes; a line here says what
 - A speaker form's country is where the event is (Ruling, Krish, 2026-10-31): a country field says United States for an event in the US, United Kingdom otherwise or when the stage says nothing, and global when it is virtual; a select only by its own options, else the form holds.
 - Raise the daily address lookups (Ruling, Krish, 2026-10-31): up to twelve lookups a run for held pitches and invites, first in a research round of twenty sent ten a call, inside Control Center's daily caps.
 - Jonny's emails take Krish's email style (Ruling, Krish, 2026-10-31): every draft for Jonny's box is written in Krish's shared email voice from krish-voice, as Jonny, with Krish in the third person and signed Jonny.
+- The circle lane and the AI mirror (Rulings, Krish, 2026-11-05): 50 influential strangers, who not how, invited in his name.
 
 ## Current release boundary
 

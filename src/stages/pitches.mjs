@@ -2,7 +2,7 @@ import { seal, clean, DAY } from '../guards.mjs';
 import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, actionFor, rowProposal, score, channelOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX, OBJECTIVE } from './rows.mjs';
 import { showNoteRows } from './shownotes.mjs';
 import { shadowLine, stageVerdict, stageStrength, ccStageVerdict, isDeadDate } from './visibility.mjs';
-import { guestVerdictOf, guestStrength, WARM_TIERS } from './guests.mjs';
+import { guestVerdictOf, guestStrength, isCircleGuest, WARM_TIERS } from './guests.mjs';
 import { routeFromEvidence, ownSites } from './routes.mjs';
 
 /**
@@ -486,7 +486,7 @@ export function inviteCard({ g, name, show, topic, canon, contact, serves, weekl
   const who = within(`${name}${g.one_liner ? `: ${leadFacts(g.one_liner, CARD_WHO_MAX - name.length - 2).replace(/[.!?]+$/, '')}` : ''}.`, CARD_WHO_MAX) || `${name}.`;
   const known = (contact ? knownWords(contact) : '') || (by === 'krish' ? IN_NETWORK_KNOWN : 'You do not know them yet. Jonny writes first, from his own Gmail.');
   const pages = evidencePages(g);
-  const why = [leadFacts(g.why_fit, CARD_LINE_MAX), pages[0] ? within(`Seen online: ${clean(pages[0].label)}.`) : '', guestVerdictOf(g) === 'take' ? `The guest standard judged them worth having on ${show.name}.` : `The guest standard judged them a stretch for ${show.name}, worth asking.`]
+  const why = [leadFacts(g.why_fit, CARD_LINE_MAX), pages[0] ? within(`Seen online: ${clean(pages[0].label)}.`) : '', guestVerdictOf(g) === 'take' ? `The guest standard judged them worth having on ${show.name}.` : isCircleGuest(g) ? `Found for the circle lane: senior and widely seen, worth asking onto ${show.name}.` : `The guest standard judged them a stretch for ${show.name}, worth asking.`]
     .filter(Boolean).filter((l, i, a) => a.findIndex(x => x.slice(0, 40) === l.slice(0, 40)) === i).slice(0, CARD_LINES);
   const goal = serves ? within(`It serves this week's goal: ${serves.replace(/[.!?]+$/, '')}.`) : '';
   const gain = [`A guest for ${weekly ? `${show.name}'s weekly conversation` : show.name}, and a conversation that puts both names in front of each other's audience.`, ...(goal ? [goal] : [])].map(l => within(l)).filter(Boolean);

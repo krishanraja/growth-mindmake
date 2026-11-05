@@ -170,7 +170,15 @@ export function standingFromAxes(g) {
  * is never read here, so it never decides. The wrong show is not derivable
  * from the axes, so a guest refused only for that reads on its axes. Pure.
  */
-export const guestVerdictOf = g => standingFromAxes(g)?.guest_verdict ?? 'unjudged';
+/**
+ * A circle guest (Ruling, Krish, 2026-11-05) is found by the engine's own cited lookups as senior and widely
+ * seen, and nobody has scored their axes: they stand as a stretch, worth asking, never a take. Pure.
+ */
+export const isCircleGuest = g => g?.discovery_source === 'growth_circle';
+export const guestVerdictOf = g => {
+  const v = standingFromAxes(g)?.guest_verdict ?? 'unjudged';
+  return v === 'unjudged' && isCircleGuest(g) ? 'stretch' : v;
+};
 
 /** The engine's own strength for a guest: the least of the three axes it computes, or -1 when they are not served. Pure. */
 export const guestStrength = g => standingFromAxes(g)?.guest_score ?? -1;

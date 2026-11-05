@@ -469,6 +469,8 @@
         "src/stages/signals.mjs",
         "src/stages/pitches.mjs",
         "src/stages/routes.mjs",
+        "src/stages/circle.mjs",
+        "src/stages/mirror.mjs",
         "src/stages/guests.mjs",
         "src/stages/visibility.mjs",
         "src/stages/rooms.mjs",
