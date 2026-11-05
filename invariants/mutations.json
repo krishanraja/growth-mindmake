@@ -432,8 +432,8 @@
       "id": "guest-falls-back-to-cc-verdict",
       "what": "with no axes served, a guest takes Control Center's stored verdict and is invited",
       "file": "src/stages/guests.mjs",
-      "find": "export const guestVerdictOf = g => standingFromAxes(g)?.guest_verdict ?? 'unjudged';",
-      "replace": "export const guestVerdictOf = g => standingFromAxes(g)?.guest_verdict ?? g?.guest_verdict ?? 'unjudged';",
+      "find": "  const v = standingFromAxes(g)?.guest_verdict ?? 'unjudged';",
+      "replace": "  const v = standingFromAxes(g)?.guest_verdict ?? g?.guest_verdict ?? 'unjudged';",
       "tests": [
         "tests/pitches.test.mjs",
         "tests/section12.test.mjs"
@@ -648,6 +648,26 @@
       "replace": "",
       "tests": [
         "tests/network.test.mjs"
+      ]
+    },
+    {
+      "id": "circle-guest-taken",
+      "what": "an unscored circle guest stands as a take instead of a stretch",
+      "file": "src/stages/guests.mjs",
+      "find": "return v === 'unjudged' && isCircleGuest(g) ? 'stretch' : v;",
+      "replace": "return v === 'unjudged' && isCircleGuest(g) ? 'take' : v;",
+      "tests": [
+        "tests/circle.test.mjs"
+      ]
+    },
+    {
+      "id": "circle-carries-an-address",
+      "what": "a circle line with an address is read as a person",
+      "file": "src/stages/circle.mjs",
+      "find": "    if ([name, company, role, why].some(t => CONTACTISH.test(t))) continue;",
+      "replace": "    if (false) continue;",
+      "tests": [
+        "tests/circle.test.mjs"
       ]
     }
   ]

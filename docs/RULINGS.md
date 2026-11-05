@@ -154,3 +154,13 @@ In his words (31 October voice-profile session, on the voice of the Mindmake ema
 - Jonny still speaks as himself: Krish in the third person, signed Jonny, never Krish's "I" or his name in the sign-off. The voice profile's Jonny branch (`references/voice-profile.md`, ruling 6) is the record, read live, never copied here.
 - Nothing else moves: who goes in Jonny's box (the network rule), the caps and every wall stand.
 
+
+## The circle lane and the AI mirror (Rulings, Krish, 2026-11-05)
+
+In his words (5 November, on who to reach): "I still think the crazy rich and crazy influential are worth trying to get in front of as well as the above. I agree that it needs to feel personal. It needs to feel like I'm the guy who they need to talk to about all of this stuff." Then: "Prepare #1 and #2 ... focus it on those new 50 people that aren't in my network." He chose the four kinds (exited founders, PE and VC partners, public figures, family office heads), a mirror made on his press and automatically when an invitee says yes under a daily cap, and Perplexity, ChatGPT and Claude as the engines it asks.
+
+- The engine finds 50 people outside his network for the circle lane by its own cited lookups (src/stages/circle.mjs) and sends who they are, never how to reach them, in the report's `circle` (protocol 1.19.0). Control Center matches each to his network and files a stranger with no address.
+- Each is invited onto Make Your Mind Up, his own channel, in his own name. Someone he knows is his own row in his own box; only a stranger is ever Jonny's, as the 2026-10-28 network ruling says. An unscored circle guest stands as a stretch, never a take.
+- The AI mirror's questions are the engine's (src/stages/mirror.mjs, the report's `mirror`); Control Center runs them on his press and when a circle guest says yes, at most three a day, and keeps the read private. Nothing is sent or published.
+- The same day he added Gemini: "Gemini would be good too as that's the most common one and it's probably going to get things wrong quite a lot." The mirror asks Perplexity, ChatGPT, Claude and Gemini.
+- No wall moves: every send, post and spend still takes his yes.

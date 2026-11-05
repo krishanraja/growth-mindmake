@@ -14,6 +14,8 @@ import { validateStrategicRead, strategicPlan, outcomeScorecard } from './strate
 import { readVoice } from './stages/draft.mjs';
 import { amplifierRows, rankRows, pitchOffReviews, ROWS, PER_ROW, TITLE_MAX, TITLE_MAX_BRIEF } from './stages/rows.mjs';
 import { signalRequests, signalRows } from './stages/signals.mjs';
+import { circleRequests, circlePeople, takesCircle, circleAnswer, CIRCLE_VERSION } from './stages/circle.mjs';
+import { mirrorPlan, takesMirror, MIRROR_VERSION } from './stages/mirror.mjs';
 import { readCanon, readRecord, blobSha, CanonError } from './stages/canon.mjs';
 import { pitchRows } from './stages/pitches.mjs';
 import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, readSpecCounts, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, visibilityTargets, STOPGAP_PREFIX, MEETINGS_VERSION, meetingsServed, readMeetings, countGood, tappedObjective, tappedLine, originCandidates } from './stages/meetings.mjs';
@@ -404,13 +406,17 @@ export function deadPlans(context, proposing = new Set()) {
 }
 
 /** Build the report envelope exactly as engine-report.schema.json, then check it against that schema. */
-export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null, suppression = null, taxonomy = null, credits_spent = null, found_routes = null }) {
+export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null, suppression = null, taxonomy = null, credits_spent = null, found_routes = null, circle = null, mirror = null }) {
   // 1.16.0: credits_spent goes out only when this run spent something, and raises the report to the version that carries it.
   const spent = Array.isArray(credits_spent) && credits_spent.length ? credits_spent.slice(0, CREDITS_SPENT_MAX) : null;
   // 1.18.0: found_routes goes out only when there is one, and raises the report to the version that carries it.
   const routes = Array.isArray(found_routes) && found_routes.length ? found_routes.slice(0, FOUND_ROUTES_MAX) : null;
   let version = spent ? laterVersion(schema_version, CREDITS_VERSION) : schema_version;
   if (routes) version = laterVersion(version, FOUND_ROUTES_VERSION);
+  // 1.19.0: the circle and the mirror plan go out only when there is one, and raise the report to the version that carries them.
+  const people = Array.isArray(circle) && circle.length ? circle.slice(0, 50) : null;
+  if (people) version = laterVersion(version, CIRCLE_VERSION);
+  if (mirror) version = laterVersion(version, MIRROR_VERSION);
   const body = {
     schema_version: version, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
     objectives, activity: activity.slice(0, 40).map(line => ({ line: cut(line, 500), evidence_url: null })),
@@ -423,7 +429,10 @@ export function buildReport({ run_id, mode, observed_at, source, status, objecti
     ...(suppression && taxonomy ? { suppression, taxonomy } : {}),
     ...(spent ? { credits_spent: spent } : {}),
     // Routes answered lookups found, only where Control Center records them (features.found_routes) and only when there is one.
-    ...(routes ? { found_routes: routes } : {})
+    ...(routes ? { found_routes: routes } : {}),
+    // The circle lane's people and the AI mirror's questions, only where Control Center serves them (features.circle, features.mirror).
+    ...(people ? { circle: people } : {}),
+    ...(mirror ? { mirror } : {})
   };
   const report = { ...body, payload_sha256: reportDigest(body) };
   const errors = schemaErrors(REPORT_SCHEMA, report);
@@ -534,7 +543,9 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
     const lookupIds = new Set(lookups.requests.map(r => r.request_id));
     let left = searchesLeft({ capabilities, research, at });
     const fit = list => { const kept = withinSearches(list, lookupIds, left); left -= kept.filter(r => r.kind === 'search').length; return kept; };
-    let pending = fit([...lookups.requests, ...sourcing, ...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, RESEARCH_ROUND));
+    // The circle lane's daily questions come after the addresses and the sourcing (Ruling, Krish, 2026-11-05), only where Control Center files what they find.
+    const circleAsks = takesCircle(capabilities, REPORT_SCHEMA) ? circleRequests({ research, at }) : [];
+    let pending = fit([...lookups.requests, ...sourcing, ...circleAsks, ...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, RESEARCH_ROUND));
     let down = false;
     for (let round = 0; round < 2 && pending.length && !down; round++) {
       for (let i = 0; i < pending.length; i += RESEARCH_BATCH) {
@@ -543,7 +554,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
           const got = await cc.research(batch);
           counts.research_asked += batch.length;
           counts.research_answered += got.filter(r => r.status === 'answered').length;
-          if (round === 0) { counts.lookups_asked += batch.filter(r => lookups.requests.includes(r)).length; counts.sourcing_asked += batch.filter(r => sourcing.includes(r)).length; }
+          if (round === 0) { counts.lookups_asked += batch.filter(r => lookups.requests.includes(r)).length; counts.sourcing_asked += batch.filter(r => sourcing.includes(r)).length; counts.circle_asked = (counts.circle_asked ?? 0) + batch.filter(r => circleAsks.includes(r)).length; }
           research = mergeResearch(got, research);
         } catch {
           holds.push({ reason: 'research_unavailable', detail: 'Control Center could not run the lookups asked for this run; rows use what was already known.' });
@@ -619,7 +630,10 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   if (pitches && counts.lookups_found && !takesRoutes) holds.push({ reason: 'found_routes_unrecorded', detail: `${counts.lookups_found} route${counts.lookups_found === 1 ? '' : 's'} found in answered lookups wait${counts.lookups_found === 1 ? 's' : ''} for Control Center to take found routes (features.found_routes at protocol 1.18.0, docs/CONTROL-CENTER-BRIEF.md); until it records them on the stage or the guest, the pitch or invite cannot name its recipient.` });
   // Control Center drafts ten a day into Jonny's Gmail; a wake later the same day writes only what is left.
   if (pitched.jonny?.used) activity.push(`Jonny's Gmail already holds ${pitched.jonny.used} draft${pitched.jonny.used === 1 ? '' : 's'} made today, so this run writes at most ${pitched.jonny.room} more.`);
-  return { proposals, holds, activity, counts, canonFiles: canon.files, canon, research, found_routes: takesRoutes ? foundRoutesField(pitched.found ?? []) : null };
+  // 1.19.0: the circle lane's people from every answered circle lookup, ten a run, and the mirror's questions.
+  const circle = mode === 'live' && takesCircle(capabilities, REPORT_SCHEMA) ? circlePeople(research, { at }) : [];
+  if (counts.circle_asked || circle.length) activity.push(`Circle lane: ${counts.circle_asked ?? 0} questions asked this run; ${circle.length} people sent for Control Center to match to his network or file with no address. Someone he knows goes on his own row; only a stranger is ever Jonny's.`);
+  return { proposals, holds, activity, counts, canonFiles: canon.files, canon, research, found_routes: takesRoutes ? foundRoutesField(pitched.found ?? []) : null, circle: circle.length ? circle : null, mirror: takesMirror(capabilities, REPORT_SCHEMA) ? mirrorPlan() : null };
 }
 
 /**
@@ -989,7 +1003,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const report = buildReport({
       run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.some(h => !STANDING_HOLDS.has(h.reason)) ? 'held' : 'ready',
       source: strategicSource ?? { revision: snapshot && snapshot.source_revision.length <= 128 ? snapshot.source_revision : revision, captured_at: snapshot?.generated_at ?? observed_at },
-      objectives, activity, proposals: mapped.proposals, events: events.slice(0, 40), holds, schema_version, origin_candidates, withdrawn, found_routes: rowsRun?.found_routes ?? null,
+      objectives, activity, proposals: mapped.proposals, events: events.slice(0, 40), holds, schema_version, origin_candidates, withdrawn, found_routes: rowsRun?.found_routes ?? null, circle: rowsRun?.circle ?? null, mirror: rowsRun?.mirror ?? null,
       ...(suppressed.fields ?? {})
     });
     // A live run that read nothing to plan from is held by its class (F48): the report says degraded, and the attempt says why, never succeeded.
@@ -1011,6 +1025,9 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // 1.18.0: what Control Center did with the found routes this report carried, counted, never an address.
     const routesAnswer = foundRoutesAnswer(report.found_routes?.length ?? 0, ack?.found_routes);
     if (routesAnswer) outcome.found_routes = routesAnswer;
+    // 1.19.0: what Control Center did with the circle, counted, never a name.
+    const circleSaid = circleAnswer(report.circle?.length ?? 0, ack?.circle);
+    if (circleSaid) outcome.circle = circleSaid;
     phase = 'readback';
     let stored;
     try { stored = await cc.readReport(run_id); } catch { return await finish('unknown', 'readback_unconfirmed'); }
