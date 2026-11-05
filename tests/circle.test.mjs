@@ -85,9 +85,9 @@ test('the circle and the mirror go out only where Control Center serves them, at
 });
 
 test('Control Center\'s answer is counted, never named', () => {
-  const line = circleAnswer(3, { dry_run: false, checked: 3, created: 1, linked: 1, refused: { name_only: 1 }, people: [{ index: 0, outcome: 'linked', contact_id: 'x', in_network: true }] });
+  const line = circleAnswer(3, { dry_run: false, checked: 3, created: 2, linked: 1, asked: 1, refused: { not_to_be_contacted: 1 }, people: [{ index: 0, outcome: 'linked', contact_id: 'x', in_network: true }] });
   assert.equal(line.state, 'answered');
-  assert.match(line.line, /1 new, 1 already in his records \(1 in his network, so his own row\); refused: 1 name only/);
+  assert.match(line.line, /2 new, 1 already in his records \(1 in his network, so his own row\); 1 same-name question for him; refused: 1 not to be contacted/);
   assert.equal(circleAnswer(2, { error: 'circle_unrecorded' }).state, 'unrecorded');
   assert.equal(circleAnswer(0, null), null);
 });

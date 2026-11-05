@@ -125,5 +125,6 @@ export function circleAnswer(sent, answer) {
   const n = v => (Number.isInteger(v) && v >= 0 ? v : 0);
   const refused = Object.entries(answer.refused ?? {}).filter(([, v]) => n(v)).map(([k, v]) => `${n(v)} ${k.replace(/_/g, ' ')}`);
   const known = (Array.isArray(answer.people) ? answer.people : []).filter(p => p?.in_network === true).length;
-  return { state: answer.dry_run ? 'dry_run' : 'answered', line: `Circle: ${sent} sent; ${n(answer.created)} new, ${n(answer.linked)} already in his records (${known} in his network, so his own row)${refused.length ? `; refused: ${refused.join(', ')}` : ''}.` };
+  const asked = n(answer.asked);
+  return { state: answer.dry_run ? 'dry_run' : 'answered', line: `Circle: ${sent} sent; ${n(answer.created)} new, ${n(answer.linked)} already in his records (${known} in his network, so his own row)${asked ? `; ${asked} same-name ${asked === 1 ? 'question' : 'questions'} for him` : ''}${refused.length ? `; refused: ${refused.join(', ')}` : ''}.` };
 }
