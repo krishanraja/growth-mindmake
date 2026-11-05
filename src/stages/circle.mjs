@@ -25,6 +25,10 @@ import { seal } from '../guards.mjs';
 
 export const CIRCLE_TARGET = 50;
 export const CIRCLE_PER_RUN = 10;
+/** The people from his own network sent a run, beside the strangers (Krish, 2026-11-05: "Do all the things that are still open"). */
+export const NETWORK_CIRCLE_PER_RUN = 10;
+/** A following at or above this makes someone a public figure for the circle. */
+export const PUBLIC_FIGURE_FOLLOWERS = 50000;
 export const CIRCLE_PREFIX = 'circle:';
 export const CIRCLE_VERSION = '1.19.0';
 export const CIRCLE_KINDS = ['exited_founder', 'investor_partner', 'public_figure', 'family_office'];
@@ -70,6 +74,66 @@ export function readCircleAnswer(lookup) {
     for (const u of marks) if (!urls.includes(u) && !urls.some(x => hostOf(x) === hostOf(u))) urls.push(u);
     if (urls.length < 2) continue;
     out.push({ name, company: company ? clip(company, 160) : null, role: role ? clip(role, 160) : null, kind, why: clip(why, 400), source_urls: urls.slice(0, 3), reach: null, show: CIRCLE_SHOW });
+  }
+  return out;
+}
+
+// ── The circle inside his own network ──────────────────────────────────────
+//
+// The same four kinds, among the people Control Center's context serves from
+// his own tiers (network, amplifier_candidates, quiet_ties), read by fixed
+// rules from their title, company and typed facts. Each goes by contact_id,
+// never by pages; Control Center links them and answers in_network, so their
+// invite is his own row in his own box.
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const FUND = /\b(capital|ventures?|partners|equity|fund|investments?|vc)\b/i;
+const INVESTOR_TITLE = /\b(general partner|managing partner|operating partner|venture partner|partner|principal|managing director|investor)\b/i;
+const FOUNDER = /\b(co-?founder|founder)\b/i;
+const EXITED = /\b(former|ex-|exited|acquired|sold|previously)\b/i;
+const FAMILY_OFFICE = /\bfamily office\b/i;
+const strOf = v => (typeof v === 'string' ? v : '');
+
+/** The circle kind someone in his network reads as, from their record, or null. Pure. */
+export function networkKind(c) {
+  const title = [c?.current_title, c?.contacts?.title, c?.headline].map(strOf).filter(Boolean).join(' | ');
+  const company = [c?.current_company, c?.contacts?.company].map(strOf).filter(Boolean).join(' | ');
+  const facts = Array.isArray(c?.facts) ? c.facts : [];
+  const factText = kind => facts.filter(f => f?.kind === kind).map(f => strOf(f?.text)).join(' | ');
+  if (FAMILY_OFFICE.test(title) || FAMILY_OFFICE.test(company)) return 'family_office';
+  if (INVESTOR_TITLE.test(title) && FUND.test(`${title} | ${company}`)) return 'investor_partner';
+  if (FOUNDER.test(title) && EXITED.test(title)) return 'exited_founder';
+  if (FOUNDER.test(factText('role_change'))) return 'exited_founder';
+  const followers = Number(c?.followers ?? (/(\d[\d,]*)/.exec(factText('reach'))?.[1] ?? '').replace(/,/g, ''));
+  if (c?.is_influencer === true || c?.is_creator === true || /influencer|creator/i.test(factText('badge')) || (Number.isFinite(followers) && followers >= PUBLIC_FIGURE_FOLLOWERS)) return 'public_figure';
+  return null;
+}
+
+const WHY = {
+  family_office: 'Runs or works in a family office, so their judgement is the asset an AI brain extends.',
+  investor_partner: 'A partner at a fund, so the companies they back are the leaders Mindmake builds for.',
+  exited_founder: 'Founded a company and has moved on from it, with the time and the network to back what comes next.',
+  public_figure: 'Widely followed, so a conversation with them travels far.',
+};
+
+/** Up to NETWORK_CIRCLE_PER_RUN people from his own network, one each, in the order the context serves them. Pure. */
+export function circleFromNetwork(context) {
+  const lists = [context?.network, context?.amplifier_candidates, context?.quiet_ties].flatMap(l => (Array.isArray(l) ? l : []));
+  const seen = new Set(), out = [];
+  for (const c of lists) {
+    const id = c?.contact_id;
+    if (typeof id !== 'string' || !UUID.test(id) || seen.has(id.toLowerCase())) continue;
+    seen.add(id.toLowerCase());
+    if (['do_not_contact', 'closed'].includes(c?.contacts?.status)) continue;
+    const name = clip(c?.contacts?.full_name, 120);
+    if (name.split(' ').length < 2 || CONTACTISH.test(name)) continue;
+    const kind = networkKind(c);
+    if (!kind) continue;
+    const role = clip(c?.current_title ?? c?.contacts?.title, 160) || null;
+    const company = clip(c?.current_company ?? c?.contacts?.company, 160) || null;
+    if ([role, company].some(t => t && CONTACTISH.test(t))) continue;
+    out.push({ name, company, role, kind, why: WHY[kind], source_urls: [], contact_id: id.toLowerCase(), reach: null, show: CIRCLE_SHOW });
+    if (out.length >= NETWORK_CIRCLE_PER_RUN) break;
   }
   return out;
 }

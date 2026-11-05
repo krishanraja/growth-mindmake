@@ -669,6 +669,16 @@
       "tests": [
         "tests/circle.test.mjs"
       ]
+    },
+    {
+      "id": "circle-network-ignores-barred",
+      "what": "a do-not-contact contact from his network is sent in the circle",
+      "file": "src/stages/circle.mjs",
+      "find": "    if (['do_not_contact', 'closed'].includes(c?.contacts?.status)) continue;",
+      "replace": "    if (false) continue;",
+      "tests": [
+        "tests/circle.test.mjs"
+      ]
     }
   ]
 }
