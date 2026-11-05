@@ -938,15 +938,20 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "kind", "why", "source_urls"],
+        "required": ["name", "kind", "why"],
+        "oneOf": [
+          { "required": ["source_urls"], "not": { "required": ["contact_id"] } },
+          { "required": ["contact_id"], "properties": { "source_urls": { "maxItems": 0 } } }
+        ],
         "properties": {
           "name": { "type": "string", "minLength": 1, "maxLength": 120 },
           "company": { "type": ["string", "null"], "maxLength": 160 },
           "role": { "type": ["string", "null"], "maxLength": 160 },
           "kind": { "enum": ["exited_founder", "investor_partner", "public_figure", "family_office"] },
           "why": { "type": "string", "minLength": 1, "maxLength": 400 },
-          "source_urls": { "type": "array", "minItems": 2, "maxItems": 3, "items": { "type": "string", "pattern": "^https://\\S+$", "maxLength": 2000 } },
+          "source_urls": { "type": "array", "maxItems": 3, "items": { "type": "string", "pattern": "^https://\\S+$", "maxLength": 2000 } },
           "reach": { "oneOf": [{ "type": "null" }, { "type": "object", "additionalProperties": false, "required": ["value", "basis"], "properties": { "value": { "type": "number", "minimum": 0 }, "basis": { "type": "string", "minLength": 1, "maxLength": 200 } } }] },
+          "contact_id": { "type": "string", "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", "description": "Someone in his own network, a contact your context served, in place of source_urls." },
           "show": { "enum": ["makeyourmindup", "signal_noise", null], "description": "The show you invite them onto, or null: Control Center files a guest record for it, which your invites then read." }
         }
       }

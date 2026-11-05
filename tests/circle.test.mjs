@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readCircleAnswer, circleFound, circleRequests, circlePeople, takesCircle, circleAnswer, CIRCLE_TARGET, CIRCLE_PER_RUN, CIRCLE_KINDS, CIRCLE_SHOW } from '../src/stages/circle.mjs';
+import { readCircleAnswer, circleFound, circleRequests, circlePeople, takesCircle, circleAnswer, networkKind, circleFromNetwork, CIRCLE_TARGET, CIRCLE_PER_RUN, NETWORK_CIRCLE_PER_RUN, CIRCLE_KINDS, CIRCLE_SHOW } from '../src/stages/circle.mjs';
 import { mirrorPlan, takesMirror, MIRROR_QUESTIONS } from '../src/stages/mirror.mjs';
 import { guestVerdictOf } from '../src/stages/guests.mjs';
 import { buildReport, REPORT_SCHEMA } from '../src/dispatch.mjs';
@@ -90,4 +90,28 @@ test('Control Center\'s answer is counted, never named', () => {
   assert.match(line.line, /2 new, 1 already in his records \(1 in his network, so his own row\); 1 same-name question for him; refused: 1 not to be contacted/);
   assert.equal(circleAnswer(2, { error: 'circle_unrecorded' }).state, 'unrecorded');
   assert.equal(circleAnswer(0, null), null);
+});
+
+test('his own network is read for the four kinds by fixed rules, and each is sent by contact id with no pages', () => {
+  const id = n => `0c1c1e00-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const p = (n, over) => ({ contact_id: id(n), network_tier: '2_core_network', contacts: { full_name: `Person${n} Test`, status: 'active' }, facts: [], ...over });
+  assert.equal(networkKind(p(1, { current_title: 'Principal', current_company: 'Rowe Family Office' })), 'family_office');
+  assert.equal(networkKind(p(2, { current_title: 'General Partner', current_company: 'Harbour Ventures' })), 'investor_partner');
+  assert.equal(networkKind(p(3, { current_title: 'Partner', current_company: 'Smith Law LLP' })), null, 'a law firm partner is not a fund partner');
+  assert.equal(networkKind(p(4, { current_title: 'Former co-founder, Quill Media' })), 'exited_founder');
+  assert.equal(networkKind(p(5, { current_title: 'Founder and CEO' })), null, 'a founder still running it is not exited');
+  assert.equal(networkKind(p(6, { current_title: 'Advisor', facts: [{ kind: 'role_change', text: 'Was Founder at Quill Media, now Advisor' }] })), 'exited_founder');
+  assert.equal(networkKind(p(7, { current_title: 'Author', facts: [{ kind: 'reach', text: '120,000 followers on LinkedIn' }] })), 'public_figure');
+  assert.equal(networkKind(p(8, { current_title: 'Author', facts: [{ kind: 'reach', text: '9,000 followers on LinkedIn' }] })), null);
+  const ctx = {
+    network: [p(1, { current_title: 'Principal', current_company: 'Rowe Family Office' }), p(9, { current_title: 'General Partner', current_company: 'Moss Capital', contacts: { full_name: 'Barred Person', status: 'do_not_contact' } })],
+    amplifier_candidates: [p(1, { current_title: 'Principal', current_company: 'Rowe Family Office' }), p(2, { current_title: 'General Partner', current_company: 'Harbour Ventures' })],
+    quiet_ties: Array.from({ length: 20 }, (_, i) => p(100 + i, { current_title: 'Managing Partner', current_company: `Fund ${i} Capital` })),
+  };
+  const got = circleFromNetwork(ctx);
+  assert.equal(got.length, NETWORK_CIRCLE_PER_RUN);
+  assert.deepEqual(got.slice(0, 2).map(x => x.contact_id), [id(1), id(2)], 'one each, never someone barred');
+  assert.ok(got.every(x => x.source_urls.length === 0 && x.contact_id && x.show === CIRCLE_SHOW && !/@/.test(JSON.stringify(x))));
+  const report = buildReport({ run_id: 'gm-circle-net', mode: 'synthetic', observed_at: AT, source: { revision: 'abc', captured_at: AT }, status: 'ready', objectives: [], activity: [], proposals: [], holds: [], circle: [...readCircleAnswer(answered('investor_partner', 'Gil Fenn | Fenn Partners | Partner | Backs adtech. [1][2]', URLS)), ...got.slice(0, 2)] });
+  assert.equal(report.circle.length, 3, 'strangers by their pages and his network by contact both pass the copied schema');
 });

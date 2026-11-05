@@ -14,7 +14,7 @@ import { validateStrategicRead, strategicPlan, outcomeScorecard } from './strate
 import { readVoice } from './stages/draft.mjs';
 import { amplifierRows, rankRows, pitchOffReviews, ROWS, PER_ROW, TITLE_MAX, TITLE_MAX_BRIEF } from './stages/rows.mjs';
 import { signalRequests, signalRows } from './stages/signals.mjs';
-import { circleRequests, circlePeople, takesCircle, circleAnswer, CIRCLE_VERSION } from './stages/circle.mjs';
+import { circleRequests, circlePeople, circleFromNetwork, takesCircle, circleAnswer, CIRCLE_VERSION } from './stages/circle.mjs';
 import { mirrorPlan, takesMirror, MIRROR_VERSION } from './stages/mirror.mjs';
 import { readCanon, readRecord, blobSha, CanonError } from './stages/canon.mjs';
 import { pitchRows } from './stages/pitches.mjs';
@@ -631,8 +631,9 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // Control Center drafts ten a day into Jonny's Gmail; a wake later the same day writes only what is left.
   if (pitched.jonny?.used) activity.push(`Jonny's Gmail already holds ${pitched.jonny.used} draft${pitched.jonny.used === 1 ? '' : 's'} made today, so this run writes at most ${pitched.jonny.room} more.`);
   // 1.19.0: the circle lane's people from every answered circle lookup, ten a run, and the mirror's questions.
-  const circle = mode === 'live' && takesCircle(capabilities, REPORT_SCHEMA) ? circlePeople(research, { at }) : [];
-  if (counts.circle_asked || circle.length) activity.push(`Circle lane: ${counts.circle_asked ?? 0} questions asked this run; ${circle.length} people sent for Control Center to match to his network or file with no address. Someone he knows goes on his own row; only a stranger is ever Jonny's.`);
+  // The strangers first, then up to ten from his own network by contact id (Krish, 2026-11-05).
+  const circle = mode === 'live' && takesCircle(capabilities, REPORT_SCHEMA) ? [...circlePeople(research, { at }), ...circleFromNetwork(ctx)] : [];
+  if (counts.circle_asked || circle.length) activity.push(`Circle lane: ${counts.circle_asked ?? 0} questions asked this run; ${circle.length} people sent for Control Center to match to his network or file with no address (strangers by their pages, his own network by contact). Someone he knows goes on his own row; only a stranger is ever Jonny's.`);
   return { proposals, holds, activity, counts, canonFiles: canon.files, canon, research, found_routes: takesRoutes ? foundRoutesField(pitched.found ?? []) : null, circle: circle.length ? circle : null, mirror: takesMirror(capabilities, REPORT_SCHEMA) ? mirrorPlan() : null };
 }
 
