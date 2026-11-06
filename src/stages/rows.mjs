@@ -1043,7 +1043,7 @@ function youVerb(w) {
   return '';
 }
 /** A judgement written for Krish, never words to say to them: "useful for reaching", "shared ground for", "unusually direct". */
-const FOR_KRISH = /^(?:noticed|saw|spotted|liked|loved|enjoyed)\b|\b(?:useful for|worth (?:a|an|the)|shared ground|unusually|credibility|could leverage|creating (?:an? )?(?:active )?(?:window|momentum)|momentum to|exact kind)\b/i;
+const FOR_KRISH = /^(?:noticed|saw|spotted|liked|loved|enjoyed)\b|\bKrish\b|\b(?:role|title) unknown\b|\bnamed contact\b|\balready replied\b|\b(?:useful for|worth (?:a|an|the)|shared ground|unusually|credibility|could leverage|creating (?:an? )?(?:active )?(?:window|momentum)|momentum to|exact kind)\b/i;
 /**
  * One fact from their record, said to them: "Took two companies through a
  * sale." or "Avery runs a forum." becomes "you took two companies through a
@@ -1102,7 +1102,7 @@ export function yourWork(text) {
  */
 export function specificOf(c, { why = [] } = {}) {
   const facts = Array.isArray(c?.facts) ? c.facts : [];
-  const post = facts.map(f => (f?.kind === 'post' ? factText(f) : '')).map(t => /^Posted: "(.+)"$/.exec(t)?.[1]?.replace(/[.!?]+$/, '') ?? '').find(q => q && q.length <= 120 && !/[\u2013\u2014]/.test(q));
+  const post = facts.map(f => (f?.kind === 'post' ? factText(f) : '')).map(t => /^Posted: "(.+)"$/.exec(t)?.[1]?.replace(/[.!?]+$/, '') ?? '').find(q => q && q.length <= 120 && !/[\u2013\u2014]/.test(q) && q.split(/\s+/).length >= 6 && !/\b(?:suppress|ignore|delete|test)\b[^.]*\bpost\b/i.test(q));
   if (post) return `I read your post, "${post}", and I'd like to hear where your thinking has gone since.`;
   const move = facts.map(f => (f?.kind === 'role_change' ? factText(f) : '')).find(Boolean);
   const now = move ? /\bnow\s+(.+?)$/i.exec(move.replace(/[.!?]+$/, ''))?.[1] : '';
@@ -1184,7 +1184,7 @@ export function fundOf(company, texts = []) {
   return texts.some(t => typeof t === 'string' && said.test(t)) ? company : '';
 }
 /** Words that make a clause finite: a phrase holding one is no noun phrase. */
-const FINITE = /\b(?:is|are|was|were|has|have|had|does|did|will|would|can|could|should|may|might|must|bridges|pairs|puts|means|combines|ties|links|lets|explains|makes|gives|shows|sits|says|warns|argues|runs|leads|builds|writes|hosts|helps|drives|shapes|creates)\b|\b\p{Ll}+ly\s+\p{Ll}+s\b/u;
+const FINITE = /\b(?:is|are|was|were|has|have|had|does|did|will|would|can|could|should|may|might|must|bridges|pairs|puts|means|combines|ties|links|lets|explains|makes|gives|shows|sits|says|warns|argues|runs|leads|builds|writes|hosts|helps|drives|shapes|creates)\b|suggests|indicates|reflects|signals|positions|implies|proves|reveals|\b\p{Ll}+ly\s+\p{Ll}+s\b|\b\p{Ll}{3,}s\s+(?:a|an|the|that|this|these|those|his|her|their|its|strong|deep|real|clear|how|why|what|where)\b/u;
 /**
  * The reason one sentence built from a card fact is broken, or '': a work
  * phrase in "how your X is going" that holds a verb, a line written for Krish
@@ -1197,8 +1197,13 @@ export function brokenSentence(sentence) {
   const t = String(sentence ?? '');
   const work = /\bhow your (.+?) is going\b/.exec(t)?.[1];
   if (work && FINITE.test(work)) return 'clause_in_phrase';
+  // A bare list of names with no verb or "and" is a record's shorthand, not words to them: "your run through Example One, Example Two".
+  if (work && /\p{Lu}[\p{L}&.'-]*(?:\s+\p{Lu}[\p{L}&.'-]*)*,\s*\p{Lu}[\p{L}&.'-]*(?:\s+\p{Lu}[\p{L}&.'-]*)*$/u.test(work) && !/\band\b/.test(work)) return 'bare_list';
   if (/\byou (?:noticed|congrat\w*|saw|spotted)\b/i.test(t)) return 'krish_line_turned';
   if (/\balso (?:is|are) going\b|\balso[.?]$/.test(t)) return 'stray_also';
+  if (/\byou (?:have )?(?:already )?replied\b|\b(?:role|title) unknown\b|\bnamed contact\b|\byou\b[^.]*\bKrish's\b|\bour record\b|\b(?:the|this|your) card\b|\b(?:fit|reach) score\b/i.test(t)) return 'research_note';
+  const post = /\bI read your post, "([^"]+)"/.exec(t)?.[1];
+  if (post && (post.split(/\s+/).length < 6 || /\b(?:suppress|ignore|delete|test)\b[^.]*\bpost\b/i.test(post))) return 'not_a_post';
   if (/\b(?:you|and) (?:warn|argue|insist)\s+(?!that\b|against\b|about\b|of\b|to\b|on\b)/.test(t)) return 'claim_without_that';
   const like = /\bfounders like (.+?), I'd\b/.exec(t)?.[1];
   if (like && like.split(/,\s*|\s+and\s+/).some(n => NOT_A_COMPANY.test(n.trim()) || /^\p{Lu}+-\p{Ll}+$/u.test(n.trim()) || !/^\p{Lu}|^\d/u.test(n.trim()))) return 'not_a_company';
