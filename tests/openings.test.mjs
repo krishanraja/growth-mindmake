@@ -160,5 +160,6 @@ test('a failed opening is asked again under the London day, once a day; an answe
   // A praise post or a status note is no fact to write from.
   assert.equal(openingFact({ facts: [{ kind: 'post', text: 'Posted: "Super proud of the team for this one."' }], who: 'Leads data at Example Co and writes on measurement.' }), 'Leads data at Example Co and writes on measurement.');
   assert.equal(openingFact({}, ['Already engaged for Example Show at Example Festival 2026.', 'Runs revenue at Example AI and writes on outbound.']), 'Runs revenue at Example AI and writes on outbound.');
+  assert.equal(validOpening('You joined the Example chapter and warned that tools want to be your fulcrum, making you worth hearing.', { name: 'Robin Sample', fact: 'Joined the Example chapter and warns tools want to be your fulcrum.' }).reason, 'praise');
   assert.equal(validOpening('You are already engaged for the Example Show, so you would bring a useful perspective.', { name: 'Robin Sample', fact: 'Already engaged for the Example Show.' }).ok, false);
 });
