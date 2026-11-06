@@ -528,16 +528,18 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // The caps come from the week spec in force (src/crew/compile.mjs): today's unless he signed others.
   // Openings are written by the desk wherever it is open this run (src/stages/openings.mjs): a catch-up or an invite without a passing one is held.
   const openingsRequired = mode === 'live' && capabilities?.features?.research === true;
+  // Written by Claude with no web search where the desk serves `write` (krishanraja/control-center#659; Ruling, Krish, 2026-11-06); a cited answer otherwise.
+  const openingKind = Array.isArray(capabilities?.research?.kinds) && capabilities.research.kinds.includes('write') ? 'write' : 'question';
   // Row people with no address are looked up where Control Center records a route for any contact (features.person_routes, krishanraja/control-center#656).
   const personRoutes = mode === 'live' && capabilities?.features?.person_routes === true && capabilities?.features?.research === true;
-  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins, openingsRequired, personRoutes });
+  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins, openingsRequired, personRoutes, openingKind });
   // Ruling (Krish, 2026-10-28): who is in his network is Control Center's routes[id].in_network, read only where it says it serves it.
   const networkRoutes = capabilities?.features?.network_routes === true;
   const record = pitches ? await recordReader() : null;
   // 1.10.0: notes asking a booked show for the brief link, only where Control Center drafts them.
   const showNotes = capabilities?.features?.show_notes === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes('1.10.0');
   // The research the pitches read is this run's too: a lookup the desk answered this run gives its route in the same run.
-  const pitchArgs = (c, r = c?.research) => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes, wins, research: r, shown, openingsRequired });
+  const pitchArgs = (c, r = c?.research) => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes, wins, research: r, shown, openingsRequired, openingKind });
   let pitchOpenings = [];
   let lookups = { requests: [], waiting: 0, asked_today: 0, by: { stages: 0, podcasts: 0, guests: 0 } };
   if (mode === 'live' && capabilities?.features?.research === true) {
@@ -585,7 +587,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
     }
   }
   // Read again with this run's research, so an opening the desk wrote in this run is used in this run.
-  const amplifiers = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins, research: mergeResearch(research, ctx.research ?? []), openingsRequired, personRoutes });
+  const amplifiers = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins, research: mergeResearch(research, ctx.research ?? []), openingsRequired, personRoutes, openingKind });
   const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax });
   // 1.9.0: pitches for Jonny's box, after the rows he presses himself: guests
   // invited onto his own shows and podcasts on visibility, stages to speak on
