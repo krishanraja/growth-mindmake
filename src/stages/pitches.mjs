@@ -454,7 +454,8 @@ const quotable = page => {
 
 /** A claim the guest makes in public, from their own record ("warns tools want to be your fulcrum"), as an episode title; '' when none. Pure. */
 export function guestClaim(g) {
-  const text = [g?.one_liner, g?.why_fit].filter(x => typeof x === 'string').join(' ');
+  // Each field is its own sentence: a one-liner with no full stop never runs into the next field.
+  const text = [g?.one_liner, g?.why_fit].filter(x => typeof x === 'string').map(x => x.trim().replace(/[.!?]*$/, '.')).join(' ');
   const m = /\b(?:warns?|warning|argues?|arguing|says|believes|thinks|insists)\s+(?:that\s+|against\s+)?([^.;]{12,90}?)(?=[.;]|\s+and\s+|$)/i.exec(text);
   if (!m) return '';
   const c = m[1].trim().replace(/[,\s]+$/, '');

@@ -8,7 +8,7 @@ Control Center read the first live run after krishanraja/growth-mindmake#60 and 
 - **Replayed on the live card text** (offline, nothing written): no two of the run's emails share more than one sentence, eight partner offers carry eight decisions, no miscased company and no slash remain, both invites name why the guest and an episode idea, and the two-employer card is held.
 - **Bug found and fixed.** A run that used every option crashed the dispatch; it now holds that email instead.
 - **Verified on:** the seven repository checks and 579 tests.
-- **Live proof:** the first live run after this merge, read against the same bar.
+- **Live read (run merge-64, 6 November).** 22 row emails: no two share more than one sentence once slots are out; no miscased company and no slash; eight partner offers, eight decisions, no site line; both invites give why the guest and an episode idea; the two-employer card held; 16 of the 22 cards new since the 10:24 run, a different card first on every row. Three defects found and fixed in the next change: a funding stage ("Seed and Series F") read as portfolio companies, AI-trainer offers that did not name the trainer's firm, and one invite idea that ran into the next record field.
 
 ## Specific words, fresh suggestions, one event one card, 6 November 2026
 

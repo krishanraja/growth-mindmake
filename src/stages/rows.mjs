@@ -1108,6 +1108,8 @@ export function historyOf(c) {
   const head = since && last ? `We go back to ${since} and last wrote in ${last}` : last ? `We last wrote in ${last}` : since ? `We go back to ${since}` : "It's been a while";
   return `${head}: up for a call in the next few weeks?`;
 }
+/** Words in a bracketed list that are a stage, a round or a place, never a company. */
+const NOT_A_COMPANY = /^(?:Pre-?seed|Seed|Series\s+[A-Z]\+?|Growth|Early|Late|Pre-IPO|IPO|US|UK|EU|EMEA|APAC|ANZ|SEA|LATAM|Europe|Asia|Africa)$/i;
 /** Up to three companies a partner's record names as theirs: a list in brackets, board seats, or what they back. [] when none. Pure. */
 export function portfolioNames(texts) {
   const NAME = String.raw`\p{Lu}[\p{L}\d&'.-]*(?:\s+\p{Lu}[\p{L}\d&'.-]*){0,3}`;
@@ -1115,7 +1117,8 @@ export function portfolioNames(texts) {
     const list = new RegExp(String.raw`\((${NAME}(?:,\s*${NAME})+(?:,?\s*and\s+${NAME})?)\)`, 'u').exec(t)
       ?? new RegExp(String.raw`\b(?:board seats?|seats?|investments?|portfolio companies|backs|backed|backing)\s+(?:at|in|include|including)?\s*(${NAME}(?:,\s*${NAME})*(?:,?\s*and\s+${NAME})?)`, 'u').exec(t);
     if (list) {
-      const names = list[1].split(/,\s*|\s+and\s+/).map(x => x.trim().replace(/\.$/, '')).filter(x => x.length >= 2).slice(0, 3);
+      // A funding stage or a region in brackets is no company: "(Seed and Series F)".
+      const names = list[1].split(/,\s*|\s+and\s+/).map(x => x.trim().replace(/\.$/, '')).filter(x => x.length >= 2 && !NOT_A_COMPANY.test(x)).slice(0, 3);
       if (names.length) return names;
     }
   }
@@ -1135,7 +1138,7 @@ export const WORDS = {
   partner: [
     (p, canon) => {
       if (p.kind === 'ai_trainer') return { subject: p.company ? `What ${possessive(p.company)} learners do after the course` : 'What your learners do after the course', lines: [
-        `The part of AI training that stalls is what happens once the course ends, when nobody decides ${p.decision}.`,
+        `${p.company ? `At ${p.company} you train people to use AI, and the part` : 'The part of AI training'} that stalls is what happens once the course ends, when nobody decides ${p.decision}.`,
         `Mindmake builds what comes after, one leader at a time (${lower1(canon.brain).replace(/[.!?]+$/, '')}); worth a short call to see if the two fit?`,
       ] };
       // Their portfolio by its own names where the record gives them, and one decision no other partner in the run gets.

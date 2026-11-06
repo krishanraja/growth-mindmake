@@ -155,3 +155,10 @@ test('the live misses of 6 November stay fixed: a past build at another firm hol
   assert.equal(guestIdea({ one_liner: 'CRO at Example AI' }, null, new Set()), 'What a revenue team looks like when AI does the prospecting');
   assert.equal(youFact('He runs the exact kind of curated events that are useful for reaching senior buyers.'), '', 'a judgement written for Krish is never said to them');
 });
+
+test('the live read after #61: a funding stage is no company, a trainer is named by their own firm, and an invite idea stops at its field', () => {
+  assert.deepEqual(portfolioNames(['Backs founders from (Seed and Series F).', 'Board seats at Example One and Example Two.']), ['Example One', 'Example Two']);
+  const trainer = WORDS.partner[0]({ kind: 'ai_trainer', company: 'Example Academy', decision: 'which teams to retrain first' }, canon);
+  assert.equal(trainer.lines[0], 'At Example Academy you train people to use AI, and the part that stalls is what happens once the course ends, when nobody decides which teams to retrain first.');
+  assert.equal(guestIdea({ one_liner: 'The guy who joined the Example chapter and warns tools want to be your fulcrum', why_fit: 'He runs retail media for Example Exchange.' }, null, new Set()), 'Tools want to be your fulcrum');
+});
