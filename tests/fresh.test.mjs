@@ -250,3 +250,10 @@ test('the guard reads research notes, verbs by shape, placeholder posts and bare
   assert.equal(specificOf({ facts: [{ kind: 'post', text: 'Posted: "Please suppress this post"' }] }, { why: [] }), '');
   assert.equal(youFact('Has already replied to Krish\'s email and sits on a committee.'), '');
 });
+
+// Live read of run merge-69: a phrase cut at its own verb.
+test('a phrase cut at its own verb is not used and is held', () => {
+  assert.equal(brokenSentence("I'd like to hear how your interest in how emerging AI tools is going."), 'clause_in_phrase');
+  assert.equal(yourWork('Her interest in how emerging AI tools are changing retail.'), '');
+  assert.equal(brokenSentence("I'd like to hear how your work chairing the Example Association's AI Taskforce is going."), '');
+});

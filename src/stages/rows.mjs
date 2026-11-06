@@ -1089,7 +1089,7 @@ export function yourWork(text) {
     const m = /^(?:His|Her|Their)\s+(.+)$/.exec(f);
     if (!m) continue;
     const phrase = m[1].split(/\s+(?:\p{Ll}+ly\s+)?(?:is|was|are|were|makes|made|gives|shows|pairs|puts|means|combines|ties|links|lets)\s+/u)[0].split(/,\s+(?:plus|and|while|with|tied to)\s+/)[0].replace(/[,;:\s]+$/, '').replace(/\s+(?:also|too|now|still|already)$/, '');
-    if (phrase.length >= 12 && phrase.length <= 160 && endsWhole(phrase) && quotesClosed(phrase) && !FINITE.test(phrase) && !FOR_KRISH.test(phrase) && !/\b(?:he|she|his|her|him)\b/i.test(phrase)) return plainWords(`your ${phrase}`);
+    if (phrase.length >= 12 && phrase.length <= 160 && endsWhole(phrase) && quotesClosed(phrase) && !FINITE.test(phrase) && !CUT_CLAUSE.test(phrase) && !FOR_KRISH.test(phrase) && !/\b(?:he|she|his|her|him)\b/i.test(phrase)) return plainWords(`your ${phrase}`);
   }
   return '';
 }
@@ -1183,6 +1183,8 @@ export function fundOf(company, texts = []) {
   const said = new RegExp(String.raw`\b${esc}(?:'s)?\s+(?:portfolio|invests|backs|has backed|funds|fund)\b|\b(?:portfolio of|invests? (?:through|via|with)|partner at)\s+${esc}\b`, 'iu');
   return texts.some(t => typeof t === 'string' && said.test(t)) ? company : '';
 }
+/** A clause word in a phrase whose verb was cut off at "is" or "are": "your interest in how emerging AI tools". */
+const CUT_CLAUSE = /\b(?:how|why|what|where|whether|which|who|that|when)\s+(?:\p{L}+\s+){0,4}\p{L}+$/u;
 /** Words that make a clause finite: a phrase holding one is no noun phrase. */
 const FINITE = /\b(?:is|are|was|were|has|have|had|does|did|will|would|can|could|should|may|might|must|bridges|pairs|puts|means|combines|ties|links|lets|explains|makes|gives|shows|sits|says|warns|argues|runs|leads|builds|writes|hosts|helps|drives|shapes|creates)\b|suggests|indicates|reflects|signals|positions|implies|proves|reveals|\b\p{Ll}+ly\s+\p{Ll}+s\b|\b\p{Ll}{3,}s\s+(?:a|an|the|that|this|these|those|his|her|their|its|strong|deep|real|clear|how|why|what|where)\b/u;
 /**
@@ -1196,7 +1198,7 @@ const FINITE = /\b(?:is|are|was|were|has|have|had|does|did|will|would|can|could|
 export function brokenSentence(sentence) {
   const t = String(sentence ?? '');
   const work = /\bhow your (.+?) is going\b/.exec(t)?.[1];
-  if (work && FINITE.test(work)) return 'clause_in_phrase';
+  if (work && (FINITE.test(work) || CUT_CLAUSE.test(work))) return 'clause_in_phrase';
   // A bare list of names with no verb or "and" is a record's shorthand, not words to them: "your run through Example One, Example Two".
   if (work && /\p{Lu}[\p{L}&.'-]*(?:\s+\p{Lu}[\p{L}&.'-]*)*,\s*\p{Lu}[\p{L}&.'-]*(?:\s+\p{Lu}[\p{L}&.'-]*)*$/u.test(work) && !/\band\b/.test(work)) return 'bare_list';
   if (/\byou (?:noticed|congrat\w*|saw|spotted)\b/i.test(t)) return 'krish_line_turned';
