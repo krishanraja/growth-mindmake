@@ -206,7 +206,7 @@ const word = x => { const w = String(x ?? '').toLowerCase().replace(/[^a-z0-9_ -
 export const HONORIFIC = /^(?:dr|mr|mrs|ms|miss|mx|prof|professor|sir|dame|lord|lady|rev|revd|reverend|hon)\.?$/i;
 /** A name's parts with any leading title taken off: "Dr. Andre Example" is Andre Example. */
 export function givenParts(name) {
-  const parts = cleanName(name).split(' ').filter(Boolean);
+  const parts = cleanName(name).replace(/,\s*(?:[A-Z][A-Za-z.]{1,6}(?:,\s*)?)+$/, '').split(' ').filter(Boolean);
   while (parts.length && HONORIFIC.test(parts[0])) parts.shift();
   return parts;
 }
@@ -1058,7 +1058,7 @@ export function youFact(text, name = '') {
     // "The guy who joined X" is "joined X": the clause after a description of them.
     f = f.replace(/^(?:The|A|An)\s+(?:guy|person|woman|man|leader|founder|operator|exec(?:utive)?)\s+who\s+/, '');
     // A clause about their company's business is the research's aside, not theirs: "for Example Data, whose entire business sits on ...".
-    f = f.replace(/,\s+whose\b.*$/, '');
+    f = f.replace(/,\s+(?:whose|which)\b.*$/, '');
     const [w, ...rest] = f.split(' ');
     const verb = /^\p{L}+$/u.test(w ?? '') ? youVerb(w) : '';
     // A second verb in the same clause agrees too: "joined X and warns Y" is "joined X and warn Y".
@@ -1086,7 +1086,7 @@ export function yourWork(text) {
     const f = factOf(s) || plain(s).replace(/[.!?]+$/, '');
     const m = /^(?:His|Her|Their)\s+(.+)$/.exec(f);
     if (!m) continue;
-    const phrase = m[1].split(/\s+(?:is|was|are|were|makes|made|gives|shows)\s+/)[0].split(/,\s+(?:plus|and|while|with|tied to)\s+/)[0].replace(/[,;:\s]+$/, '').replace(/\s+(?:also|too|now|still|already)$/, '');
+    const phrase = m[1].split(/\s+(?:\p{Ll}+ly\s+)?(?:is|was|are|were|makes|made|gives|shows|pairs|puts|means|combines|ties|links|lets)\s+/u)[0].split(/,\s+(?:plus|and|while|with|tied to)\s+/)[0].replace(/[,;:\s]+$/, '').replace(/\s+(?:also|too|now|still|already)$/, '');
     if (phrase.length >= 12 && phrase.length <= 160 && endsWhole(phrase) && quotesClosed(phrase) && !FOR_KRISH.test(phrase) && !/\b(?:he|she|his|her|him)\b/i.test(phrase)) return plainWords(`your ${phrase}`);
   }
   return '';

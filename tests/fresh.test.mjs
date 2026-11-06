@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseCanon, blobSha } from '../src/stages/canon.mjs';
-import { amplifierRows, rankRows, sharedBodies, bodySkeleton, sentenceSkeletons, companyAsWritten, plainWords, possessive, portfolioNames, yourWork, shownLine, shownHistory, shortId, cardClash, employersIn, sameOrg, specificOf, historyOf, sharedPlace, fundOf, youFact, titleNaming, shorterNames, WORDS, actionFor } from '../src/stages/rows.mjs';
+import { amplifierRows, rankRows, sharedBodies, bodySkeleton, sentenceSkeletons, companyAsWritten, plainWords, possessive, portfolioNames, yourWork, shownLine, shownHistory, shortId, cardClash, employersIn, sameOrg, specificOf, historyOf, sharedPlace, fundOf, youFact, titleNaming, givenParts, shorterNames, WORDS, actionFor } from '../src/stages/rows.mjs';
 import { pitchRows, lookupRequests, uniqueStages, stageKeys, guestIdea } from '../src/stages/pitches.mjs';
 
 // Krish, 2026-11-06: "The widget is not updating regularly ... One of them is just a blank card and the
@@ -205,4 +205,12 @@ test('only someone who backs founders gets the founders wording, and a line writ
   assert.equal(specificOf({ who: 'CRO at Example Data.' }, { why: ['Noticed your move from Example Ads to CRO at Example Data.'] }), "I saw your move from Example Ads to CRO at Example Data; I'd like to hear what you're changing first.");
   assert.equal(yourWork('His public-facing work (podcast, writing, speaking) also makes him a useful connector.'), 'your public-facing work (podcast, writing, speaking)');
   assert.equal(youFact('Runs North America for Example Data, whose entire business sits on measurement, the same ground Example Co works.'), 'you run North America for Example Data');
+});
+
+// Live read of 6 November, fifth pass (run merge-67): a credential in a title, a research aside, a clause verb.
+test('a credential leaves the name, a which-aside leaves the fact, and an adverb before a verb ends the phrase', () => {
+  assert.equal(givenParts('Avery Example, CMP').join(' '), 'Avery Example');
+  assert.equal(givenParts('Avery Example, CMP, PhD').join(' '), 'Avery Example');
+  assert.equal(youFact('Owns data revenue at Example Rewards and came from Example TV, which is precisely the seat Example Co needs to reach.'), 'you own data revenue at Example Rewards and came from Example TV');
+  assert.equal(yourWork('Her current mandate explicitly pairs AI strategy with partnerships at Example News.'), 'your current mandate');
 });
