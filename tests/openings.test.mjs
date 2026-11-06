@@ -192,3 +192,10 @@ test('a catch-up may say June for Jun and is held when it quotes them; his frame
   const frame = "It's been a while since we last spoke. I'm reaching out because I'm building Mindmake and want views from people I rate. Would you be open to a quick chat?";
   assert.deepEqual(sentenceSkeletons(frame), [], 'the same frame to two people is not a template');
 });
+
+test('a catch-up note starts with a capital once the greeting is off', async () => {
+  const { validCatchUp } = await import('../src/stages/openings.mjs');
+  const v = validCatchUp("Hi Robin, it's been a while since we spoke. I'm reaching out because I'm building Mindmake. I thought of you because the Example Forum puts you near retail data leaders. Would you be open to a quick chat?", { name: 'Robin Sample', fact: 'Runs the Example Forum for retail data leaders in London.' });
+  assert.equal(v.ok, true, v.reason);
+  assert.match(v.sentence, /^It's been a while/);
+});
