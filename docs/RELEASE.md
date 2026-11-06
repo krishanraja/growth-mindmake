@@ -1,5 +1,16 @@
 # Release state
 
+## Specific words, fresh suggestions, one event one card, 6 November 2026
+
+Krish, 6 November: "The widget is not updating regularly and also the events are not very impressive at all. One of them is just a blank card and the other two are duplicates ... The email drafts are super generic and rubbish. And those problems are not just for events, they're for everything." Control Center's read of the live data found every run since 4 November posting the same 29 proposals, one template body per row, a title naming nobody, one summit proposed three times, and a speaker bureau's booking page proposed as four speaker forms. Its own holds shipped in krishanraja/control-center#655; this change fixes the source.
+
+- **Built and tested** (krishanraja/growth-mindmake#60). Emails come from each card's facts (src/stages/rows.mjs `WORDS`, `specificOf`, `historyOf`, `youFact`; src/stages/pitches.mjs `speakWords`, `pitchWords`, `inviteWords`). A run holds any send whose words match another's once names are out (`sharedBodies`, hold `row_same_words`). Each report carries a `Shown:` activity line that later runs read through `features.recent_reports` to rank unseen rows and forms first. Rows of one event are one row (`uniqueStages`, `duplicate_stage`). A form that asks no talk, abstract or bio is held (`form_no_pitch`). Titles always name their subject (`titleNaming`). A card naming two current employers is held and asked about (`facts_disagree`). Lookups reach subjects never asked about before ones asked again.
+- **Report shape.** Unchanged: no new field. The `Shown:` line is one activity line, and the new holds are hold codes.
+- **Golden reports.** Re-recorded, because this change is meant to change what fixtures report. The synthetic fixtures now vary per show, stage, host and guest as real records do. On the old cloned fixtures the new check holds the clones (as intended); on the varied fixtures the old and new code post the same pitches.
+- **Verified on:** the seven repository checks and 577 tests (7 new in tests/fresh.test.mjs, with new cases in forms and pitches).
+- **Live proof:** none yet. The first live run after the merge reports its `Shown:` line and its `row_same_words` and `facts_disagree` counts; the second live run should rank different proposals first. Five emails are then read against their cards.
+- **Known limit.** A person outside the guest list with no route gets no address lookup: Control Center's `found_routes` records routes on stages and guests only (`not_a_guest`).
+
 ## The suppression list and taxonomy sent where Control Center applies them (plan section 12, M10), 28 October 2026
 
 - **Built and tested.** The copied report schema carries the two optional fields with Control Center's bounds (references only, each list at most 500, the taxonomy identifiers and integers only). `suppressionFields` in src/stages/suppression.mjs builds them from his answers, both or neither, and holds `suppression_too_large` rather than send a list over 64 KB or a taxonomy over 2 KB. The dispatch sends them only where the capabilities say `features.suppression: true`, and the shadow line then says they were sent. Tests: tests/suppression-report.test.mjs; mutation `suppression-sent-unserved`.

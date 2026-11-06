@@ -178,6 +178,33 @@ channels with mass audiences on growing with AI. In the protocol these are
   stale within a week of its approval. Each action names the canon files and
   the engine's own word files by git blob SHA in `source_revision`, and
   Control Center reads those SHAs again before he acts.
+- **Words from the card (Krish, 2026-11-06: "The email drafts are super
+  generic and rubbish").** Every email is written from what the card holds
+  about this one person, never a line that would fit anyone:
+  - a catch-up opens on one thing about them (their post, a role change, a
+    fact from their record said to them, else their role and company now) and
+    the history between you (since when, and the last email); a tie the record
+    says nothing about gets no email (`nothing_specific`);
+  - an offer to a partner names their portfolio and one concrete decision its
+    leaders face, chosen by the topic of the partner's own work;
+  - an appearance names the show's audience and one episode it could run;
+  - an introduction or a session names the kind of leader and the topic.
+  Where the record holds a fact about what they did, the email opens on it
+  ("Read that you ...").
+- **No two emails alike.** A run holds any send whose words match another
+  send's once the recipient's and the subject's names are taken out
+  (`row_same_words`, `sharedBodies` in `src/stages/rows.mjs`).
+- **Facts that agree.** A card that names two different employers as where
+  someone works now is a stale record: it is held (`facts_disagree`) and who
+  they are is asked of the research desk again.
+- **Titles name their subject.** A long name is shortened (brackets off, the
+  part before a colon, then cut at a whole word), never replaced by "an event"
+  or "a show" (`titleNaming`).
+- **New suggestions each run.** Each report carries one `Shown:` line, a short
+  digest of every proposal it posted. Later runs read it back from Control
+  Center's list of this engine's recent reports and rank what he has not seen
+  before what was shown and not acted on, so a pool larger than a row turns
+  over instead of repeating.
 - **Channel.** An address on Control Center's record first (it never comes to
   the engine), WhatsApp only for a close tie, X only where his numeric id is
   on file. No route, no row.
@@ -206,8 +233,9 @@ Noise.
   anything he said No to. Best first: Nova's verdict, how recently it
   published, whether it is about a room his buyer is in, and how long it has
   run. Ten a run at most; Control Center drafts ten a day at most.
-- **The words.** Jonny's, for Krish: the point first (Krish as a guest on one
-  topic tied to the show), who Krish is, one ask, signed Jonny. Who Krish is
+- **The words.** Jonny's, for Krish: the point first (one episode Krish could
+  bring to the show, named for its listeners as Nova read them, with Nova's
+  angle for the show where it has one), who Krish is, one ask, signed Jonny. Who Krish is
   comes only from what the run reads: his ruled title, his publication and the
   brain door from Mindmake's canon (quoted whole), and his track record from
   krishraja.com's own repository (`src/content/receipts.ts`), each named by
@@ -234,12 +262,19 @@ him to speak, the same way he pitches him to podcasts.
   said No to. Best first: Nova's verdict, the weakest of its room, standing
   and only-him scores when judged, a call that closes soon, and whether his
   buyer is in the room.
+- **One event, one row.** Rows of one event are proposed once: the same name
+  and date (case, punctuation, a leading "The" and the year aside), or one form
+  page on the same day. The fullest row stands for the event; the rest are held
+  as `duplicate_stage`. A form page shared by events on different days is an
+  organiser's page, not one event.
 - **The share.** Ten pitches a run between podcasts and stages: stages keep up
   to four when podcasts could take them all, and what one kind cannot fill
   goes to the other.
 - **The words.** Jonny's, for Krish, one ask: a talk, or a panel seat where
   the stage says panel, with one talk title (the one Nova suggested for the
-  room, else one from its topic, never his own show's name). Who Krish is
+  room, else one from its topic, never his own show's name), who is in its
+  room and why the talk is built for them, Nova's angle where it has one, and
+  the date its call closes. Who Krish is
   comes from the same live reads as a podcast pitch. A speaking pitch expires
   with its call.
 - **Who does what.** An events row naming Jonny's box (protocol 1.9.0, kind
@@ -259,7 +294,12 @@ automated next best route."
   buried, never his own shows, never pitched or answered before, with no form
   already sent to that page (or sent with no answer from the browser), and not
   like anything he said No to. A show known to be quiet for 120 days is left
-  out. A form drawn in script (no fields read) is left alone.
+  out. A form drawn in script (no fields read) is left alone. Only a real
+  application is proposed (Krish, 2026-11-06): the form must ask for a talk
+  title, an abstract or a bio, and the talk or bio must go in that field in
+  full (at least one answer of 60 characters, as Control Center's own
+  `form_no_pitch` hold reads it). A page that asks only who he is, such as a
+  bureau booking its own speakers, is held as `form_no_pitch`.
 - **The answers.** Each field by its own label: his name (Krish Raja, or Krish
   and Raja), his public business address `hello@krishraja.com` and no other,
   Mindmake, the title the run uses for him, `https://mindmake.co` as the
@@ -321,7 +361,8 @@ shows share guests Make Your Mind Up 70, Signal & Noise 30.
 - **The words.** Jonny's, for Krish, one ask: a conversation on the show.
   Make Your Mind Up is named as the canon names it, with its link; Signal &
   Noise with Krish's ruled title. A page about the guest from their own
-  evidence may be named in one line; nothing else about Krish is claimed.
+  evidence may be named in one line, and what the guest record says they do is
+  said to them ("He read that you ..."); nothing else about Krish is claimed.
   Subject: "A conversation for" the show.
 - **Who does what.** A visibility row naming Jonny's box and the guest
   (`contact:<id>`), ranked before the podcast pitches. Control Center files it
