@@ -108,7 +108,8 @@ export function validCatchUp(text, { name = '', fact = '', last = '' } = {}) {
   if (names.some(n => n !== 'I' && !/^I'/.test(n) && !known.includes(n.toLowerCase().replace(/['.,]+$/, '').replace(/'s$/, '')))) return { ok: false, reason: 'new_name' };
   if ((s.match(/\d[\d,.]*/g) ?? []).some(n => !known.includes(n.replace(/[.,]+$/, '')))) return { ok: false, reason: 'new_number' };
   for (const x of parts) { const b = brokenSentence(x.trim()); if (b) return { ok: false, reason: b }; }
-  return { ok: true, sentence: s };
+  // After the greeting is taken off, the note still starts as a sentence does.
+  return { ok: true, sentence: s.charAt(0).toUpperCase() + s.slice(1) };
 }
 
 /** The London day of an ISO time, as YYYY-MM-DD. Pure. */
