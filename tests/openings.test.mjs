@@ -88,8 +88,10 @@ test('where the desk is open, a catch-up opens on its sentence, and one not writ
   const r = amplifierRows({ context, weekGoals: [], canon, files: FILES, at: NOW, openingsRequired: true, research });
   assert.equal(r.rows.length, 1);
   assert.match(body(r.rows[0].proposal), /^Hi Robin,\n\nYou chair the Example Association's AI Taskforce, and I'd like to hear what it has settled on so far\.\n\nWe go back to 2019/);
-  assert.deepEqual(r.held.filter(h => h.startsWith('opening_')).sort(), ['opening_failed', 'opening_failed']);
-  assert.equal(r.research.filter(x => x.request_id.startsWith('open:')).length, 0, 'nothing answered is asked again');
+  assert.deepEqual(r.held.filter(h => h.startsWith('opening_')).sort(), ['opening_failed', 'opening_waiting'], 'a sentence that fails is held; a desk failure is asked again');
+  const again = r.research.filter(x => x.request_id.startsWith('open:'));
+  assert.deepEqual(again.map(x => x.subject_ref), [`contact:${id(3)}`], 'only the desk failure is asked again, never an answered one');
+  assert.match(again[0].request_id, /:\d{4}-\d{2}-\d{2}$/);
   // Where the desk is closed (a dry run, a test), the catch-up keeps its own sentence.
   const closed = amplifierRows({ context, weekGoals: [], canon, files: FILES, at: NOW });
   assert.equal(closed.rows.length, 3);
@@ -129,6 +131,34 @@ test('a row person with no address is looked up, and an address that is theirs i
   const again = amplifierRows({ context: { ...context, research: answered }, weekGoals: [], canon, files: FILES, at: NOW, personRoutes: true });
   assert.equal(again.lookups.length, 0);
   assert.deepEqual(again.found.map(f => [f.subject_ref, f.kind, f.address]), [[`contact:${id(7)}`, 'email', 'robin.sample7@example.org']]);
+  // A route that says there is no address is no address.
+  assert.equal(amplifierRows({ context: { ...context, routes: { [id(7)]: { email: 'none', linkedin: true } } }, weekGoals: [], canon, files: FILES, at: NOW, personRoutes: true }).lookups.length, 1);
+  assert.equal(amplifierRows({ context: { ...context, routes: { [id(7)]: { email: 'verified' } } }, weekGoals: [], canon, files: FILES, at: NOW, personRoutes: true }).lookups.length, 0);
   // Without the feature, nobody is looked up.
   assert.equal(amplifierRows({ context, weekGoals: [], canon, files: FILES, at: NOW }).lookups.length, 0);
+});
+
+// Live run merge-71: seven openings came back failed at no cost, one batch at one second. A failed attempt is asked again under the day.
+test('a failed opening is asked again under the London day, once a day; an answer to any attempt is used', () => {
+  const card = { who: 'Runs the Example Forum for retail data leaders in London.' };
+  const at = '2026-11-06T13:00:00.000Z';
+  const first = opening({ id: id(9), name: 'Robin Sample', card, research: [], required: true, at });
+  assert.ok(/^open:[^:]+:[0-9a-f]{12}$/.test(first.request.request_id));
+  assert.equal('base' in first.request, false, 'only the desk fields are sent');
+  const failed = [{ ...first.request, status: 'failed' }];
+  const retry = opening({ id: id(9), name: 'Robin Sample', card, research: failed, required: true, at });
+  assert.equal(retry.request.request_id, `${first.request.request_id}:2026-11-06`);
+  assert.equal(retry.hold, 'opening_waiting');
+  const twice = [...failed, { ...retry.request, status: 'failed' }];
+  const today = opening({ id: id(9), name: 'Robin Sample', card, research: twice, required: true, at });
+  assert.equal(today.request, null, 'not asked a third time today');
+  assert.equal(today.hold, 'opening_failed');
+  const tomorrow = opening({ id: id(9), name: 'Robin Sample', card, research: twice, required: true, at: '2026-11-07T09:00:00.000Z' });
+  assert.equal(tomorrow.request.request_id, `${first.request.request_id}:2026-11-07`);
+  const won = opening({ id: id(9), name: 'Robin Sample', card, research: [...twice, { ...tomorrow.request, status: 'answered', answer: 'You run the Example Forum for retail data leaders in London, and I would like to hear what is next for it.' }], required: true, at: '2026-11-07T09:00:00.000Z' });
+  assert.equal(won.hold, null);
+  // A praise post or a status note is no fact to write from.
+  assert.equal(openingFact({ facts: [{ kind: 'post', text: 'Posted: "Super proud of the team for this one."' }], who: 'Leads data at Example Co and writes on measurement.' }), 'Leads data at Example Co and writes on measurement.');
+  assert.equal(openingFact({}, ['Already engaged for Example Show at Example Festival 2026.', 'Runs revenue at Example AI and writes on outbound.']), 'Runs revenue at Example AI and writes on outbound.');
+  assert.equal(validOpening('You are already engaged for the Example Show, so you would bring a useful perspective.', { name: 'Robin Sample', fact: 'Already engaged for the Example Show.' }).ok, false);
 });

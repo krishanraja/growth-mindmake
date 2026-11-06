@@ -1398,7 +1398,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   // Each invite opens on the desk's sentence from one fact on their record; where the desk is open, one not written or not passing holds the invite.
   const openingAsks = [];
   const openFor = list => list.map(x => {
-    const op = opening({ id: x.g.contact_id, name: guestName(x.g), card: {}, why: [x.g.one_liner, x.g.why_fit].filter(v => typeof v === 'string'), research, required: openingsRequired, purpose: 'invite', show: inviteShow(x.g.invite_show, canon).name });
+    const op = opening({ id: x.g.contact_id, name: guestName(x.g), card: {}, why: [x.g.one_liner, x.g.why_fit].filter(v => typeof v === 'string'), research, required: openingsRequired, purpose: 'invite', show: inviteShow(x.g.invite_show, canon).name, at });
     if (op.request) openingAsks.push(op.request);
     if (op.hold) { inviteHeld.push(op.hold); return null; }
     return { ...x, open: op.sentence };
