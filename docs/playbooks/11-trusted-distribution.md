@@ -181,22 +181,35 @@ channels with mass audiences on growing with AI. In the protocol these are
 - **Words from the card (Krish, 2026-11-06: "The email drafts are super
   generic and rubbish").** Every email is written from what the card holds
   about this one person, never a line that would fit anyone:
-  - a catch-up opens on one thing about them (their post, a role change, a
-    fact from their record said to them, else their role and company now) and
-    the history between you (since when, and the last email); a tie the record
-    says nothing about gets no email (`nothing_specific`);
-  - an offer to a partner names their portfolio and one concrete decision its
-    leaders face, chosen by the topic of the partner's own work;
-  - an appearance names the show's audience and one episode it could run;
-  - an introduction or a session names the kind of leader and the topic.
+  - a catch-up is about one fact on the card (their post, a move, their work
+    as a why line names it, or a fact said to them), then your history and the
+    ask in one sentence; their employer alone is never the fact, and a tie the
+    card says nothing specific about gets no email (`nothing_specific`);
+  - an offer to a partner names their portfolio by its own companies or
+    sectors where the record gives them, and one decision no other partner in
+    the run is offered;
+  - an appearance names the show's audience and one episode no other show in
+    the run is offered;
+  - an invite says why this guest (what they do, from their record, or their
+    role) and one episode idea (a claim of their own, else one for their topic
+    or role);
+  - an introduction or a session names the kind of leader and one decision.
   Where the record holds a fact about what they did, the email opens on it
-  ("Read that you ...").
-- **No two emails alike.** A run holds any send whose words match another
-  send's once the recipient's and the subject's names are taken out
-  (`row_same_words`, `sharedBodies` in `src/stages/rows.mjs`).
+  ("Read that you ..."), never on a judgement written for Krish ("useful for
+  reaching"). Company names are written as the card's own prose writes them
+  ("NBCUniversal", never "Nbcuniversal"), a slash copied from a record is
+  written in words, and "Ventures's" is "Ventures'".
+- **No two emails alike.** Each email's sentences are compared with every
+  capitalised word (a name, a company, a role, a show, a month), every number
+  and every link taken out. Two sends in one run may share at most one such
+  sentence; the lower-ranked one is held (`row_same_words`, `sharedBodies` in
+  `src/stages/rows.mjs`). A run that has used every decision or episode for a
+  row holds the next email (`options_used`) rather than repeat one; the rows
+  take turns, best first, so each row gets its share.
 - **Facts that agree.** A card that names two different employers as where
-  someone works now is a stale record: it is held (`facts_disagree`) and who
-  they are is asked of the research desk again.
+  someone works now, including a why line about their work at another firm
+  with no tense ("Her build at <firm> ..."), is a stale record: it is held
+  (`facts_disagree`) and who they are is asked of the research desk again.
 - **Titles name their subject.** A long name is shortened (brackets off, the
   part before a colon, then cut at a whole word), never replaced by "an event"
   or "a show" (`titleNaming`).

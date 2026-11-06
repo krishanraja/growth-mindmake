@@ -102,7 +102,7 @@ test('volume rises only when it is known that no spec he signed is in force, and
 
 test('at U4 with a crowd, wider rows never push out a pitch, an invite or a form, and the Lanes line counts what was posted', async () => {
   const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-  const person = (n, title) => ({ contact_id: id(n), network_tier: '2_core_network', current_title: title, followers: 20000 + n, plays: [], roles: [], mindmake_fit: 80, sells_competing_services: false, hook: `Took media software company ${n} through a sale.`, contacts: { id: id(n), full_name: `Avery Example${n}`, title, company: `Company ${n}`, company_domain: `c${n}.test`, status: 'active' } });
+  const person = (n, title) => ({ contact_id: id(n), network_tier: '2_core_network', current_title: title, followers: 20000 + n, plays: [], roles: [], mindmake_fit: 80, sells_competing_services: false, hook: `Took a ${['media', 'retail', 'health', 'travel', 'legal', 'gaming', 'energy', 'fashion', 'food', 'logistics', 'insurance', 'robotics'][n % 12]} software company through a sale.`, contacts: { id: id(n), full_name: `Avery Example${n}`, title, company: `Company ${n}`, company_domain: `c${n}.test`, status: 'active' } });
   const titles = ['Host of Example Show', 'Chapter Chair, Example Leaders Forum', 'General Partner, Example Ventures', 'Head of Learning and Development, Example Academy', 'Community Lead, Example Founders Club', 'Podcast Host', 'Managing Partner, Example Capital', 'Professor of Management, Example Business School', 'Director, Example Leadership Institute'];
   const crowd = () => {
     const c = capsContext(); let n = 1000;

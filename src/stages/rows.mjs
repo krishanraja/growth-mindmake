@@ -532,7 +532,7 @@ const MEDIA_ROLE = /\b(host|co-host|presenter|editor|editor-in-chief|columnist|j
 
 /** Record prose as he reads it: no em or en dash, no space before a comma, no doubled commas. */
 export function plain(value) {
-  return clean(String(value ?? '').replace(/\s*[\u2014\u2013]\s*/g, ', ')).replace(/\s+([,.;:!?])/g, '$1').replace(/,(\s*,)+/g, ',').replace(/^[,\s]+/, '');
+  return plainWords(clean(String(value ?? '').replace(/\s*[\u2014\u2013]\s*/g, ', ')).replace(/\s+([,.;:!?])/g, '$1').replace(/,(\s*,)+/g, ',').replace(/^[,\s]+/, ''));
 }
 /** Every whole sentence of a text, in order, read past initials and abbreviations. */
 export function sentences(value) {
@@ -934,20 +934,27 @@ export const TOPIC_PITCH = {
   technology: ['the org chart after AI, and what leaders still decide', 'the org chart after AI'],
   leadership: ['what an AI that knows a leader should actually do', 'an AI that knows the leader'],
 };
-/** One episode a show could run with him, by topic: a title a host could put on it. */
-export const EPISODE = {
-  advertising: 'The agency model after AI: who still gets paid, and for what',
-  marketing: 'What a CMO should hand to AI this quarter, and what stays human',
-  talent: 'Hiring when AI does the first draft of every job',
-  venture: 'How to tell an AI company from a company that uses AI',
-  finance: 'Where the AI budget actually goes, and what it buys',
-  retail: 'The first three things AI changes in a retail P&L',
-  media: 'What a media business sells once AI can make the content',
-  education: 'Why leaders stop using AI a month after the course',
-  health: 'What a health leader should never hand to AI',
-  technology: 'The org chart after AI: what leaders still decide',
-  leadership: 'The AI brain: what an AI that knows a leader should do first',
+// Each table holds several options so no two emails in one run share one: a
+// run picks the first option it has not used yet (`pickUnused`), and a run that
+// has used every option for a topic moves to the leadership list.
+
+/** Episodes a show could run with him, by topic: titles a host could put on them. */
+export const EPISODES = {
+  sales: ['What a revenue team looks like when AI does the prospecting', 'Selling AI to buyers who were burned by the last pilot', 'Which sales roles AI changes first, and which it cannot'],
+  advertising: ['The agency model after AI: who still gets paid, and for what', 'Selling AI to clients without cutting your own fees', 'What a media plan looks like when agents buy the media'],
+  marketing: ['What a CMO should hand to AI this quarter, and what stays human', 'How to measure AI work inside the brand budget', 'Which agency work comes in-house once the team has AI'],
+  talent: ['Hiring when AI does the first draft of every job', 'Training managers to run teams that work with AI', 'Which roles disappear first, and which get harder to fill'],
+  venture: ['How to tell an AI company from a company that uses AI', 'Pricing an AI feature customers will actually pay for', 'What a seed-stage team looks like when AI does the first draft'],
+  finance: ['Where the AI budget actually goes, and what it buys', 'Explaining AI spend to a board that wants a return', 'Which finance work to hand to AI first'],
+  retail: ['The first three things AI changes in a retail P&L', 'What a store team does when AI runs the forecast', 'Retail media after AI: who owns the shopper data'],
+  media: ['What a media business sells once AI can make the content', 'Licensing an archive to AI companies, and what to charge', 'Which newsroom work goes to AI first, and which never should'],
+  education: ['Why leaders stop using AI a month after the course', 'Teaching judgement when AI writes the first answer', 'What a business school should drop now that AI exists'],
+  health: ['What a health leader should never hand to AI', 'Where AI saves clinicians time, and where it costs it', 'Who signs off on an AI decision in a hospital'],
+  technology: ['The org chart after AI: what leaders still decide', 'Which agents go into production first, and who owns them', 'Build or buy: the AI decision every CTO is making this year'],
+  leadership: ['The AI brain: what an AI that knows a leader should do first', 'How to tell an AI pilot that works from one that only demos well', 'Who owns AI decisions once the pilots end', 'What a leader should never hand to AI'],
 };
+/** Kept for the subjects and the cards: each topic's first episode. */
+export const EPISODE = Object.freeze(Object.fromEntries(Object.entries(EPISODES).map(([k, v]) => [k, v[0]])));
 /** Who a show or a gathering on a topic is for, in plain words. */
 export const AUDIENCE_OF = {
   advertising: 'people who run agencies and ad businesses', marketing: 'marketing leaders', talent: 'people leaders and recruiters',
@@ -960,25 +967,67 @@ export const LEADER_IN = {
   media: 'leader in media', education: 'leader in education', health: 'leader in health', technology: 'technology leader', leadership: 'senior leader',
 };
 const articleFor = t => `${/^[aeiou]/i.test(t) ? 'an' : 'a'} ${t}`;
-/** One concrete decision a partner's leaders face, by the topic of the partner's own work. */
-export const DECISION = {
-  venture: 'which of their AI bets deserve more money this year, and which to stop',
-  finance: 'where the AI budget goes and what it has to return',
-  technology: 'what to build with AI in-house and what to buy',
-  marketing: 'what the marketing team hands to AI first, and what stays with people',
-  advertising: 'which client work AI takes over, and how they price what is left',
-  talent: 'which roles they hire for next once AI does the first draft',
-  media: 'what they still sell once AI can make the content',
-  retail: 'which part of the P&L AI changes first',
-  health: 'what they should never hand to AI, and what they can',
-  education: 'how their people keep using AI after the training ends',
-  leadership: 'what each of them hands to AI first, and what stays theirs',
+/** Concrete decisions a partner's leaders face, by the topic of the partner's own work. */
+export const DECISIONS = {
+  venture: ['which of their AI bets deserve more money this year, and which to stop', 'when to build AI into the product and when to buy it', 'how to price an AI feature customers will pay for', 'which roles to hire before the next round now that AI does the first draft'],
+  finance: ['where the AI budget goes and what it has to return', 'which reporting work to hand to AI first', 'how to explain AI spend to the board'],
+  technology: ['what to build with AI in-house and what to buy', 'which agents go into production first', 'who owns AI decisions once the pilots end'],
+  marketing: ['what the marketing team hands to AI first, and what stays with people', 'how to measure AI work inside the brand budget', 'which agency work comes in-house with AI'],
+  advertising: ['which client work AI takes over, and how they price what is left', 'how to sell AI to clients without cutting their own fees', 'which teams to retrain first'],
+  talent: ['which roles they hire for next once AI does the first draft', 'how to train managers to run teams that use AI', 'which jobs to redesign before they hire again'],
+  media: ['what they still sell once AI can make the content', 'which newsroom or studio work to hand to AI first', 'how to license their archive to AI companies'],
+  retail: ['which part of the P&L AI changes first', 'what the store team does once AI runs the forecast', 'who owns the shopper data AI runs on'],
+  health: ['what they should never hand to AI, and what they can', 'where AI saves clinicians time and where it costs it', 'who signs off on an AI decision'],
+  education: ['how their people keep using AI after the training ends', 'how to teach judgement when AI writes the first answer', 'what to drop from the programme now that AI exists'],
+  leadership: ['what each of them hands to AI first, and what stays theirs', 'how to tell an AI pilot that works from one that only demos well', 'who owns AI decisions once the pilots end', 'where AI should change the operating plan this year', 'which meetings and reports AI should replace first'],
 };
+/** Kept for the cards: each topic's first decision. */
+export const DECISION = Object.freeze(Object.fromEntries(Object.entries(DECISIONS).map(([k, v]) => [k, v[0]])));
+/** The first option of a topic's list (then the leadership list, then any list) this run has not used, marked used; null when every one is. Pure apart from `used`. */
+export function pickUnused(table, topic, used) {
+  const order = [...(table[topic] ?? []), ...(table.leadership ?? []), ...Object.values(table).flat()];
+  const hit = order.find(o => !used.has(o)) ?? null;
+  if (hit) used.add(hit);
+  return hit;
+}
 /** A title as it sits inside a sentence: "Chief Marketing Officer" keeps its capitals, a lower-case one stays as written. */
 const roleIn = title => { const t = clean(title).replace(/[.!?]+$/, ''); return t && t.length <= 60 && !/[|@,;]/.test(t) ? t : ''; };
+/** "Seventh Street Ventures'" and "Boardroom's". */
+export const possessive = name => (/s$/i.test(name) ? `${name}'` : `${name}'s`);
+
+/** Slashes copied from a record in plain words: "coaching/speaking" is "coaching and speaking", "Founder/CEO" is "Founder and CEO". A link, a date or "and/or" is left alone. Pure. */
+export function plainWords(text) {
+  return String(text ?? '').replace(/(^|[\s(])([\p{L}][\p{L}&-]*)\/([\p{L}][\p{L}&-]*)(?=[\s,.;:)!?]|$)/gu, (m, pre, a, b) => (/^(?:and|or)$/i.test(a) || /^(?:and|or)$/i.test(b) ? m : `${pre}${a} and ${b}`));
+}
+
+/** Words that are acronyms in a company's name, whatever case a record gave them. */
+const ACRONYM = new Set(['ai', 'us', 'uk', 'eu', 'it', 'hr', 'pr', 'tv', 'vc', 'pe', 'ml', 'ibm', 'bbc', 'nbc', 'cnn', 'abc', 'ey', 'kpmg', 'pwc', 'wpp', 'usa']);
+/**
+ * A company's name as its own record writes it: the spelling the card's own
+ * prose uses when it names the same company (the record of "nbcuniversal" says
+ * "NBCUniversal"), else the name with its acronyms in capitals, a lower-case
+ * name in title case, and a legal suffix ("Inc.") off. Pure.
+ */
+export function companyAsWritten(company, texts = []) {
+  const raw = cleanName(company ?? '').replace(/,?\s+(?:Inc|Inc\.|Ltd|Ltd\.|LLC|PLC|Limited|Corp|Corp\.)$/i, '').trim();
+  if (!raw) return '';
+  const key = raw.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  for (const t of texts.filter(x => typeof x === 'string')) {
+    // The same letters in the prose, whatever their case and spacing: "U.S. Bank", "TrueBlue", "NBCUniversal".
+    const words = t.split(/\s+/);
+    for (let i = 0; i < words.length; i++) for (let n = 1; n <= 4 && i + n <= words.length; n++) {
+      const cand = words.slice(i, i + n).join(' ').replace(/^[^\p{L}\d]+|[^\p{L}\d.]+$/gu, '').replace(/'s$/, '').replace(/\.$/, '');
+      if (cand.toLowerCase().replace(/[^a-z0-9]+/g, '') === key && /\p{Lu}/u.test(cand)) return cand;
+    }
+  }
+  const cased = raw === raw.toLowerCase() ? titleCase(raw) : raw;
+  return cased.split(' ').map(w => (ACRONYM.has(w.toLowerCase().replace(/\./g, '')) && !w.includes('.') ? w.toUpperCase() : w)).join(' ');
+}
 
 const PAST_VERB = /^(?:\p{Ll}+ed|took|built|ran|led|wrote|grew|sold|made|became|won|left|began|brought|drove|gave|got|held|kept|met|paid|put|raised|rebuilt|said|set|spent|spoke|stood|taught|thought|told|went|shipped|scaled|founded|launched|started|joined|hosted)$/u;
 const IRREGULAR_NOW = { is: 'are', has: 'have', does: 'do', was: 'were' };
+/** Verbs that may follow "and" in a clause about them; any other word after "and" is left as written. */
+const LATER_VERB = /^(?:warns|sits|runs|leads|builds|writes|hosts|advises|applies|chairs|teaches|works|manages|says|argues|helps|invests|backs|coaches|speaks|serves|oversees|owns|drives|shapes|publishes|creates|makes|ships|scales|focuses|believes|thinks|has|is)$/;
 /** A third-person verb as it reads after "you": runs is run, teaches is teach, has is have; '' when it is no verb this can turn. Pure. */
 function youVerb(w) {
   const v = w.toLowerCase();
@@ -989,170 +1038,217 @@ function youVerb(w) {
   if (/^\p{Ll}{2,}[^s]s$/u.test(v) && !/(?:ous|ss|us|is)$/.test(v)) return v.slice(0, -1);
   return '';
 }
+/** A judgement written for Krish, never words to say to them: "useful for reaching", "shared ground for", "unusually direct". */
+const FOR_KRISH = /\b(?:useful for|worth (?:a|an|the)|shared ground|unusually|credibility|could leverage|creating (?:an? )?(?:active )?(?:window|momentum)|momentum to|exact kind)\b/i;
 /**
  * One fact from their record, said to them: "Took two companies through a
  * sale." or "Avery runs a forum." becomes "you took two companies through a
  * sale" or "you run a forum". Only a sentence that opens on its verb, or on
- * their own name or a pronoun and then the verb, is turned; anything else is
- * ''. Pure.
+ * their own name or a pronoun and then the verb, is turned; a judgement
+ * written for Krish is never turned; anything else is ''. Pure.
  */
 export function youFact(text, name = '') {
   const parts = givenParts(name);
   for (const s of sentences(text)) {
     let f = factOf(s);
-    if (!f || f.length > 160) continue;
+    if (!f || f.length > 160 || FOR_KRISH.test(f)) continue;
     for (const lead of [parts.join(' '), parts[0], 'They', 'He', 'She'].filter(Boolean)) if (f.startsWith(`${lead} `)) { f = f.slice(lead.length + 1); break; }
+    // "The guy who joined X" is "joined X": the clause after a description of them.
+    f = f.replace(/^(?:The|A|An)\s+(?:guy|person|woman|man|leader|founder|operator|exec(?:utive)?)\s+who\s+/, '');
     const [w, ...rest] = f.split(' ');
     const verb = /^\p{L}+$/u.test(w ?? '') ? youVerb(w) : '';
-    if (verb && rest.length >= 2 && !/\b(?:he|she|his|her|him)\b/i.test(rest.join(' '))) return `you ${verb} ${rest.join(' ')}`.replace(/[.!?]+$/, '');
+    // A second verb in the same clause agrees too: "joined X and warns Y" is "joined X and warn Y".
+    const tail = rest.join(' ').replace(/(\band|,)\s+(\p{Ll}+)\b/gu, (m, j, v) => (LATER_VERB.test(v) ? `${j} ${youVerb(v)}` : m));
+    if (verb && rest.length >= 2 && !/\b(?:he|she|his|her|him)\b/i.test(tail)) return plainWords(`you ${verb} ${tail}`.replace(/[.!?]+$/, ''));
+  }
+  return '';
+}
+/**
+ * Their own work as a phrase said to them, from a why line that names it:
+ * "His work chairing the Advertising Association's AI Taskforce." is "your work
+ * chairing the Advertising Association's AI Taskforce"; "His move from X to Y,
+ * plus Z, is an unusually direct path." is "your move from X to Y, plus Z". The
+ * judgement after it is cut, and a judgement written for Krish is never used.
+ * '' when no line names their work. Pure.
+ */
+export function yourWork(text) {
+  for (const s of sentences(text)) {
+    const f = factOf(s) || plain(s).replace(/[.!?]+$/, '');
+    const m = /^(?:His|Her|Their)\s+(.+)$/.exec(f);
+    if (!m) continue;
+    const phrase = m[1].split(/\s+(?:is|was|are|were|makes|made|gives|shows)\s+/)[0].split(/,\s+(?:plus|and|while|with|tied to)\s+/)[0].replace(/[,;:\s]+$/, '');
+    if (phrase.length >= 12 && phrase.length <= 160 && endsWhole(phrase) && !FOR_KRISH.test(phrase) && !/\b(?:he|she|his|her|him)\b/i.test(phrase)) return plainWords(`your ${phrase}`);
   }
   return '';
 }
 
-/** One specific thing about them to open a catch-up with, from the record: a post, a move, their role now. '' when none. Pure. */
-export function specificOf(c, { title = '', company = '' } = {}) {
+/**
+ * The one sentence a catch-up is about, from the card's own facts: their post,
+ * a move, their work as a why line names it, or a fact said to them. Never
+ * their employer alone: a line only about where they work is the same email
+ * for everyone with a different company in it. '' when the card holds none. Pure.
+ */
+export function specificOf(c, { why = [] } = {}) {
   const facts = Array.isArray(c?.facts) ? c.facts : [];
   const post = facts.map(f => (f?.kind === 'post' ? factText(f) : '')).map(t => /^Posted: "(.+)"$/.exec(t)?.[1]?.replace(/[.!?]+$/, '') ?? '').find(q => q && q.length <= 120 && !/[\u2013\u2014]/.test(q));
-  if (post) return `Read your post: "${post}."`;
+  if (post) return `I read your post, "${post}", and I'd like to hear where your thinking has gone since.`;
   const move = facts.map(f => (f?.kind === 'role_change' ? factText(f) : '')).find(Boolean);
   const now = move ? /\bnow\s+(.+?)$/i.exec(move.replace(/[.!?]+$/, ''))?.[1] : '';
-  if (now && now.length <= 80 && endsWhole(now)) return `Saw the move to ${now}. Congratulations.`;
-  const did = youFact([c?.hook, c?.why_them, c?.who].filter(x => typeof x === 'string').join(' '), c?.contacts?.full_name ?? '');
-  if (did) return `Read that ${did}.`;
-  const role = roleIn(title);
-  if (role && company) return `Saw you're ${role} at ${company} these days.`;
-  if (company) return `Saw you're at ${company} these days.`;
-  if (role) return `Saw you're ${role} these days.`;
+  if (now && now.length <= 80 && endsWhole(now)) return `Congratulations on the move to ${now}; I'd like to hear what you're changing first.`;
+  const lines = [...why, c?.hook, c?.why_them].filter(x => typeof x === 'string');
+  const work = lines.map(yourWork).find(Boolean);
+  if (work) return `I'd like to hear how ${work} is going.`;
+  const did = youFact([...lines, c?.who].filter(x => typeof x === 'string').join(' '), c?.contacts?.full_name ?? '');
+  if (did) return `I hear ${did}, and I'd like to know how it's going.`;
   return '';
 }
-/** The history between you in one sentence, from what is counted: since when, and the last email. '' when nothing is. Pure. */
+/** The history between you and the ask, as one sentence, from what is counted: since when, and the last email. Pure. */
 export function historyOf(c) {
   const since = yearOf(c?.known_since), last = monthYear(c?.email_last) ?? monthYear(c?.contacts?.last_touch_at);
-  if (since && last) return `We go back to ${since}, and the last time we wrote was ${last}.`;
-  if (last) return `The last time we wrote was ${last}.`;
-  if (since) return `We go back to ${since}.`;
+  const head = since && last ? `We go back to ${since} and last wrote in ${last}` : last ? `We last wrote in ${last}` : since ? `We go back to ${since}` : "It's been a while";
+  return `${head}: up for a call in the next few weeks?`;
+}
+/** Up to three companies a partner's record names as theirs: a list in brackets, board seats, or what they back. [] when none. Pure. */
+export function portfolioNames(texts) {
+  const NAME = String.raw`\p{Lu}[\p{L}\d&'.-]*(?:\s+\p{Lu}[\p{L}\d&'.-]*){0,3}`;
+  for (const t of texts.filter(x => typeof x === 'string').flatMap(x => sentences(x))) {
+    const list = new RegExp(String.raw`\((${NAME}(?:,\s*${NAME})+(?:,?\s*and\s+${NAME})?)\)`, 'u').exec(t)
+      ?? new RegExp(String.raw`\b(?:board seats?|seats?|investments?|portfolio companies|backs|backed|backing)\s+(?:at|in|include|including)?\s*(${NAME}(?:,\s*${NAME})*(?:,?\s*and\s+${NAME})?)`, 'u').exec(t);
+    if (list) {
+      const names = list[1].split(/,\s*|\s+and\s+/).map(x => x.trim().replace(/\.$/, '')).filter(x => x.length >= 2).slice(0, 3);
+      if (names.length) return names;
+    }
+  }
+  return [];
+}
+/** What a partner's portfolio spans, as their record says it: "ecommerce, hospitality, media and SaaS". '' when it does not. Pure. */
+export function portfolioSpan(texts) {
+  for (const t of texts.filter(x => typeof x === 'string')) {
+    const m = /\b(?:spanning|across)\s+((?:[\p{Ll}][\p{L}-]*|SaaS|AI)(?:,\s*(?:[\p{Ll}][\p{L}-]*|SaaS|AI)(?:\s+(?!and\b)[\p{Ll}][\p{L}-]*)?)+(?:,?\s*and\s+[\p{Ll}][\p{L}-]*(?:\s+(?!and\b)[\p{Ll}][\p{L}-]*)?)?)/u.exec(t);
+    if (m) return m[1].replace(/,\s*and\s+/, ' and ');
+  }
   return '';
 }
+const joinAnd = list => (list.length <= 1 ? (list[0] ?? '') : `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`);
 
 export const WORDS = {
   partner: [
     (p, canon) => {
-      const decision = DECISION[p.topic] ?? DECISION.leadership;
-      if (p.kind === 'ai_trainer') return { subject: p.company ? `What ${p.company}'s learners do after the course` : 'What your learners do after the course', lines: [
-        `You train people to use AI${p.company ? ` at ${p.company}` : ''}. The part that stalls is what happens once the course ends, when nobody decides what each leader hands to AI.`,
-        `At Mindmake we build what comes after, one leader at a time: ${lower1(canon.brain)}`,
-        'Worth a short call to see if the two fit?',
+      if (p.kind === 'ai_trainer') return { subject: p.company ? `What ${possessive(p.company)} learners do after the course` : 'What your learners do after the course', lines: [
+        `The part of AI training that stalls is what happens once the course ends, when nobody decides ${p.decision}.`,
+        `Mindmake builds what comes after, one leader at a time (${lower1(canon.brain).replace(/[.!?]+$/, '')}); worth a short call to see if the two fit?`,
       ] };
-      // Their portfolio by name and one decision its leaders face, from the topic of their own work.
-      return { subject: p.company ? `One decision for the leaders ${p.company} backs` : 'One decision for the leaders you back', lines: [
-        `For the leaders across ${p.company ? `${p.company}'s portfolio` : 'your portfolio'}, I'd run a working session on one decision: ${decision}.`,
-        canon.site?.revenue ? `It comes out of what Mindmake does for them, in our site's words: ${lower1(canon.site.revenue.line)}` : `At Mindmake we build AI that knows the leader using it: ${lower1(canon.brain)}`,
-        `Would that be useful to ${p.company ? `${p.company}'s founders` : 'them'}?`,
+      // Their portfolio by its own names where the record gives them, and one decision no other partner in the run gets.
+      const whose = p.portfolio?.length ? `founders like ${joinAnd(p.portfolio)}` : p.span ? `a portfolio spanning ${p.span}` : p.company ? `the founders across ${possessive(p.company)} portfolio` : 'the founders you back';
+      return { subject: p.company ? `One decision for the founders ${p.company} backs` : 'One decision for the founders you back', lines: [
+        `For ${whose}, I'd run a working session on one decision: ${p.decision}.`,
+        `Mindmake builds an AI that knows the leader using it (${lower1(canon.brain).replace(/[.!?]+$/, '')}), and that is the call it helps them make; worth a short call?`,
       ] };
     },
-    (p, canon) => ({ subject: p.company ? `For ${p.company}'s portfolio: ${(DECISION[p.topic] ?? DECISION.leadership).split(',')[0]}` : 'One decision for your portfolio', lines: [
-      `The call I'd help ${p.company ? `${p.company}'s` : 'your'} portfolio leaders make: ${DECISION[p.topic] ?? DECISION.leadership}.`,
-      `The short version of what we do at Mindmake: ${lower1(canon.brain)}`,
-      'Worth a short call on whether a session would help them?',
+    (p, canon) => ({ subject: p.company ? `For ${possessive(p.company)} portfolio: ${p.decision.split(',')[0]}` : 'One decision for your portfolio', lines: [
+      `The call I'd help ${p.portfolio?.length ? `founders like ${joinAnd(p.portfolio)}` : p.company ? `${possessive(p.company)} founders` : 'your founders'} make: ${p.decision}.`,
+      `Mindmake builds an AI that knows the leader using it (${lower1(canon.brain).replace(/[.!?]+$/, '')}); worth a short call on whether a session would help them?`,
     ] }),
   ],
   introduce: [
     p => ({ subject: `One introduction: ${articleFor(LEADER_IN[p.topic] ?? 'leader')}`, lines: [
-      `Do you know one ${LEADER_IN[p.topic] ?? 'leader'} who's working out ${TOPIC_PITCH[p.topic]?.[0] ?? 'what AI should do for them'}?`,
-      "An introduction would mean a lot. I'll take it from there.",
+      `Do you know one ${LEADER_IN[p.topic] ?? 'leader'} who's working out ${p.decision}?`,
+      "An introduction would mean a lot, and I'll take it from there.",
     ] }),
     (p, canon) => ({ subject: 'A small ask', lines: [
-      `At Mindmake we build AI that knows the leader using it: ${lower1(canon.brain)}`,
-      `Know one ${LEADER_IN[p.topic] ?? 'leader'} who'd want that? A short intro is all I'd ask.`,
+      `Know one ${LEADER_IN[p.topic] ?? 'leader'} working out ${p.decision}, who'd want an AI that knows them (${lower1(canon.brain).replace(/[.!?]+$/, '')})?`,
+      "A short introduction is all I'd ask, and I'll take it from there.",
     ] }),
   ],
-  // To a host: the show's audience and one episode it could run, then who he is in the title Krish ruled.
+  // To a host: one episode for the show's audience, and the ask with who he is, in the title Krish ruled.
   appear: [
-    (p, canon) => {
-      const audience = p.audience || (p.topic && AUDIENCE_OF[p.topic]) || '';
-      const episode = EPISODE[p.topic] ?? EPISODE.leadership;
-      return { subject: `An episode for ${p.show || 'your show'}: ${episode.split(':')[0]}`, lines: [
-        `One episode I'd bring to ${p.show || 'your show'}${audience ? ` for ${audience}` : ''}: "${episode}".`,
-        `I'm ${KRISH_TITLE} and I write ${canon.publication.name} (${canon.publication.url}), so it would be practical, with one real decision worked through.`,
-        'Would you have me on?',
-      ] };
-    },
-    (p, canon) => ({ subject: `A conversation for ${p.show || 'your audience'}: ${(TOPIC_PITCH[p.topic] ?? TOPIC_PITCH.leadership)[1]}`, lines: [
-      `${p.show || 'Your show'}${p.audience || AUDIENCE_OF[p.topic] ? ` talks to ${p.audience || AUDIENCE_OF[p.topic]}, and` : ''} I'd talk about ${(TOPIC_PITCH[p.topic] ?? TOPIC_PITCH.leadership)[0]}.`,
-      `I'm ${KRISH_TITLE} and I write ${canon.publication.name}. At Mindmake we build AI that knows the leader using it: ${lower1(canon.brain)}`,
-      'Would that work for an episode?',
+    (p, canon) => ({ subject: `An episode for ${p.show || 'your show'}: ${p.episode.split(':')[0]}`, lines: [
+      `One episode I'd bring to ${p.show || 'your show'}${p.audience ? ` for ${p.audience}` : ''}: "${p.episode}".`,
+      `I'm ${KRISH_TITLE} and write ${canon.publication.name} (${canon.publication.url}), so it would be practical, with one real decision worked through; would you have me on?`,
+    ] }),
+    (p, canon) => ({ subject: `A conversation for ${p.show || 'your audience'}: ${p.episode.split(':')[0]}`, lines: [
+      `For ${p.show || 'your show'}${p.audience ? `, and ${p.audience}` : ''}, I'd talk about "${p.episode}".`,
+      `I'm ${KRISH_TITLE}, write ${canon.publication.name}, and at Mindmake build AI that knows the leader using it; would that work for an episode?`,
     ] }),
   ],
   teach: [
-    p => { const who = p.kind === 'student_educator' ? 'students' : 'leaders'; const about = (TOPIC_PITCH[p.topic] ?? TOPIC_PITCH.leadership)[0]; return { subject: `A session for ${p.company ? `${p.company}'s` : 'your'} ${who}: ${(TOPIC_PITCH[p.topic] ?? TOPIC_PITCH.leadership)[1]}`, lines: [
-      `Would a session for ${p.company ? `${p.company}'s` : 'your'} ${who} on ${about} be useful?`,
-      `I'd build it around one decision they face (${DECISION[p.topic] ?? DECISION.leadership}), worked through live.`,
+    p => { const who = p.kind === 'student_educator' ? 'students' : 'leaders'; return { subject: `A session for ${p.company ? possessive(p.company) : 'your'} ${who}: ${p.decision.split(',')[0]}`, lines: [
+      `Would a session for ${p.company ? possessive(p.company) : 'your'} ${who} on one decision they face, ${p.decision}, be useful?`,
+      "I'd work it through live with them, on their own examples.",
     ] }; },
-    (p, canon) => ({ subject: `An idea for ${p.company ? `${p.company}'s` : 'your'} ${p.kind === 'student_educator' ? 'students' : 'leaders'}`, lines: [
+    (p, canon) => ({ subject: `An idea for ${p.company ? possessive(p.company) : 'your'} ${p.kind === 'student_educator' ? 'students' : 'leaders'}`, lines: [
+      `Would a short session on ${p.decision} work for ${p.company ? possessive(p.company) : 'your'} ${p.kind === 'student_educator' ? 'students' : 'leaders'}?`,
       `At Mindmake we build AI that knows the leader using it: ${lower1(canon.brain)}`,
-      `Would a short session on ${DECISION[p.topic] ?? DECISION.leadership} work for ${p.company ? `${p.company}'s` : 'your'} ${p.kind === 'student_educator' ? 'students' : 'leaders'}?`,
     ] }),
   ],
-  // A catch-up names one thing about them and the history between you; the ask names their world.
+  // A catch-up is about one fact on their card, then your history and the ask in one sentence.
   relationship: [
-    p => ({ subject: p.company ? `Catching up, and ${p.company}` : 'Catching up', lines: [
-      [p.specific, p.history].filter(Boolean).join(' '),
-      `Up for a call in the next few weeks? I'd like to hear ${p.company ? `what AI is changing at ${p.company}` : "what you're working on"}, and I'll tell you what I'm seeing with leaders.`,
-    ].filter(Boolean) }),
-    p => ({ subject: p.company ? `Coffee, and what's happening at ${p.company}?` : 'Coffee?', lines: [
-      [p.history, p.specific].filter(Boolean).join(' '),
-      `Up for a coffee or a call soon? ${p.company ? `Keen to hear how ${p.company} is using AI.` : "I'd like to hear what you're seeing."}`,
-    ].filter(Boolean) }),
+    p => ({ subject: p.company ? `Catching up, and ${p.company}` : 'Catching up', lines: [p.specific, p.history].filter(Boolean) }),
+    p => ({ subject: 'Coffee?', lines: [p.specific, p.history.replace('up for a call', 'up for a coffee or a call')].filter(Boolean) }),
   ],
 };
 
 // ── The same email twice (Krish, 2026-11-06) ───────────────────────────────
-// A run whose emails differ only by the name on them is a template. The words
-// of each send, with its recipient's and its subject's names taken out, must
-// differ from every other send in the run.
+// "The email drafts are super generic and rubbish." An email whose sentences
+// are another's with different names, companies, roles or dates in them is a
+// template. Each sentence is compared with every capitalised word (a name, a
+// company, a role, a show, a month), every number and every link taken out; two
+// sends in one run may share at most one such sentence (`SHARED_SENTENCES_MAX`).
 
-/** A body with the greeting, the names and the sign-off taken out, as words in lower case: what two emails share when only a name was swapped. Pure. */
-export function bodySkeleton(body, names = []) {
+export const SHARED_SENTENCES_MAX = 1;
+/** One email's sentences with every card-derived slot taken out, in lower case, each of at least four words. Pure. */
+export function sentenceSkeletons(body, names = []) {
   let t = String(body ?? '').replace(/^(?:Hi|Hello|Dear)\s+[^,\n]*,\s*/i, '').replace(/\n+\s*(?:Krish|Jonny)\s*$/i, '');
-  for (const n of names.map(x => clean(String(x ?? ''))).filter(x => x.length >= 2).sort((a, b) => b.length - a.length)) {
-    t = t.split(n).join(' ');
-    const parts = n.split(' ').filter(w => w.length >= 3);
-    for (const w of parts) t = t.replace(new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g'), ' ');
-  }
-  return t.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  for (const n of names.map(x => clean(String(x ?? ''))).filter(x => x.length >= 2).sort((a, b) => b.length - a.length)) t = t.split(n).join(' ');
+  t = t.replace(/https?:\/\/\S+/g, ' ');
+  return t.split(/(?<=[.?!])\s+|\n+/)
+    .map(s => s.split(/\s+/).filter(w => w && !/^["'(“]?[\p{Lu}\d$]/u.test(w)).join(' ').toLowerCase().replace(/[^a-z' ]+/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter(s => s.split(' ').length >= 4);
 }
+/** A body with the greeting, the names and the sign-off taken out, as one string of its skeletons. Pure. */
+export function bodySkeleton(body, names = []) { return sentenceSkeletons(body, names).join(' | '); }
 /** The names a proposal's words may carry: its recipient's, its subject's (a show, an event, a firm). Pure. */
 export function namesOf(p) {
   const out = [p?.name];
   const t = clean(p?.title ?? '');
-  // The subject named in a title after its verb: "Catch up with Avery Example", "Jonny pitches you to The Example Show".
   const m = /^(?:Catch up with|Offer|Ask|Invite|Apply to (?:speak at|be a guest on)|Jonny (?:invites|pitches you to(?: speak at)?)|Pair Mindmake with|Reach out to)\s+(.+?)(?:\s+(?:a session|for one introduction|to have you on|onto|'s AI training|at)\b.*)?$/i.exec(t);
   if (m) out.push(m[1]);
   for (const x of [p?.card?.who]) { const w = /^(.+?)\s+(?:is|:)/.exec(clean(x ?? '')); if (w) out.push(w[1]); }
   return out.filter(Boolean);
 }
-/** The send proposals of one run whose words match another's once names are out: [{ proposal_id, same_as }]. Empty is a pass. Pure. */
+/**
+ * The sends of one run that share more than SHARED_SENTENCES_MAX sentences with
+ * an earlier send once slots are out: [{ proposal_id, same_as, shared }]. Empty
+ * is a pass. The earlier send, ranked first, keeps its place. Pure.
+ */
 export function sharedBodies(proposals) {
-  const seen = new Map(), out = [];
+  const kept = [], out = [];
   for (const p of Array.isArray(proposals) ? proposals : []) {
     let a; try { a = JSON.parse(p?.exact_payload ?? 'null'); } catch { a = null; }
     if (!a || typeof a.body !== 'string' || a.channel === 'form') continue;
-    const key = bodySkeleton(a.body, namesOf(p));
-    if (!key) continue;
-    if (seen.has(key)) out.push({ proposal_id: p.proposal_id, same_as: seen.get(key) });
-    else seen.set(key, p.proposal_id);
+    const mine = new Set(sentenceSkeletons(a.body, namesOf(p)));
+    if (!mine.size) continue;
+    const clash = kept.find(k => [...mine].filter(s => k.set.has(s)).length > SHARED_SENTENCES_MAX);
+    if (clash) out.push({ proposal_id: p.proposal_id, same_as: clash.id, shared: [...mine].filter(s => clash.set.has(s)).length });
+    else kept.push({ id: p.proposal_id, set: mine });
   }
   return out;
 }
 
 // ── A card whose facts disagree (Krish, 2026-11-06) ────────────────────────
-// One live card named one employer under who and another under why. A card says where someone works now in one place
-// only; two employers named as current is a stale record, held and asked about.
+// One live card named one employer under who and another under why ("Her build
+// at <another firm> ..."). A card says where someone works now in one place
+// only: a why line that names another organisation, and does not say it is in
+// the past, a side role or a place they worked with Krish, is a stale record,
+// held and asked about.
 
-const PAST = /\b(?:formerly|previously|former|ex-|was|were|used to|spent|left|led|worked|ran|until|before|alumn\w*|earlier)\b/i;
-const SIDE_ROLE = /\b(?:board|advis\w*|trustee|investor|angel|member|fellow|mentor|chair(?:man|woman|person)? of|non-executive|ambassador|volunteer|lecturer|visiting|speak\w*|spoke|keynote|panel\w*|conference|summit|event|based|studied|graduate\w*|degree|award\w*|featured|interviewed|guest)\b/i;
-const EMPLOYED_AT = /\b(?:works?|working|leads?|leading|heads?|heading|runs?|running|is|are|serves?|joined|joins|now|as|currently)\b[^.;]{0,80}?\b(?:at|works?\s+for)\s+((?:The\s+)?\p{Lu}[\p{L}\d&.'-]*(?:\s+(?:of|and|&|for|the|\p{Lu}[\p{L}\d&.'-]*))*)/u;
-const ROLE_AT = /\b(?:CEO|CFO|COO|CTO|CMO|CRO|CPO|Chief\s+[\p{L} ]+?Officer|President|Founder|Co-founder|Director|Head of [\p{L} ]+?|VP|Vice President|Partner|Principal|Manager|Lead|Editor|Host|General Counsel)\s+at\s+((?:The\s+)?\p{Lu}[\p{L}\d&.'-]*(?:\s+(?:of|and|&|for|the|\p{Lu}[\p{L}\d&.'-]*))*)/u;
+const PAST = /\b(?:formerly|previously|former|ex-|was|were|used to|spent|left|led|worked|ran|until|before|alumn\w*|earlier|prior)\b/i;
+const SIDE_ROLE = /\b(?:board|advis\w*|trustee|investor|angel|member|fellow|mentor|chair(?:man|woman|person)? of|non-executive|ambassador|volunteer|lecturer|visiting|speak\w*|spoke|keynote|panel\w*|conference|summit|event|based|studied|graduate\w*|degree|award\w*|featured|interviewed|guest|partner(?:ship)? with|client|customer)\b/i;
+const ORG = String.raw`((?:The\s+)?\p{Lu}[\p{L}\d&.'-]*(?:\s+(?:of|and|&|for|the|\p{Lu}[\p{L}\d&.'-]*))*)`;
+const EMPLOYED_AT = new RegExp(String.raw`\b(?:works?|working|leads?|leading|heads?|heading|runs?|running|is|are|serves?|joined|joins|now|as|currently)\b[^.;]{0,80}?\b(?:at|works?\s+for)\s+${ORG}`, 'u');
+const ROLE_AT = new RegExp(String.raw`\b(?:CEO|CFO|COO|CTO|CMO|CRO|CPO|Chief\s+[\p{L} ]+?Officer|President|Founder|Co-founder|Director|Head of [\p{L} ]+?|VP|Vice President|Partner|Principal|Manager|Lead|Editor|Host|General Counsel)\s+at\s+${ORG}`, 'u');
+/** Their own work at an organisation, with no tense: "Her build at <firm> of ...", "His team at <firm>". */
+const WORK_AT = new RegExp(String.raw`^(?:His|Her|Their)\s+[\p{Ll}\s-]{2,40}?\s+at\s+${ORG}`, 'u');
 const ORG_NOISE = /\b(?:the|group|inc|ltd|limited|plc|llc|corp|corporation|company|co|holdings|international|global|uk|us)\b/g;
 const orgKey = name => formKeyLite(name).replace(ORG_NOISE, ' ').replace(/\s+/g, ' ').trim();
 function formKeyLite(s) { return String(s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
@@ -1169,10 +1265,11 @@ export function sameOrg(a, b) {
 export function employersIn(text) {
   const out = [];
   for (const s of sentences(text)) {
-    if (PAST.test(s) || SIDE_ROLE.test(s)) continue;
+    if (PAST.test(s) || SIDE_ROLE.test(s) || /\bwhere you also worked\b/i.test(s)) continue;
     // A sentence that opens on its verb ("Works at Example Retail") reads as one that opens on a name.
     const t = s.charAt(0).toLowerCase() + s.slice(1);
     for (const re of [ROLE_AT, EMPLOYED_AT]) { const m = re.exec(t); if (m) out.push(m[1].replace(/\s+(?:of|and|&|for|the)$/i, '').trim()); }
+    const w = WORK_AT.exec(s); if (w) out.push(w[1].replace(/\s+(?:of|and|&|for|the)$/i, '').trim());
   }
   return out.filter(x => x.length >= 2);
 }
@@ -1187,9 +1284,9 @@ export function cardClash(card, company = '') {
 export function actionFor(channel, contactId, name, words) {
   const greeting = `Hi ${first(name)},`;
   // Signed plainly. A Gmail draft made through the API carries no automatic signature.
-  if (channel === 'email') return { version: 2, channel, recipient_contact_id: contactId, subject: clean(words.subject).slice(0, 200), body: [greeting, ...words.lines.map(clean), 'Krish'].join('\n\n') };
+  if (channel === 'email') return { version: 2, channel, recipient_contact_id: contactId, subject: plainWords(clean(words.subject)).slice(0, 200), body: [greeting, ...words.lines.map(l => plainWords(clean(l))), 'Krish'].join('\n\n') };
   // A message has no subject and no signature.
-  return { version: 2, channel, recipient_contact_id: contactId, body: [greeting, ...words.lines.map(clean)].join('\n\n').slice(0, 1000) };
+  return { version: 2, channel, recipient_contact_id: contactId, body: [greeting, ...words.lines.map(l => plainWords(clean(l)))].join('\n\n').slice(0, 1000) };
 }
 
 /**
@@ -1235,6 +1332,8 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
   const sectorOf = new Map((context.companies ?? []).map(c => [c.domain, word(c.kind)]));
   const companyOf = new Map((context.companies ?? []).filter(c => typeof c?.domain === 'string').map(c => [c.domain, c]));
   const out = [], held = [], asks = [], profiles = [], unnamed = [];
+  // A decision or an episode goes to one email a run: the next one picks the next option (pickUnused).
+  const usedDecisions = new Set(), usedEpisodes = new Set(), pending = [];
   const seen = new Set();
   for (const c of Array.isArray(context.amplifier_candidates) ? context.amplifier_candidates : []) {
     const id = c.contact_id;
@@ -1277,14 +1376,23 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
       if (why === 'unnamed_channel' && unnamed.length < 2) unnamed.push({ c, name });
       continue;
     }
-    const company = cleanName(c.current_company ?? c.contacts?.company ?? '');
+    // The company as its own record writes it ("NBCUniversal", never "Nbcuniversal").
+    const company = companyAsWritten(c.current_company ?? c.contacts?.company ?? '', [c.who, c.hook, c.why_them]);
     const variant = (L.pitchOff.get(best.row) ?? 0) % WORDS[best.ask].length;
     // The audience a host's show has, only where a cited figure counts its audience.
     const audience = best.ask === 'appear' && reach.value && AUDIENCE.test(reach.basis) && !/\bfollowers?\b/i.test(reach.basis) ? `its ${reach.value.toLocaleString('en-GB')} ${reach.basis.split(',')[0]}` : '';
-    const drafted = WORDS[best.ask][variant]({ kind: best.kind, show, company, topic, audience }, canon);
-    // One thing from their own record, said to them, opens the email: the observation the ask rests on.
-    const did = youFact([c.hook, c.why_them, c.who].filter(x => typeof x === 'string').join(' '), name);
-    const words = did ? { ...drafted, lines: [`Read that ${did}.`, ...drafted.lines] } : drafted;
+    const record = [c.who, c.hook, c.why_them].filter(x => typeof x === 'string');
+    // The words are written after every candidate is ranked, best first, so a decision or an episode goes to the strongest email (below).
+    const wordsFor = () => {
+      const decision = ['partner', 'introduce', 'teach'].includes(best.ask) ? pickUnused(DECISIONS, topic, usedDecisions) : null;
+      const episode = best.ask === 'appear' ? pickUnused(EPISODES, topic, usedEpisodes) : null;
+      // Every option used this run: a further email would repeat one, so this one waits for a later run.
+      if ((['partner', 'introduce', 'teach'].includes(best.ask) && !decision) || (best.ask === 'appear' && !episode)) return null;
+      const drafted = WORDS[best.ask][variant]({ kind: best.kind, show, company, topic, audience, decision, episode, portfolio: portfolioNames(record), span: portfolioSpan(record) }, canon);
+      // One thing from their own record, said to them, opens the email: the observation the ask rests on.
+      const did = youFact(record.join(' '), name);
+      return did ? { ...drafted, lines: [`Read that ${did}.`, ...drafted.lines] } : drafted;
+    };
     const title = titleCase(cleanName(c.current_title ?? c.contacts?.title ?? c.headline ?? ''));
     const card = cardFor({ c, id, name, title, company, ask: best.ask, kind: best.kind, reach, fit, serves: best.serves, canon, research, companyRow: companyOf.get(c.contacts?.company_domain) ?? null, at, show: best.ask === 'appear' ? show : '' });
     if (!card) {
@@ -1301,7 +1409,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     const told = caseFor({ c, name, company, ask: best.ask, kind: best.kind, reach, fit, serves: best.serves, at });
     // A kind, sector or topic that has led to a good meeting before ranks higher on its row (src/stages/wins.mjs); nothing that has not won sinks.
     const lift = typeof wins?.lift === 'function' ? wins.lift({ kind: best.kind, sector: best.features.sector, topic: best.features.topic }) : 1;
-    out.push({ score: best.s * lift, proposal: rowProposal({
+    pending.push({ score: best.s * lift, row: best.row, words: wordsFor, make: words => rowProposal({
       row: best.row, ask: best.ask, contactId: id, name, at, files,
       title: titleFor(best.ask, best.kind, name, company, titleMax, show),
       why: `${name}${company ? ` (${company})` : ''} reads as ${best.kind.replace('_', ' ')}: ${clean(c.current_title ?? c.headline ?? c.contacts?.title ?? '')}. Reach: ${reach.band === 'unknown' ? 'not yet known' : reach.band.replace('_', ' ')} (${reach.basis}). Mindmake fit ${fit} of 100. One ask: ${best.ask}.`,
@@ -1311,6 +1419,17 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     }) });
     // Rank by a cited figure where it is worth one question: the strongest without one.
     if (reach.value === null && asks.length < 4) asks.push({ c, kind: best.kind, name, company, score: best.s });
+  }
+  // Each row's best first, the rows taking turns, so every row gets its share of the decisions and episodes before
+  // any row's tenth email does; each email takes the next option it has not had this run, and none left holds it.
+  const byRow = new Map();
+  for (const e of pending.sort((a, b) => b.score - a.score)) { if (!byRow.has(e.row)) byRow.set(e.row, []); byRow.get(e.row).push(e); }
+  const queues = [...byRow.values()];
+  for (let i = 0; queues.some(q => i < q.length); i++) for (const q of queues) {
+    if (i >= q.length) continue;
+    const words = q[i].words();
+    if (!words) { held.push('options_used'); continue; }
+    out.push({ score: q[i].score, proposal: q[i].make(words) });
   }
   // Close ties gone quiet: Control Center's quiet_ties (1.7.0) first, then its network read.
   const ties = [...(Array.isArray(context.quiet_ties) ? context.quiet_ties : []), ...(Array.isArray(context.network) ? context.network : [])];
@@ -1333,13 +1452,14 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     const serves = servesOf('network', weekGoals);
     const variant = (L.pitchOff.get('network') ?? 0) % WORDS.relationship.length;
     const reach = { value: null, band: 'unknown', basis: 'a relationship, not an audience', source_url: null, as_of: null };
-    const company = cleanName(n.current_company ?? n.contacts?.company ?? '');
+    const company = companyAsWritten(n.current_company ?? n.contacts?.company ?? '', [n.who, n.hook, n.why_them]);
     const role = titleCase(cleanName(n.current_title ?? n.contacts?.title ?? ''));
     const card = cardFor({ c: n, id, name, title: role, company, ask: 'relationship', kind: null, reach, fit, serves, canon, research, companyRow: companyOf.get(n.contacts?.company_domain) ?? null, quietSince: monthYear(new Date(last).toISOString()), at });
     if (!card) { held.push('thin_card'); continue; }
     if (cardClash(card, company)) { held.push('facts_disagree'); if (profiles.length < 2) profiles.push({ c: n, name, company }); continue; }
     // One thing about them and the history between you: a catch-up with neither is a template, and is not written.
-    const specific = specificOf(n, { title: role, company }), history = historyOf(n);
+    // The catch-up is about one fact on the card, never their employer alone (Control Center's read of 6 November: six of eight were).
+    const specific = specificOf(n, { why: card.why }), history = historyOf(n);
     if (!specific) { held.push('nothing_specific'); continue; }
     const told = caseFor({ c: n, name, company, ask: 'relationship', kind: null, reach, fit, serves, at });
     out.push({ score: (score({ band: 'unknown', value: null }, fit / 100, ch.weight, serves, true) + Math.min(2, (Date.parse(at) - last) / (365 * DAY))) * fit / 100, proposal: rowProposal({
