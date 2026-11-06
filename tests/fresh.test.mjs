@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseCanon, blobSha } from '../src/stages/canon.mjs';
-import { amplifierRows, rankRows, sharedBodies, bodySkeleton, sentenceSkeletons, companyAsWritten, plainWords, possessive, portfolioNames, yourWork, shownLine, shownHistory, shortId, cardClash, employersIn, sameOrg, specificOf, historyOf, youFact, titleNaming, shorterNames, WORDS, actionFor } from '../src/stages/rows.mjs';
+import { amplifierRows, rankRows, sharedBodies, bodySkeleton, sentenceSkeletons, companyAsWritten, plainWords, possessive, portfolioNames, yourWork, shownLine, shownHistory, shortId, cardClash, employersIn, sameOrg, specificOf, historyOf, sharedPlace, fundOf, youFact, titleNaming, shorterNames, WORDS, actionFor } from '../src/stages/rows.mjs';
 import { pitchRows, lookupRequests, uniqueStages, stageKeys, guestIdea } from '../src/stages/pitches.mjs';
 
 // Krish, 2026-11-06: "The widget is not updating regularly ... One of them is just a blank card and the
@@ -161,4 +161,35 @@ test('the live read after #61: a funding stage is no company, a trainer is named
   const trainer = WORDS.partner[0]({ kind: 'ai_trainer', company: 'Example Academy', decision: 'which teams to retrain first' }, canon);
   assert.equal(trainer.lines[0], 'At Example Academy you train people to use AI, and the part that stalls is what happens once the course ends, when nobody decides which teams to retrain first.');
   assert.equal(guestIdea({ one_liner: 'The guy who joined the Example chapter and warns tools want to be your fulcrum', why_fit: 'He runs retail media for Example Exchange.' }, null, new Set()), 'Tools want to be your fulcrum');
+});
+
+// Live read of 6 November, second pass: a day job is no portfolio, and a catch-up names the place you both worked.
+test('a partner email names a fund only when it is one, and a catch-up uses the ask line and the shared employer', () => {
+  assert.equal(fundOf('Example Tax Office', ['Founder of Example Shop, angel investor, and a brief stint at the Example Tax Office.']), '');
+  assert.equal(fundOf('Northwind Capital', []), 'Northwind Capital');
+  assert.equal(fundOf('Example Studio', ['Example Studio backs early founders.']), 'Example Studio');
+  const angel = WORDS.partner[0]({ kind: 'investor', company: 'Example Tax Office', fund: '', decision: 'where the AI budget goes' }, canon);
+  assert.equal(angel.subject, 'One decision for the founders you back');
+  assert.ok(!/Tax Office/.test(angel.lines.join(' ')));
+  assert.equal(sharedPlace(['They have worked at Example Media as Group Manager, where you also worked.']), 'Example Media');
+  assert.equal(historyOf({ known_since: '2015-03-01', email_last: '2025-05-02' }, { why: ['They have worked at Example Media as Group Manager, where you also worked.'] }), 'We both worked at Example Media, go back to 2015 and last wrote in May 2025: up for a call in the next few weeks?');
+  assert.equal(historyOf({ email_last: '2025-05-02' }), 'We last wrote in May 2025: up for a call in the next few weeks?');
+  assert.equal(specificOf({ who: 'Leads strategy at Example Co.' }, { why: ['Ask about the shift from running two agencies to leading commerce at Example Co.'] }), "I'd like to hear about the shift from running two agencies to leading commerce at Example Co.");
+});
+
+// Live read of 6 November, third pass: six of eight partner emails went to operators with no portfolio.
+test('an operator is offered a session for their own leaders, and the grammar holds', async () => {
+  const { backsFounders, quotesClosed } = await import('../src/stages/rows.mjs');
+  assert.equal(backsFounders('', ['Co-founder and Co-CEO of Example Data, a customer data platform.']), false);
+  assert.equal(backsFounders('', ['Founder of Example Shop, author and angel investor.']), true);
+  const op = WORDS.partner[0]({ kind: 'investor', company: 'Example Data', backer: false, decision: 'what to build with AI in-house and what to buy' }, canon);
+  assert.equal(op.subject, "One decision for Example Data's leaders");
+  assert.equal(op.lines[0], "For the leaders at Example Data, I'd run a working session on one decision: what to build with AI in-house and what to buy.");
+  const op2 = WORDS.partner[1]({ kind: 'investor', company: 'Example Data', backer: false, decision: 'which reports to hand to AI first' }, canon);
+  assert.ok(op2.lines[0].startsWith("The call I'd help the leaders at Example Data make:"), op2.lines[0]);
+  assert.equal(youFact('Leads corporate development at Example Studio, and co-hosts a podcast on growth deals.'), 'you lead corporate development at Example Studio, and co-host a podcast on growth deals');
+  assert.equal(yourWork("Her framing that '80% of buyers"), '');
+  assert.equal(quotesClosed("it's fine"), true);
+  assert.deepEqual(employersIn('Fractional talent lead working with founder-led startups via her own practice, Example People.'), ['Example People']);
+  assert.ok(cardClash({ who: 'Fractional talent lead working with founder-led startups via her own practice, Example People.', why: [] }, 'Example Meals'));
 });

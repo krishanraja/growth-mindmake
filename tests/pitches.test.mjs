@@ -164,7 +164,7 @@ test('a title never carries an honorific, his own show is caught by Control Cent
   for (const t of ['co-hosts with Krish on the lane signal_noise', 'Make Your Mind Up', 'make_your_mind_up guest', 'Signal and Noise']) assert.ok(OWN_SHOW.test(t), t);
   assert.equal(OWN_SHOW.test('Signals from the noise floor'), false);
   const siteCanon = { ...canon, site: { revenue: { label: 'Build your AI revenue engine', line: 'The pricing, positioning and team you\'ll need.' } } };
-  const words = WORDS.partner[0]({ kind: 'investor', company: 'Northwind Capital', decision: 'when to build AI into the product and when to buy it' }, siteCanon);
+  const words = WORDS.partner[0]({ kind: 'investor', company: 'Northwind Capital', fund: 'Northwind Capital', decision: 'when to build AI into the product and when to buy it' }, siteCanon);
   assert.equal(words.subject, 'One decision for the founders Northwind Capital backs');
   assert.equal(words.lines[0], "For the founders across Northwind Capital's portfolio, I'd run a working session on one decision: when to build AI into the product and when to buy it.", 'their portfolio and one decision first');
   assert.equal(/site's words|the pricing/.test(words.lines.join(' ')), false, 'no pasted site line');
