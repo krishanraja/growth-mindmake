@@ -67,12 +67,14 @@ export function openingQuery({ name, fact, purpose = 'catchup', show = '', last 
  * that order, from one fact, never their career told back to them. Pure.
  */
 export function catchUpQuery({ first, fact, last = null }) {
-  const frame = f => `Short catch-up email from Krish to ${first}, ${last ? `last in touch ${last}` : 'not in touch for a while'}. Four sentences: it's been a while; why I'm reaching out (I'm building Mindmake, AI that works the way a leader thinks, and want views from people I rate); why I thought of you, from this fact only: ${f}; would you be open to a quick chat? Warm, plain, never retell their career. Body only.`;
+  const frame = f => `Catch-up email from Krish to ${first}${last ? `, last in touch ${last}` : ''}. Four short sentences: it's been a while. I'm reaching out because I'm building Mindmake, AI that works the way a leader thinks, and want views from people I rate. Why I thought of you, in my words, from only this: ${f}. Would you be open to a quick chat? Warm, plain, no quotes, no career recap.`;
   const room = QUERY_MAX - frame('').length;
   const q = room >= 40 ? frame(cut(String(fact ?? '').replace(/[.!?\s]+$/, ''), room)) : '';
   return q && q.length <= QUERY_MAX ? q : null;
 }
 
+/** Months as a person writes them, so "June 2026" for a record's "Jun 2026" is no new name. */
+const MONTH_NAMES = 'January February March April May June July August September October November December';
 /** A sentence that tells someone their own career back to them (Krish, 2026-11-06: "Who would do that in real life?"). */
 const RECITES = /^(?:you|you've|you have|you're|your)\s+(?:went|moved|shifted|joined|left|lead|led|run|ran|built|founded|started|spent|took|bring|have been|been|are now|now)\b/i;
 
@@ -100,7 +102,8 @@ export function validCatchUp(text, { name = '', fact = '', last = '' } = {}) {
   if (PRAISE.test(s)) return { ok: false, reason: 'praise' };
   if (/\b(?:suggests|role unknown|named contact|already replied|suppress|card|score|record|research|profile|database|ICP|our data|venture)\b/i.test(s)) return { ok: false, reason: 'research_words' };
   if (!quotesClosed(s.replace(/\b\p{L}+'\p{L}+\b/gu, 'x'))) return { ok: false, reason: 'open_quote' };
-  const known = `${fact} ${name} ${last} Mindmake AI I`.toLowerCase();
+  if (/["“”]/.test(s)) return { ok: false, reason: 'quotes_them' };
+  const known = `${fact} ${name} ${last} ${MONTH_NAMES} Mindmake AI I`.toLowerCase();
   const names = parts.flatMap(x => x.trim().slice(1).match(/\b\p{Lu}[\p{L}\d&'.-]*/gu) ?? []);
   if (names.some(n => n !== 'I' && !/^I'/.test(n) && !known.includes(n.toLowerCase().replace(/['.,]+$/, '').replace(/'s$/, '')))) return { ok: false, reason: 'new_name' };
   if ((s.match(/\d[\d,.]*/g) ?? []).some(n => !known.includes(n.replace(/[.,]+$/, '')))) return { ok: false, reason: 'new_number' };

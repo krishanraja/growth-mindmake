@@ -75,7 +75,7 @@ test('where the desk is open, a catch-up opens on its sentence, and one not writ
   const asked = amplifierRows({ context, weekGoals: [], canon, files: FILES, at: NOW, openingsRequired: true });
   assert.equal(asked.rows.length, 0);
   assert.equal(asked.held.filter(h => h === 'opening_waiting').length, 3);
-  assert.match(asked.research.find(r => r.request_id.startsWith('open:')).query, /it's been a while; why I'm reaching out .+ why I thought of you, from this fact only: .+ would you be open to a quick chat\?/);
+  assert.match(asked.research.find(r => r.request_id.startsWith('open:')).query, /it's been a while\. I'm reaching out because .+ Why I thought of you, in my words, from only this: .+ Would you be open to a quick chat\? .*no quotes, no career recap/);
   const reqs = asked.research.filter(r => r.request_id.startsWith('open:'));
   assert.equal(reqs.length, 3);
   for (const r of reqs) assert.ok(r.query.length <= QUERY_MAX && r.kind === 'question' && !/@/.test(r.query));
@@ -180,4 +180,15 @@ test('a catch-up note is read for his order, and one that tells them their caree
   bad("It's been a while. Would you be open to a quick chat?", 'not_four_sentences');
   bad("It's been a while. I'm reaching out about Mindmake. I thought of you because of the Example Forum. Let me know.", 'no_ask');
   bad("It's been a while. I'm reaching out about Mindmake. I thought of you because of the Acme Summit. Would you be open to a quick chat?", 'new_name');
+});
+
+test('a catch-up may say June for Jun and is held when it quotes them; his frame lines are not a template', async () => {
+  const { validCatchUp } = await import('../src/stages/openings.mjs');
+  const { sentenceSkeletons } = await import('../src/stages/rows.mjs');
+  const fact = 'Runs the Example Forum for retail data leaders in London.';
+  const june = validCatchUp("It's been a while since we spoke in June 2026. I'm reaching out because I'm building Mindmake and want views from people I rate. I thought of you because the Example Forum puts you close to retail data leaders. Would you be open to a quick chat?", { name: 'Robin Sample', fact, last: 'Jun 2026' });
+  assert.equal(june.ok, true, june.reason);
+  assert.equal(validCatchUp("It's been a while. I'm reaching out about Mindmake. I thought of you after your post \"always grateful to the one who\". Would you be open to a quick chat?", { name: 'Robin Sample', fact, last: '' }).reason, 'quotes_them');
+  const frame = "It's been a while since we last spoke. I'm reaching out because I'm building Mindmake and want views from people I rate. Would you be open to a quick chat?";
+  assert.deepEqual(sentenceSkeletons(frame), [], 'the same frame to two people is not a template');
 });

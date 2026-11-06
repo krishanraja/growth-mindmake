@@ -1310,7 +1310,9 @@ export function sentenceSkeletons(body, names = []) {
   t = t.replace(/https?:\/\/\S+/g, ' ');
   return t.split(/(?<=[.?!])\s+|\n+/)
     .map(s => s.split(/\s+/).filter(w => w && !/^["'(“]?[\p{Lu}\d$]/u.test(w)).join(' ').toLowerCase().replace(/[^a-z' ]+/g, ' ').replace(/\s+/g, ' ').trim())
-    .filter(s => s.split(' ').length >= 4);
+    .filter(s => s.split(' ').length >= 4)
+    // His own frame, the same to everyone in real life (Krish, 2026-11-06): it has been a while, why he is reaching out, a quick chat.
+    .filter(s => !/\b(?:been a while|long time|reaching out|quick chat|quick call)\b/.test(s));
 }
 /** A body with the greeting, the names and the sign-off taken out, as one string of its skeletons. Pure. */
 export function bodySkeleton(body, names = []) { return sentenceSkeletons(body, names).join(' | '); }
