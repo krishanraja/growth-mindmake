@@ -1041,7 +1041,7 @@ function youVerb(w) {
   return '';
 }
 /** A judgement written for Krish, never words to say to them: "useful for reaching", "shared ground for", "unusually direct". */
-const FOR_KRISH = /\b(?:useful for|worth (?:a|an|the)|shared ground|unusually|credibility|could leverage|creating (?:an? )?(?:active )?(?:window|momentum)|momentum to|exact kind)\b/i;
+const FOR_KRISH = /^(?:noticed|saw|spotted|liked|loved|enjoyed)\b|\b(?:useful for|worth (?:a|an|the)|shared ground|unusually|credibility|could leverage|creating (?:an? )?(?:active )?(?:window|momentum)|momentum to|exact kind)\b/i;
 /**
  * One fact from their record, said to them: "Took two companies through a
  * sale." or "Avery runs a forum." becomes "you took two companies through a
@@ -1057,6 +1057,8 @@ export function youFact(text, name = '') {
     for (const lead of [parts.join(' '), parts[0], 'They', 'He', 'She'].filter(Boolean)) if (f.startsWith(`${lead} `)) { f = f.slice(lead.length + 1); break; }
     // "The guy who joined X" is "joined X": the clause after a description of them.
     f = f.replace(/^(?:The|A|An)\s+(?:guy|person|woman|man|leader|founder|operator|exec(?:utive)?)\s+who\s+/, '');
+    // A clause about their company's business is the research's aside, not theirs: "for Example Data, whose entire business sits on ...".
+    f = f.replace(/,\s+whose\b.*$/, '');
     const [w, ...rest] = f.split(' ');
     const verb = /^\p{L}+$/u.test(w ?? '') ? youVerb(w) : '';
     // A second verb in the same clause agrees too: "joined X and warns Y" is "joined X and warn Y".
@@ -1084,7 +1086,7 @@ export function yourWork(text) {
     const f = factOf(s) || plain(s).replace(/[.!?]+$/, '');
     const m = /^(?:His|Her|Their)\s+(.+)$/.exec(f);
     if (!m) continue;
-    const phrase = m[1].split(/\s+(?:is|was|are|were|makes|made|gives|shows)\s+/)[0].split(/,\s+(?:plus|and|while|with|tied to)\s+/)[0].replace(/[,;:\s]+$/, '');
+    const phrase = m[1].split(/\s+(?:is|was|are|were|makes|made|gives|shows)\s+/)[0].split(/,\s+(?:plus|and|while|with|tied to)\s+/)[0].replace(/[,;:\s]+$/, '').replace(/\s+(?:also|too|now|still|already)$/, '');
     if (phrase.length >= 12 && phrase.length <= 160 && endsWhole(phrase) && quotesClosed(phrase) && !FOR_KRISH.test(phrase) && !/\b(?:he|she|his|her|him)\b/i.test(phrase)) return plainWords(`your ${phrase}`);
   }
   return '';
@@ -1107,6 +1109,8 @@ export function specificOf(c, { why = [] } = {}) {
   // A line the card writes as the thing to ask about is the catch-up's subject as it stands.
   const ask = lines.map(l => /^Ask (?:them |him |her )?about (.+?)[.!?]*$/.exec(plain(l))?.[1] ?? '').find(a => a.length >= 12 && a.length <= 140 && endsWhole(a) && !FOR_KRISH.test(a) && !/\b(?:he|she|his|her|him)\b/i.test(a));
   if (ask) return `I'd like to hear about ${plainWords(ask)}.`;
+  const noticed = lines.map(l => /^(?:Noticed|Saw|Spotted) (?:your|their|his|her) (move (?:from|to) .+?)[.!?]*$/i.exec(plain(l))?.[1] ?? '').find(a => a.length <= 140 && endsWhole(a));
+  if (noticed) return `I saw your ${plainWords(noticed)}; I'd like to hear what you're changing first.`;
   const work = lines.map(yourWork).find(Boolean);
   if (work) return `I'd like to hear how ${work} is going.`;
   const did = youFact([...lines, c?.who].filter(x => typeof x === 'string').join(' '), c?.contacts?.full_name ?? '');
@@ -1142,7 +1146,7 @@ export function portfolioNames(texts) {
       ?? new RegExp(String.raw`\b(?:board seats?|seats?|investments?|portfolio companies|backs|backed|backing)\s+(?:at|in|include|including)?\s*(${NAME}(?:,\s*${NAME})*(?:,?\s*and\s+${NAME})?)`, 'u').exec(t);
     if (list) {
       // A funding stage or a region in brackets is no company: "(Seed and Series F)".
-      const names = list[1].split(/,\s*|\s+and\s+/).map(x => x.trim().replace(/\.$/, '')).filter(x => x.length >= 2 && !NOT_A_COMPANY.test(x)).slice(0, 3);
+      const names = list[1].split(/,\s*|\s+and\s+/).map(x => x.trim().replace(/\.$/, '')).filter(x => x.length >= 2 && !NOT_A_COMPANY.test(x) && !/^\p{Lu}+-\p{Ll}+$/u.test(x)).slice(0, 3);
       if (names.length) return names;
     }
   }
@@ -1157,10 +1161,12 @@ export function portfolioSpan(texts) {
   return '';
 }
 /** A record that says they back founders: an investor, an angel, a partner at a fund, a portfolio. */
-const BACKS_FOUNDERS = /\b(?:invest(?:or|ors|s|ing|ments?)|angel|general partner|managing partner|venture capital|VC|portfolio|backs|backed|backing)\b/i;
+const BACKS_FOUNDERS = /\b(?:invest(?:or|ors|s|ing|ments?)|angel|general partner|venture capital|VC|portfolio compan(?:y|ies)|its portfolio|their portfolio|backs|backed|backing)\b/i;
+/** Words that name someone else's backing, never theirs: "VC-backed startups", "backed by Sequoia". */
+const BACKED_BY_OTHERS = /\b[\p{L}\d]+-backed\b|\bbacked by\b|\bVC-funded\b/giu;
 /** True when a partner backs founders: a fund by name, a portfolio the record names, or a record that says they invest. Pure. */
 export function backsFounders(fund, texts = []) {
-  return Boolean(fund) || texts.some(t => typeof t === 'string' && BACKS_FOUNDERS.test(t));
+  return Boolean(fund) || texts.some(t => typeof t === 'string' && BACKS_FOUNDERS.test(t.replace(BACKED_BY_OTHERS, ' ')));
 }
 /**
  * The company a partner email may name as backing founders: an investing firm

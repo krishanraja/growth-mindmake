@@ -193,3 +193,16 @@ test('an operator is offered a session for their own leaders, and the grammar ho
   assert.deepEqual(employersIn('Fractional talent lead working with founder-led startups via her own practice, Example People.'), ['Example People']);
   assert.ok(cardClash({ who: 'Fractional talent lead working with founder-led startups via her own practice, Example People.', why: [] }, 'Example Meals'));
 });
+
+// Live read of 6 November, fourth pass (run merge-66): who backs founders, and lines written for Krish.
+test('only someone who backs founders gets the founders wording, and a line written for Krish is never turned', async () => {
+  const { backsFounders } = await import('../src/stages/rows.mjs');
+  assert.equal(backsFounders('', ['Runs a talent consultancy placing senior hires into VC-backed startups.']), false);
+  assert.equal(backsFounders('', ['Founder and Managing Partner of Example Policy, a governance firm.']), false);
+  assert.equal(backsFounders('', ['Serial founder running a portfolio of media and recruitment businesses.']), false);
+  assert.equal(backsFounders('', ['A venture platform building and backing seed-stage founders.']), true);
+  assert.deepEqual(portfolioNames(['His thesis on founders (AI-era, Example One and Example Two).']), ['Example One', 'Example Two']);
+  assert.equal(specificOf({ who: 'CRO at Example Data.' }, { why: ['Noticed your move from Example Ads to CRO at Example Data.'] }), "I saw your move from Example Ads to CRO at Example Data; I'd like to hear what you're changing first.");
+  assert.equal(yourWork('His public-facing work (podcast, writing, speaking) also makes him a useful connector.'), 'your public-facing work (podcast, writing, speaking)');
+  assert.equal(youFact('Runs North America for Example Data, whose entire business sits on measurement, the same ground Example Co works.'), 'you run North America for Example Data');
+});
