@@ -1441,7 +1441,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
   // A row person with no address is looked up where Control Center records what is found for any contact (features.person_routes).
   const personLooks = [], found = [];
   const lookFor = (id, name, company, rank) => {
-    if (!personRoutes || routes[id]?.email || !hasFullName(name)) return;
+    if (!personRoutes || ['verified', 'unchecked'].includes(routes[id]?.email) || !hasFullName(name)) return;
     const base = `email:${id}`;
     const st = lookupState(base, research, { subject: { name }, lane: 'person' });
     if (st.state === 'found') { found.push({ subject_ref: `contact:${id}`, lane: 'person', kind: 'email', address: st.route.address, basis: st.route.basis, source_url: st.route.source_url, request_id: st.request_id }); return; }
@@ -1589,7 +1589,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     // The catch-up is about one fact on the card, never their employer alone (Control Center's read of 6 November: six of eight were).
     // The opening is written by the desk from one fact on the card and read by fixed rules (src/stages/openings.mjs);
     // where the desk is open, one not written or not passing holds the catch-up, never a frame in its place.
-    const op = opening({ id, name, card: n, why: card.why, research, required: openingsRequired });
+    const op = opening({ id, name, card: n, why: card.why, research, required: openingsRequired, at });
     if (op.request) openingAsks.push({ score: fit * (1 + Math.min(2, (Date.parse(at) - last) / (365 * DAY))), request: op.request });
     if (op.hold) { held.push(op.hold); continue; }
     const specific = op.sentence ?? specificOf(n, { why: card.why }), history = historyOf(n, { why: card.why });
