@@ -181,13 +181,17 @@ channels with mass audiences on growing with AI. In the protocol these are
 - **Words from the card (Krish, 2026-11-06: "The email drafts are super
   generic and rubbish").** Every email is written from what the card holds
   about this one person, never a line that would fit anyone:
-  - a catch-up is about one fact on the card (their post, a move, their work
-    as a why line names it, or a fact said to them), then your history and the
-    ask in one sentence; their employer alone is never the fact, and a tie the
-    card says nothing specific about gets no email (`nothing_specific`);
-  - an offer to a partner names their portfolio by its own companies or
-    sectors where the record gives them, and one decision no other partner in
-    the run is offered;
+  - a catch-up is about one fact on the card (their post, a move, what the
+    card says to ask them about, their work as a why line names it, or a fact
+    said to them), then your history and the ask in one sentence, naming a
+    place you both worked where the card does; their employer alone is never
+    the fact, and a tie the card says nothing specific about gets no email
+    (`nothing_specific`);
+  - an offer to a partner who backs founders names their portfolio by its own
+    companies or sectors where the record gives them, or the fund by name only
+    when it is one; a partner who backs no founders (an operator, a chief
+    executive) is offered the session for their own leaders; either way with
+    one decision no other partner in the run is offered;
   - an appearance names the show's audience and one episode no other show in
     the run is offered;
   - an invite says why this guest (what they do, from their record, or their

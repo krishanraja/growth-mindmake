@@ -1,5 +1,13 @@
 # Release state
 
+## Partner offers that fit the partner, catch-ups that name the shared past, 6 November 2026 (third pass)
+
+The live run after krishanraja/growth-mindmake#62 (merge-65) passed every measure of the bar: 22 row emails, no two sharing more than one sentence once slots are out, no miscased company and no slash, eight partner offers with eight decisions and no site line, both invites with why the guest and an episode idea, the two-employer card held, and 17 of 22 cards new since merge-64 with a different card first on the reach-out, network and partner rows. Reading the emails against their cards found what the measures did not: six of eight partner offers spoke of "the founders across X's portfolio" to people with no portfolio (a chief executive, a co-founder, a tax office named as a fund), one card named two employers through "her own practice", a catch-up ignored the card's ask line and the employer you shared, one cut a quotation in half, and one read "you lead ... and co-hosts".
+
+- **Built and tested.** A partner email names founders only for someone who backs them (src/stages/rows.mjs `backsFounders`), and a fund by name only when it is one (`fundOf`); anyone else is offered the session for their own leaders. A catch-up uses the card's "Ask about" line (`specificOf`) and names a place you both worked in the same history sentence (`sharedPlace`, `historyOf`). "Via her own practice, X" counts as where they work now (`employersIn`), so a card naming another firm holds. A phrase that cuts a quotation is not used (`quotesClosed`), and "co-hosts" after "you" reads "co-host" (`youFact`).
+- **Replayed on the live card text** (offline, nothing written): the five operator offers now speak to their own leaders, the angel investor to the founders they back, the two funds by name; the two-employer partner card holds; the catch-up with the cut quotation holds as `nothing_specific`.
+- **Verified on:** the seven repository checks and 582 tests.
+
 ## Emails from the card's facts, checked sentence by sentence, 6 November 2026 (second pass)
 
 Control Center read the first live run after krishanraja/growth-mindmake#60 and found Krish's ask not yet met: six of eight catch-ups were one template with the employer, year and month filled in; company names were miscased ("Nbcuniversal", "u.s. bank", "Microsoft Ai"); four of seven partner offers used one decision, each with a pasted site line and "Ventures's"; both invites were unchanged; one card still named two employers; a slash came through from a record. The duplicate check had passed because it compared whole bodies with only names removed.

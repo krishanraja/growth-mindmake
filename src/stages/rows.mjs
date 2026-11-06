@@ -1027,7 +1027,7 @@ export function companyAsWritten(company, texts = []) {
 const PAST_VERB = /^(?:\p{Ll}+ed|took|built|ran|led|wrote|grew|sold|made|became|won|left|began|brought|drove|gave|got|held|kept|met|paid|put|raised|rebuilt|said|set|spent|spoke|stood|taught|thought|told|went|shipped|scaled|founded|launched|started|joined|hosted)$/u;
 const IRREGULAR_NOW = { is: 'are', has: 'have', does: 'do', was: 'were' };
 /** Verbs that may follow "and" in a clause about them; any other word after "and" is left as written. */
-const LATER_VERB = /^(?:warns|sits|runs|leads|builds|writes|hosts|advises|applies|chairs|teaches|works|manages|says|argues|helps|invests|backs|coaches|speaks|serves|oversees|owns|drives|shapes|publishes|creates|makes|ships|scales|focuses|believes|thinks|has|is)$/;
+const LATER_VERB = /^(?:co-hosts|co-leads|co-founds|co-runs|co-chairs|warns|sits|runs|leads|builds|writes|hosts|advises|applies|chairs|teaches|works|manages|says|argues|helps|invests|backs|coaches|speaks|serves|oversees|owns|drives|shapes|publishes|creates|makes|ships|scales|focuses|believes|thinks|has|is)$/;
 /** A third-person verb as it reads after "you": runs is run, teaches is teach, has is have; '' when it is no verb this can turn. Pure. */
 function youVerb(w) {
   const v = w.toLowerCase();
@@ -1036,6 +1036,8 @@ function youVerb(w) {
   if (/^\p{Ll}{3,}ies$/u.test(v)) return v.replace(/ies$/, 'y');
   if (/^\p{Ll}+(?:ch|sh|ss|x|z)es$/u.test(v)) return v.replace(/es$/, '');
   if (/^\p{Ll}{2,}[^s]s$/u.test(v) && !/(?:ous|ss|us|is)$/.test(v)) return v.slice(0, -1);
+  // "co-hosts" is "co-host": the verb after the hyphen turns.
+  const co = /^(co-)(\p{Ll}+)$/u.exec(v); if (co) { const t = youVerb(co[2]); return t ? `${co[1]}${t}` : ''; }
   return '';
 }
 /** A judgement written for Krish, never words to say to them: "useful for reaching", "shared ground for", "unusually direct". */
@@ -1058,7 +1060,7 @@ export function youFact(text, name = '') {
     const [w, ...rest] = f.split(' ');
     const verb = /^\p{L}+$/u.test(w ?? '') ? youVerb(w) : '';
     // A second verb in the same clause agrees too: "joined X and warns Y" is "joined X and warn Y".
-    const tail = rest.join(' ').replace(/(\band|,)\s+(\p{Ll}+)\b/gu, (m, j, v) => (LATER_VERB.test(v) ? `${j} ${youVerb(v)}` : m));
+    const tail = rest.join(' ').replace(/(?<=\band|,)(\s+)(\p{Ll}[\p{Ll}-]*\p{Ll})(?![\p{L}-])/gu, (m, sp, v) => (LATER_VERB.test(v) ? `${sp}${youVerb(v)}` : m));
     if (verb && rest.length >= 2 && !/\b(?:he|she|his|her|him)\b/i.test(tail)) return plainWords(`you ${verb} ${tail}`.replace(/[.!?]+$/, ''));
   }
   return '';
@@ -1071,13 +1073,19 @@ export function youFact(text, name = '') {
  * judgement after it is cut, and a judgement written for Krish is never used.
  * '' when no line names their work. Pure.
  */
+/** True when every quotation a phrase opens is closed: a cut inside one reads as "your framing that '80% of buyers". Pure. */
+export function quotesClosed(text) {
+  const t = String(text ?? '');
+  const singles = (t.match(/(?:^|[\s(])'|'(?=[\s).,;:!?]|$)/g) ?? []).length;
+  return (t.match(/"/g) ?? []).length % 2 === 0 && ((t.match(/\u201c/g) ?? []).length === (t.match(/\u201d/g) ?? []).length) && singles % 2 === 0;
+}
 export function yourWork(text) {
   for (const s of sentences(text)) {
     const f = factOf(s) || plain(s).replace(/[.!?]+$/, '');
     const m = /^(?:His|Her|Their)\s+(.+)$/.exec(f);
     if (!m) continue;
     const phrase = m[1].split(/\s+(?:is|was|are|were|makes|made|gives|shows)\s+/)[0].split(/,\s+(?:plus|and|while|with|tied to)\s+/)[0].replace(/[,;:\s]+$/, '');
-    if (phrase.length >= 12 && phrase.length <= 160 && endsWhole(phrase) && !FOR_KRISH.test(phrase) && !/\b(?:he|she|his|her|him)\b/i.test(phrase)) return plainWords(`your ${phrase}`);
+    if (phrase.length >= 12 && phrase.length <= 160 && endsWhole(phrase) && quotesClosed(phrase) && !FOR_KRISH.test(phrase) && !/\b(?:he|she|his|her|him)\b/i.test(phrase)) return plainWords(`your ${phrase}`);
   }
   return '';
 }
@@ -1096,17 +1104,33 @@ export function specificOf(c, { why = [] } = {}) {
   const now = move ? /\bnow\s+(.+?)$/i.exec(move.replace(/[.!?]+$/, ''))?.[1] : '';
   if (now && now.length <= 80 && endsWhole(now)) return `Congratulations on the move to ${now}; I'd like to hear what you're changing first.`;
   const lines = [...why, c?.hook, c?.why_them].filter(x => typeof x === 'string');
+  // A line the card writes as the thing to ask about is the catch-up's subject as it stands.
+  const ask = lines.map(l => /^Ask (?:them |him |her )?about (.+?)[.!?]*$/.exec(plain(l))?.[1] ?? '').find(a => a.length >= 12 && a.length <= 140 && endsWhole(a) && !FOR_KRISH.test(a) && !/\b(?:he|she|his|her|him)\b/i.test(a));
+  if (ask) return `I'd like to hear about ${plainWords(ask)}.`;
   const work = lines.map(yourWork).find(Boolean);
   if (work) return `I'd like to hear how ${work} is going.`;
   const did = youFact([...lines, c?.who].filter(x => typeof x === 'string').join(' '), c?.contacts?.full_name ?? '');
   if (did) return `I hear ${did}, and I'd like to know how it's going.`;
   return '';
 }
-/** The history between you and the ask, as one sentence, from what is counted: since when, and the last email. Pure. */
-export function historyOf(c) {
-  const since = yearOf(c?.known_since), last = monthYear(c?.email_last) ?? monthYear(c?.contacts?.last_touch_at);
+/** A place you both worked, as the card's why names it: "They have worked at Nine as Group Business Manager, where you also worked." is "Nine". '' when none. Pure. */
+export function sharedPlace(why = []) {
+  for (const l of why.filter(x => typeof x === 'string')) {
+    const m = /\bworked at (\p{Lu}[\p{L}\d&'.-]*(?:\s+\p{Lu}[\p{L}\d&'.-]*){0,3}?)(?:\s+as\b[^,]*)?,\s*where (?:you|Krish) also worked\b/u.exec(l);
+    if (m) return m[1];
+  }
+  return '';
+}
+/** The history between you and the ask, as one sentence, from what is counted: a place you both worked, since when, and the last email. Pure. */
+export function historyOf(c, { why = [] } = {}) {
+  const since = yearOf(c?.known_since), last = monthYear(c?.email_last) ?? monthYear(c?.contacts?.last_touch_at), place = sharedPlace(why);
   const head = since && last ? `We go back to ${since} and last wrote in ${last}` : last ? `We last wrote in ${last}` : since ? `We go back to ${since}` : "It's been a while";
-  return `${head}: up for a call in the next few weeks?`;
+  // One sentence either way: the shared employer goes in front of the same history, never as a second line every catch-up would share.
+  const told = !place ? head
+    : since && last ? `We both worked at ${place}, go back to ${since} and last wrote in ${last}`
+      : last ? `We both worked at ${place} and last wrote in ${last}`
+        : since ? `We both worked at ${place} and go back to ${since}` : `We both worked at ${place}, and it's been a while`;
+  return `${told}: up for a call in the next few weeks?`;
 }
 /** Words in a bracketed list that are a stage, a round or a place, never a company. */
 const NOT_A_COMPANY = /^(?:Pre-?seed|Seed|Series\s+[A-Z]\+?|Growth|Early|Late|Pre-IPO|IPO|US|UK|EU|EMEA|APAC|ANZ|SEA|LATAM|Europe|Asia|Africa)$/i;
@@ -1132,6 +1156,25 @@ export function portfolioSpan(texts) {
   }
   return '';
 }
+/** A record that says they back founders: an investor, an angel, a partner at a fund, a portfolio. */
+const BACKS_FOUNDERS = /\b(?:invest(?:or|ors|s|ing|ments?)|angel|general partner|managing partner|venture capital|VC|portfolio|backs|backed|backing)\b/i;
+/** True when a partner backs founders: a fund by name, a portfolio the record names, or a record that says they invest. Pure. */
+export function backsFounders(fund, texts = []) {
+  return Boolean(fund) || texts.some(t => typeof t === 'string' && BACKS_FOUNDERS.test(t));
+}
+/**
+ * The company a partner email may name as backing founders: an investing firm
+ * by its own name ("Northwind Capital", "Fernbrook Ventures"), or one the
+ * record says invests or holds a portfolio. A day job is no portfolio: an angel
+ * who works at a tax office backs founders as themself. '' otherwise. Pure.
+ */
+export function fundOf(company, texts = []) {
+  if (!company) return '';
+  if (/\b(?:capital|ventures?|partners|fund|funds|vc|investments?|investors?|equity|holdings|angels?|accelerator|combinator|syndicate)\b/i.test(company)) return company;
+  const esc = company.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const said = new RegExp(String.raw`\b${esc}(?:'s)?\s+(?:portfolio|invests|backs|has backed|funds|fund)\b|\b(?:portfolio of|invests? (?:through|via|with)|partner at)\s+${esc}\b`, 'iu');
+  return texts.some(t => typeof t === 'string' && said.test(t)) ? company : '';
+}
 const joinAnd = list => (list.length <= 1 ? (list[0] ?? '') : `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`);
 
 export const WORDS = {
@@ -1142,14 +1185,19 @@ export const WORDS = {
         `Mindmake builds what comes after, one leader at a time (${lower1(canon.brain).replace(/[.!?]+$/, '')}); worth a short call to see if the two fit?`,
       ] };
       // Their portfolio by its own names where the record gives them, and one decision no other partner in the run gets.
-      const whose = p.portfolio?.length ? `founders like ${joinAnd(p.portfolio)}` : p.span ? `a portfolio spanning ${p.span}` : p.company ? `the founders across ${possessive(p.company)} portfolio` : 'the founders you back';
-      return { subject: p.company ? `One decision for the founders ${p.company} backs` : 'One decision for the founders you back', lines: [
+      // Someone who backs no founders (an operator, a chief executive) is offered the session for their own leaders.
+      if (p.backer === false) return { subject: p.company ? `One decision for ${possessive(p.company)} leaders` : 'One decision for your leadership team', lines: [
+        `For ${p.company ? `the leaders at ${p.company}` : 'your leadership team'}, I'd run a working session on one decision: ${p.decision}.`,
+        `Mindmake builds an AI that knows the leader using it (${lower1(canon.brain).replace(/[.!?]+$/, '')}), and that is the call it helps them make; worth a short call?`,
+      ] };
+      const whose = p.portfolio?.length ? `founders like ${joinAnd(p.portfolio)}` : p.span ? `a portfolio spanning ${p.span}` : p.fund ? `the founders across ${possessive(p.fund)} portfolio` : 'the founders you back';
+      return { subject: p.fund ? `One decision for the founders ${p.fund} backs` : 'One decision for the founders you back', lines: [
         `For ${whose}, I'd run a working session on one decision: ${p.decision}.`,
         `Mindmake builds an AI that knows the leader using it (${lower1(canon.brain).replace(/[.!?]+$/, '')}), and that is the call it helps them make; worth a short call?`,
       ] };
     },
-    (p, canon) => ({ subject: p.company ? `For ${possessive(p.company)} portfolio: ${p.decision.split(',')[0]}` : 'One decision for your portfolio', lines: [
-      `The call I'd help ${p.portfolio?.length ? `founders like ${joinAnd(p.portfolio)}` : p.company ? `${possessive(p.company)} founders` : 'your founders'} make: ${p.decision}.`,
+    (p, canon) => ({ subject: p.backer === false ? `For ${p.company ? `${possessive(p.company)} leaders` : 'your leaders'}: ${p.decision.split(',')[0]}` : p.fund ? `For ${possessive(p.fund)} portfolio: ${p.decision.split(',')[0]}` : 'One decision for your portfolio', lines: [
+      `The call I'd help ${p.backer === false ? (p.company ? `the leaders at ${p.company}` : 'your leaders') : p.portfolio?.length ? `founders like ${joinAnd(p.portfolio)}` : p.fund ? `${possessive(p.fund)} founders` : 'your founders'} make: ${p.decision}.`,
       `Mindmake builds an AI that knows the leader using it (${lower1(canon.brain).replace(/[.!?]+$/, '')}); worth a short call on whether a session would help them?`,
     ] }),
   ],
@@ -1251,6 +1299,8 @@ const ORG = String.raw`((?:The\s+)?\p{Lu}[\p{L}\d&.'-]*(?:\s+(?:of|and|&|for|the
 const EMPLOYED_AT = new RegExp(String.raw`\b(?:works?|working|leads?|leading|heads?|heading|runs?|running|is|are|serves?|joined|joins|now|as|currently)\b[^.;]{0,80}?\b(?:at|works?\s+for)\s+${ORG}`, 'u');
 const ROLE_AT = new RegExp(String.raw`\b(?:CEO|CFO|COO|CTO|CMO|CRO|CPO|Chief\s+[\p{L} ]+?Officer|President|Founder|Co-founder|Director|Head of [\p{L} ]+?|VP|Vice President|Partner|Principal|Manager|Lead|Editor|Host|General Counsel)\s+at\s+${ORG}`, 'u');
 /** Their own work at an organisation, with no tense: "Her build at <firm> of ...", "His team at <firm>". */
+// "Working with startups via her own practice, Example People": the practice is where they work now.
+const OWN_PRACTICE = new RegExp(String.raw`\b(?:via|through|at|runs?|ran|founded)\s+(?:his|her|their)\s+own\s+(?:practice|firm|company|consultancy|agency|studio|business),?\s+${ORG}`, 'u');
 const WORK_AT = new RegExp(String.raw`^(?:His|Her|Their)\s+[\p{Ll}\s-]{2,40}?\s+at\s+${ORG}`, 'u');
 const ORG_NOISE = /\b(?:the|group|inc|ltd|limited|plc|llc|corp|corporation|company|co|holdings|international|global|uk|us)\b/g;
 const orgKey = name => formKeyLite(name).replace(ORG_NOISE, ' ').replace(/\s+/g, ' ').trim();
@@ -1268,6 +1318,8 @@ export function sameOrg(a, b) {
 export function employersIn(text) {
   const out = [];
   for (const s of sentences(text)) {
+    // Their own practice is where they work now, whatever else the sentence says ("fractional", "advisor").
+    const own = OWN_PRACTICE.exec(s); if (own && !/\b(?:formerly|previously|former|until|before|ran)\b/i.test(s)) out.push(own[1].replace(/\s+(?:of|and|&|for|the)$/i, '').trim());
     if (PAST.test(s) || SIDE_ROLE.test(s) || /\bwhere you also worked\b/i.test(s)) continue;
     // A sentence that opens on its verb ("Works at Example Retail") reads as one that opens on a name.
     const t = s.charAt(0).toLowerCase() + s.slice(1);
@@ -1391,7 +1443,8 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
       const episode = best.ask === 'appear' ? pickUnused(EPISODES, topic, usedEpisodes) : null;
       // Every option used this run: a further email would repeat one, so this one waits for a later run.
       if ((['partner', 'introduce', 'teach'].includes(best.ask) && !decision) || (best.ask === 'appear' && !episode)) return null;
-      const drafted = WORDS[best.ask][variant]({ kind: best.kind, show, company, topic, audience, decision, episode, portfolio: portfolioNames(record), span: portfolioSpan(record) }, canon);
+      const drafted = WORDS[best.ask][variant]({ kind: best.kind, show, company, topic, audience, decision, episode, fund: fundOf(company, record), backer: backsFounders(fundOf(company, record), record),
+        portfolio: portfolioNames(record), span: portfolioSpan(record) }, canon);
       // One thing from their own record, said to them, opens the email: the observation the ask rests on.
       const did = youFact(record.join(' '), name);
       return did ? { ...drafted, lines: [`Read that ${did}.`, ...drafted.lines] } : drafted;
@@ -1462,7 +1515,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     if (cardClash(card, company)) { held.push('facts_disagree'); if (profiles.length < 2) profiles.push({ c: n, name, company }); continue; }
     // One thing about them and the history between you: a catch-up with neither is a template, and is not written.
     // The catch-up is about one fact on the card, never their employer alone (Control Center's read of 6 November: six of eight were).
-    const specific = specificOf(n, { why: card.why }), history = historyOf(n);
+    const specific = specificOf(n, { why: card.why }), history = historyOf(n, { why: card.why });
     if (!specific) { held.push('nothing_specific'); continue; }
     const told = caseFor({ c: n, name, company, ask: 'relationship', kind: null, reach, fit, serves, at });
     out.push({ score: (score({ band: 'unknown', value: null }, fit / 100, ch.weight, serves, true) + Math.min(2, (Date.parse(at) - last) / (365 * DAY))) * fit / 100, proposal: rowProposal({
