@@ -12,7 +12,7 @@ export const QUERY_MAX = 400;
 /** Lines on a card that are about the research or about Krish, never about them. */
 const NOT_THEIRS = /\b(?:already (?:engaged|invited|booked|pitched|contacted)|Krish|role unknown|title unknown|named contact|already replied|suppress|score|fit \d|guest standard|close tie|nothing between you|where you also worked|Seen online|on record|our record|the record|card|research|ICP|buyer|Mindmake)\b/i;
 /** Words a model reaches for that Krish does not write. */
-const PRAISE = /\b(?:useful perspective|valuable perspective|(?:great|good|perfect|natural) fit|impressive|amazing|incredible|inspiring|fantastic|awesome|brilliant|remarkable|stellar|exciting|thrilled|delighted|kudos|congrat\w*|hope this finds)\b/i;
+const PRAISE = /\b(?:making you|which makes you|worth (?:hearing|listening to|a listen)|useful perspective|valuable perspective|(?:great|good|perfect|natural) fit|impressive|amazing|incredible|inspiring|fantastic|awesome|brilliant|remarkable|stellar|exciting|thrilled|delighted|kudos|congrat\w*|hope this finds)\b/i;
 /** Words that tie the sentence to the research or another venture, never said to the person. */
 const BANNED = /\b(?:suggests|role unknown|named contact|already replied|suppress|Krish|card|score|record|research|profile|database|ICP|our data|venture)\b/i;
 const VERB = /\b(?:[Yy]ou|I)(?:'ve|'d|'re)?\s+(?:\p{Ll}+ly\s+)?\p{Ll}{2,}|\b\p{Ll}{3,}ed\b|\b(?:is|are|was|were|has|have|had|caught|took|built|led|ran|made|wrote|said|grew|left|joined|moved|went)\b/u;
