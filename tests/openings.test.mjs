@@ -75,19 +75,21 @@ test('where the desk is open, a catch-up opens on its sentence, and one not writ
   const asked = amplifierRows({ context, weekGoals: [], canon, files: FILES, at: NOW, openingsRequired: true });
   assert.equal(asked.rows.length, 0);
   assert.equal(asked.held.filter(h => h === 'opening_waiting').length, 3);
+  assert.match(asked.research.find(r => r.request_id.startsWith('open:')).query, /it's been a while; why I'm reaching out .+ why I thought of you, from this fact only: .+ would you be open to a quick chat\?/);
   const reqs = asked.research.filter(r => r.request_id.startsWith('open:'));
   assert.equal(reqs.length, 3);
   for (const r of reqs) assert.ok(r.query.length <= QUERY_MAX && r.kind === 'question' && !/@/.test(r.query));
   // The desk answers: one good, one that pastes a clause, one failed.
   const byId = Object.fromEntries(reqs.map(r => [r.subject_ref, r]));
   const research = [
-    { ...byId[`contact:${id(1)}`], status: 'answered', answer: "You chair the Example Association's AI Taskforce, and I'd like to hear what it has settled on so far." },
-    { ...byId[`contact:${id(2)}`], status: 'answered', answer: "I'd like to hear how your move suggests strong data instincts is going." },
+    { ...byId[`contact:${id(1)}`], status: 'answered', answer: "It's been a while since we last spoke. I'm reaching out because I'm building Mindmake, AI that works the way a leader thinks, and I want views from people I rate. I thought of you because of the Example Association's AI Taskforce, which sits right on that question. Would you be open to a quick chat?" },
+    // Krish, 2026-11-06: "I'm just telling them about their career history." A note that does that is held.
+    { ...byId[`contact:${id(2)}`], status: 'answered', answer: "It's been a long time. You moved from Example Bank to Example Pay to run its data team. I thought of you because I'm reaching out about AI and data. Would you be open to a quick chat?" },
     { ...byId[`contact:${id(3)}`], status: 'failed' },
   ];
   const r = amplifierRows({ context, weekGoals: [], canon, files: FILES, at: NOW, openingsRequired: true, research });
   assert.equal(r.rows.length, 1);
-  assert.match(body(r.rows[0].proposal), /^Hi Robin,\n\nYou chair the Example Association's AI Taskforce, and I'd like to hear what it has settled on so far\.\n\nWe go back to 2019/);
+  assert.match(body(r.rows[0].proposal), /^Hi Robin,\n\nIt's been a while since we last spoke\. I'm reaching out because .+ I thought of you because .+ Would you be open to a quick chat\?\n\nKrish$/s);
   assert.deepEqual(r.held.filter(h => h.startsWith('opening_')).sort(), ['opening_failed', 'opening_waiting'], 'a sentence that fails is held; a desk failure is asked again');
   const again = r.research.filter(x => x.request_id.startsWith('open:'));
   assert.deepEqual(again.map(x => x.subject_ref), [`contact:${id(3)}`], 'only the desk failure is asked again, never an answered one');
@@ -103,10 +105,10 @@ test('an opening is one call: no fact holds, a passing answer is used, and nothi
   const card = { who: 'Runs the Example Forum for retail data leaders in London.' };
   const first = opening({ id: id(9), name: 'Robin Sample', card, research: [], required: true });
   assert.equal(first.hold, 'opening_waiting');
-  const done = opening({ id: id(9), name: 'Robin Sample', card, research: [{ ...first.request, status: 'answered', answer: 'You run the Example Forum for retail data leaders in London, and I would like to hear what is on its agenda.' }], required: true });
+  const done = opening({ id: id(9), name: 'Robin Sample', card, research: [{ ...first.request, status: 'answered', answer: "It's been a while. I'm reaching out because I'm building Mindmake and want views from people I rate. I thought of you because of the Example Forum for retail data leaders in London. Would you be open to a quick chat?" }], required: true });
   assert.equal(done.hold, null);
   assert.equal(done.request, null);
-  assert.match(done.sentence, /^You run the Example Forum/);
+  assert.match(done.sentence, /^It's been a while\./);
 });
 
 // Control Center #656 (features.person_routes): a row person with no address is looked up, and a found one is sent to record.
@@ -155,11 +157,27 @@ test('a failed opening is asked again under the London day, once a day; an answe
   assert.equal(today.hold, 'opening_failed');
   const tomorrow = opening({ id: id(9), name: 'Robin Sample', card, research: twice, required: true, at: '2026-11-07T09:00:00.000Z' });
   assert.equal(tomorrow.request.request_id, `${first.request.request_id}:2026-11-07`);
-  const won = opening({ id: id(9), name: 'Robin Sample', card, research: [...twice, { ...tomorrow.request, status: 'answered', answer: 'You run the Example Forum for retail data leaders in London, and I would like to hear what is next for it.' }], required: true, at: '2026-11-07T09:00:00.000Z' });
+  const won = opening({ id: id(9), name: 'Robin Sample', card, research: [...twice, { ...tomorrow.request, status: 'answered', answer: "It's been a while. I'm reaching out because I'm building Mindmake and want views from people I rate. I thought of you because of the Example Forum for retail data leaders in London. Would you be open to a quick chat?" }], required: true, at: '2026-11-07T09:00:00.000Z' });
   assert.equal(won.hold, null);
   // A praise post or a status note is no fact to write from.
   assert.equal(openingFact({ facts: [{ kind: 'post', text: 'Posted: "Super proud of the team for this one."' }], who: 'Leads data at Example Co and writes on measurement.' }), 'Leads data at Example Co and writes on measurement.');
   assert.equal(openingFact({}, ['Already engaged for Example Show at Example Festival 2026.', 'Runs revenue at Example AI and writes on outbound.']), 'Runs revenue at Example AI and writes on outbound.');
   assert.equal(validOpening('You joined the Example chapter and warned that tools want to be your fulcrum, making you worth hearing.', { name: 'Robin Sample', fact: 'Joined the Example chapter and warns tools want to be your fulcrum.' }).reason, 'praise');
   assert.equal(validOpening('You are already engaged for the Example Show, so you would bring a useful perspective.', { name: 'Robin Sample', fact: 'Already engaged for the Example Show.' }).ok, false);
+});
+
+// Krish, 2026-11-06: "It's been a long time. Here's why I'm reaching out. Here's why I thought of you. Would you be open to a quick chat?"
+test('a catch-up note is read for his order, and one that tells them their career is held', async () => {
+  const { validCatchUp } = await import('../src/stages/openings.mjs');
+  const fact = 'Runs the Example Forum for retail data leaders in London.';
+  const ok = validCatchUp("Hi Robin, It's been a while since we spoke in Jun 2026. I'm reaching out because I'm building Mindmake, AI that works the way a leader thinks. I thought of you because the Example Forum puts you in the room with exactly those leaders. Would you be open to a quick chat? Krish", { name: 'Robin Sample', fact, last: 'Jun 2026' });
+  assert.equal(ok.ok, true, ok.reason);
+  assert.equal(/^Hi|Krish$/.test(ok.sentence), false, 'greeting and sign-off are the email\'s own');
+  const bad = (text, reason) => assert.equal(validCatchUp(text, { name: 'Robin Sample', fact, last: 'Jun 2026' }).reason, reason, text);
+  bad("It's been a while. You went from Example Bank to running the Example Forum. I'm reaching out because I thought of you. Would you be open to a quick chat?", 'recites_career');
+  bad("I'm reaching out because I'm building Mindmake. I thought of you because of the Example Forum. Would you be open to a quick chat?", 'no_while');
+  bad("It's been a while. I'm reaching out because I'm building Mindmake. Would you be open to a quick chat?", 'no_why_you');
+  bad("It's been a while. Would you be open to a quick chat?", 'not_four_sentences');
+  bad("It's been a while. I'm reaching out about Mindmake. I thought of you because of the Example Forum. Let me know.", 'no_ask');
+  bad("It's been a while. I'm reaching out about Mindmake. I thought of you because of the Acme Summit. Would you be open to a quick chat?", 'new_name');
 });

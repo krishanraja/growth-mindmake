@@ -1,5 +1,10 @@
 # Release state
 
+## Catch-ups written as a person writes one, 6 November 2026 (Ruling, Krish, 2026-11-06)
+
+- **Built and tested.** A NETWORK catch-up is one note in Krish's order, written whole by the desk's `write` kind (`catchUpQuery`) and read by `validCatchUp`: it has been a while, why he is reaching out, why he thought of them, a quick chat. A note that tells them their own career (`recites_career`) or misses a part is held.
+- **Verified on:** `npm run check`, `npm run contracts` and 595 tests. The live proof is the first run after the merge.
+
 ## Openings written by Claude, 6 November 2026 (Ruling, Krish, 2026-11-06: yes to a model writing them)
 
 - **Built and tested.** Where Control Center's capabilities list the desk's `write` kind (krishanraja/control-center#659: Claude, no web search, one sentence from only the facts sent, 150 a day), each opening is asked as `write` (`openingKind` in src/dispatch.mjs), keyed apart from the same words asked as a question, up to `WRITES_PER_RUN` (30) a run. The cited-answer `question` kind failed 7 of 12 openings on its first live run. `validOpening` still reads every answer by fixed rules and holds what fails.
