@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, parseRecord, readRecord, RECORD_REPO, RECORD_PATH } from '../src/stages/canon.mjs';
 import { pitchRows, pitchHold, pitchedStages, pitchScore, pitchWords, hostOf, showTopic, stageKind, speakingAsk, speakHold, speakScore, speakWords, talkTitle, shares, PITCHES_PER_RUN, STAGE_SHARE, QUIET_AFTER_DAYS,
-  inviteHold, invitedGuests, invitesThisWeek, weeklyInvites, londonWeekStart, pickInvites, inviteWords, inviteShow, inviteCard, guestTopic, guestName, reachOf, INVITES_PER_RUN, INVITES_A_WEEK } from '../src/stages/pitches.mjs';
+  inviteHold, invitedGuests, invitesThisWeek, weeklyInvites, londonWeekStart, pickInvites, inviteWords, inviteShow, guestIdea, inviteCard, guestTopic, guestName, reachOf, INVITES_PER_RUN, INVITES_A_WEEK } from '../src/stages/pitches.mjs';
 import { lessons, titleFor, OWN_SHOW, WORDS, KRISH_TITLE, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, BECAUSE_MAX, TITLE_MAX_BRIEF } from '../src/stages/rows.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture, violations } from './support/engine-protocol-service.mjs';
@@ -119,10 +119,9 @@ test('a pitch is a 1.9.0 visibility row for Jonny\'s box, in Jonny\'s words, abo
   assert.equal(a.recipient_contact_id, id(101));
   assert.equal(a.subject, 'A guest for The Example Show 1: AI for marketing leaders');
   const body = a.body;
-  assert.match(body, /^Hi Avery,\n\nI work with Krish Raja, and I think he'd make a strong episode for The Example Show 1(?:'s listeners, [^:]+)?: "What a CMO should hand to AI this quarter, and what stays human"\./, 'the point first, in Jonny\'s voice: the show\'s audience and one episode it could run');
-  assert.ok(body.includes(`He's ${KRISH_TITLE} and writes Make Your Mind Up (https://publication.example).`), 'his title as he ruled, his publication as the canon names it');
-  assert.ok(body.includes(`At Mindmake he helps leaders build their AI brain: "${canon.brain}"`), 'Mindmake only in the canon\'s own words, quoted whole');
-  assert.ok(body.includes(RECORD.line), 'his record as his site publishes it');
+  assert.match(body, /^Hi Avery,\n\nI work with Krish Raja, and I think he'd make a strong episode for The Example Show 1(?:'s listeners, [^"]+)?, "What a CMO should hand to AI this quarter, and what stays human"; would you have him on\?/, 'the point and the ask first, in Jonny\'s voice: the show\'s audience and one episode it could run');
+  assert.ok(body.includes(`He's ${KRISH_TITLE}, writes Make Your Mind Up (https://publication.example) and helps leaders build their AI brain at Mindmake`), 'his title as he ruled, his publication as the canon names it, in one sentence');
+  assert.ok(body.toLowerCase().includes(RECORD.line.toLowerCase().replace(/\.$/, '')), 'his record as his site publishes it');
   assert.ok(body.endsWith('\n\nJonny'), 'signed Jonny');
   assert.equal((body.match(/\?/g) ?? []).length, 1, 'one ask');
   assert.equal(/@|\+\d{6}/.test(body), false, 'never an address or a number');
@@ -165,15 +164,13 @@ test('a title never carries an honorific, his own show is caught by Control Cent
   for (const t of ['co-hosts with Krish on the lane signal_noise', 'Make Your Mind Up', 'make_your_mind_up guest', 'Signal and Noise']) assert.ok(OWN_SHOW.test(t), t);
   assert.equal(OWN_SHOW.test('Signals from the noise floor'), false);
   const siteCanon = { ...canon, site: { revenue: { label: 'Build your AI revenue engine', line: 'The pricing, positioning and team you\'ll need.' } } };
-  const words = WORDS.partner[0]({ kind: 'investor', company: 'Northwind Capital' }, siteCanon);
-  assert.equal(words.subject, 'One decision for the leaders Northwind Capital backs');
-  assert.ok(words.lines[0].startsWith("For the leaders across Northwind Capital's portfolio, I'd run a working session on one decision: "), 'their portfolio and one decision first');
-  assert.ok(words.lines[1].includes('the pricing'), 'Mindmake in the site\'s own words');
-  const venture = WORDS.partner[0]({ kind: 'investor', company: 'Northwind Capital', topic: 'venture' }, siteCanon);
-  assert.ok(venture.lines[0].endsWith('which of their AI bets deserve more money this year, and which to stop.'), 'the decision follows the topic of their own work');
-  const other = WORDS.partner[0]({ kind: 'investor', company: 'Southwind Partners' }, siteCanon);
-  assert.notEqual(words.lines.join(' '), other.lines.join(' '), 'two partners, two emails');
-  assert.equal(WORDS.partner[0]({ kind: 'investor', company: '' }, canon).subject, 'One decision for the leaders you back', 'nobody named, nothing invented');
+  const words = WORDS.partner[0]({ kind: 'investor', company: 'Northwind Capital', decision: 'when to build AI into the product and when to buy it' }, siteCanon);
+  assert.equal(words.subject, 'One decision for the founders Northwind Capital backs');
+  assert.equal(words.lines[0], "For the founders across Northwind Capital's portfolio, I'd run a working session on one decision: when to build AI into the product and when to buy it.", 'their portfolio and one decision first');
+  assert.equal(/site's words|the pricing/.test(words.lines.join(' ')), false, 'no pasted site line');
+  const named = WORDS.partner[0]({ kind: 'investor', company: 'Northwind Capital', decision: 'x', portfolio: ['Example Grid', 'Example Solar'] }, siteCanon);
+  assert.ok(named.lines[0].startsWith('For founders like Example Grid and Example Solar,'), 'the portfolio by its own names');
+  assert.equal(WORDS.partner[0]({ kind: 'investor', company: '', decision: 'x' }, canon).subject, 'One decision for the founders you back', 'nobody named, nothing invented');
 });
 
 test('a dispatch run reports pitches at 1.9.0 only where Control Center serves it, and holds them otherwise', async () => {
@@ -285,11 +282,11 @@ test('a speaking pitch is a 1.9.0 events row for Jonny\'s box, in Jonny\'s words
   const a = JSON.parse(p.exact_payload);
   assert.equal(a.mailbox, 'jonny');
   assert.equal(a.recipient_contact_id, id(201));
-  assert.equal(a.subject, 'A speaker for The Example Summit 1: AI for marketing leaders');
-  assert.match(a.body, /^Hi there,\n\nI work with Krish Raja, and I'd like to put him forward for a talk at The Example Summit 1(?: in [A-Z][a-z]{2} \d{4})?: "AI for marketing leaders"\./, 'a company is never greeted as a person');
-  assert.match(a.body, /The Example Summit 1 (?:gathers [^,]+, and the talk is built for that room|The talk is built for the leaders)|The talk is built for the leaders The Example Summit 1 gathers/, 'the room the talk is for');
-  assert.ok(a.body.includes(`He's ${KRISH_TITLE} and writes Make Your Mind Up (https://publication.example).`));
-  assert.ok(a.body.includes(RECORD.line));
+  assert.match(a.subject, /^A speaker for The Example Summit 1: /);
+  assert.match(a.body, /^Hi there,\n\nI work with Krish Raja: would you consider him for a talk at The Example Summit 1(?: in [A-Z][a-z]{2} \d{4})?, before your call closes on \d+ [A-Z][a-z]{2}, with "[^"]+", built for /, 'a company is never greeted as a person; the ask, the talk and the close date first');
+  assert.match(a.body, /built for (?:the room it gathers, [^(]+|the leaders it gathers) \(/, 'the room the talk is for');
+  assert.ok(a.body.includes(`He's ${KRISH_TITLE}, writes Make Your Mind Up (https://publication.example)`));
+  assert.ok(a.body.toLowerCase().includes(RECORD.line.toLowerCase().replace(/\.$/, '')));
   assert.ok(a.body.endsWith('\n\nJonny'));
   assert.equal((a.body.match(/\?/g) ?? []).length, 1, 'one ask');
   assert.equal(/@|\+\d{6}/.test(a.body), false, 'never an address or a number');
@@ -454,18 +451,19 @@ test('a run invites Make Your Mind Up first, then Signal & Noise, within the wee
 
 test('an invite is one ask in Jonny\'s words, to the show it was judged for, signed Jonny', () => {
   const page = { label: 'How marketing teams change with AI.', url: 'https://talks.example/guest-1' };
-  const mymu = inviteWords({ name: 'Avery Example', show: inviteShow('makeyourmindup', canon), page });
+  const guest = { one_liner: 'The guy who joined the Example Advertising founding chapter and warns tools want to be your fulcrum.', why_fit: 'Runs retail media for Example Exchange.' };
+  const mymu = inviteWords({ name: 'Avery Example', show: inviteShow('makeyourmindup', canon), page, g: guest, idea: guestIdea(guest, 'advertising', new Set()) });
   assert.equal(mymu.subject, 'A conversation for Make Your Mind Up');
   assert.equal(mymu.body, [
     'Hi Avery,',
-    'I work with Krish Raja, who writes Make Your Mind Up (https://publication.example). We\'d love to have you for one of its weekly conversations.',
-    'We came across "How marketing teams change with AI", and it is exactly the kind of thinking we\'d love to hear more of.',
-    'Would you be up for it in the coming weeks? I can send a short brief and a few dates.',
+    "I work with Krish Raja, who writes Make Your Mind Up (https://publication.example), and we'd love to have you for one of its weekly conversations.",
+    'He\'d like to talk with you because you run retail media for Example Exchange, and he read "How marketing teams change with AI".',
+    'One episode idea: "Tools want to be your fulcrum"; would you be up for it in the coming weeks?',
     'Jonny',
-  ].join('\n\n'));
-  const sn = inviteWords({ name: 'Sam Sample', show: inviteShow('signal_noise', canon), page: null });
+  ].join('\n\n'), 'why this guest, and an episode idea from their own claim');
+  const sn = inviteWords({ name: 'Sam Sample', show: inviteShow('signal_noise', canon), page: null, g: { one_liner: 'CRO at Example AI' }, idea: guestIdea({ one_liner: 'CRO at Example AI' }, null, new Set()) });
   assert.equal(sn.subject, 'A conversation for Signal & Noise');
-  assert.ok(sn.body.startsWith(`Hi Sam,\n\nI work with Krish Raja, ${KRISH_TITLE}. We'd love to have you on the show for a conversation.\n\nWould you`), 'no page, no line about it');
+  assert.ok(sn.body.startsWith(`Hi Sam,\n\nI work with Krish Raja, ${KRISH_TITLE}, and we'd love to have you on the show for a conversation.\n\nHe'd like to talk with you because you're CRO at Example AI.\n\nOne episode idea: "`), sn.body);
   for (const w of [mymu, sn]) {
     assert.equal((w.body.match(/\?/g) ?? []).length, 1, 'one ask');
     assert.ok(w.body.endsWith('\n\nJonny'));

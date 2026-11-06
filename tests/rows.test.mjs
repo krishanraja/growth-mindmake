@@ -87,7 +87,7 @@ const ampContext = extra => ({
     person(7, 'Host of Another Podcast'),
   ],
   routes: { [id(1)]: route(), [id(2)]: route('unchecked'), [id(3)]: route('none', { x: true }), [id(4)]: route(), [id(7)]: route('none') },
-  network: [{ contact_id: id(9), network_tier: '1_reciprocated', current_title: 'COO', mindmake_fit: 60, contacts: { full_name: 'Robin Sample', status: 'active', last_touch_at: '2026-05-01T00:00:00Z' } }],
+  network: [{ contact_id: id(9), network_tier: '1_reciprocated', current_title: 'COO', mindmake_fit: 60, hook: 'Ran operations for a regional grocer through two acquisitions.', contacts: { full_name: 'Robin Sample', status: 'active', last_touch_at: '2026-05-01T00:00:00Z' } }],
   companies: [{ domain: 'c1.test', kind: 'Media' }],
   feedback: [], research: [], ...extra,
 });
@@ -294,7 +294,7 @@ test('who someone is also reads Control Center\'s hook and why_them, but a passi
 });
 
 test('NETWORK: quiet ties come first, last contact is the later of a touch and an email, and a tie with no date is skipped', () => {
-  const tie = (n, extra = {}, contacts = {}) => ({ contact_id: id(n), network_tier: '1_reciprocated', current_title: 'COO', current_company: `Example Co ${n}`, mindmake_fit: 70, known_since: '2019-05-01', email_last: null, ...extra, contacts: { full_name: `Robin Sample${n}`, status: 'active', last_touch_at: null, ...contacts } });
+  const tie = (n, extra = {}, contacts = {}) => ({ contact_id: id(n), network_tier: '1_reciprocated', current_title: 'COO', current_company: `Example Co ${n}`, mindmake_fit: 70, known_since: '2019-05-01', email_last: null, hook: `Rebuilt the supply chain at Example Co ${n}.`, ...extra, contacts: { full_name: `Robin Sample${n}`, status: 'active', last_touch_at: null, ...contacts } });
   const ctx = {
     quiet_ties: [tie(41, { email_last: '2025-03-04' }), tie(47, { email_last: '2025-01-10' })],
     network: [
@@ -788,7 +788,7 @@ test('an appearance names its show, and his own shows are never one', () => {
   assert.equal(showIn('His story is worth asking about on The Example Show.'), '', 'a prompt names his show, not theirs');
   // A co-host of his own show is never asked to have him on it, and may still be a tie to catch up with.
   const cohost = person(130, 'Co-host, Signal & Noise', { followers: 5000, hook: 'Co-hosts the Signal & Noise podcast, a weekly show on AI and media.' });
-  const tie = { contact_id: id(130), network_tier: '1_reciprocated', current_title: 'Partner', current_company: 'Example Consulting', mindmake_fit: 70, known_since: '2020-01-01', email_last: '2025-01-10', who: 'Partner at Example Consulting, advising on data and identity.', contacts: { full_name: 'Rory Example', status: 'active' } };
+  const tie = { contact_id: id(130), network_tier: '1_reciprocated', current_title: 'Partner', current_company: 'Example Consulting', mindmake_fit: 70, known_since: '2020-01-01', email_last: '2025-01-10', who: 'Partner at Example Consulting, advising on data and identity.', hook: 'Rebuilt the identity practice at Example Consulting.', contacts: { full_name: 'Rory Example', status: 'active' } };
   const r = amplifierRows({ context: { amplifier_candidates: [cohost], network: [tie], routes: { [id(130)]: route() }, feedback: [], research: [] }, weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
   assert.equal(r.rows.some(x => x.proposal.row === 'visibility'), false);
   assert.ok(r.held.includes('own_show'));
@@ -824,7 +824,7 @@ test('VISIBILITY says the show by name, what he gets on it, and who he is to a b
   const a = JSON.parse(p.exact_payload);
   assert.ok(a.subject.startsWith('An episode for Example Show 140: '), a.subject);
   assert.match(a.body, /One episode I'd bring to Example Show 140/, 'one episode the show could run');
-  assert.ok(a.body.includes(`I'm ${KRISH_TITLE} and I write Make Your Mind Up (https://publication.example)`), a.body);
+  assert.ok(a.body.includes(`I'm ${KRISH_TITLE} and write Make Your Mind Up (https://publication.example)`), a.body);
   assert.equal(KRISH_TITLE, 'Executive Host of Signal & Noise');
   assert.equal((a.body.match(/https:\/\//g) ?? []).length, 1, 'one link');
   const audience = { value: 52000, band: '10k_100k', basis: 'listeners a month, from a cited answer', source_url: 'https://example.org/a', as_of: NOW };
@@ -843,7 +843,7 @@ test('a topic is what this one is about, or null: one "Not my topic" never refus
   assert.equal(topicOf({ who: 'Keeps bees.' }), null);
   const money = person(150, 'Host of Example Money Podcast', { followers: 30000, who: 'Hosts Example Money Podcast on personal finance.' });
   const talent = person(151, 'Host of The Example Talent Show', { followers: 30000, who: 'Hosts The Example Talent Show on recruiting and careers.' });
-  const ctx = (feedback = []) => ({ amplifier_candidates: [money, talent], network: [{ contact_id: id(152), network_tier: '1_reciprocated', current_title: 'COO', mindmake_fit: 70, email_last: '2025-01-10', contacts: { full_name: 'Robin Sample', status: 'active' } }], routes: { [id(150)]: route(), [id(151)]: route(), [id(152)]: route() }, feedback, research: [] });
+  const ctx = (feedback = []) => ({ amplifier_candidates: [money, talent], network: [{ contact_id: id(152), network_tier: '1_reciprocated', current_title: 'COO', mindmake_fit: 70, email_last: '2025-01-10', hook: 'Ran operations for a regional grocer through two acquisitions.', contacts: { full_name: 'Robin Sample', status: 'active' } }], routes: { [id(150)]: route(), [id(151)]: route(), [id(152)]: route() }, feedback, research: [] });
   const r = amplifierRows({ context: ctx(), weekGoals: GOALS, canon: fullCanon, files: FILES, at: NOW });
   const topic = t => r.rows.find(x => x.proposal.target === id(t)).proposal.features.topic;
   assert.deepEqual([topic(150), topic(151), topic(152)], ['finance', 'talent', null]);

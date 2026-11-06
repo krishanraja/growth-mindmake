@@ -1,5 +1,15 @@
 # Release state
 
+## Emails from the card's facts, checked sentence by sentence, 6 November 2026 (second pass)
+
+Control Center read the first live run after krishanraja/growth-mindmake#60 and found Krish's ask not yet met: six of eight catch-ups were one template with the employer, year and month filled in; company names were miscased ("Nbcuniversal", "u.s. bank", "Microsoft Ai"); four of seven partner offers used one decision, each with a pasted site line and "Ventures's"; both invites were unchanged; one card still named two employers; a slash came through from a record. The duplicate check had passed because it compared whole bodies with only names removed.
+
+- **Built and tested.** Each email is about one fact on its card (src/stages/rows.mjs `specificOf`, `yourWork`, `youFact`), never the employer alone; a decision, an episode, a talk or an invite idea goes to one email a run (`pickUnused`, the rows taking turns best first, `options_used` when a row runs out); company names come from the card's own prose (`companyAsWritten`); slashes become words (`plainWords`); a partner's portfolio is named by its own companies or sectors (`portfolioNames`, `portfolioSpan`); invites say why the guest and give one episode idea (src/stages/pitches.mjs `guestWhy`, `guestIdea`); who Krish is is one sentence every pitch shares (`bioLine`), with the ask in the pitch's first sentence. The check now compares sentences with every capitalised word, number and link out, and holds a send that shares more than one with another (`sharedBodies`, `SHARED_SENTENCES_MAX`). A why line about work at another firm with no tense now holds the card (`cardClash`).
+- **Replayed on the live card text** (offline, nothing written): no two of the run's emails share more than one sentence, eight partner offers carry eight decisions, no miscased company and no slash remain, both invites name why the guest and an episode idea, and the two-employer card is held.
+- **Bug found and fixed.** A run that used every option crashed the dispatch; it now holds that email instead.
+- **Verified on:** the seven repository checks and 579 tests.
+- **Live proof:** the first live run after this merge, read against the same bar.
+
 ## Specific words, fresh suggestions, one event one card, 6 November 2026
 
 Krish, 6 November: "The widget is not updating regularly and also the events are not very impressive at all. One of them is just a blank card and the other two are duplicates ... The email drafts are super generic and rubbish. And those problems are not just for events, they're for everything." Control Center's read of the live data found every run since 4 November posting the same 29 proposals, one template body per row, a title naming nobody, one summit proposed three times, and a speaker bureau's booking page proposed as four speaker forms. Its own holds shipped in krishanraja/control-center#655; this change fixes the source.
