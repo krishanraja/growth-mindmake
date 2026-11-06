@@ -97,6 +97,7 @@ test('a guest invite: unknown and not served are held, outside his network is Jo
   assert.equal(a.body, [
     'Hi Avery,',
     "I write Make Your Mind Up (https://publication.example), and I'd love to have you for one of its weekly conversations.",
+    "I read that you run a marketing team that changed how it works with AI, and that's the conversation I want to have.",
     'I came across "How marketing teams change with AI", and it\'s the kind of thinking I\'d like more of on the show.',
     'Would you be up for it in the coming weeks? I can send a short brief and a few dates.',
     'Krish',
@@ -137,7 +138,7 @@ test('a podcast or stage booker in his network gets his own row; an unknown book
     assert.equal(parseActionV2(p.exact_payload).ok, true);
     assert.ok(p.proposal_id.startsWith('gmw-'));
   }
-  assert.equal(action(rows[0]).body.split('\n\n')[1], "I'd love to come on The Example Show 1 and talk about what an AI that knows a marketing leader should actually do.");
+  assert.equal(action(rows[0]).body.split('\n\n')[1], 'One episode I\'d bring to The Example Show 1 for marketing leaders at mid-size companies: "What a CMO should hand to AI this quarter, and what stays human".', 'the show\'s audience and one episode it could run');
   assert.match(action(rows[1]).body, /I'd like to put myself forward for a talk at The Example Summit 4: "/);
   // With the flag served and false, every booker is Jonny's as today.
   const served = run({ records: { visibility, drafts: [] }, network, routes: Object.fromEntries([1, 2, 3, 4].map(n => [id(100 + n), { in_network: false }])) }, true);

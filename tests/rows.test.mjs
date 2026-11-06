@@ -822,7 +822,8 @@ test('VISIBILITY says the show by name, what he gets on it, and who he is to a b
   assert.equal(p.card.gain[0], 'A guest spot on Example Show 140.');
   assert.ok(p.title.includes('Example Show 140'), p.title);
   const a = JSON.parse(p.exact_payload);
-  assert.equal(a.subject, 'An idea for Example Show 140');
+  assert.ok(a.subject.startsWith('An episode for Example Show 140: '), a.subject);
+  assert.match(a.body, /One episode I'd bring to Example Show 140/, 'one episode the show could run');
   assert.ok(a.body.includes(`I'm ${KRISH_TITLE} and I write Make Your Mind Up (https://publication.example)`), a.body);
   assert.equal(KRISH_TITLE, 'Executive Host of Signal & Noise');
   assert.equal((a.body.match(/https:\/\//g) ?? []).length, 1, 'one link');
@@ -832,7 +833,7 @@ test('VISIBILITY says the show by name, what he gets on it, and who he is to a b
   const other = amplifierRows({ context: { amplifier_candidates: [h], routes: { [id(140)]: route() }, feedback: fb, research: [] }, weekGoals: GOALS, canon, files: FILES, at: NOW }).rows[0].proposal;
   const b = JSON.parse(other.exact_payload);
   assert.notEqual(b.body, a.body);
-  assert.ok(b.body.includes(KRISH_TITLE) && b.subject === 'A conversation for Example Show 140', b.body);
+  assert.ok(b.body.includes(KRISH_TITLE) && b.subject.startsWith('A conversation for Example Show 140: '), b.body);
 });
 
 test('a topic is what this one is about, or null: one "Not my topic" never refuses a whole row', () => {

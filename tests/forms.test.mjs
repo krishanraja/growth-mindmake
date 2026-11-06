@@ -105,10 +105,14 @@ test('a stage\'s form is answered by each field\'s own label from what the run r
   assert.equal('Phone' in by, false, 'a phone is never answered');
   assert.equal(Object.keys(by).some(k => /newsletter/i.test(k)), false, 'a box is never ticked');
   assert.deepEqual(a.map(x => x.label), ['Full name', 'Email', 'Company', 'Job title', 'Website', 'Talk title', 'Abstract', 'Short bio (max 60 words)', 'Session format', 'Track'], 'in the form\'s own order');
-  const split = stageForm(summit(2, { form_fields: [field('First name', { required: true }), field('Last name', { required: true }), field('Email', { type: 'email', required: true }), field('Talk topic', { required: true })] }), opts);
-  assert.deepEqual(JSON.parse(split.exact).form.answers, [{ label: 'First name', value: 'Krish' }, { label: 'Last name', value: 'Raja' }, { label: 'Email', value: FORM_EMAIL }, { label: 'Talk topic', value: 'AI for marketing leaders' }]);
-  const panel = stageForm(summit(3, { title: 'The CMO Panel Example', form_fields: [field('Email', { type: 'email', required: true }), field('Format', { type: 'select', required: true, options: ['Keynote', 'Panel'] }), field('Topic', { type: 'select', options: ['Leadership', 'Brand and growth'] })] }), opts);
-  assert.deepEqual(answersOf({ exact_payload: panel.exact }), { Email: FORM_EMAIL, Format: 'Panel', Topic: 'Brand and growth' }, 'a panel seat where it says panel; the stage\'s own topic when no track names AI');
+  const split = stageForm(summit(2, { form_fields: [field('First name', { required: true }), field('Last name', { required: true }), field('Email', { type: 'email', required: true }), field('Talk topic', { required: true }), field('Speaker bio', { type: 'textarea' })] }), opts);
+  const splitAnswers = JSON.parse(split.exact).form.answers;
+  assert.deepEqual(splitAnswers.slice(0, 4), [{ label: 'First name', value: 'Krish' }, { label: 'Last name', value: 'Raja' }, { label: 'Email', value: FORM_EMAIL }, { label: 'Talk topic', value: 'AI for marketing leaders' }]);
+  assert.ok(splitAnswers[4].label === 'Speaker bio' && splitAnswers[4].value.startsWith('Krish Raja is'), 'the bio in the field that asks for it');
+  const panel = stageForm(summit(3, { title: 'The CMO Panel Example', form_fields: [field('Email', { type: 'email', required: true }), field('Format', { type: 'select', required: true, options: ['Keynote', 'Panel'] }), field('Topic', { type: 'select', options: ['Leadership', 'Brand and growth'] }), field('Speaker bio', { type: 'textarea' })] }), opts);
+  const { ['Speaker bio']: panelBio, ...panelRest } = answersOf({ exact_payload: panel.exact });
+  assert.deepEqual(panelRest, { Email: FORM_EMAIL, Format: 'Panel', Topic: 'Brand and growth' }, 'a panel seat where it says panel; the stage\'s own topic when no track names AI');
+  assert.ok(panelBio.startsWith('Krish Raja is'));
   const suggested = stageForm(summit(4, { suggested_talk_title: 'The org chart after AI' }), opts);
   assert.equal(answersOf({ exact_payload: suggested.exact })['Talk title'], 'The org chart after AI', 'the talk Nova suggested for the room');
 });
@@ -158,7 +162,7 @@ test('the email is always his public business address, and no other address and 
   assert.equal(FORM_EMAIL, 'hello@krishraja.com');
   assert.equal(FORM_SITE, 'https://mindmake.co', 'mindmake.co for every Mindmake venture thing');
   assert.equal(SPEAKER_SITE, 'https://krishraja.com');
-  const r = run([summit(1), summit(2, { form_fields: [field('Your name', { required: true }), field('Contact email', { type: 'email', required: true }), field('Mobile', { type: 'tel' }), field('Street address'), field('Speaking fee'), field('Date of birth', { type: 'date' })] }), show(3)]);
+  const r = run([summit(1), summit(2, { form_fields: [field('Your name', { required: true }), field('Contact email', { type: 'email', required: true }), field('Mobile', { type: 'tel' }), field('Street address'), field('Speaking fee'), field('Date of birth', { type: 'date' }), field('Speaker bio', { type: 'textarea' })] }), show(3)]);
   const forms = r.proposals.filter(isForm);
   assert.equal(forms.length, 3);
   for (const p of forms) {
@@ -282,10 +286,45 @@ test('the engine predicts the runner\'s pick, the closest label, and holds a for
   assert.equal(overlaps([field('Company'), field('Company phone')], [{ label: 'Company', value: 'Mindmake' }]), true, 'a field left empty on purpose would be filled');
   assert.equal(overlaps([field('Topics', { type: 'checkbox', name: 'topics' })], [{ label: 'Topic', value: 'AI for marketing leaders' }]), true, 'a box would be ticked');
   assert.equal(overlaps([field('I agree to the terms', { type: 'checkbox', name: 'terms' })], [{ label: 'Terms', value: 'x' }]), false, 'the runner leaves a terms box alone');
-  const both = stageForm(summit(1, { form_fields: [field('Name', { required: true }), field('Company name', { required: true }), field('Email', { type: 'email', required: true })] }), opts);
+  const both = stageForm(summit(1, { form_fields: [field('Name', { required: true }), field('Company name', { required: true }), field('Email', { type: 'email', required: true }), field('Speaker bio', { type: 'textarea' })] }), opts);
   assert.equal(both.hold, null, 'the runner takes the closest label, so a name beside a company name is answered (control-center#576)');
   assert.deepEqual(runnerPick('Your company name', [{ label: 'Name', value: 'Krish Raja' }, { label: 'Company name', value: 'Mindmake' }])?.value, 'Mindmake', 'the closer label wins');
-  assert.equal(stageForm(summit(1, { form_fields: [field('Full name', { required: true }), field('Company', { required: true }), field('Email', { type: 'email', required: true })] }), opts).hold, null);
+  assert.equal(stageForm(summit(1, { form_fields: [field('Full name', { required: true }), field('Company', { required: true }), field('Email', { type: 'email', required: true }), field('Speaker bio', { type: 'textarea' })] }), opts).hold, null);
+});
+
+test('only a real speaker or guest form is proposed: one that asks only who he is is held, and the talk and bio go in the fields that ask for them (Krish, 2026-11-06)', () => {
+  // A bureau page booking its own speakers: a name, his address twice and a country. No talk, no abstract, no bio.
+  const bureau = summit(1, { cfp_url: 'https://board.example/speaker-bureau', form_fields: [field('Name', { required: true }), field('Email', { type: 'email', required: true }), field('Confirm email', { type: 'email', required: true }), field('Country', { required: true })] });
+  assert.equal(stageForm(bureau, opts).hold, 'no_pitch');
+  const r = run([bureau]);
+  assert.equal(r.proposals.filter(isForm).length, 0, 'never proposed');
+  assert.ok(r.formHeld.includes('no_pitch'), 'counted as its own hold');
+  // A field that asks for the talk title alone is no pitch in full either: Control Center holds a form with no answer of 60 characters.
+  assert.equal(stageForm(summit(2, { form_fields: [field('Name', { required: true }), field('Email', { type: 'email', required: true }), field('Talk title', { required: true })] }), opts).hold, 'no_pitch');
+  const real = stageForm(summit(3), opts);
+  assert.equal(real.hold, null);
+  assert.ok(JSON.parse(real.exact).form.answers.some(a => a.label === 'Abstract' && a.value.length >= 60), 'the talk in the field that asks for it');
+});
+
+test('one event, one row: rows that share a name and a date, or a form page on the same day, are proposed once (Krish, 2026-11-06)', () => {
+  const a = summit(11, { title: 'The AI Leadership Summit', event_start_at: '2026-11-17T09:00:00Z', cfp_url: 'https://summit.example/a/speak' });
+  const b = summit(12, { title: 'AI Leadership Summit 2026', event_start_at: '2026-11-17T13:00:00Z', cfp_url: 'https://summit.example/b/speak' });
+  const c = summit(13, { title: 'The AI Leadership Summit.', event_start_at: '2026-11-17T09:00:00Z', cfp_url: 'https://summit.example/c/speak' });
+  const r = run([a, b, c]);
+  const forms = r.proposals.filter(isForm);
+  assert.equal(forms.length, 1, 'three rows of one event are one form');
+  assert.equal(r.formHeld.filter(h => h === 'duplicate_stage').length, 2);
+  // An organiser's page shared by events on different days is not one event.
+  const d = summit(14, { title: 'Leading Across the Example Suite', event_start_at: '2026-12-01T09:00:00Z', cfp_url: 'https://board.example/apply' });
+  const e = summit(15, { title: 'The Future of Marketing', event_start_at: '2027-02-01T09:00:00Z', cfp_url: 'https://board.example/apply' });
+  assert.equal(run([d, e]).proposals.filter(isForm).length, 2);
+});
+
+test('a title always names its subject: a long name is shortened, never replaced by "an event" (Krish, 2026-11-06)', () => {
+  const long = summit(1, { title: 'Leading Across the Example Suite: Marketing, Communications, Technology and Data (The Example Board)' });
+  const p = run([long]).proposals.find(isForm);
+  assert.equal(p.title, 'Apply to speak at Leading Across the Example Suite');
+  for (const t of run([long, summit(2), show(3)]).proposals.map(x => x.title)) assert.equal(/\b(?:an event|a show|a podcast|a leader|a guest)$/i.test(t), false, t);
 });
 
 test('a form sent, or one whose browser never answered, an applied stage and a passed deadline are never proposed again', () => {

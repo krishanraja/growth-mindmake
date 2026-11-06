@@ -11,7 +11,7 @@ Lens: Would the booker say yes in ten seconds?
 From 11-trusted-distribution.md, Podcast pitches in Jonny's voice (Rulings, Krish, 2026-10-27):
 - Krish: pitch him to as many podcasts as possible from Jonny's Gmail, "Drafted daily, no press", "For visibility Jonny sends"; the goal is one podcast a week.
 - Which shows: Podcasts Control Center holds with an address the show publishes for itself (`booking_contact_id`, read from its own feed), with an episode in the last 120 days, not applied, rejected or buried, never his own shows, never pitched before (a draft or an answer on its pitch), and not like anything he said No to.
-- The words: Jonny's, for Krish: the point first (Krish as a guest on one topic tied to the show), who Krish is, one ask, signed Jonny.
+- The words: Jonny's, for Krish: the point first (one episode Krish could bring to the show, named for its listeners as Nova read them, with Nova's angle for the show where it has one), who Krish is, one ask, signed Jonny.
 - Who does what: The engine writes the pitch as a visibility row naming Jonny's box (protocol 1.9.0).
 
 From 11-trusted-distribution.md, Guests for his own shows (Rulings, Krish, 2026-10-27 and 2026-10-20):
@@ -21,5 +21,5 @@ From 11-trusted-distribution.md, Guests for his own shows (Rulings, Krish, 2026-
 
 ## Sources
 
-- docs/playbooks/11-trusted-distribution.md, "Podcast pitches in Jonny's voice (Rulings, Krish, 2026-10-27)": sha256 92f081e7c013d049
-- docs/playbooks/11-trusted-distribution.md, "Guests for his own shows (Rulings, Krish, 2026-10-27 and 2026-10-20)": sha256 92f081e7c013d049
+- docs/playbooks/11-trusted-distribution.md, "Podcast pitches in Jonny's voice (Rulings, Krish, 2026-10-27)": sha256 441f87abdce69725
+- docs/playbooks/11-trusted-distribution.md, "Guests for his own shows (Rulings, Krish, 2026-10-27 and 2026-10-20)": sha256 441f87abdce69725

@@ -22,22 +22,27 @@ const CANON = `## What the growth engine may say\n\n1. **Start building your AI 
 const RECEIPTS = `export const receipts = {\n  credentials: [\n    'Public Speaker (Example Concert Hall)',\n  ],\n  roles: [\n    {\n      org: 'Example Broadcasting',\n      title: 'Head of Data',\n      detail:\n        "grew data revenue from $1M to $9M in three years. Launched 12 products.",\n    },\n  ],\n};\n`;
 const GOALS = ['Send the Mindmake one-pagers and offers to warm leads', 'Have a clear plan for driving partnerships and visibility for Mindmake'];
 
-const person = (n, title, fit) => ({ contact_id: id(n), network_tier: '2_core_network', current_title: title, followers: 20000 + n, plays: [], roles: [], mindmake_fit: fit, sells_competing_services: false, hook: 'Took two media software companies through a sale.', contacts: { id: id(n), full_name: `Avery Example${n}`, title, company: `Company ${n}`, company_domain: `c${n}.test`, status: 'active' } });
+// Each record carries its own facts, as real ones do: a run's emails differ by more than the name on them (Krish, 2026-11-06).
+const HOOKS = ['Took two media software companies through a sale.', 'Rebuilt a newsroom around one data desk.', 'Grew a retail brand from one shop to forty.', 'Ran pricing for a national bank.', 'Built a forum of 300 chief executives.', 'Launched an AI course for finance teams.', 'Sold a marketing agency to a holding group.', 'Wrote the field guide to programmatic buying.', 'Scaled a sales team from five to two hundred.', 'Moved a hospital group onto one data platform.', 'Started a podcast for first-time founders.', 'Turned around a regional publisher.'];
+const hookOf = n => HOOKS[n % HOOKS.length].replace(/\.$/, ` (${n}).`);
+// Every room holds his buyer (a topic in BUYER_TOPICS), so the stage lints read them as before.
+const AUDIENCES = ['Marketing leaders at mid-size companies', 'Chief financial officers', 'Founders raising their first venture round', 'Heads of talent at fast-growing firms', 'Advertising agency owners', 'Media executives', 'Software leaders in banks', 'Chief executives and their boards', 'Brand marketing directors', 'Finance leaders in insurance', 'Venture investors and founders', 'Media and publishing executives', 'Data and software leaders'];
+const person = (n, title, fit) => ({ contact_id: id(n), network_tier: '2_core_network', current_title: title, followers: 20000 + n, plays: [], roles: [], mindmake_fit: fit, sells_competing_services: false, hook: hookOf(n), contacts: { id: id(n), full_name: `Avery Example${n}`, title, company: `Company ${n}`, company_domain: `c${n}.test`, status: 'active' } });
 const route = () => ({ email: 'verified', x: false, linkedin: true, instagram: false, whatsapp: false });
 const show = n => ({ id: id(400 + n), title: `The Example Show ${n}`, type: 'podcast', status: 'queued', verdict: n % 2 ? 'take' : 'stretch', organizer: 'Avery Example', buried_at: null, applied_at: null,
   event_url: `https://podcasts.example/show-${n}`, feed_url: `https://feeds.example/${n}`, episodes: 40 + n, latest_episode_at: '2026-10-20T00:00:00Z', booking_contact_id: id(500 + n), booking_source: 'feed_owner',
-  audience: 'Marketing leaders at mid-size companies', angle: null, why_him: 'The show interviews operators who changed how a company works.', why_now: null });
+  audience: AUDIENCES[n % AUDIENCES.length], angle: `The show's episode ${40 + n} asked who owns AI in a company.`, why_him: 'The show interviews operators who changed how a company works.', why_now: null });
 const field = (label, name, over = {}) => ({ label, name, type: 'text', required: false, options: [], ...over });
 const FIELDS = [field('Full name', 'full_name', { required: true }), field('Email', 'email', { type: 'email', required: true }), field('Company', 'company', { required: true }), field('Talk title', 'talk_title', { required: true }), field('Abstract', 'abstract', { type: 'textarea', required: true })];
 const summit = (n, form) => ({ id: id(600 + n), title: `The Example Summit ${n}`, type: 'conference', status: 'queued', verdict: 'take', organizer: 'Example Events Ltd', buried_at: null, applied_at: null,
   event_url: `https://summit.example/${n}`, cfp_url: form ? `https://summit.example/${n}/speak` : null, deadline_at: '2026-11-20T00:00:00Z', event_start_at: '2027-03-10T00:00:00Z', location: 'London',
-  booking_contact_id: id(700 + n), booking_source: 'stage_page', audience: 'Marketing leaders at mid-size companies', angle: null, why_him: null, why_now: null,
+  booking_contact_id: id(700 + n), booking_source: 'stage_page', audience: AUDIENCES[(n + 5) % AUDIENCES.length], angle: null, why_him: null, why_now: null,
   room_score: null, standing_score: null, only_him_score: null, suggested_talk_title: null, audience_size: null, updated_at: '2026-10-20T10:00:00Z',
   ...(form ? { form_fields: FIELDS, form_fields_at: '2026-10-26T06:00:00Z' } : {}) });
 const NAMES = ['Avery Sample', 'Sam Fixture', 'Jordan Placeholder', 'Riley Demo'];
 const guest = (n, show) => ({ contact_id: id(800 + n), name: NAMES[n - 1], status: 'enriched', invite_show: show, invite_state: null, scheduled_at: null,
   ...GUEST.take, buried_at: null, recorded_at: null, published_at: null,
-  one_liner: 'Chief Marketing Officer at Example Retail, rebuilding a marketing team around AI', why_fit: 'Runs a marketing team that changed how it works with AI.',
+  one_liner: 'Chief Marketing Officer at Example Retail, rebuilding a marketing team around AI', why_fit: ['Runs a marketing team that changed how it works with AI.', 'Leads a finance team that closes its books with AI.', 'Built a sales team that sells with AI agents.', 'Teaches founders how to price AI products.'][n - 1],
   evidence: [{ url: `https://talks.example/guest-${n}`, label: 'How marketing teams change with AI', at: '2026-10-01T00:00:00Z', kind: 'talk' }] });
 
 export function capsContext() {

@@ -215,7 +215,7 @@ test('the dispatch reports the crew lines and keeps every proposal and hold it h
   assert.equal(result.status, 'succeeded');
   const crew = report.activity.filter(a => CREW_LINE.test(a.line));
   assert.equal(crew.length, 2);
-  assert.match(crew[0].line, /^Crew lints, in shadow: read 22 proposals;/);
+  assert.match(crew[0].line, /^Crew lints, in shadow: read 23 proposals;/);
   // The printed result names no finding and no measurement: counts reach Control Center only.
   assert.doesNotMatch(JSON.stringify(result), /Crew|card_grammar|multiplier\./);
 });
