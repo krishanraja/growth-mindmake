@@ -202,7 +202,12 @@ channels with mass audiences on growing with AI. In the protocol these are
     read as a sentence: a work phrase in "how your X is going" holding a verb,
     a line written for Krish turned on them ("you noticed"), a stray "also", a
     quotation left open, a claim with no "that", or a "founders like" list
-    holding a stage or an adjective holds the email (`row_broken_words`).
+    holding a stage or an adjective holds the email (`row_broken_words`);
+  - the opening of each catch-up and guest invite is written by Control
+    Center's research desk from one fact on the card and read by fixed rules
+    (src/stages/openings.mjs); where the desk is open, one not written or not
+    passing holds the email, never a frame in its place (Ruling, Krish,
+    2026-11-06).
   Where the record holds a fact about what they did, the email opens on it
   ("Read that you ..."), never on a judgement written for Krish ("useful for
   reaching"). Company names are written as the card's own prose writes them

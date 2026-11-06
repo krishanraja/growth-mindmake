@@ -466,6 +466,7 @@
         "src/stages/credits.mjs",
         "src/stages/shownotes.mjs",
         "src/stages/rows.mjs",
+        "src/stages/openings.mjs",
         "src/stages/signals.mjs",
         "src/stages/pitches.mjs",
         "src/stages/routes.mjs",
