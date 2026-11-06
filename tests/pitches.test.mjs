@@ -458,7 +458,7 @@ test('an invite is one ask in Jonny\'s words, to the show it was judged for, sig
     'Hi Avery,',
     "I work with Krish Raja, who writes Make Your Mind Up (https://publication.example), and we'd love to have you for one of its weekly conversations.",
     'He\'d like to talk with you because you run retail media for Example Exchange, and he read "How marketing teams change with AI".',
-    'One episode idea: "Tools want to be your fulcrum"; would you be up for it in the coming weeks?',
+    'One episode idea: "Why tools want to be your fulcrum"; would you be up for it in the coming weeks?',
     'Jonny',
   ].join('\n\n'), 'why this guest, and an episode idea from their own claim');
   const sn = inviteWords({ name: 'Sam Sample', show: inviteShow('signal_noise', canon), page: null, g: { one_liner: 'CRO at Example AI' }, idea: guestIdea({ one_liner: 'CRO at Example AI' }, null, new Set()) });

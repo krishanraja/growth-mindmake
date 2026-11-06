@@ -474,7 +474,10 @@ export function guestWhy(g, name) {
 /** One episode idea for a guest: a claim of their own, else an episode on their topic no other invite in the run is offered. Pure apart from `used`. */
 export function guestIdea(g, topic, used) {
   const claim = guestClaim(g);
-  if (claim && !used.has(claim)) { used.add(claim); return claim; }
+  // A claim of theirs becomes a title by asking why: "Tools want to be your fulcrum" is "Why tools want to be your fulcrum".
+  const title = claim ? `Why ${/^\p{Lu}\p{Ll}/u.test(claim) ? claim.charAt(0).toLowerCase() + claim.slice(1) : claim}` : '';
+  const words = title.split(/\s+/).length;
+  if (title && words >= 4 && words <= 12 && !used.has(title)) { used.add(title); return title; }
   return pickUnused(EPISODES, topic ?? roleTopic(g), used) ?? (EPISODE[topic] ?? EPISODE.leadership);
 }
 /** The topic a guest's own role names, when their record names no other: a CRO is sales, a CMO marketing, a CFO finance. Pure. */

@@ -12,7 +12,7 @@ import { plan } from './orchestrator.mjs';
 import { enginePlan } from './engine.mjs';
 import { validateStrategicRead, strategicPlan, outcomeScorecard } from './strategy.mjs';
 import { readVoice } from './stages/draft.mjs';
-import { amplifierRows, rankRows, pitchOffReviews, sharedBodies, shownLine, shownHistory, ROWS, PER_ROW, TITLE_MAX, TITLE_MAX_BRIEF } from './stages/rows.mjs';
+import { amplifierRows, rankRows, pitchOffReviews, sharedBodies, brokenEmails, shownLine, shownHistory, ROWS, PER_ROW, TITLE_MAX, TITLE_MAX_BRIEF } from './stages/rows.mjs';
 import { signalRequests, signalRows } from './stages/signals.mjs';
 import { circleRequests, circlePeople, circleFromNetwork, takesCircle, circleAnswer, CIRCLE_VERSION } from './stages/circle.mjs';
 import { mirrorPlan, takesMirror, MIRROR_VERSION } from './stages/mirror.mjs';
@@ -589,8 +589,12 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   drafted.push(...pitched.proposals.map(finishProposal));
   // No two emails in one run are the same words with a name swapped (Krish, 2026-11-06): the lower-ranked one is held.
   const same = new Set(sharedBodies(drafted).map(d => d.proposal_id));
-  const proposals = drafted.filter(p => !same.has(p.proposal_id));
+  // Every sentence built from a card fact is read before it is proposed: an email with a broken one is held (Control Center's reads of 6 November).
+  const broken = brokenEmails(drafted.filter(p => !same.has(p.proposal_id)));
+  const brokenIds = new Set(broken.map(b => b.proposal_id));
+  const proposals = drafted.filter(p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id));
   if (same.size) holds.push({ reason: 'row_same_words', detail: `${same.size} proposal${same.size === 1 ? '' : 's'} held: ${same.size === 1 ? 'its' : 'their'} words matched another email in this run once the names were taken out.` });
+  if (broken.length) holds.push({ reason: 'row_broken_words', detail: `${broken.length} proposal${broken.length === 1 ? '' : 's'} held: a sentence from the card did not read as a sentence (${[...new Set(broken.map(b => b.reason))].join(', ').replace(/_/g, ' ')}).` });
   counts.invites = pitched.proposals.filter(isInvite).length;
   counts.pitches = pitched.proposals.filter(p => p.row === 'visibility' && !isInvite(p) && !isForm(p)).length;
   counts.speaking_pitches = pitched.proposals.filter(p => p.row === 'events' && !isForm(p)).length;

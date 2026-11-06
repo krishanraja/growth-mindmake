@@ -197,7 +197,12 @@ channels with mass audiences on growing with AI. In the protocol these are
   - an invite says why this guest (what they do, from their record, or their
     role) and one episode idea (a claim of their own, else one for their topic
     or role);
-  - an introduction or a session names the kind of leader and one decision.
+  - an introduction or a session names the kind of leader and one decision;
+  - before any email is proposed, every sentence built from a card fact is
+    read as a sentence: a work phrase in "how your X is going" holding a verb,
+    a line written for Krish turned on them ("you noticed"), a stray "also", a
+    quotation left open, a claim with no "that", or a "founders like" list
+    holding a stage or an adjective holds the email (`row_broken_words`).
   Where the record holds a fact about what they did, the email opens on it
   ("Read that you ..."), never on a judgement written for Krish ("useful for
   reaching"). Company names are written as the card's own prose writes them

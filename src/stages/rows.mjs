@@ -206,7 +206,7 @@ const word = x => { const w = String(x ?? '').toLowerCase().replace(/[^a-z0-9_ -
 export const HONORIFIC = /^(?:dr|mr|mrs|ms|miss|mx|prof|professor|sir|dame|lord|lady|rev|revd|reverend|hon)\.?$/i;
 /** A name's parts with any leading title taken off: "Dr. Andre Example" is Andre Example. */
 export function givenParts(name) {
-  const parts = cleanName(name).split(' ').filter(Boolean);
+  const parts = cleanName(name).replace(/,\s*(?:[A-Z][A-Za-z.]{1,6}(?:,\s*)?)+$/, '').split(' ').filter(Boolean);
   while (parts.length && HONORIFIC.test(parts[0])) parts.shift();
   return parts;
 }
@@ -1028,6 +1028,8 @@ const PAST_VERB = /^(?:\p{Ll}+ed|took|built|ran|led|wrote|grew|sold|made|became|
 const IRREGULAR_NOW = { is: 'are', has: 'have', does: 'do', was: 'were' };
 /** Verbs that may follow "and" in a clause about them; any other word after "and" is left as written. */
 const LATER_VERB = /^(?:co-hosts|co-leads|co-founds|co-runs|co-chairs|warns|sits|runs|leads|builds|writes|hosts|advises|applies|chairs|teaches|works|manages|says|argues|helps|invests|backs|coaches|speaks|serves|oversees|owns|drives|shapes|publishes|creates|makes|ships|scales|focuses|believes|thinks|has|is)$/;
+/** A verb of saying with its claim straight after it: "you warn tools want" reads as warning the tools, so it takes "that". */
+const SAYS_WITHOUT_THAT = /\b(you |and )(warn|argue|say|believe|think|insist)\s+(?!that\b|against\b|about\b|of\b|to\b|on\b)/g;
 /** A third-person verb as it reads after "you": runs is run, teaches is teach, has is have; '' when it is no verb this can turn. Pure. */
 function youVerb(w) {
   const v = w.toLowerCase();
@@ -1058,12 +1060,12 @@ export function youFact(text, name = '') {
     // "The guy who joined X" is "joined X": the clause after a description of them.
     f = f.replace(/^(?:The|A|An)\s+(?:guy|person|woman|man|leader|founder|operator|exec(?:utive)?)\s+who\s+/, '');
     // A clause about their company's business is the research's aside, not theirs: "for Example Data, whose entire business sits on ...".
-    f = f.replace(/,\s+whose\b.*$/, '');
+    f = f.replace(/,\s+(?:whose|which)\b.*$/, '');
     const [w, ...rest] = f.split(' ');
     const verb = /^\p{L}+$/u.test(w ?? '') ? youVerb(w) : '';
     // A second verb in the same clause agrees too: "joined X and warns Y" is "joined X and warn Y".
     const tail = rest.join(' ').replace(/(?<=\band|,)(\s+)(\p{Ll}[\p{Ll}-]*\p{Ll})(?![\p{L}-])/gu, (m, sp, v) => (LATER_VERB.test(v) ? `${sp}${youVerb(v)}` : m));
-    if (verb && rest.length >= 2 && !/\b(?:he|she|his|her|him)\b/i.test(tail)) return plainWords(`you ${verb} ${tail}`.replace(/[.!?]+$/, ''));
+    if (verb && rest.length >= 2 && !/\b(?:he|she|his|her|him)\b/i.test(tail)) return plainWords(`you ${verb} ${tail}`.replace(/[.!?]+$/, '')).replace(SAYS_WITHOUT_THAT, '$1$2 that ');
   }
   return '';
 }
@@ -1086,8 +1088,8 @@ export function yourWork(text) {
     const f = factOf(s) || plain(s).replace(/[.!?]+$/, '');
     const m = /^(?:His|Her|Their)\s+(.+)$/.exec(f);
     if (!m) continue;
-    const phrase = m[1].split(/\s+(?:is|was|are|were|makes|made|gives|shows)\s+/)[0].split(/,\s+(?:plus|and|while|with|tied to)\s+/)[0].replace(/[,;:\s]+$/, '').replace(/\s+(?:also|too|now|still|already)$/, '');
-    if (phrase.length >= 12 && phrase.length <= 160 && endsWhole(phrase) && quotesClosed(phrase) && !FOR_KRISH.test(phrase) && !/\b(?:he|she|his|her|him)\b/i.test(phrase)) return plainWords(`your ${phrase}`);
+    const phrase = m[1].split(/\s+(?:\p{Ll}+ly\s+)?(?:is|was|are|were|makes|made|gives|shows|pairs|puts|means|combines|ties|links|lets)\s+/u)[0].split(/,\s+(?:plus|and|while|with|tied to)\s+/)[0].replace(/[,;:\s]+$/, '').replace(/\s+(?:also|too|now|still|already)$/, '');
+    if (phrase.length >= 12 && phrase.length <= 160 && endsWhole(phrase) && quotesClosed(phrase) && !FINITE.test(phrase) && !FOR_KRISH.test(phrase) && !/\b(?:he|she|his|her|him)\b/i.test(phrase)) return plainWords(`your ${phrase}`);
   }
   return '';
 }
@@ -1180,6 +1182,40 @@ export function fundOf(company, texts = []) {
   const esc = company.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const said = new RegExp(String.raw`\b${esc}(?:'s)?\s+(?:portfolio|invests|backs|has backed|funds|fund)\b|\b(?:portfolio of|invests? (?:through|via|with)|partner at)\s+${esc}\b`, 'iu');
   return texts.some(t => typeof t === 'string' && said.test(t)) ? company : '';
+}
+/** Words that make a clause finite: a phrase holding one is no noun phrase. */
+const FINITE = /\b(?:is|are|was|were|has|have|had|does|did|will|would|can|could|should|may|might|must|bridges|pairs|puts|means|combines|ties|links|lets|explains|makes|gives|shows|sits|says|warns|argues|runs|leads|builds|writes|hosts|helps|drives|shapes|creates)\b|\b\p{Ll}+ly\s+\p{Ll}+s\b/u;
+/**
+ * The reason one sentence built from a card fact is broken, or '': a work
+ * phrase in "how your X is going" that holds a verb, a line written for Krish
+ * turned on them ("you noticed", "you congrat"), a stray "also", a quotation
+ * left open (read by paragraph), a claim with no "that" ("you warn tools want"), or a "founders
+ * like" list holding a stage or an adjective. Structural, not a list of
+ * names: the same test runs on every email before it is proposed. Pure.
+ */
+export function brokenSentence(sentence) {
+  const t = String(sentence ?? '');
+  const work = /\bhow your (.+?) is going\b/.exec(t)?.[1];
+  if (work && FINITE.test(work)) return 'clause_in_phrase';
+  if (/\byou (?:noticed|congrat\w*|saw|spotted)\b/i.test(t)) return 'krish_line_turned';
+  if (/\balso (?:is|are) going\b|\balso[.?]$/.test(t)) return 'stray_also';
+  if (/\b(?:you|and) (?:warn|argue|insist)\s+(?!that\b|against\b|about\b|of\b|to\b|on\b)/.test(t)) return 'claim_without_that';
+  const like = /\bfounders like (.+?), I'd\b/.exec(t)?.[1];
+  if (like && like.split(/,\s*|\s+and\s+/).some(n => NOT_A_COMPANY.test(n.trim()) || /^\p{Lu}+-\p{Ll}+$/u.test(n.trim()) || !/^\p{Lu}|^\d/u.test(n.trim()))) return 'not_a_company';
+  return '';
+}
+/** Proposals whose email holds a broken sentence, each with its reason. Pure. */
+export function brokenEmails(proposals) {
+  const out = [];
+  for (const p of proposals) {
+    let body = '';
+    try { body = JSON.parse(p.exact_payload ?? '{}').body ?? ''; } catch { body = ''; }
+    // A quotation is read by paragraph, since a full stop inside one ("feat. Starcloud") is no sentence end.
+    const open = String(body).split(/\n\s*\n/).some(par => !quotesClosed(par.replace(/\b\p{L}+'\p{L}+\b/gu, 'x')));
+    const why = open ? 'open_quote' : sentences(String(body).replace(/\n+/g, ' ')).map(brokenSentence).find(Boolean);
+    if (why) out.push({ proposal_id: p.proposal_id, reason: why });
+  }
+  return out;
 }
 const joinAnd = list => (list.length <= 1 ? (list[0] ?? '') : `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`);
 
