@@ -44,7 +44,7 @@ Each is in docs/RULINGS.md word for word, with his quotes; a line here says what
 - Jonny's emails take Krish's email style (Ruling, Krish, 2026-10-31): every draft for Jonny's box is written in Krish's shared email voice from krish-voice, as Jonny, with Krish in the third person and signed Jonny.
 - The circle lane and the AI mirror (Rulings, Krish, 2026-11-05): 50 influential strangers, who not how, invited in his name.
 - Openings written by the desk, and lookups for row people (Ruling, Krish, 2026-11-06): the research desk writes each catch-up's and invite's opening from one fact, fixed rules read it and a failing one holds the email; row people with no address are looked up.
-- A catch-up is written as a person writes one (Ruling, Krish, 2026-11-06): it has been a while, why he is reaching out, why he thought of them, would they be open to a quick chat; never their career told back to them.
+- A catch-up as a person writes one (Ruling, Krish, 2026-11-06): a while, why now, why you, a quick chat; never their career told back.
 
 ## Current release boundary
 
