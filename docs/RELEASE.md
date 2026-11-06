@@ -1,5 +1,13 @@
 # Release state
 
+## Openings written by the desk, lookups for row people, 6 November 2026 (Ruling, Krish, 2026-11-06)
+
+Krish: "Yes, make those still open decisions yourself for the best quality. Execute it." Control Center's reads of the day's live runs showed that slot-filling research notes into a fixed frame kept breaking, however many shapes the guard learnt.
+
+- **Built and tested.** Each catch-up's and invite's opening is asked of Control Center's research desk (`question`) from one sourced fact on the card (src/stages/openings.mjs `openingFact`, `openingRequest`), keyed by its own words so a card asked once replays free, at most ten catch-up openings a run, after the lookups and before the rest. `validOpening` reads every answer by fixed rules (one sentence, six to thirty words, said to them, a subject and a verb, no dash, question, link, citation or praise, no research words, no name or number the fact does not hold, nothing the final guard holds). Where the desk is open, a catch-up or invite with no passing opening is held (`opening_waiting`, `opening_failed`, `opening_no_fact`); in a dry run or a test the engine's own sentence stands, still under the final guard.
+- **Built and tested.** Row people with no address are looked up, up to six a run after the pitches' twelve, where Control Center serves `features.person_routes` (krishanraja/control-center#656); `personAddressFrom` keeps only an address that is theirs, and found ones go in `found_routes` for Control Center to check and record.
+- **Verified on:** the seven repository checks and the test suite. The live proof is the first run after the merge.
+
 ## Partner offers that fit the partner, catch-ups that name the shared past, 6 November 2026 (third pass)
 
 The live run after krishanraja/growth-mindmake#62 (merge-65) passed every measure of the bar: 22 row emails, no two sharing more than one sentence once slots are out, no miscased company and no slash, eight partner offers with eight decisions and no site line, both invites with why the guest and an episode idea, the two-employer card held, and 17 of 22 cards new since merge-64 with a different card first on the reach-out, network and partner rows. Reading the emails against their cards found what the measures did not: six of eight partner offers spoke of "the founders across X's portfolio" to people with no portfolio (a chief executive, a co-founder, a tax office named as a fund), one card named two employers through "her own practice", a catch-up ignored the card's ask line and the employer you shared, one cut a quotation in half, and one read "you lead ... and co-hosts".

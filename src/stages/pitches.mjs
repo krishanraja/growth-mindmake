@@ -1,3 +1,4 @@
+import { opening } from './openings.mjs';
 import { seal, clean, DAY } from '../guards.mjs';
 import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, actionFor, rowProposal, score, channelOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX, OBJECTIVE, TOPIC_PITCH, EPISODE, EPISODES, AUDIENCE_OF, titleNaming, youFact, yourWork, pickUnused, plainWords } from './rows.mjs';
 import { showNoteRows } from './shownotes.mjs';
@@ -487,12 +488,12 @@ export function roleTopic(g) {
 }
 
 /** The invite in Jonny's words: the show, why this guest, one episode idea and the ask. Krish in the third person, signed Jonny. Pure. */
-export function inviteWords({ name, show, page, g = null, idea = null }) {
+export function inviteWords({ name, show, page, g = null, idea = null, opening: open = null }) {
   const label = quotable(page);
   const why = g ? guestWhy(g, name) : '';
   const lines = [
     `I work with Krish Raja, ${show.who}, and we'd love to have you ${show.ask}.`,
-    ...(why ? [`He'd like to talk with you because ${why}${label ? `, and he read "${label}"` : ''}.`] : label ? [`He read "${label}", and that is the conversation he wants to have.`] : []),
+    ...(open ? [open] : why ? [`He'd like to talk with you because ${why}${label ? `, and he read "${label}"` : ''}.`] : label ? [`He read "${label}", and that is the conversation he wants to have.`] : []),
     `One episode idea: "${idea ?? EPISODE.leadership}"; would you be up for it in the coming weeks?`,
   ];
   return {
@@ -546,14 +547,15 @@ export function networkLane(contactId, { routes, listed, served = false, booking
 }
 
 /** The invite in Krish's own words, for someone in his network: the show, why them, one episode idea and the ask. actionFor signs it Krish. Pure. */
-export function krishInviteWords({ show, page, g = null, name = '', idea = null }) {
+export function krishInviteWords({ show, page, g = null, name = '', idea = null, opening: open = null }) {
   const label = quotable(page);
   const why = g ? guestWhy(g, name) : '';
   return {
     subject: clean(`A conversation for ${show.name}`).slice(0, 200),
     lines: [
       `${show.self}, and I'd love to have you ${show.ask}.`,
-      ...(why ? [`I'd like to talk with you because ${why}${label ? `, and I read "${label}"` : ''}.`] : label ? [`I read "${label}", and that is the conversation I want to have.`] : []),
+      // The desk's sentence from one fact on their record, read by fixed rules (src/stages/openings.mjs), where it wrote one.
+      ...(open ? [open] : why ? [`I'd like to talk with you because ${why}${label ? `, and I read "${label}"` : ''}.`] : label ? [`I read "${label}", and that is the conversation I want to have.`] : []),
       `One episode idea: "${idea ?? EPISODE.leadership}"; would you be up for it in the coming weeks?`,
     ],
   };
@@ -1288,7 +1290,7 @@ function afterLookup(state, held) {
 /** A found route as it goes to Control Center: the subject, the route and the result it was read from. Holds an address: never written to a file or a fixture. Pure. */
 const foundRoute = (subject_ref, lane, state) => ({ subject_ref, lane, kind: state.route.kind, ...(state.route.kind === 'email' ? { address: state.route.address, basis: state.route.basis } : { url: state.route.url }), source_url: state.route.source_url, request_id: state.request_id });
 
-export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false, networkRoutes = false, wins = null, research = context?.research, shown = null }) {
+export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false, networkRoutes = false, wins = null, research = context?.research, shown = null, openingsRequired = false }) {
   const L = lessons(context?.feedback, at);
   const pitched = pitchedStages(context);
   const lanes = { ...LANES_ON, ...(caps.lanes ?? {}) };
@@ -1393,12 +1395,21 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   // One episode, talk or idea to one email a run (Krish, 2026-11-06): the next email gets the next option.
   const once = { episodes: new Set(), talks: new Set(), ideas: new Set() };
   const serves = servesOf('visibility', weekGoals);
-  const inviteProposals = invites.map(({ g, standard }, i) => {
+  // Each invite opens on the desk's sentence from one fact on their record; where the desk is open, one not written or not passing holds the invite.
+  const openingAsks = [];
+  const openFor = list => list.map(x => {
+    const op = opening({ id: x.g.contact_id, name: guestName(x.g), card: {}, why: [x.g.one_liner, x.g.why_fit].filter(v => typeof v === 'string'), research, required: openingsRequired, purpose: 'invite', show: inviteShow(x.g.invite_show, canon).name });
+    if (op.request) openingAsks.push(op.request);
+    if (op.hold) { inviteHeld.push(op.hold); return null; }
+    return { ...x, open: op.sentence };
+  }).filter(Boolean);
+  const openInvites = openFor(invites), openKrishInvites = openFor(krishInvites);
+  const inviteProposals = openInvites.map(({ g, standard, open }, i) => {
     const name = guestName(g);
     const show = inviteShow(g.invite_show, canon);
     const weekly = INVITE_SHOWS[g.invite_show].weekly;
     const topic = guestTopic(g);
-    const words = inviteWords({ name, show, page: evidencePages(g)[0] ?? null, g, idea: guestIdea(g, topic, once.ideas) });
+    const words = inviteWords({ name, show, page: evidencePages(g)[0] ?? null, g, idea: guestIdea(g, topic, once.ideas), opening: open });
     const card = inviteCard({ g, name, show, topic, canon, contact: people.get(g.contact_id) ?? null, serves, weekly });
     const because = `A ${standard === 'take' ? 'strong ' : ''}guest for ${show.name}. Jonny invites them.`;
     const action = { version: 2, channel: 'email', recipient_contact_id: g.contact_id, subject: words.subject, body: words.body, form: null, mailbox: 'jonny' };
@@ -1474,7 +1485,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     };
   });
   const krishRows = [
-    ...krishInvites.map(({ g, standard }) => krishInviteRow({ g, standard, canon, contact: people.get(g.contact_id) ?? null, routes, serves, files, at, titleMax, used: once })),
+    ...openKrishInvites.map(({ g, standard, open }) => krishInviteRow({ g, standard, canon, contact: people.get(g.contact_id) ?? null, routes, serves, files, at, titleMax, used: once, opening: open })),
     ...krishPods.map(({ t }) => krishPitchRow({ t, kind: 'podcast', canon, contact: people.get(t.booking_contact_id) ?? null, routes, serves, files: usedFiles, at, titleMax, used: once })),
     ...krishStages.map(({ t }) => krishPitchRow({ t, kind: 'stage', canon, contact: people.get(t.booking_contact_id) ?? null, routes, serves: speakServes, files: usedFiles, at, titleMax, used: once })),
   ];
@@ -1483,7 +1494,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   // Forms first: a report keeps at most forty, and a pitch left out waits for the next run.
   // His own rows for those in his network go with the rows he presses himself (rows.mjs rankRows), never in Jonny's ten.
   return { proposals: [...forms.proposals, ...notes.proposals, ...inviteProposals, ...podcastProposals, ...stageProposals], krishRows, held, stageHeld, inviteHeld, formHeld: forms.held, notesHeld: notes.held, jonny: { used, room },
-    lookups: { ...lookupRequests({ stages: lookStages, podcasts: lookPods, guests: lookGuests, research, at, max: LOOKUPS_PER_RUN }), answered }, found };
+    lookups: { ...lookupRequests({ stages: lookStages, podcasts: lookPods, guests: lookGuests, research, at, max: LOOKUPS_PER_RUN }), answered }, found, openings: openingAsks };
 }
 
 /** The route weight his own row would draft on: an address on record, else one Control Center has not checked. */
@@ -1495,7 +1506,7 @@ const emailWeight = (routes, id) => routes?.[id]?.email === 'verified' ? channel
  * so his Draft press drafts it into his own box, in his own words, signed
  * Krish, from the same facts Jonny's invite would have used. Pure.
  */
-export function krishInviteRow({ g, standard, canon, contact, routes, serves, files, at, titleMax = TITLE_MAX, used = { ideas: new Set() } }) {
+export function krishInviteRow({ g, standard, canon, contact, routes, serves, files, at, titleMax = TITLE_MAX, used = { ideas: new Set() }, opening: open = null }) {
   const name = guestName(g), f = firstName(name);
   const show = inviteShow(g.invite_show, canon);
   const topic = guestTopic(g);
@@ -1508,7 +1519,7 @@ export function krishInviteRow({ g, standard, canon, contact, routes, serves, fi
     why: `${name} is in your own network, so you invite them yourself, not Jonny. The guest standard judged them ${standard === 'take' ? 'worth having' : 'a stretch'} for ${show.name}. One ask: a conversation on the show.`,
     because: because.length <= BECAUSE_MAX ? because : `In your network. You invite them.`,
     brief: [card.who, card.known, ...card.why.slice(0, 2), `The ask: you invite ${f} onto ${show.name}, from your own Gmail.`],
-    card, action: actionFor('email', g.contact_id, name, krishInviteWords({ show, page: evidencePages(g)[0] ?? null, g, name, idea: guestIdea(g, topic, used.ideas) })),
+    card, action: actionFor('email', g.contact_id, name, krishInviteWords({ show, page: evidencePages(g)[0] ?? null, g, name, idea: guestIdea(g, topic, used.ideas), opening: open })),
     reach, kind: null, features: { sector: null, topic, seniority: null }, serves, evidence: [],
   }) };
 }

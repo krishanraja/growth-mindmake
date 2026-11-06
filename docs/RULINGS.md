@@ -165,3 +165,13 @@ In his words (5 November, on who to reach): "I still think the crazy rich and cr
 - The same day he added Gemini: "Gemini would be good too as that's the most common one and it's probably going to get things wrong quite a lot." The mirror asks Perplexity, ChatGPT, Claude and Gemini.
 - Later the same day: "Do all the things that are still open." So the circle also draws from his own network (up to ten a run, by contact id, each invited from his own row), a mirror is made before any meeting with a circle person on his calendar in the next fortnight, and the mirror asks Gemini Pro on the existing key, which a probe showed is billed.
 - No wall moves: every send, post and spend still takes his yes.
+
+## Openings written by the desk, and lookups for row people (Ruling, Krish, 2026-11-06)
+
+In his words (6 November, after the engine put two open items to him: an opening sentence written by a model for each catch-up and invite, and address lookups for row people now that Control Center records them): "Yes, make those still open decisions yourself for the best quality. Execute it. Stop coming back to me with things you haven't done."
+
+- The opening sentence of each NETWORK catch-up and each guest invite is written by Control Center's research desk (`question`, a model answer, about $0.001 each) from one sourced fact on the card, through the protocol the engine already uses; no new provider and no new paid service (src/stages/openings.mjs).
+- Every sentence the desk writes is read by fixed rules before an email carries it: one sentence of six to thirty words said to them, with a subject and a verb, no dash, question, link, citation or praise, no word about the research, Krish or another venture, no name or number the fact does not hold, and no shape the final guard holds. Where the desk is open, an email whose opening is not written or does not pass is held (`opening_waiting`, `opening_failed`, `opening_no_fact`), never sent with a frame in its place. Each request is keyed by its own words, so a card asked once replays its answer at no cost; at most ten catch-up openings a run, after the lookups.
+- A row person (an amplifier or a close tie) with no address is looked up, up to six a run after the pitches' and invites' twelve (`PERSON_LOOKUPS_PER_RUN`), where Control Center serves `features.person_routes` (krishanraja/control-center#656). An address is theirs only when it is no role inbox, its local part carries their name and the result names them; it goes to Control Center in `found_routes` to check and record.
+- No wall moves: every send, post and spend still takes his yes, and Control Center's daily research caps still bind.
+

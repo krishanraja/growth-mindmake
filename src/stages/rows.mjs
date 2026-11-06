@@ -1,5 +1,7 @@
 import { seal, clean, DAY } from '../guards.mjs';
 import policy from '../../config/policy.json' with { type: 'json' };
+import { opening } from './openings.mjs';
+import { lookupState } from './pitches.mjs';
 
 /**
  * The five rows on Krish's home screen (protocol 1.6.0, playbook 11).
@@ -1224,6 +1226,8 @@ export function brokenEmails(proposals) {
   }
   return out;
 }
+/** Catch-up openings asked of the desk a run: the network row's eight and two to spare. */
+export const OPENINGS_PER_RUN = 10;
 const joinAnd = list => (list.length <= 1 ? (list[0] ?? '') : `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`);
 
 export const WORDS = {
@@ -1429,9 +1433,27 @@ const KIND_NOUN = { investor: 'portfolio', ai_capital: 'investments', connector:
  * and from close ties gone quiet (network). Also the reach questions worth
  * asking: the top few with no cited figure, once a month each.
  */
-export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR, wins = null }) {
+export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR, wins = null, research: researchIn = null, openingsRequired = false, personRoutes = false }) {
   const L = lessons(context.feedback, at);
-  const research = Array.isArray(context.research) ? context.research : [];
+  // This run's research where the dispatch has it (the openings the desk wrote in this run), else the context's.
+  const research = Array.isArray(researchIn) ? researchIn : Array.isArray(context.research) ? context.research : [];
+  const openingAsks = [];
+  // A row person with no address is looked up where Control Center records what is found for any contact (features.person_routes).
+  const personLooks = [], found = [];
+  const lookFor = (id, name, company, rank) => {
+    if (!personRoutes || routes[id]?.email || !hasFullName(name)) return;
+    const base = `email:${id}`;
+    const st = lookupState(base, research, { subject: { name }, lane: 'person' });
+    if (st.state === 'found') { found.push({ subject_ref: `contact:${id}`, lane: 'person', kind: 'email', address: st.route.address, basis: st.route.basis, source_url: st.route.source_url, request_id: st.request_id }); return; }
+    if (!['none', 'nothing'].includes(st.state)) return;
+    const org = clean(company ?? '').replace(/[@\d]{6,}/g, '');
+    const query = [
+      `Work email address for ${name}${org ? ` of ${org}` : ''}, as published on their company's site, a speaker page or their own site, with the source.`,
+      `${name}${org ? ` ${org}` : ''} contact email.`,
+      `${name} email address${org ? ` ${org}` : ''} press, speaking or contact page.`,
+    ][Math.min(st.tried, 2)];
+    personLooks.push({ lane: 'person', key: id, base, score: rank, subject_ref: `contact:${id}`, state: st, query, why: `Held for want of an address: finding one lets Krish write to ${name}, still only on his yes.` });
+  };
   const routes = context.routes ?? {};
   const sectorOf = new Map((context.companies ?? []).map(c => [c.domain, word(c.kind)]));
   const companyOf = new Map((context.companies ?? []).filter(c => typeof c?.domain === 'string').map(c => [c.domain, c]));
@@ -1475,6 +1497,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     if (!best) {
       const why = usable.length ? usable.find(o => o.refused)?.refused ?? 'no_route' : blocked(options[0]);
       held.push(why);
+      if (why === 'no_route') lookFor(id, name, c.current_company ?? c.contacts?.company ?? '', fit);
       // One of his own show's people may still be a tie to catch up with; a channel with no name is asked about once a month.
       if (why === 'own_show') seen.delete(id);
       if (why === 'unnamed_channel' && unnamed.length < 2) unnamed.push({ c, name });
@@ -1553,7 +1576,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     const subject = `contact:${id}`;
     const ch = channelOf(routes[id], 'network');
     const refused = refusedBy(L, { subject, row: 'network', kind: null, sector: null, topic: null, band: 'unknown' }, at);
-    if (!hasFullName(name) || !ch || refused) { held.push(refused ?? (ch ? 'no_full_name' : 'no_route')); continue; }
+    if (!hasFullName(name) || !ch || refused) { held.push(refused ?? (ch ? 'no_full_name' : 'no_route')); if (!ch && !refused) lookFor(id, name, n.current_company ?? n.contacts?.company ?? '', fitOf(n)); continue; }
     const serves = servesOf('network', weekGoals);
     const variant = (L.pitchOff.get('network') ?? 0) % WORDS.relationship.length;
     const reach = { value: null, band: 'unknown', basis: 'a relationship, not an audience', source_url: null, as_of: null };
@@ -1564,7 +1587,12 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     if (cardClash(card, company)) { held.push('facts_disagree'); if (profiles.length < 2) profiles.push({ c: n, name, company }); continue; }
     // One thing about them and the history between you: a catch-up with neither is a template, and is not written.
     // The catch-up is about one fact on the card, never their employer alone (Control Center's read of 6 November: six of eight were).
-    const specific = specificOf(n, { why: card.why }), history = historyOf(n, { why: card.why });
+    // The opening is written by the desk from one fact on the card and read by fixed rules (src/stages/openings.mjs);
+    // where the desk is open, one not written or not passing holds the catch-up, never a frame in its place.
+    const op = opening({ id, name, card: n, why: card.why, research, required: openingsRequired });
+    if (op.request) openingAsks.push({ score: fit * (1 + Math.min(2, (Date.parse(at) - last) / (365 * DAY))), request: op.request });
+    if (op.hold) { held.push(op.hold); continue; }
+    const specific = op.sentence ?? specificOf(n, { why: card.why }), history = historyOf(n, { why: card.why });
     if (!specific) { held.push('nothing_specific'); continue; }
     const told = caseFor({ c: n, name, company, ask: 'relationship', kind: null, reach, fit, serves, at });
     out.push({ score: (score({ band: 'unknown', value: null }, fit / 100, ch.weight, serves, true) + Math.min(2, (Date.parse(at) - last) / (365 * DAY))) * fit / 100, proposal: rowProposal({
@@ -1595,7 +1623,9 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     query: clean(`What podcast, newsletter or show does ${name} host or run? Give its exact name, how often it publishes, and its audience size, each with its source and date.`).slice(0, 400),
     why: clean(`Names the show a guest pitch to ${name} would be for.`).slice(0, 300),
   })).filter(r => !research.some(x => x.request_id === r.request_id));
-  return { rows: out, held, research: [...research_requests, ...profile_requests, ...channel_requests] };
+  // Openings first, for the ties likeliest to be shown: at most OPENINGS_PER_RUN a run, each asked once (its id replays).
+  const opening_requests = openingAsks.sort((a, b) => b.score - a.score).map(a => a.request).slice(0, OPENINGS_PER_RUN);
+  return { rows: out, held, research: [...opening_requests, ...research_requests, ...profile_requests, ...channel_requests], lookups: personLooks, found };
 }
 
 /** The title on his phone. At 1.7.0 (max 56) the line under it says who they are, so the company is left off. */

@@ -17,7 +17,7 @@ import { signalRequests, signalRows } from './stages/signals.mjs';
 import { circleRequests, circlePeople, circleFromNetwork, takesCircle, circleAnswer, CIRCLE_VERSION } from './stages/circle.mjs';
 import { mirrorPlan, takesMirror, MIRROR_VERSION } from './stages/mirror.mjs';
 import { readCanon, readRecord, blobSha, CanonError } from './stages/canon.mjs';
-import { pitchRows } from './stages/pitches.mjs';
+import { pitchRows, lookupRequests } from './stages/pitches.mjs';
 import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, readSpecCounts, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, visibilityTargets, STOPGAP_PREFIX, MEETINGS_VERSION, meetingsServed, readMeetings, countGood, tappedObjective, tappedLine, originCandidates } from './stages/meetings.mjs';
 import { readWeb, trafficLines, bookedHosts } from './stages/traffic.mjs';
 import { readCredits, creditsLine, CREDITS_VERSION, CREDITS_SPENT_MAX } from './stages/credits.mjs';
@@ -224,6 +224,8 @@ const ASKS_AFTER_ROWS = 2;
 export const RESEARCH_BATCH = 10;
 /** The first research round: the run's lookups (LOOKUPS_PER_RUN, 12) first, then sourcing, reach and signals, two calls at most. */
 export const RESEARCH_ROUND = 20;
+/** Address lookups a run for row people with none (features.person_routes), after the pitches' and invites' twelve. */
+export const PERSON_LOOKUPS_PER_RUN = 6;
 /** Mindmake's searches a London day at the research desk (ENGINE-PROTOCOL.md, "The research desk"), when the capabilities do not say. */
 export const SEARCHES_PER_DAY = 40;
 const londonDay = at => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(at));
@@ -524,18 +526,23 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   let ctx = context;
   let research = Array.isArray(ctx.research) ? [...ctx.research] : [];
   // The caps come from the week spec in force (src/crew/compile.mjs): today's unless he signed others.
-  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins });
+  // Openings are written by the desk wherever it is open this run (src/stages/openings.mjs): a catch-up or an invite without a passing one is held.
+  const openingsRequired = mode === 'live' && capabilities?.features?.research === true;
+  // Row people with no address are looked up where Control Center records a route for any contact (features.person_routes, krishanraja/control-center#656).
+  const personRoutes = mode === 'live' && capabilities?.features?.person_routes === true && capabilities?.features?.research === true;
+  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins, openingsRequired, personRoutes });
   // Ruling (Krish, 2026-10-28): who is in his network is Control Center's routes[id].in_network, read only where it says it serves it.
   const networkRoutes = capabilities?.features?.network_routes === true;
   const record = pitches ? await recordReader() : null;
   // 1.10.0: notes asking a booked show for the brief link, only where Control Center drafts them.
   const showNotes = capabilities?.features?.show_notes === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes('1.10.0');
   // The research the pitches read is this run's too: a lookup the desk answered this run gives its route in the same run.
-  const pitchArgs = (c, r = c?.research) => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes, wins, research: r, shown });
+  const pitchArgs = (c, r = c?.research) => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes, wins, research: r, shown, openingsRequired });
+  let pitchOpenings = [];
   let lookups = { requests: [], waiting: 0, asked_today: 0, by: { stages: 0, podcasts: 0, guests: 0 } };
   if (mode === 'live' && capabilities?.features?.research === true) {
     // A stage, show or guest held only for want of an address asks the desk to find it in the same run (C2), up to LOOKUPS_PER_RUN, first in the round.
-    if (pitches) lookups = pitchRows(pitchArgs(ctx)).lookups;
+    if (pitches) { const first = pitchRows(pitchArgs(ctx)); lookups = first.lookups; pitchOpenings = first.openings ?? []; }
     // The engine's own asks first (an address a pitch lacks, a cited reach, a profile for a card too thin to show), then the signals' collection.
     // A pool that has stood still asks for new shows and stages after the addresses (C4, src/stages/momentum.mjs).
     // The first round carries up to RESEARCH_ROUND, sent RESEARCH_BATCH at a time (Control Center takes 1 to 10 a request).
@@ -545,7 +552,13 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
     const fit = list => { const kept = withinSearches(list, lookupIds, left); left -= kept.filter(r => r.kind === 'search').length; return kept; };
     // The circle lane's daily questions come after the addresses and the sourcing (Ruling, Krish, 2026-11-05), only where Control Center files what they find.
     const circleAsks = takesCircle(capabilities, REPORT_SCHEMA) ? circleRequests({ research, at }) : [];
-    let pending = fit([...lookups.requests, ...sourcing, ...circleAsks, ...amplifiersFirst.research, ...signalRequests({ voices: ctx.voices, research, at })].slice(0, RESEARCH_ROUND));
+    // The openings come straight after the lookups (Ruling, Krish, 2026-10-31: lookups first in the round); any the round cannot take go in the next.
+    const isOpening = r => typeof r?.request_id === 'string' && r.request_id.startsWith('open:');
+    const openings = [...pitchOpenings, ...amplifiersFirst.research.filter(isOpening)];
+    // Row people's lookups come after the pitches' and invites' (Ruling, Krish, 2026-10-31), PERSON_LOOKUPS_PER_RUN a run.
+    const personLookups = personRoutes ? lookupRequests({ guests: amplifiersFirst.lookups ?? [], research, at, max: PERSON_LOOKUPS_PER_RUN }).requests : [];
+    if (personRoutes) counts.person_lookups_asked = 0;
+    let pending = fit([...lookups.requests, ...openings, ...personLookups, ...sourcing, ...circleAsks, ...amplifiersFirst.research.filter(r => !isOpening(r)), ...signalRequests({ voices: ctx.voices, research, at })].slice(0, RESEARCH_ROUND));
     let down = false;
     for (let round = 0; round < 2 && pending.length && !down; round++) {
       for (let i = 0; i < pending.length; i += RESEARCH_BATCH) {
@@ -554,7 +567,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
           const got = await cc.research(batch);
           counts.research_asked += batch.length;
           counts.research_answered += got.filter(r => r.status === 'answered').length;
-          if (round === 0) { counts.lookups_asked += batch.filter(r => lookups.requests.includes(r)).length; counts.sourcing_asked += batch.filter(r => sourcing.includes(r)).length; counts.circle_asked = (counts.circle_asked ?? 0) + batch.filter(r => circleAsks.includes(r)).length; }
+          if (round === 0) { if (personRoutes) counts.person_lookups_asked += batch.filter(r => personLookups.includes(r)).length; counts.lookups_asked += batch.filter(r => lookups.requests.includes(r)).length; counts.sourcing_asked += batch.filter(r => sourcing.includes(r)).length; counts.circle_asked = (counts.circle_asked ?? 0) + batch.filter(r => circleAsks.includes(r)).length; }
           research = mergeResearch(got, research);
         } catch {
           holds.push({ reason: 'research_unavailable', detail: 'Control Center could not run the lookups asked for this run; rows use what was already known.' });
@@ -562,7 +575,8 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
           break;
         }
       }
-      pending = fit(signalRequests({ voices: ctx.voices, research, at }));
+      const askedIds = new Set(research.map(r => r.request_id));
+      pending = fit([...openings.filter(r => !askedIds.has(r.request_id)), ...signalRequests({ voices: ctx.voices, research, at })].slice(0, RESEARCH_ROUND));
     }
     // Someone filed this run has no routes in the context read before it: read it again once.
     if (research.some(r => r.kind === 'person_route' && r.status === 'answered' && !(ctx.research ?? []).some(x => x.request_id === r.request_id))) {
@@ -570,7 +584,8 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
       catch { holds.push({ reason: 'context_reread_unavailable', detail: 'People found this run get their row on the next run.' }); }
     }
   }
-  const amplifiers = ctx === context ? amplifiersFirst : amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins });
+  // Read again with this run's research, so an opening the desk wrote in this run is used in this run.
+  const amplifiers = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins, research: mergeResearch(research, ctx.research ?? []), openingsRequired, personRoutes });
   const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax });
   // 1.9.0: pitches for Jonny's box, after the rows he presses himself: guests
   // invited onto his own shows and podcasts on visibility, stages to speak on
@@ -633,6 +648,8 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const kinds = counts.lookups_asked ? [['stage', lookups.by.stages], ['podcast', lookups.by.podcasts], ['guest', lookups.by.guests]].filter(([, n]) => n).map(([k, n]) => `${n} ${k}${n === 1 ? '' : 's'}`) : [];
   const answeredAny = answered.addresses + answered.forms + answered.nothing;
   if (pitches && (counts.lookups_asked || waitingLookups || answeredAny)) activity.push(`Addresses for held pitches and invites: ${counts.lookups_asked} looked up this run${kinds.length ? ` (${kinds.join(', ')})` : ''}, ${waitingLookups} asked and waiting for an answer; answered: ${answered.addresses} with an address on the subject's own site, ${answered.forms} with its own form page, ${answered.nothing} with nothing usable (asked again in other words, at most once a day). A found route goes to Control Center to record; a found one still needs his yes, and the network rule decides whose box it goes in.`);
+  const personFound = personRoutes ? (amplifiers.found ?? []).length : 0;
+  if (personRoutes && (counts.person_lookups_asked || personFound)) activity.push(`Addresses for row people: ${counts.person_lookups_asked} looked up this run; ${personFound} found, sent for Control Center to check and record. A found one still needs his yes.`);
   // Found routes go to Control Center only where it records them, serves 1.18.0 and the copied report schema has the field.
   const takesRoutes = takesFoundRoutes(capabilities);
   if (pitches && counts.lookups_found && !takesRoutes) holds.push({ reason: 'found_routes_unrecorded', detail: `${counts.lookups_found} route${counts.lookups_found === 1 ? '' : 's'} found in answered lookups wait${counts.lookups_found === 1 ? 's' : ''} for Control Center to take found routes (features.found_routes at protocol 1.18.0, docs/CONTROL-CENTER-BRIEF.md); until it records them on the stage or the guest, the pitch or invite cannot name its recipient.` });
@@ -642,7 +659,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // The strangers first, then up to ten from his own network by contact id (Krish, 2026-11-05).
   const circle = mode === 'live' && takesCircle(capabilities, REPORT_SCHEMA) ? [...circlePeople(research, { at }), ...circleFromNetwork(ctx)] : [];
   if (counts.circle_asked || circle.length) activity.push(`Circle lane: ${counts.circle_asked ?? 0} questions asked this run; ${circle.length} people sent for Control Center to match to his network or file with no address (strangers by their pages, his own network by contact). Someone he knows goes on his own row; only a stranger is ever Jonny's.`);
-  return { proposals, holds, activity, counts, canonFiles: canon.files, canon, research, found_routes: takesRoutes ? foundRoutesField(pitched.found ?? []) : null, circle: circle.length ? circle : null, mirror: takesMirror(capabilities, REPORT_SCHEMA) ? mirrorPlan() : null };
+  return { proposals, holds, activity, counts, canonFiles: canon.files, canon, research, found_routes: takesRoutes ? foundRoutesField([...(pitched.found ?? []), ...(personRoutes ? amplifiers.found ?? [] : [])]) : null, circle: circle.length ? circle : null, mirror: takesMirror(capabilities, REPORT_SCHEMA) ? mirrorPlan() : null };
 }
 
 /**

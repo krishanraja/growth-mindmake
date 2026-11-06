@@ -220,6 +220,34 @@ export function carriesWholeName(local, name) {
 }
 
 /**
+ * A row person's own address, as Control Center will check it (features.person_routes): never a role
+ * inbox, the local part carries their first or last name or their first initial and last name, and the
+ * result it was read on names them by their last name. The address may be on any domain, since it is
+ * theirs, not a site's. null when none passes. Pure.
+ */
+export function personAddressFrom(evidence, person) {
+  const n = plain(person?.name).split(' ').filter(w => w.length >= 2);
+  if (n.length < 2) return null;
+  const [first, last] = [n[0], n.at(-1)];
+  const found = [];
+  (Array.isArray(evidence) ? evidence : []).forEach((item, at) => {
+    if (!/^https:\/\//.test(item?.url ?? '')) return;
+    // Named in the words, not in an address: an address alone never shows whose it is.
+    if (!plain(`${item?.title ?? ''} ${item?.snippet ?? ''}`.replace(EMAIL, ' ')).split(' ').includes(last)) return;
+    for (const { address } of addressesIn(item)) {
+      const local = address.split('@')[0];
+      if (roleRank(local) !== Infinity) continue;
+      const run = local.toLowerCase().replace(/[^a-z]/g, '');
+      const theirs = run.includes(last) || run.startsWith(first) || run === `${first[0]}${last}` || carriesWholeName(local, person.name);
+      if (!theirs) continue;
+      found.push({ address, source_url: item.url, at, whole: carriesWholeName(local, person.name) ? 0 : 1 });
+    }
+  });
+  found.sort((a, b) => a.whole - b.whole || a.at - b.at);
+  return found[0] ? { kind: 'email', address: found[0].address, source_url: found[0].source_url, basis: 'own_name' } : null;
+}
+
+/**
  * The route an answered lookup's results give, or null: for a stage or a show
  * an address first and its own form page second; for a guest an address only.
  * `subject` is `{ name, event_url, cfp_url }` for a stage or a show and
@@ -228,6 +256,7 @@ export function carriesWholeName(local, name) {
 export function routeFromEvidence(evidence, subject, lane) {
   if (!Array.isArray(evidence) || !evidence.length || !subject?.name) return null;
   if (lane === 'guest') return guestAddressFrom(evidence, subject);
+  if (lane === 'person') return personAddressFrom(evidence, subject);
   const sites = ownSites(subject, evidence);
   if (!sites.length) return null;
   return addressFrom(evidence, subject, sites) ?? formFrom(evidence, subject, sites);
