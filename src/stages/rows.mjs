@@ -1226,8 +1226,10 @@ export function brokenEmails(proposals) {
   }
   return out;
 }
-/** Catch-up openings asked of the desk a run: the network row's eight and two to spare. */
+/** Catch-up openings asked of the desk a run: the network row's eight and two to spare, as cited answers (question). */
 export const OPENINGS_PER_RUN = 10;
+/** As writes (Claude, no web search, 150 a day at Control Center): enough for every row's people in one run. */
+export const WRITES_PER_RUN = 30;
 const joinAnd = list => (list.length <= 1 ? (list[0] ?? '') : `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`);
 
 export const WORDS = {
@@ -1433,7 +1435,7 @@ const KIND_NOUN = { investor: 'portfolio', ai_capital: 'investments', connector:
  * and from close ties gone quiet (network). Also the reach questions worth
  * asking: the top few with no cited figure, once a month each.
  */
-export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR, wins = null, research: researchIn = null, openingsRequired = false, personRoutes = false }) {
+export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR, wins = null, research: researchIn = null, openingsRequired = false, personRoutes = false, openingKind = 'question' }) {
   const L = lessons(context.feedback, at);
   // This run's research where the dispatch has it (the openings the desk wrote in this run), else the context's.
   const research = Array.isArray(researchIn) ? researchIn : Array.isArray(context.research) ? context.research : [];
@@ -1589,7 +1591,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     // The catch-up is about one fact on the card, never their employer alone (Control Center's read of 6 November: six of eight were).
     // The opening is written by the desk from one fact on the card and read by fixed rules (src/stages/openings.mjs);
     // where the desk is open, one not written or not passing holds the catch-up, never a frame in its place.
-    const op = opening({ id, name, card: n, why: card.why, research, required: openingsRequired, at });
+    const op = opening({ id, name, card: n, why: card.why, research, required: openingsRequired, at, kind: openingKind });
     if (op.request) openingAsks.push({ score: fit * (1 + Math.min(2, (Date.parse(at) - last) / (365 * DAY))), request: op.request });
     if (op.hold) { held.push(op.hold); continue; }
     const specific = op.sentence ?? specificOf(n, { why: card.why }), history = historyOf(n, { why: card.why });
@@ -1624,7 +1626,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     why: clean(`Names the show a guest pitch to ${name} would be for.`).slice(0, 300),
   })).filter(r => !research.some(x => x.request_id === r.request_id));
   // Openings first, for the ties likeliest to be shown: at most OPENINGS_PER_RUN a run, each asked once (its id replays).
-  const opening_requests = openingAsks.sort((a, b) => b.score - a.score).map(a => a.request).slice(0, OPENINGS_PER_RUN);
+  const opening_requests = openingAsks.sort((a, b) => b.score - a.score).map(a => a.request).slice(0, openingKind === 'write' ? WRITES_PER_RUN : OPENINGS_PER_RUN);
   return { rows: out, held, research: [...opening_requests, ...research_requests, ...profile_requests, ...channel_requests], lookups: personLooks, found };
 }
 

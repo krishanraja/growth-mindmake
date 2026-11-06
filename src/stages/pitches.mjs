@@ -1290,7 +1290,7 @@ function afterLookup(state, held) {
 /** A found route as it goes to Control Center: the subject, the route and the result it was read from. Holds an address: never written to a file or a fixture. Pure. */
 const foundRoute = (subject_ref, lane, state) => ({ subject_ref, lane, kind: state.route.kind, ...(state.route.kind === 'email' ? { address: state.route.address, basis: state.route.basis } : { url: state.route.url }), source_url: state.route.source_url, request_id: state.request_id });
 
-export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false, networkRoutes = false, wins = null, research = context?.research, shown = null, openingsRequired = false }) {
+export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false, networkRoutes = false, wins = null, research = context?.research, shown = null, openingsRequired = false, openingKind = 'question' }) {
   const L = lessons(context?.feedback, at);
   const pitched = pitchedStages(context);
   const lanes = { ...LANES_ON, ...(caps.lanes ?? {}) };
@@ -1398,7 +1398,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   // Each invite opens on the desk's sentence from one fact on their record; where the desk is open, one not written or not passing holds the invite.
   const openingAsks = [];
   const openFor = list => list.map(x => {
-    const op = opening({ id: x.g.contact_id, name: guestName(x.g), card: {}, why: [x.g.one_liner, x.g.why_fit].filter(v => typeof v === 'string'), research, required: openingsRequired, purpose: 'invite', show: inviteShow(x.g.invite_show, canon).name, at });
+    const op = opening({ id: x.g.contact_id, name: guestName(x.g), card: {}, why: [x.g.one_liner, x.g.why_fit].filter(v => typeof v === 'string'), research, required: openingsRequired, purpose: 'invite', show: inviteShow(x.g.invite_show, canon).name, at, kind: openingKind });
     if (op.request) openingAsks.push(op.request);
     if (op.hold) { inviteHeld.push(op.hold); return null; }
     return { ...x, open: op.sentence };

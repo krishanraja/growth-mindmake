@@ -1,5 +1,6 @@
 // The opening sentence of a catch-up or an invite, written by Control Center's
-// research desk (`question`, a model answer, about $0.001 each) from one sourced
+// research desk (`write`, Claude with no web search, about $0.0015 each, where
+// Control Center serves it, krishanraja/control-center#659; else `question`) from one sourced
 // fact on the card, then read by fixed rules before any email carries it
 // (Krish, 2026-11-06: "make those still open decisions yourself for the best
 // quality"). A sentence that fails, or one not yet answered where the desk is
@@ -66,14 +67,15 @@ const londonDay = at => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Lon
  * answered nothing and charged nothing), the same words are asked again under
  * the London day, at most once a day. Pure.
  */
-export function openingRequest({ id, name, fact, purpose = 'catchup', show = '', research = [], at = null }) {
+export function openingRequest({ id, name, fact, purpose = 'catchup', show = '', research = [], at = null, kind = 'question' }) {
   const query = openingQuery({ name, fact, purpose, show });
   if (!query) return null;
-  const base = `open:${id}:${seal({ query }).slice(0, 12)}`;
+  // A write is keyed apart from a question with the same words: the desk refuses one id asked two ways.
+  const base = `open:${id}:${seal(kind === 'write' ? { query, kind } : { query }).slice(0, 12)}`;
   const tried = (Array.isArray(research) ? research : []).filter(r => typeof r?.request_id === 'string' && (r.request_id === base || r.request_id.startsWith(`${base}:`)));
   const day = at ? londonDay(at) : null;
   const request_id = !tried.length || !day || tried.some(r => !['failed', 'empty'].includes(r.status)) ? (tried.find(r => !['failed', 'empty'].includes(r.status))?.request_id ?? base) : `${base}:${day}`;
-  return { request_id, kind: 'question', subject_ref: `contact:${id}`, query, why: clean(`Writes the opening sentence of ${purpose === 'invite' ? 'an invite' : 'a catch-up'} from one fact on the card.`).slice(0, 300) };
+  return { request_id, kind, subject_ref: `contact:${id}`, query, why: clean(`Writes the opening sentence of ${purpose === 'invite' ? 'an invite' : 'a catch-up'} from one fact on the card.`).slice(0, 300) };
 }
 
 /** The desk's answer to an opening request: { state: 'answered', text } | { state: 'failed' } | { state: 'waiting' }. Pure. */
@@ -129,10 +131,10 @@ export function validOpening(text, { name = '', fact = '', show = '' } = {}) {
  * in, or one that fails the rules, holds the email. Elsewhere (a dry run, a
  * test, a desk that is closed) the caller's own sentence stands. Pure.
  */
-export function opening({ id, name, card, why = [], research, required = false, purpose = 'catchup', show = '', at = null }) {
+export function opening({ id, name, card, why = [], research, required = false, purpose = 'catchup', show = '', at = null, kind = 'question' }) {
   const fact = openingFact(card, why);
   if (!fact) return { request: null, sentence: null, hold: required ? 'opening_no_fact' : null };
-  const request = openingRequest({ id, name, fact, purpose, show, research, at });
+  const request = openingRequest({ id, name, fact, purpose, show, research, at, kind });
   const got = openingAnswer(research, request);
   if (got.state === 'answered') {
     const v = validOpening(got.text, { name, fact, show });

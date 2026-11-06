@@ -1,5 +1,10 @@
 # Release state
 
+## Openings written by Claude, 6 November 2026 (Ruling, Krish, 2026-11-06: yes to a model writing them)
+
+- **Built and tested.** Where Control Center's capabilities list the desk's `write` kind (krishanraja/control-center#659: Claude, no web search, one sentence from only the facts sent, 150 a day), each opening is asked as `write` (`openingKind` in src/dispatch.mjs), keyed apart from the same words asked as a question, up to `WRITES_PER_RUN` (30) a run. The cited-answer `question` kind failed 7 of 12 openings on its first live run. `validOpening` still reads every answer by fixed rules and holds what fails.
+- **Verified on:** the repository checks and 594 tests. The live proof is the first run after the merge.
+
 ## Openings written by the desk, lookups for row people, 6 November 2026 (Ruling, Krish, 2026-11-06)
 
 Krish: "Yes, make those still open decisions yourself for the best quality. Execute it." Control Center's reads of the day's live runs showed that slot-filling research notes into a fixed frame kept breaking, however many shapes the guard learnt.
