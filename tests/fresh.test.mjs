@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseCanon, blobSha } from '../src/stages/canon.mjs';
-import { amplifierRows, rankRows, sharedBodies, bodySkeleton, sentenceSkeletons, companyAsWritten, plainWords, possessive, portfolioNames, yourWork, shownLine, shownHistory, shortId, cardClash, employersIn, sameOrg, specificOf, historyOf, sharedPlace, fundOf, youFact, titleNaming, givenParts, shorterNames, WORDS, actionFor } from '../src/stages/rows.mjs';
+import { amplifierRows, rankRows, sharedBodies, bodySkeleton, sentenceSkeletons, companyAsWritten, plainWords, possessive, portfolioNames, yourWork, shownLine, shownHistory, shortId, cardClash, employersIn, sameOrg, specificOf, historyOf, sharedPlace, fundOf, youFact, titleNaming, givenParts, brokenSentence, brokenEmails, shorterNames, WORDS, actionFor } from '../src/stages/rows.mjs';
 import { pitchRows, lookupRequests, uniqueStages, stageKeys, guestIdea } from '../src/stages/pitches.mjs';
 
 // Krish, 2026-11-06: "The widget is not updating regularly ... One of them is just a blank card and the
@@ -160,7 +160,7 @@ test('the live read after #61: a funding stage is no company, a trainer is named
   assert.deepEqual(portfolioNames(['Backs founders from (Seed and Series F).', 'Board seats at Example One and Example Two.']), ['Example One', 'Example Two']);
   const trainer = WORDS.partner[0]({ kind: 'ai_trainer', company: 'Example Academy', decision: 'which teams to retrain first' }, canon);
   assert.equal(trainer.lines[0], 'At Example Academy you train people to use AI, and the part that stalls is what happens once the course ends, when nobody decides which teams to retrain first.');
-  assert.equal(guestIdea({ one_liner: 'The guy who joined the Example chapter and warns tools want to be your fulcrum', why_fit: 'He runs retail media for Example Exchange.' }, null, new Set()), 'Tools want to be your fulcrum');
+  assert.equal(guestIdea({ one_liner: 'The guy who joined the Example chapter and warns tools want to be your fulcrum', why_fit: 'He runs retail media for Example Exchange.' }, null, new Set()), 'Why tools want to be your fulcrum');
 });
 
 // Live read of 6 November, second pass: a day job is no portfolio, and a catch-up names the place you both worked.
@@ -213,4 +213,25 @@ test('a credential leaves the name, a which-aside leaves the fact, and an adverb
   assert.equal(givenParts('Avery Example, CMP, PhD').join(' '), 'Avery Example');
   assert.equal(youFact('Owns data revenue at Example Rewards and came from Example TV, which is precisely the seat Example Co needs to reach.'), 'you own data revenue at Example Rewards and came from Example TV');
   assert.equal(yourWork('Her current mandate explicitly pairs AI strategy with partnerships at Example News.'), 'your current mandate');
+});
+
+// Control Center's reads of 6 November: every sentence built from a card fact is read before it is proposed.
+test('the final guard holds an email whose card sentence does not read as a sentence', () => {
+  for (const [t, why] of [
+    ["I'd like to hear how your current mandate explicitly pairs AI strategy with partnerships at Example News is going.", 'clause_in_phrase'],
+    ["I'd like to hear how your background bridges loyalty marketing is going.", 'clause_in_phrase'],
+    ["I'd like to hear how your bet that fractional work would explode is going.", 'clause_in_phrase'],
+    ["I hear you congrat on the award, and I'd like to know how it's going.", 'krish_line_turned'],
+    ["I hear you noticed your move to Example Data, and I'd like to know how it's going.", 'krish_line_turned'],
+    ["I'd like to hear how your podcast also is going.", 'stray_also'],
+    ['He would like to talk because you joined the chapter and warn tools want to be your fulcrum.', 'claim_without_that'],
+    ["For founders like AI-era, I'd run a working session.", 'not_a_company'],
+    ["For founders like Seed and Series F, I'd run a working session.", 'not_a_company'],
+  ]) assert.equal(brokenSentence(t), why, t);
+  for (const t of ["I'd like to hear how your public-facing work (podcast, writing, speaking) is going.", "For founders like Example One and Example Two, I'd run a working session.", 'you joined the chapter and warn that tools want to be your fulcrum.']) assert.equal(brokenSentence(t), '', t);
+  const mk = (id, body) => ({ proposal_id: id, exact_payload: JSON.stringify({ body }) });
+  assert.deepEqual(brokenEmails([mk('a', 'Hi A,\n\nI read your post, "New production soon, feat. Example", and I would like to hear more.\n\nKrish'), mk('b', "Hi B,\n\nI'd like to hear how your framing that '80% of buyers is going.\n\nKrish")]), [{ proposal_id: 'b', reason: 'open_quote' }]);
+  assert.equal(yourWork('Her bet that fractional work would explode due to AI.'), '');
+  assert.equal(youFact('Joined the Example chapter and warns tools want to be your fulcrum.'), 'you joined the Example chapter and warn that tools want to be your fulcrum');
+  assert.equal(guestIdea({ one_liner: 'The guy who joined the Example chapter and warns tools want to be your fulcrum', why_fit: 'He runs retail media for Example Exchange.' }, null, new Set()), 'Why tools want to be your fulcrum');
 });
