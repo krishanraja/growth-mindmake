@@ -49,14 +49,63 @@ export function openingFact(c, why = []) {
 }
 
 /** The question the desk answers: one opening sentence from one fact, in plain words. Pure. */
-export function openingQuery({ name, fact, purpose = 'catchup', show = '' }) {
+export function openingQuery({ name, fact, purpose = 'catchup', show = '', last = null }) {
   const first = givenParts(name)[0] ?? 'them';
+  if (purpose === 'catchup') return catchUpQuery({ first, fact, last });
   const what = purpose === 'invite' ? `why ${first} would make a good conversation for ${show || 'the show'}` : `the opening line of a catch-up email to ${first}`;
   const frame = f => `Write one sentence for ${what}, from only this fact: ${f}. Say to them, as "you", one thing they did or said. Plain words, under 25 words, no dashes, praise, question, sources or new names. Reply with the sentence only.`;
   // The fact is cut at a word to what the desk's 400 characters leave it.
   const room = QUERY_MAX - frame('').length;
   const q = room >= 40 ? frame(cut(String(fact ?? '').replace(/[.!?\s]+$/, ''), room)) : '';
   return q && q.length <= QUERY_MAX ? q : null;
+}
+
+/**
+ * A catch-up as a person writes one (Krish, 2026-11-06: "I'd sincerely reach
+ * out and say, 'It's been a long time. Here's why I'm reaching out. Here's why
+ * I thought of you. Would you be open to a quick chat?'"): the whole note in
+ * that order, from one fact, never their career told back to them. Pure.
+ */
+export function catchUpQuery({ first, fact, last = null }) {
+  const frame = f => `Short catch-up email from Krish to ${first}, ${last ? `last in touch ${last}` : 'not in touch for a while'}. Four sentences: it's been a while; why I'm reaching out (I'm building Mindmake, AI that works the way a leader thinks, and want views from people I rate); why I thought of you, from this fact only: ${f}; would you be open to a quick chat? Warm, plain, never retell their career. Body only.`;
+  const room = QUERY_MAX - frame('').length;
+  const q = room >= 40 ? frame(cut(String(fact ?? '').replace(/[.!?\s]+$/, ''), room)) : '';
+  return q && q.length <= QUERY_MAX ? q : null;
+}
+
+/** A sentence that tells someone their own career back to them (Krish, 2026-11-06: "Who would do that in real life?"). */
+const RECITES = /^(?:you|you've|you have|you're|your)\s+(?:went|moved|shifted|joined|left|lead|led|run|ran|built|founded|started|spent|took|bring|have been|been|are now|now)\b/i;
+
+/**
+ * The model's catch-up, read by fixed rules: three to five sentences, at most
+ * 85 words, says it has been a while, says why he is writing, says why he
+ * thought of them, ends asking for a quick chat, no sentence that tells them
+ * their career, no dash, link, praise or research word, and no name or number
+ * the fact, their name, Mindmake or the month last in touch do not hold.
+ * { ok: true, sentence } (the whole body) or { ok: false, reason }. Pure.
+ */
+export function validCatchUp(text, { name = '', fact = '', last = '' } = {}) {
+  if (/[\u2013\u2014]|\s-\s/.test(String(text ?? ''))) return { ok: false, reason: 'dash_question_or_link' };
+  const s = clean(String(text ?? '')).replace(/^(?:hi|hello|hey|dear)\s+[^,\n]*,\s*/i, '').replace(/\s*(?:best|cheers|thanks|warmly)?,?\s*krish\.?\s*$/i, '').replace(/^["'“]+|["'”]+$/g, '').trim();
+  if (!s) return { ok: false, reason: 'empty' };
+  const parts = sentences(s);
+  if (parts.length < 3 || parts.length > 5) return { ok: false, reason: 'not_four_sentences' };
+  if (s.split(/\s+/).length > 85) return { ok: false, reason: 'length' };
+  if (/https?:|www\./.test(s)) return { ok: false, reason: 'dash_question_or_link' };
+  if (!/\b(?:been a while|long time|been too long|while since|ages)\b/i.test(s)) return { ok: false, reason: 'no_while' };
+  if (!/\bthought of you\b|\byou came to mind\b|\bmade me think of you\b/i.test(s)) return { ok: false, reason: 'no_why_you' };
+  if (!/\b(?:reaching out|writing|getting in touch|the reason)\b/i.test(s)) return { ok: false, reason: 'no_why_now' };
+  if (!/\b(?:quick|short)\s+(?:chat|call)\b[^.]*\?\s*$/i.test(s)) return { ok: false, reason: 'no_ask' };
+  if (parts.some(x => RECITES.test(x.trim()))) return { ok: false, reason: 'recites_career' };
+  if (PRAISE.test(s)) return { ok: false, reason: 'praise' };
+  if (/\b(?:suggests|role unknown|named contact|already replied|suppress|card|score|record|research|profile|database|ICP|our data|venture)\b/i.test(s)) return { ok: false, reason: 'research_words' };
+  if (!quotesClosed(s.replace(/\b\p{L}+'\p{L}+\b/gu, 'x'))) return { ok: false, reason: 'open_quote' };
+  const known = `${fact} ${name} ${last} Mindmake AI I`.toLowerCase();
+  const names = parts.flatMap(x => x.trim().slice(1).match(/\b\p{Lu}[\p{L}\d&'.-]*/gu) ?? []);
+  if (names.some(n => n !== 'I' && !/^I'/.test(n) && !known.includes(n.toLowerCase().replace(/['.,]+$/, '').replace(/'s$/, '')))) return { ok: false, reason: 'new_name' };
+  if ((s.match(/\d[\d,.]*/g) ?? []).some(n => !known.includes(n.replace(/[.,]+$/, '')))) return { ok: false, reason: 'new_number' };
+  for (const x of parts) { const b = brokenSentence(x.trim()); if (b) return { ok: false, reason: b }; }
+  return { ok: true, sentence: s };
 }
 
 /** The London day of an ISO time, as YYYY-MM-DD. Pure. */
@@ -67,8 +116,8 @@ const londonDay = at => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Lon
  * answered nothing and charged nothing), the same words are asked again under
  * the London day, at most once a day. Pure.
  */
-export function openingRequest({ id, name, fact, purpose = 'catchup', show = '', research = [], at = null, kind = 'question' }) {
-  const query = openingQuery({ name, fact, purpose, show });
+export function openingRequest({ id, name, fact, purpose = 'catchup', show = '', research = [], at = null, kind = 'question', last = null }) {
+  const query = openingQuery({ name, fact, purpose, show, last });
   if (!query) return null;
   // A write is keyed apart from a question with the same words: the desk refuses one id asked two ways.
   const base = `open:${id}:${seal(kind === 'write' ? { query, kind } : { query }).slice(0, 12)}`;
@@ -131,13 +180,13 @@ export function validOpening(text, { name = '', fact = '', show = '' } = {}) {
  * in, or one that fails the rules, holds the email. Elsewhere (a dry run, a
  * test, a desk that is closed) the caller's own sentence stands. Pure.
  */
-export function opening({ id, name, card, why = [], research, required = false, purpose = 'catchup', show = '', at = null, kind = 'question' }) {
+export function opening({ id, name, card, why = [], research, required = false, purpose = 'catchup', show = '', at = null, kind = 'question', last = null }) {
   const fact = openingFact(card, why);
   if (!fact) return { request: null, sentence: null, hold: required ? 'opening_no_fact' : null };
-  const request = openingRequest({ id, name, fact, purpose, show, research, at, kind });
+  const request = openingRequest({ id, name, fact, purpose, show, research, at, kind, last });
   const got = openingAnswer(research, request);
   if (got.state === 'answered') {
-    const v = validOpening(got.text, { name, fact, show });
+    const v = purpose === 'catchup' ? validCatchUp(got.text, { name, fact, last: last ?? '' }) : validOpening(got.text, { name, fact, show });
     return v.ok ? { request: null, sentence: v.sentence, hold: null } : { request: null, sentence: null, hold: required ? 'opening_failed' : null, reason: v.reason };
   }
   return { request: got.state === 'waiting' && required ? request : null, sentence: null, hold: required ? (got.state === 'waiting' ? 'opening_waiting' : 'opening_failed') : null };

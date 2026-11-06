@@ -1289,8 +1289,9 @@ export const WORDS = {
   ],
   // A catch-up is about one fact on their card, then your history and the ask in one sentence.
   relationship: [
-    p => ({ subject: p.company ? `Catching up, and ${p.company}` : 'Catching up', lines: [p.specific, p.history].filter(Boolean) }),
-    p => ({ subject: 'Coffee?', lines: [p.specific, p.history.replace('up for a call', 'up for a coffee or a call')].filter(Boolean) }),
+    // A note the desk wrote whole, in his order (Krish, 2026-11-06), stands as it is; the fixed lines are only for a closed desk.
+    p => ({ subject: 'Catching up', lines: p.note ? [p.note] : [p.specific, p.history].filter(Boolean) }),
+    p => ({ subject: 'It has been a while', lines: p.note ? [p.note] : [p.specific, p.history.replace('up for a call', 'up for a coffee or a call')].filter(Boolean) }),
   ],
 };
 
@@ -1591,7 +1592,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     // The catch-up is about one fact on the card, never their employer alone (Control Center's read of 6 November: six of eight were).
     // The opening is written by the desk from one fact on the card and read by fixed rules (src/stages/openings.mjs);
     // where the desk is open, one not written or not passing holds the catch-up, never a frame in its place.
-    const op = opening({ id, name, card: n, why: card.why, research, required: openingsRequired, at, kind: openingKind });
+    const op = opening({ id, name, card: n, why: card.why, research, required: openingsRequired, at, kind: openingKind, last: monthYear(n.email_last) ?? monthYear(n.contacts?.last_touch_at) });
     if (op.request) openingAsks.push({ score: fit * (1 + Math.min(2, (Date.parse(at) - last) / (365 * DAY))), request: op.request });
     if (op.hold) { held.push(op.hold); continue; }
     const specific = op.sentence ?? specificOf(n, { why: card.why }), history = historyOf(n, { why: card.why });
@@ -1602,7 +1603,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
       title: fitTitleWithin(titleMax, `Catch up with ${name}`, `Catch up with ${first(name)}`),
       why: `${name} is a close tie with nothing on record for ${Math.round((Date.parse(at) - last) / DAY)} days. Mindmake fit ${fit} of 100.`,
       because: told.because, brief: told.brief, card,
-      action: actionFor(ch.channel, id, name, WORDS.relationship[variant]({ specific, history, company })), reach,
+      action: actionFor(ch.channel, id, name, WORDS.relationship[variant]({ specific, history, company, note: op.sentence && openingsRequired ? op.sentence : null })), reach,
       // A relationship has no topic: "Not my topic" is never asked of a tie.
       kind: null, features: { sector: null, topic: null, seniority: seniorityOf(n.current_title ?? n.contacts?.title) }, serves, evidence: [],
     }) });

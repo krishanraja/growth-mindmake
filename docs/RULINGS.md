@@ -175,3 +175,11 @@ In his words (6 November, after the engine put two open items to him: an opening
 - A row person (an amplifier or a close tie) with no address is looked up, up to six a run after the pitches' and invites' twelve (`PERSON_LOOKUPS_PER_RUN`), where Control Center serves `features.person_routes` (krishanraja/control-center#656). An address is theirs only when it is no role inbox, its local part carries their name and the result names them; it goes to Control Center in `found_routes` to check and record.
 - No wall moves: every send, post and spend still takes his yes, and Control Center's daily research caps still bind.
 
+
+## A catch-up is written as a person writes one (Ruling, Krish, 2026-11-06)
+
+In his words (6 November, reading the first openings the model wrote, each one telling the person a line of their own career): "Those are really stupid sentences. I'm just telling them about their career history. Who would do that in real life? No human would ever do that. I'd sincerely reach out and say, \"It's been a long time. Here's why I'm reaching out. Here's why I thought of you. Would you be open to a quick chat?\""
+
+- A NETWORK catch-up is one short note in his order: it has been a while, why he is reaching out, why he thought of them, and would they be open to a quick chat. The desk's `write` kind (Claude, no web search, krishanraja/control-center#659) writes the whole note from one fact on the card (`catchUpQuery` in src/stages/openings.mjs).
+- Fixed rules read every note before an email carries it (`validCatchUp`): three to five sentences, at most 85 words, each of the four parts present, and no sentence that tells them their own career (`recites_career`), no praise, research word, link, dash, or name or number the fact does not hold. A note that fails holds the catch-up; nothing falls back to a frame.
+- No wall moves: every send still takes his yes.
