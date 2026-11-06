@@ -1,5 +1,5 @@
 import { seal, clean, DAY } from '../guards.mjs';
-import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, actionFor, rowProposal, score, channelOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX, OBJECTIVE } from './rows.mjs';
+import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, actionFor, rowProposal, score, channelOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX, OBJECTIVE, TOPIC_PITCH, EPISODE, AUDIENCE_OF, titleNaming, youFact } from './rows.mjs';
 import { showNoteRows } from './shownotes.mjs';
 import { shadowLine, stageVerdict, stageStrength, ccStageVerdict, isDeadDate } from './visibility.mjs';
 import { guestVerdictOf, guestStrength, isCircleGuest, WARM_TIERS } from './guests.mjs';
@@ -74,20 +74,8 @@ const standardSays = (t, at) => { const v = stageVerdict(t, at); return `The vis
 /** The rooms his buyer listens in (playbook 11): a show about one of these fits best. */
 export const BUYER_TOPICS = new Set(['leadership', 'marketing', 'advertising', 'media', 'venture', 'finance', 'technology', 'talent']);
 
-/** What Krish talks about on a show, by its topic: the line in the pitch, and the short form in its subject. */
-export const TOPIC_PITCH = {
-  advertising: ['what AI is doing to advertising and the agencies that sell it', 'AI and advertising'],
-  marketing: ['what an AI that knows a marketing leader should actually do', 'AI for marketing leaders'],
-  talent: ['what AI does to hiring, careers and the teams leaders run', 'AI, hiring and careers'],
-  venture: ['how investors and founders should judge what AI is worth', 'what AI is worth'],
-  finance: ['where the money spent on AI actually goes', 'where AI money goes'],
-  retail: ['what AI changes first for the people running retail businesses', 'AI in retail'],
-  media: ['what AI does to media businesses and the people who run them', 'AI and media businesses'],
-  education: ['how leaders should learn AI once the course ends', 'learning AI as a leader'],
-  health: ['what leaders in health should and should not hand to AI', 'AI and health leadership'],
-  technology: ['the org chart after AI, and what leaders still decide', 'the org chart after AI'],
-  leadership: ['what an AI that knows a leader should actually do', 'an AI that knows the leader'],
-};
+/** What Krish talks about on a show, by its topic (rows.mjs owns it, with each topic's episode and audience). */
+export { TOPIC_PITCH };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const within = (line, max = CARD_LINE_MAX) => line && line.length <= max ? line : '';
@@ -183,13 +171,33 @@ export function talkTitle(t, topic) {
   return short.charAt(0).toUpperCase() + short.slice(1);
 }
 
-/** The speaking pitch in Jonny's words: one point, one ask, Krish in the third person, signed Jonny. Pure. */
-export function speakWords({ event, host, ask, talk, canon, record }) {
+/** Who a stage or a show gathers, from its own record: its audience as Nova read it, else who is in its room; '' when neither says. Pure. */
+export function roomOf(t) {
+  const a = typeof t?.audience === 'string' && t.audience.trim() ? t.audience.trim().replace(/[.!?]+$/, '') : '';
+  if (a && a.length <= 140 && !/[\u2013\u2014]/.test(a)) return a.charAt(0).toLowerCase() + a.slice(1);
+  const r = typeof t?.who_is_in_the_room === 'string' ? leadFacts(t.who_is_in_the_room, 140).replace(/[.!?]+$/, '') : '';
+  return r ? r.charAt(0).toLowerCase() + r.slice(1) : '';
+}
+/** Nova's angle for a stage or a show, as one whole sentence, or ''. Pure. */
+export const angleOf = t => (typeof t?.angle === 'string' && t.angle.trim() ? leadFacts(t.angle, 200) : '');
+
+/**
+ * The speaking pitch in Jonny's words, from the stage's own facts: the talk,
+ * who is in its room and why the talk is for them, Nova's angle where it has
+ * one, and when its call closes. Krish in the third person, signed Jonny. Pure.
+ */
+export function speakWords({ t = {}, event, host, ask, talk, topic = null, canon, record }) {
+  const room = roomOf(t);
+  const [about] = TOPIC_PITCH[topic] ?? TOPIC_PITCH.leadership;
+  const angle = angleOf(t);
+  const closes = dayMonth(t.deadline_at);
+  const when = monthYear(t.event_start_at);
   const lines = [
-    `I work with Krish Raja, and I'd like to put him forward for ${ask} at ${event}: "${talk}".`,
+    `I work with Krish Raja, and I'd like to put him forward for ${ask} at ${event}${when ? ` in ${when}` : ''}: "${talk}".`,
+    `${room ? `${event} gathers ${room}, and the talk is built for that room` : `The talk is built for the leaders ${event} gathers`}: ${about}.${angle ? ` ${angle}` : ''}`,
     `He's ${KRISH_TITLE} and writes ${canon.publication.name} (${canon.publication.url}). At Mindmake he helps leaders build their AI brain: "${canon.brain}"`,
     ...(record ? [record] : []),
-    `Would you consider him for the programme? I can send a short abstract and a bio.`,
+    `${closes ? `Your call closes on ${closes}, so I wanted this with you first. ` : ''}Would you consider him for the programme? I can send a short abstract and a bio.`,
   ];
   return {
     subject: clean(`A speaker for ${event}: ${talk}`).slice(0, 200),
@@ -227,6 +235,43 @@ export function speakCard({ t, event, ask, talk, topic, canon, serves, known: kn
   return { who, known, why: why.length ? why : [`${event} is open for speakers.`], gain, angles, sources: sources.slice(0, CARD_SOURCES) };
 }
 
+// ── One event, one row (Krish, 2026-11-06) ────────────────────────────────
+// Control Center held three rows for one summit, and the engine proposed it
+// three times. Rows that share a name and a date once case, punctuation, a leading "The"
+// and the year are set aside, or a form page on the same day, are one event: the
+// fullest row stands for it and the rest are held as duplicate_stage.
+
+/** A stage's name for matching: lower case, no punctuation, no leading "the", no year. Pure. */
+export const stageName = t => formKey(t?.title ?? '').replace(/^the /, '').replace(/\b(?:19|20)\d{2}\b/g, ' ').replace(/\s+/g, ' ').trim();
+/** The keys that make two stage rows one event: its form page, and its name with its day (or its name alone when it has no date). Pure. */
+export function stageKeys(t) {
+  const keys = [];
+  const form = typeof t?.cfp_url === 'string' ? formUrlKey(t.cfp_url) : null;
+  if (form) keys.push(`form:${form}`);
+  const name = stageName(t);
+  const day = Number.isFinite(Date.parse(t?.event_start_at ?? '')) ? new Date(Date.parse(t.event_start_at)).toISOString().slice(0, 10) : 'undated';
+  if (name.length >= 4) keys.push(`name:${t?.type === 'podcast' ? 'podcast' : 'stage'}:${name}:${day}`);
+  return keys;
+}
+/** How full a row is: a booking address, a form read, open, then the most it says. Pure. */
+const fullness = t => (UUID.test(t?.booking_contact_id ?? '') ? 8 : 0) + (Array.isArray(t?.form_fields) && t.form_fields.length ? 4 : 0) + (['sourced', 'queued'].includes(t?.status) ? 2 : 0) + (typeof t?.audience === 'string' && t.audience ? 1 : 0);
+/** The stage rows with one row per event, the fullest first, and the ids of the rows set aside. Pure. */
+export function uniqueStages(list) {
+  const rows = (Array.isArray(list) ? list : []).filter(t => typeof t?.id === 'string' && UUID.test(t.id));
+  const order = [...rows].sort((a, b) => fullness(b) - fullness(a) || a.id.localeCompare(b.id));
+  // A form page shared by events on two different dates is an organiser's page, not one event's: only the same day, or a row with no day, makes it one.
+  const claimed = new Map(), kept = new Set(), dupes = new Set();
+  const dayOf = t => (Number.isFinite(Date.parse(t?.event_start_at ?? '')) ? new Date(Date.parse(t.event_start_at)).toISOString().slice(0, 10) : null);
+  const clash = (k, day) => claimed.has(k) && (!k.startsWith('form:') || claimed.get(k).some(d => d === null || day === null || d === day));
+  for (const t of order) {
+    const keys = stageKeys(t), day = dayOf(t);
+    const dup = keys.some(k => clash(k, day));
+    for (const k of keys) claimed.set(k, [...(claimed.get(k) ?? []), day]);
+    (dup ? dupes : kept).add(t.id);
+  }
+  return { kept: rows.filter(t => kept.has(t.id)), dupes };
+}
+
 /** The stages already pitched: a draft made for one, or any answer on a pitch to it. */
 export function pitchedStages(context) {
   const out = new Set();
@@ -238,15 +283,23 @@ export function pitchedStages(context) {
   return out;
 }
 
-/** The pitch in Jonny's words: one point, one ask, Krish in the third person, signed Jonny. Pure. */
-export function pitchWords({ show, host, topic, canon, record }) {
-  const [about, short] = TOPIC_PITCH[topic] ?? TOPIC_PITCH.leadership;
+/**
+ * The podcast pitch in Jonny's words, from the show's own facts: who listens,
+ * and one episode it could run with him, with Nova's angle where it has one.
+ * Krish in the third person, signed Jonny. Pure.
+ */
+export function pitchWords({ t = {}, show, host, topic, canon, record }) {
+  const [, short] = TOPIC_PITCH[topic] ?? TOPIC_PITCH.leadership;
+  const room = roomOf(t) || AUDIENCE_OF[topic] || '';
+  const episode = EPISODE[topic] ?? EPISODE.leadership;
+  const angle = angleOf(t);
+  const latest = monthYear(t.latest_episode_at);
   const lines = [
-    `I work with Krish Raja, and I think he'd make a strong guest for ${show} on ${about}.`,
-    // The canon's line is about the leader ("your taste"), so it is quoted whole rather than bent into the third person.
+    `I work with Krish Raja, and I think he'd make a strong episode for ${show}${room ? `'s listeners, ${room}` : ''}: "${episode}".`,
+    ...(angle ? [angle] : []),
     `He's ${KRISH_TITLE} and writes ${canon.publication.name} (${canon.publication.url}). At Mindmake he helps leaders build their AI brain: "${canon.brain}"`,
     ...(record ? [record] : []),
-    'Would you have him on? I can send a short brief and a few dates.',
+    `Would you have him on${latest ? ` for one of the next episodes after your ${latest} one` : ''}? I can send a short brief and a few dates.`,
   ];
   return {
     subject: clean(`A guest for ${show}: ${short}`).slice(0, 200),
@@ -390,11 +443,14 @@ const quotable = page => {
 };
 
 /** The invite in Jonny's words: one point, one ask, Krish in the third person, signed Jonny. Pure. */
-export function inviteWords({ name, show, page }) {
+export function inviteWords({ name, show, page, g = null }) {
   const label = quotable(page);
   const seen = label ? `We came across "${label}", and it is exactly the kind of thinking we'd love to hear more of.` : '';
+  // What they do, from the guest record, said to them: the reason this invite is to them and nobody else.
+  const did = g ? youFact([g.why_fit, g.one_liner].filter(x => typeof x === 'string').join(' '), name) : '';
   const lines = [
     `I work with Krish Raja, ${show.who}. We'd love to have you ${show.ask}.`,
+    ...(did ? [`He read that ${did}, and that's the conversation he wants to have.`] : []),
     ...(seen ? [seen] : []),
     'Would you be up for it in the coming weeks? I can send a short brief and a few dates.',
   ];
@@ -449,12 +505,14 @@ export function networkLane(contactId, { routes, listed, served = false, booking
 }
 
 /** The invite in Krish's own words, for someone in his network: the same show and the same page as Jonny's, one ask. actionFor signs it Krish. Pure. */
-export function krishInviteWords({ show, page }) {
+export function krishInviteWords({ show, page, g = null, name = '' }) {
   const label = quotable(page);
+  const did = g ? youFact([g.why_fit, g.one_liner].filter(x => typeof x === 'string').join(' '), name) : '';
   return {
     subject: clean(`A conversation for ${show.name}`).slice(0, 200),
     lines: [
       `${show.self}, and I'd love to have you ${show.ask}.`,
+      ...(did ? [`I read that ${did}, and that's the conversation I want to have.`] : []),
       ...(label ? [`I came across "${label}", and it's the kind of thinking I'd like more of on the show.`] : []),
       'Would you be up for it in the coming weeks? I can send a short brief and a few dates.',
     ],
@@ -464,20 +522,24 @@ export function krishInviteWords({ show, page }) {
 /** Who he is to a booker he knows, in his own words, from the canon this run reads. */
 const selfLine = canon => `I'm ${KRISH_TITLE} and I write ${canon.publication.name} (${canon.publication.url}). At Mindmake I help leaders build their AI brain: "${canon.brain}"`;
 
-/** A podcast pitch in Krish's own words, to someone in his network who books the show: the same topic as Jonny's, one ask. Pure. */
-export function krishPitchWords({ show, topic, canon }) {
-  const [about, short] = TOPIC_PITCH[topic] ?? TOPIC_PITCH.leadership;
+/** A podcast pitch in Krish's own words, to someone in his network who books the show: its listeners and one episode, as Jonny's would name them. Pure. */
+export function krishPitchWords({ t = {}, show, topic, canon }) {
+  const [, short] = TOPIC_PITCH[topic] ?? TOPIC_PITCH.leadership;
+  const room = roomOf(t) || AUDIENCE_OF[topic] || '';
+  const angle = angleOf(t);
   return {
     subject: clean(`A guest for ${show}: ${short}`).slice(0, 200),
-    lines: [`I'd love to come on ${show} and talk about ${about}.`, selfLine(canon), 'Would you have me on? I can send a short brief and a few dates.'],
+    lines: [`One episode I'd bring to ${show}${room ? ` for ${room}` : ''}: "${EPISODE[topic] ?? EPISODE.leadership}".${angle ? ` ${angle}` : ''}`, selfLine(canon), 'Would you have me on? I can send a short brief and a few dates.'],
   };
 }
 
-/** A speaking pitch in Krish's own words, to someone in his network who books the speakers: the same talk as Jonny's, one ask. Pure. */
-export function krishSpeakWords({ event, ask, talk, canon }) {
+/** A speaking pitch in Krish's own words, to someone in his network who books the speakers: the talk, the room and the close date, as Jonny's would name them. Pure. */
+export function krishSpeakWords({ t = {}, event, ask, talk, topic = null, canon }) {
+  const room = roomOf(t), closes = dayMonth(t.deadline_at);
+  const [about] = TOPIC_PITCH[topic] ?? TOPIC_PITCH.leadership;
   return {
     subject: clean(`A speaker for ${event}: ${talk}`).slice(0, 200),
-    lines: [`I'd like to put myself forward for ${ask} at ${event}: "${talk}".`, selfLine(canon), 'Would you consider me for the programme? I can send a short abstract and a bio.'],
+    lines: [`I'd like to put myself forward for ${ask} at ${event}: "${talk}".`, `${room ? `It's built for the room ${event} gathers, ${room}` : `It's built for the leaders ${event} gathers`}: ${about}.`, selfLine(canon), `${closes ? `I know the call closes on ${closes}. ` : ''}Would you consider me for the programme? I can send a short abstract and a bio.`],
   };
 }
 
@@ -566,7 +628,7 @@ const PAYLOAD_MAX = 8000;
 /** A try Control Center says went, or may have gone (a browser that never answered): never sent again. */
 const SENT = new Set(['submitted', 'confirmed', 'running']);
 /** The holds that are the form's own to count; a stage's own reasons (applied, buried, past its deadline, a No) are its pitch's. */
-const FORM_OWN = new Set(['in_script', 'sent', 'blocked', 'terms', 'unanswerable', 'no_email', 'labels_overlap', 'too_long', 'per_run_cap', 'lane_off']);
+const FORM_OWN = new Set(['no_pitch', 'duplicate_stage', 'in_script', 'sent', 'blocked', 'terms', 'unanswerable', 'no_email', 'labels_overlap', 'too_long', 'per_run_cap', 'lane_off']);
 
 /** A label as Control Center's form runner reads it (api/_formRunner.ts): lower case, letters and digits, single spaces. Pure. */
 export const formKey = s => String(s ?? '').toLowerCase().replace(/\*/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -878,6 +940,17 @@ export function formAnswers(fields, said, missing = []) {
   return { answers, hold: null };
 }
 
+/** What a form must ask for it to be a speaker or guest application: the talk, its abstract or his bio. */
+export const PITCH_ASKS = new Set(['talk_title', 'abstract', 'bio']);
+/** The shortest answer that carries a pitch: Control Center holds a form whose answers are all shorter (form_no_pitch). */
+export const PITCH_ANSWER_MIN = 60;
+/** Whether a form's answers put the talk or the bio in a field that asks for it, with at least one of them a pitch in full. Pure. */
+export function pitchAnswered(fields, answers) {
+  const asks = (Array.isArray(fields) ? fields : []).filter(f => PITCH_ASKS.has(fieldAsk(f))).map(f => formKey(f.label));
+  const given = (Array.isArray(answers) ? answers : []).filter(a => asks.includes(formKey(a.label)));
+  return given.length > 0 && given.some(a => String(a.value).length >= PITCH_ANSWER_MIN);
+}
+
 /** The row a stage's own form goes on: a stage to speak on on events, a podcast's or a show's guest form on visibility; null for anything else. Pure. */
 export function formRow(t) {
   if (stageKind(t) === 'stage') return 'events';
@@ -939,8 +1012,12 @@ export function stageForm(t, { L, pitched, at, tries = [], canon, record = null 
     // Where the event is, for a country field: what the stage's own location, format and title say (eventPlace).
     place: eventPlace(t),
   };
+  // A speaker or guest form asks for the pitch itself: a talk title, an abstract or a bio. A page that asks only who he is
+  // (a bureau booking its own speakers) is no application, and is held (Krish, 2026-11-06).
+  if (!t.form_fields.some(f => PITCH_ASKS.has(fieldAsk(f)))) return hold('no_pitch');
   const { answers, hold: why } = formAnswers(t.form_fields, said, Array.isArray(last?.missing) ? last.missing : []);
   if (why) return hold(why);
+  if (!pitchAnswered(t.form_fields, answers)) return hold('no_pitch');
   const action = { version: 2, channel: 'form', recipient_contact_id: null, subject: null, body: said.abstract, form: { url, answers }, mailbox: null };
   const exact = JSON.stringify(action);
   if (exact.length > PAYLOAD_MAX || !said.abstract) return hold('too_long');
@@ -968,8 +1045,8 @@ function formProposal(f, rank, { t, canon, record, files, weekGoals, at, titleMa
   const because = events ? `A stage that asks for talks${closes ? `, call closes ${closes}` : ''}. Your tap applies.` : `A ${noun} that asks for guests. Your tap applies.`;
   return {
     proposal_id: `gmp-${seal({ subject: `target:${t.id}`, ask: 'form' }).slice(0, 32)}`,
-    title: events ? fitTitleWithin(titleMax, `Apply to speak at ${f.name}`, `Apply to ${f.name}`, 'Apply to speak at an event')
-      : fitTitleWithin(titleMax, `Apply to be a guest on ${f.name}`, `Apply to ${f.name}`, `Apply to be a guest on a ${noun}`),
+    title: events ? titleNaming(titleMax, n => `Apply to speak at ${n}`, f.name)
+      : titleNaming(titleMax, n => `Apply to be a guest on ${n}`, f.name),
     why: clean(`${f.name} asks for ${events ? 'speakers' : 'guests'} through its own form, and every field it requires is answered from what the run reads.${f.retried ? ' His last tap sent nothing; what it lacked is answered now.' : ''} ${standardSays(t, at)} One ask: his tap sends it.`).slice(0, 1000),
     kind: 'prepared', wall: 'send', channel: 'form', amount_usd: 0, objective_key: OBJECTIVE,
     exact_payload: f.exact, target: f.url, subject_ref: `target:${t.id}`,
@@ -991,12 +1068,15 @@ function formProposal(f, rank, { t, canon, record, files, weekGoals, at, titleMa
  * the form's own holds; and the stages whose pitch waits behind a form
  * (`routed`: form_route while a form is the route, form_sent once one went).
  */
-export function formRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, L = lessons(context?.feedback, at), pitched = pitchedStages(context), formsPerRow = FORMS_PER_ROW, lanes = LANES_ON, wins = null }) {
+export function formRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, L = lessons(context?.feedback, at), pitched = pitchedStages(context), formsPerRow = FORMS_PER_ROW, lanes = LANES_ON, wins = null, shown = null }) {
   const tries = Array.isArray(context?.records?.forms) ? context.records.forms : [];
   const held = [], routed = new Map(), open = { visibility: [], events: [] }, seen = new Set();
+  const one = uniqueStages(context?.records?.visibility);
   for (const t of Array.isArray(context?.records?.visibility) ? context.records.visibility : []) {
     if (typeof t?.id !== 'string' || !UUID.test(t.id) || seen.has(t.id)) continue;
     seen.add(t.id);
+    // Another row of the same event: its own form, if any, waits behind the one that stands for it.
+    if (one.dupes.has(t.id)) { if (formRow(t) && formUrl(t?.cfp_url) && Array.isArray(t.form_fields)) { held.push('duplicate_stage'); routed.set(t.id, 'duplicate_stage'); } continue; }
     const f = stageForm(t, { L, pitched, at, tries, canon, record });
     if (!f) continue;
     if (f.hold) {
@@ -1008,7 +1088,9 @@ export function formRows({ context, weekGoals, canon, record = null, files, at, 
   }
   const proposals = [];
   for (const row of ['visibility', 'events']) {
-    open[row].sort((a, b) => b.score - a.score || a.t.id.localeCompare(b.t.id));
+    // A form shown in recent runs and not acted on goes behind one he has not seen (rotation).
+    const times = t => (typeof shown === 'function' ? shown(`gmp-${seal({ subject: `target:${t.id}`, ask: 'form' }).slice(0, 32)}`) : 0);
+    open[row].sort((a, b) => times(a.t) - times(b.t) || b.score - a.score || a.t.id.localeCompare(b.t.id));
     open[row].forEach(({ f, t }, i) => {
       // A form waiting its turn is still the route: its pitch waits behind it.
       routed.set(t.id, 'form_route');
@@ -1103,7 +1185,9 @@ export function lookupId(base, research, at, query = '', state = lookupState(bas
 }
 /** The lookups for subjects held only for want of an address, ranked and capped, and how many truly wait (no answer yet). Pure. */
 export function lookupRequests({ stages = [], podcasts = [], guests = [], research = [], at, max = LOOKUPS_PER_RUN }) {
-  const ask = [], lanes = [stages, podcasts, guests].map(l => [...l].sort((a, b) => b.score - a.score || a.key.localeCompare(b.key)));
+  // A subject not yet asked about comes before one asked again in other words, so the day's budget reaches more of those with no route.
+  const tries = c => c.state?.tried ?? 0;
+  const ask = [], lanes = [stages, podcasts, guests].map(l => [...l].sort((a, b) => tries(a) - tries(b) || b.score - a.score || a.key.localeCompare(b.key)));
   let waiting = 0, today = 0;
   const live = lanes.map(l => l.filter(c => {
     const state = c.state ?? lookupState(c.base, research);
@@ -1164,11 +1248,11 @@ function afterLookup(state, held) {
 /** A found route as it goes to Control Center: the subject, the route and the result it was read from. Holds an address: never written to a file or a fixture. Pure. */
 const foundRoute = (subject_ref, lane, state) => ({ subject_ref, lane, kind: state.route.kind, ...(state.route.kind === 'email' ? { address: state.route.address, basis: state.route.basis } : { url: state.route.url }), source_url: state.route.source_url, request_id: state.request_id });
 
-export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false, networkRoutes = false, wins = null, research = context?.research }) {
+export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false, networkRoutes = false, wins = null, research = context?.research, shown = null }) {
   const L = lessons(context?.feedback, at);
   const pitched = pitchedStages(context);
   const lanes = { ...LANES_ON, ...(caps.lanes ?? {}) };
-  const forms = formRows({ context, weekGoals, canon, record, files, at, titleMax, L, pitched, formsPerRow: caps.forms_per_row, lanes, wins });
+  const forms = formRows({ context, weekGoals, canon, record, files, at, titleMax, L, pitched, formsPerRow: caps.forms_per_row, lanes, wins, shown });
   // Jonny's Gmail takes ten drafts a day (Control Center, api/_pitchDrafts.ts). What a wake earlier
   // today already drafted there comes out of this run's room, so a second wake never asks for more.
   const used = jonnyDraftsToday(context, at);
@@ -1187,10 +1271,13 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
   const routes = context?.routes ?? {};
   const listed = networkListed(context);
   const laneOf = (id, booking) => networkLane(id, { routes, listed, served: networkRoutes, booking });
+  const one = uniqueStages(context?.records?.visibility);
   for (const t of Array.isArray(context?.records?.visibility) ? context.records.visibility : []) {
     if (typeof t?.id !== 'string' || !UUID.test(t.id) || seen.has(t.id)) continue;
     seen.add(t.id);
     const kind = stageKind(t);
+    // One event, one row: another row of the same event is held, never pitched or looked up again.
+    if (one.dupes.has(t.id)) { if (kind === 'podcast') held.push('duplicate_stage'); else if (kind === 'stage') stageHeld.push('duplicate_stage'); continue; }
     // A stage of neither kind is not counted as held from one. One whose own form is the route is not pitched as well.
     if (kind === 'podcast') {
       let why = pitchHold(t, { L, pitched, at }) ?? forms.routed.get(t.id) ?? (lanes.visibility ? null : 'lane_off');
@@ -1269,13 +1356,13 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     const show = inviteShow(g.invite_show, canon);
     const weekly = INVITE_SHOWS[g.invite_show].weekly;
     const topic = guestTopic(g);
-    const words = inviteWords({ name, show, page: evidencePages(g)[0] ?? null });
+    const words = inviteWords({ name, show, page: evidencePages(g)[0] ?? null, g });
     const card = inviteCard({ g, name, show, topic, canon, contact: people.get(g.contact_id) ?? null, serves, weekly });
     const because = `A ${standard === 'take' ? 'strong ' : ''}guest for ${show.name}. Jonny invites them.`;
     const action = { version: 2, channel: 'email', recipient_contact_id: g.contact_id, subject: words.subject, body: words.body, form: null, mailbox: 'jonny' };
     return {
       proposal_id: `gmp-${seal({ subject: `contact:${g.contact_id}`, ask: 'invite' }).slice(0, 32)}`,
-      title: fitTitleWithin(titleMax, `Jonny invites ${name} onto ${show.name}`, `Jonny invites ${firstName(name)} onto ${show.name}`, `Jonny invites a guest onto ${show.name}`),
+      title: fitTitleWithin(titleMax, `Jonny invites ${name} onto ${show.name}`, `Jonny invites ${firstName(name)} onto ${show.name}`, `Jonny invites ${name}`, `Invite ${firstName(name)}`),
       why: clean(`${name} is a guest the guest standard judged ${standard === 'take' ? 'worth having' : 'a stretch'} for ${show.name}, with an address on record. One ask: a conversation on the show.`).slice(0, 1000),
       kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: OBJECTIVE,
       exact_payload: JSON.stringify(action), target: g.contact_id, subject_ref: `contact:${g.contact_id}`,
@@ -1293,7 +1380,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     const show = cleanName(t.title);
     const host = hostOf(t);
     const topic = showTopic(t);
-    const words = pitchWords({ show, host, topic, canon, record: record?.line ?? null });
+    const words = pitchWords({ t, show, host, topic, canon, record: record?.line ?? null });
     const card = pitchCard({ t, show, host, topic, canon, serves, at });
     const eps = Number.isInteger(t.episodes) && t.episodes > 0 ? t.episodes : null;
     const latest = monthYear(t.latest_episode_at);
@@ -1301,7 +1388,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     const action = { version: 2, channel: 'email', recipient_contact_id: t.booking_contact_id, subject: words.subject, body: words.body, form: null, mailbox: 'jonny' };
     return {
       proposal_id: `gmp-${seal({ subject: `target:${t.id}`, ask: 'pitch' }).slice(0, 32)}`,
-      title: fitTitleWithin(titleMax, `Jonny pitches you to ${show}`, 'Jonny pitches you to a podcast'),
+      title: titleNaming(titleMax, n => `Jonny pitches you to ${n}`, show),
       why: clean(`${show} is a podcast${eps ? ` with ${eps} episodes` : ''} taking guests, with an address of its own. ${standardSays(t, at)} One ask: have Krish on.`).slice(0, 1000),
       kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: OBJECTIVE,
       exact_payload: JSON.stringify(action), target: t.booking_contact_id, subject_ref: `target:${t.id}`,
@@ -1322,7 +1409,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     const topic = showTopic(t);
     const ask = speakingAsk(t);
     const talk = talkTitle(t, topic);
-    const words = speakWords({ event, host, ask, talk, canon, record: record?.line ?? null });
+    const words = speakWords({ t, event, host, ask, talk, topic, canon, record: record?.line ?? null });
     const card = speakCard({ t, event, ask, talk, topic, canon, serves: speakServes });
     const closes = dayMonth(t.deadline_at);
     const when = monthYear(t.event_start_at);
@@ -1330,7 +1417,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     const action = { version: 2, channel: 'email', recipient_contact_id: t.booking_contact_id, subject: words.subject, body: words.body, form: null, mailbox: 'jonny' };
     return {
       proposal_id: `gmp-${seal({ subject: `target:${t.id}`, ask: 'speak' }).slice(0, 32)}`,
-      title: fitTitleWithin(titleMax, `Jonny pitches you to speak at ${event}`, `Jonny pitches you to ${event}`, 'Jonny pitches you to speak at an event'),
+      title: titleNaming(titleMax, n => `Jonny pitches you to speak at ${n}`, event),
       why: clean(`${event} is open for speakers, and its own page gives an address for them. ${standardSays(t, at)} One ask: ${ask} for Krish.`).slice(0, 1000),
       kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: OBJECTIVE,
       exact_payload: JSON.stringify(action), target: t.booking_contact_id, subject_ref: `target:${t.id}`,
@@ -1375,11 +1462,11 @@ export function krishInviteRow({ g, standard, canon, contact, routes, serves, fi
   const because = `In your network. You invite them onto ${show.name}.`;
   return { score: score(reach, standard === 'take' ? 1 : 0.8, emailWeight(routes, g.contact_id), serves, true), proposal: rowProposal({
     row: 'visibility', ask: 'invite', contactId: g.contact_id, name, at, files,
-    title: fitTitleWithin(titleMax, `Invite ${name} onto ${show.name}`, `Invite ${f} onto ${show.name}`, `Invite a guest onto ${show.name}`),
+    title: fitTitleWithin(titleMax, `Invite ${name} onto ${show.name}`, `Invite ${f} onto ${show.name}`, `Invite ${name}`, `Invite ${f}`),
     why: `${name} is in your own network, so you invite them yourself, not Jonny. The guest standard judged them ${standard === 'take' ? 'worth having' : 'a stretch'} for ${show.name}. One ask: a conversation on the show.`,
     because: because.length <= BECAUSE_MAX ? because : `In your network. You invite them.`,
     brief: [card.who, card.known, ...card.why.slice(0, 2), `The ask: you invite ${f} onto ${show.name}, from your own Gmail.`],
-    card, action: actionFor('email', g.contact_id, name, krishInviteWords({ show, page: evidencePages(g)[0] ?? null })),
+    card, action: actionFor('email', g.contact_id, name, krishInviteWords({ show, page: evidencePages(g)[0] ?? null, g, name })),
     reach, kind: null, features: { sector: null, topic, seniority: null }, serves, evidence: [],
   }) };
 }
@@ -1397,13 +1484,13 @@ export function krishPitchRow({ t, kind, canon, contact, routes, serves, files, 
   const ask = podcast ? null : speakingAsk(t), talk = podcast ? null : talkTitle(t, topic);
   const known = (contact ? knownWords(contact) : '') || (podcast ? "The show's booking contact is in your own network, so you write to them yourself." : "The event's speaker contact is in your own network, so you write to them yourself.");
   const card = podcast ? pitchCard({ t, show: name, host, topic, canon, serves, at, known }) : speakCard({ t, event: name, ask, talk, topic, canon, serves, known });
-  const words = podcast ? krishPitchWords({ show: name, topic, canon }) : krishSpeakWords({ event: name, ask, talk, canon });
+  const words = podcast ? krishPitchWords({ t, show: name, topic, canon }) : krishSpeakWords({ t, event: name, ask, talk, topic, canon });
   const reach = podcast ? reachOf(t, 'people in its audience, as Nova read it', 'a podcast audience not yet measured') : reachOf(t, 'people in its room, as Nova read it', "an event's room not yet measured");
   const row = podcast ? 'visibility' : 'events';
   const because = podcast ? 'Someone in your network books this show.' : 'Someone in your network books its speakers.';
   const p = rowProposal({
     row, ask: 'pitch', contactId: to, name: greet || name, at, files,
-    title: podcast ? fitTitleWithin(titleMax, `Ask to go on ${name}`, 'Ask to go on a podcast') : fitTitleWithin(titleMax, `Ask to speak at ${name}`, 'Ask to speak at an event'),
+    title: podcast ? titleNaming(titleMax, n => `Ask to go on ${n}`, name) : titleNaming(titleMax, n => `Ask to speak at ${n}`, name),
     why: `${name} ${podcast ? 'takes guests' : 'is open for speakers'}, and the person who books it is in your own network, so you ask yourself, not Jonny. ${standardSays(t, at)} One ask: ${podcast ? 'have you on' : `${ask} for you`}.`,
     because, card,
     brief: [card.who, card.known, ...card.why.slice(0, 2), podcast ? `The ask: you ask ${name} to have you on as a guest, from your own Gmail.` : `The ask: you ask ${name} for ${ask}, from your own Gmail.`],

@@ -12,7 +12,7 @@ import { plan } from './orchestrator.mjs';
 import { enginePlan } from './engine.mjs';
 import { validateStrategicRead, strategicPlan, outcomeScorecard } from './strategy.mjs';
 import { readVoice } from './stages/draft.mjs';
-import { amplifierRows, rankRows, pitchOffReviews, ROWS, PER_ROW, TITLE_MAX, TITLE_MAX_BRIEF } from './stages/rows.mjs';
+import { amplifierRows, rankRows, pitchOffReviews, sharedBodies, shownLine, shownHistory, ROWS, PER_ROW, TITLE_MAX, TITLE_MAX_BRIEF } from './stages/rows.mjs';
 import { signalRequests, signalRows } from './stages/signals.mjs';
 import { circleRequests, circlePeople, circleFromNetwork, takesCircle, circleAnswer, CIRCLE_VERSION } from './stages/circle.mjs';
 import { mirrorPlan, takesMirror, MIRROR_VERSION } from './stages/mirror.mjs';
@@ -511,7 +511,7 @@ const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.s
  * desk's daily cap by searchesLeft and withinSearches); a synthetic run
  * asks for nothing. Counts only leave this function for the printed outcome.
  */
-export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS, wins = null, sourcing = [] }) {
+export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS, wins = null, sourcing = [], shown = null }) {
   // 1.7.0: the title shares the card with the line under it, so it is shorter.
   const titleMax = briefs ? TITLE_MAX_BRIEF : TITLE_MAX;
   const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0, lookups_asked: 0, sourcing_asked: 0 };
@@ -531,7 +531,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // 1.10.0: notes asking a booked show for the brief link, only where Control Center drafts them.
   const showNotes = capabilities?.features?.show_notes === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes('1.10.0');
   // The research the pitches read is this run's too: a lookup the desk answered this run gives its route in the same run.
-  const pitchArgs = (c, r = c?.research) => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes, wins, research: r });
+  const pitchArgs = (c, r = c?.research) => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes, wins, research: r, shown });
   let lookups = { requests: [], waiting: 0, asked_today: 0, by: { stages: 0, podcasts: 0, guests: 0 } };
   if (mode === 'live' && capabilities?.features?.research === true) {
     // A stage, show or guest held only for want of an address asks the desk to find it in the same run (C2), up to LOOKUPS_PER_RUN, first in the round.
@@ -581,12 +581,16 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const onRows = new Set([...amplifiers.rows, ...signals.rows].map(e => e.proposal.target));
   const krishRows = (pitched.krishRows ?? []).filter(e => !onRows.has(e.proposal.target));
   const sameRow = (pitched.krishRows ?? []).length - krishRows.length;
-  const { kept, dropped, off } = rankRows([...amplifiers.rows, ...signals.rows, ...krishRows], caps.rows);
+  const { kept, dropped, off } = rankRows([...amplifiers.rows, ...signals.rows, ...krishRows], caps.rows, shown);
   // A stage that asked leads its row, one tap from done: the people ranked on that row come after its forms (at most two a row).
   const lead = {};
   for (const p of pitched.proposals.filter(isForm)) lead[p.row] = (lead[p.row] ?? 0) + 1;
-  const proposals = kept.map(p => finishProposal({ ...p, rank: p.rank + (lead[p.row] ?? 0) }));
-  proposals.push(...pitched.proposals.map(finishProposal));
+  const drafted = kept.map(p => finishProposal({ ...p, rank: p.rank + (lead[p.row] ?? 0) }));
+  drafted.push(...pitched.proposals.map(finishProposal));
+  // No two emails in one run are the same words with a name swapped (Krish, 2026-11-06): the lower-ranked one is held.
+  const same = new Set(sharedBodies(drafted).map(d => d.proposal_id));
+  const proposals = drafted.filter(p => !same.has(p.proposal_id));
+  if (same.size) holds.push({ reason: 'row_same_words', detail: `${same.size} proposal${same.size === 1 ? '' : 's'} held: ${same.size === 1 ? 'its' : 'their'} words matched another email in this run once the names were taken out.` });
   counts.invites = pitched.proposals.filter(isInvite).length;
   counts.pitches = pitched.proposals.filter(p => p.row === 'visibility' && !isInvite(p) && !isForm(p)).length;
   counts.speaking_pitches = pitched.proposals.filter(p => p.row === 'events' && !isForm(p)).length;
@@ -883,7 +887,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     let schema_version = SCHEMA_VERSION, rowsRun = null;
     // Momentum and wins (C4): the lane lines of this engine's recent reports, read from Control Center, and what has worked lately.
     let history = null;
-    try { history = laneHistory(await historyReader({ cc, mode, capabilities })); } catch { history = null; }
+    let seenBefore = null;
+    try { const recent = await historyReader({ cc, mode, capabilities }); history = laneHistory(recent); seenBefore = shownHistory(recent); } catch { history = null; seenBefore = null; }
     const pool = poolOf(suppliedContext);
     const won = suppliedContext ? readWins({ context: suppliedContext, meetings: taps?.meetings ?? null, at }) : null;
     const sourcing = suppliedContext ? sourcingRequests({ flat: poolFlat({ pool, history }), research: suppliedContext.research ?? [], at, weekOf: thisWeek.start, lanesOn: { visibility: caps.rows.visibility?.on, events: caps.rows.events?.on } }) : [];
@@ -894,7 +899,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       const cards = briefs && capabilities.schema_versions.includes(CARD_VERSION);
       const pitches = cards && capabilities.schema_versions.includes(PITCH_VERSION);
       schema_version = pitches ? PITCH_VERSION : cards ? CARD_VERSION : briefs ? BRIEF_VERSION : ROWS_VERSION;
-      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps, wins: won, sourcing });
+      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps, wins: won, sourcing, shown: seenBefore });
       if (week.spec) activity.push(...compiledDrift(week.spec, { canon: rows.canonFiles }));
       if (!pitches) holds.push({ reason: 'pitch_needs_1_9_0', detail: "Control Center does not yet take pitches for Jonny's Gmail (protocol 1.9.0), so none were written." });
       const shown = cards ? rows.proposals : briefs ? rows.proposals.map(({ card, ...p }) => p) : rows.proposals.map(({ because, brief, card, ...p }) => p);
@@ -999,7 +1004,9 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     }
     // Every report leads with the gap: X of Y, U-n, short by Z, unknown where it is unknown.
     // The lane line comes next, so the 40 lines a report keeps always carry it for the runs after this one.
-    activity.unshift(gapNow, ...(lanesNow ? [lanesNow] : []));
+    // What this report showed, for the runs after it to rotate past (rows.mjs, shownLine).
+    const shownNow = rowsRun ? shownLine(mapped.proposals.filter(p => /^gm[wp]-/.test(p.proposal_id))) : null;
+    activity.unshift(gapNow, ...(lanesNow ? [lanesNow] : []), ...(shownNow ? [shownNow] : []));
     activity.push('Preparation used the existing daily dispatch. External actions require exact approval, a supported connector and independently verified receipts. Native drafts and human edits remain with their owners.');
     const report = buildReport({
       run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.some(h => !STANDING_HOLDS.has(h.reason)) ? 'held' : 'ready',

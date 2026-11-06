@@ -56,7 +56,7 @@ test('the default spec reports one readiness line and nothing else changes: no r
   const switchLines = lines(policyRun.report).filter(l => SWITCH_LINE.test(l));
   assert.deepEqual(switchLines, [`Switch readiness: signed spec no; proof runs unknown of 5 (${PROOF_RUNS_NOT_SERVED}); shadow reported yes; number measured no.`]);
   assert.match(lines(policyRun.report).find(l => l.startsWith('Crew lints')), /Nothing is held by them until the switch/);
-  assert.equal(policyRun.report.proposals.length, 22, 'every proposal the crew read is still reported');
+  assert.equal(policyRun.report.proposals.length, 23, 'every proposal the crew read is still reported');
   assert.equal(policyRun.report.holds.some(h => h.reason.includes('.') || h.reason === 'card_grammar'), false, 'no crew hold');
   // The readiness line is the last line but one, before the closing line, so the golden test leaves it out and nothing else.
   assert.equal(lines(policyRun.report).at(-2), switchLines[0]);
@@ -178,14 +178,14 @@ test('enforcing: his signed version enables it, five proof runs read back and th
   const { result, report } = await run({ decisions: [signed], proofReader: five });
   assert.equal(result.status, 'succeeded');
   const l = lines(report);
-  // 23: the spec he signed is an open plan, so the run also carries its check-in (C4), which the crew never holds.
+  // 24: the spec he signed is an open plan, so the run also carries its check-in (C4), which the crew never holds.
   assert.ok(report.proposals.some(p => p.stage === 'check_in' && p.parent_proposal_id === `gms-${WEEK}`));
   assert.equal(l.find(x => x.startsWith('Switch readiness')), 'Switch readiness: signed spec yes, route enabled; proof runs 5 of 5; shadow reported yes; number measured yes.');
   assert.match(l.find(x => x.startsWith('Switch route')), /^Switch route: enforcing\./);
-  assert.match(l.find(x => x.startsWith('Crew lints')), /^Crew lints, enforcing: read 23 proposals; 5 findings \(multiplier\.beyond_linkedin 4, guard\.constraints 1\)\. Each finding that names a proposal holds it/);
+  assert.match(l.find(x => x.startsWith('Crew lints')), /^Crew lints, enforcing: read 24 proposals; 6 findings \(multiplier\.beyond_linkedin 5, guard\.constraints 1\)\. Each finding that names a proposal holds it/);
   const hold = report.holds.find(h => h.reason === 'multiplier.beyond_linkedin');
-  assert.equal(hold.detail, "4 proposals held by the crew's multiplier.beyond_linkedin lint (multiplier-steward) and left out of this report.");
-  assert.equal(report.proposals.length, shadow.report.proposals.length - 4, 'the four named proposals are left out');
+  assert.equal(hold.detail, "5 proposals held by the crew's multiplier.beyond_linkedin lint (multiplier-steward) and left out of this report.");
+  assert.equal(report.proposals.length, shadow.report.proposals.length - 5, 'the five named proposals are left out');
   assert.equal(report.holds.some(h => h.reason === 'guard.constraints'), false, 'a finding over the whole run names no proposal and holds nothing');
   assert.equal(report.status, 'held');
   // Every proposal left out is one the crew named; every one kept is in the shadow run too.
@@ -199,7 +199,7 @@ test('never from an unsigned spec: a proposed file that enables it, or last week
   const file = signed.exact_payload;
   const unsigned = await run({ decisions: [], proofReader: five, specReader: async w => (w === WEEK ? file : null) });
   assert.equal(unsigned.result.status, 'succeeded');
-  assert.match(lines(unsigned.report).find(x => x.startsWith('Crew lints')), /multiplier\.beyond_linkedin 4/, 'the crew found what it would hold');
+  assert.match(lines(unsigned.report).find(x => x.startsWith('Crew lints')), /multiplier\.beyond_linkedin 5/, 'the crew found what it would hold');
   const l = lines(unsigned.report);
   assert.match(l.find(x => x.startsWith('Switch readiness')), /^Switch readiness: signed spec no; proof runs 5 of 5;/);
   assert.equal(l.some(x => x.startsWith('Switch route')), false);
@@ -209,7 +209,7 @@ test('never from an unsigned spec: a proposed file that enables it, or last week
   const nextWeek = await run({ decisions: [signed], proofReader: five, at: '2026-11-17T09:00:00.000Z' });
   assert.equal(nextWeek.result.status, 'succeeded');
   const n = lines(nextWeek.report);
-  assert.match(n.find(x => x.startsWith('Crew lints')), /multiplier\.beyond_linkedin 4/);
+  assert.match(n.find(x => x.startsWith('Crew lints')), /multiplier\.beyond_linkedin 5/);
   assert.match(n.find(x => x.startsWith('Week spec')), /stays in force, up to 7 days/);
   assert.match(n.find(x => x.startsWith('Switch readiness')), /^Switch readiness: signed spec no;/);
   assert.equal(nextWeek.report.holds.some(h => h.reason === 'multiplier.beyond_linkedin'), false);
@@ -249,6 +249,6 @@ test('plan section 12, M3 to M5: each ported standard reports one counted line b
     assert.equal(found.length, 1, head);
     assert.doesNotMatch(found[0], /[0-9a-f]{8}-[0-9a-f]{4}-|@|https?:\/\//, `${head} carries counts only, never an id, an address or a link`);
   }
-  assert.equal(policyRun.report.proposals.length, 22, 'nothing is left out');
+  assert.equal(policyRun.report.proposals.length, 23, 'nothing is left out');
   assert.equal(policyRun.report.holds.some(h => /standard|room/i.test(h.reason)), false, 'nothing is held');
 });

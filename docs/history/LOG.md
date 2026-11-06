@@ -2,6 +2,12 @@
 
 The dated records of this engine's sessions, newest first. NOW.md names this file as its history log; scripts/check-drift.mjs fails when it is missing. The completion record stays docs/RELEASE.md.
 
+## 2026-11-06: older NOW.md changes
+
+Moved here verbatim from NOW.md's "What changed recently" on 2026-11-06 to keep the session pack under 36 KB.
+
+- 2026-10-28 **A merge to the engine's source re-runs the dispatch at once.** His widget went empty after the guest-invite change merged at about 02:15: every row proposal names `src/stages/pitches.mjs` among its sources, and Control Center rightly hides words whose source moved. A run at 02:43 rewrote 26 row proposals at the current sources, and `operate.yml` now runs the dispatch on any merge to main that changes `src/`. The pinned `APPROVED_CANON` lapses on 15 November by decision: it gates only the snapshot route, which the live dispatch no longer uses.
+
 ## 2026-10-31: older NOW.md changes
 
 Moved here verbatim from NOW.md's "What changed recently" on 2026-10-31 to keep the session pack under 36 KB; newest first, as NOW.md listed them.
