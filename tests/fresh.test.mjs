@@ -235,3 +235,18 @@ test('the final guard holds an email whose card sentence does not read as a sent
   assert.equal(youFact('Joined the Example chapter and warns tools want to be your fulcrum.'), 'you joined the Example chapter and warn that tools want to be your fulcrum');
   assert.equal(guestIdea({ one_liner: 'The guy who joined the Example chapter and warns tools want to be your fulcrum', why_fit: 'He runs retail media for Example Exchange.' }, null, new Set()), 'Why tools want to be your fulcrum');
 });
+
+// Control Center's read of the 12:18 live run: research notes, a verb by shape, a placeholder post, a bare list.
+test('the guard reads research notes, verbs by shape, placeholder posts and bare lists', () => {
+  for (const [t, why] of [
+    ["I'd like to hear how your long internal trajectory suggests strong relationships across publishers is going.", 'clause_in_phrase'],
+    ["I'd like to hear how your trajectory points the way markets move is going.", 'clause_in_phrase'],
+    ["I hear you named contact at Example Bank, a large bank; role unknown, and I'd like to know how it's going.", 'research_note'],
+    ["I hear you have already replied to Krish's email, and I'd like to know how it's going.", 'research_note'],
+    ['I read your post, "Please suppress this post", and I would like to hear more.', 'not_a_post'],
+    ["I'd like to hear how your run through Example One, Example Two is going.", 'bare_list'],
+    ["I'd like to hear how your work on Example One and Example Two is going.", ''],
+  ]) assert.equal(brokenSentence(t), why, t);
+  assert.equal(specificOf({ facts: [{ kind: 'post', text: 'Posted: "Please suppress this post"' }] }, { why: [] }), '');
+  assert.equal(youFact('Has already replied to Krish\'s email and sits on a committee.'), '');
+});
