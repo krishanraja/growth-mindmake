@@ -45,6 +45,7 @@ Each is in docs/RULINGS.md word for word, with his quotes; a line here says what
 - The circle lane and the AI mirror (Rulings, Krish, 2026-11-05): 50 influential strangers, who not how, invited in his name.
 - Openings written by the desk, and lookups for row people (Ruling, Krish, 2026-11-06): the research desk writes each catch-up's and invite's opening from one fact, fixed rules read it and a failing one holds the email; row people with no address are looked up.
 - A catch-up is written as a person writes one (Ruling, Krish, 2026-11-06): a while, why now, why you, a quick chat.
+- One voice (Rulings, Krish, 2026-11-07): emails pass the voice check.
 
 ## Current release boundary
 

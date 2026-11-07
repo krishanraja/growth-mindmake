@@ -183,3 +183,11 @@ In his words (6 November, reading the first openings the model wrote, each one t
 - A NETWORK catch-up is one short note in his order: it has been a while, why he is reaching out, why he thought of them, and would they be open to a quick chat. The desk's `write` kind (Claude, no web search, krishanraja/control-center#659) writes the whole note from one fact on the card (`catchUpQuery` in src/stages/openings.mjs).
 - Fixed rules read every note before an email carries it (`validCatchUp`): three to five sentences, at most 85 words, each of the four parts present, and no sentence that tells them their own career (`recites_career`), no praise, research word, link, dash, or name or number the fact does not hold. A note that fails holds the catch-up; nothing falls back to a frame.
 - No wall moves: every send still takes his yes.
+
+## One voice (Rulings, Krish, 2026-11-07)
+
+In his words (7 November): "I want to ensure that the way I present in emails from me or posts from my personal accounts sounds like me. I want to sound like me, my unique fingerprint, but also amplified with all the best practises of people that inspire me." He then chose: British spelling everywhere; a hard fail holds the draft for rewrite and style is scored beside it; and the check covers his email, Jonny's emails in his style, his LinkedIn and his other personal socials.
+
+- Every email this engine prepares for Krish's box or Jonny's box passes Control Center's one voice check (`POST voice-check`, `features.voice_check`) before it is proposed; one that breaks a hard krish-voice rule is held (`voice_refused`, rule names only) and never reaches his list or Jonny's drafts (src/stages/voice.mjs).
+- The rules are krish-voice's kill list in ai-harness, read by Control Center; this engine keeps no list of its own. A check that cannot be read is counted (`voice_check_unread`) and Control Center checks again before anything lands.
+- No wall moves: a pass is never approval to send.

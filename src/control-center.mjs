@@ -171,6 +171,13 @@ export function engineClient(base, token, { fetcher = fetch, slug = ENGINE_SLUG,
       if (!value || value.ok !== true || !Array.isArray(value.research) || value.research.length !== requests.length || value.research.some((r, i) => r?.request_id !== requests[i].request_id)) throw new Error('Control Center did not answer the research');
       return value.research;
     },
+    /** features.voice_check (2026-11-07): Control Center's voice check on words in Krish's name, against krish-voice's
+     *  kill list. A verdict only: it approves nothing and sends nothing. */
+    async voiceCheck({ text, channel, subject } = {}) {
+      const value = await call('POST', 'voice-check', { text, channel, ...(subject ? { subject } : {}) });
+      if (!value || value.ok !== true || !value.check || typeof value.check !== 'object') throw new Error('Control Center returned no voice check');
+      return value.check;
+    },
     async decisions(since) {
       const value = await call('GET', `decisions?since=${encodeURIComponent(since)}`);
       if (!value || value.ok !== true || !Array.isArray(value.decisions)) throw new Error('Control Center returned no decisions');
