@@ -36,6 +36,7 @@ import { gapOf, gapLine, intensify } from './stages/intensity.mjs';
 import { wins as readWins, winsLine } from './stages/wins.mjs';
 import { poolOf, lanesLine, laneHistory, starvedLanes, poolFlat, starvedProposal, sourcingRequests, checkIn, stoppedPlans, STARVED_RUNS, CHECK_IN_DAYS, CHECK_IN_PREFIX, STARVED_PREFIX, CAPPED } from './stages/momentum.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
+import { voiceHolds, voiceHoldLine } from './stages/voice.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
 export const PRODUCT_SLUG = 'mindmake';
@@ -609,7 +610,11 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // Every sentence built from a card fact is read before it is proposed: an email with a broken one is held (Control Center's reads of 6 November).
   const broken = brokenEmails(drafted.filter(p => !same.has(p.proposal_id)));
   const brokenIds = new Set(broken.map(b => b.proposal_id));
-  const proposals = drafted.filter(p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id));
+  // Every email in his name, or in Jonny's box in his style, passes Control Center's voice check first (Ruling, Krish, 2026-11-07).
+  const voice = await voiceHolds({ cc, capabilities, proposals: drafted.filter(p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id)) });
+  const proposals = drafted.filter(p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id) && !voice.held.has(p.proposal_id));
+  if (voice.held.size) holds.push(voiceHoldLine(voice.held));
+  if (voice.unread) holds.push({ reason: 'voice_check_unread', detail: `${voice.unread} email${voice.unread === 1 ? '' : 's'} went unchecked here; Control Center checks again before anything lands.` });
   if (same.size) holds.push({ reason: 'row_same_words', detail: `${same.size} proposal${same.size === 1 ? '' : 's'} held: ${same.size === 1 ? 'its' : 'their'} words matched another email in this run once the names were taken out.` });
   if (broken.length) holds.push({ reason: 'row_broken_words', detail: `${broken.length} proposal${broken.length === 1 ? '' : 's'} held: a sentence from the card did not read as a sentence (${[...new Set(broken.map(b => b.reason))].join(', ').replace(/_/g, ' ')}).` });
   counts.invites = pitched.proposals.filter(isInvite).length;
