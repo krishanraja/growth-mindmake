@@ -2,7 +2,7 @@
 // voice check before it is proposed (Ruling, Krish, 2026-11-07). Synthetic words and a stand-in client only.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { voiceHolds, voiceHoldLine } from '../src/stages/voice.mjs';
+import { voiceHolds, voiceHoldLine, wordsOf } from '../src/stages/voice.mjs';
 
 const email = (id, body, mailbox = null) => ({ proposal_id: id, exact_payload: JSON.stringify({ version: 2, channel: 'email', subject: 'A quick idea', body, mailbox }) });
 const served = { features: { voice_check: true } };
@@ -29,11 +29,23 @@ test('Jonny\'s box is checked as Jonny in Krish\'s style, Krish\'s rows as his o
   assert.equal(cc.calls[0].subject, 'A quick idea');
 });
 
-test('a message, a form or a strategy proposal is not an email and is not asked about', async () => {
+test('a strategy proposal carries no words of his and is not asked about', async () => {
   const cc = stand();
-  const r = await voiceHolds({ cc, capabilities: served, proposals: [{ proposal_id: 's', exact_payload: '{"strategy":true}' }, { proposal_id: 'm', exact_payload: JSON.stringify({ version: 2, channel: 'whatsapp', body: 'Hi' }) }] });
+  const r = await voiceHolds({ cc, capabilities: served, proposals: [{ proposal_id: 's', exact_payload: '{"strategy":true}' }] });
   assert.equal(cc.calls.length, 0);
   assert.equal(r.held.size, 0);
+});
+
+test('every action with his words is checked: a message, a form\'s written answers and an engagement task\'s taps (Ruling, Krish, 2026-11-09)', async () => {
+  assert.deepEqual(wordsOf({ channel: 'whatsapp', body: 'Quick one for you.' }), { text: 'Quick one for you.', channel: 'message' });
+  assert.deepEqual(wordsOf({ channel: 'x_message', body: 'Saw your post.' })?.channel, 'message');
+  const form = wordsOf({ channel: 'form', form: { url: 'https://example.org/cfp', answers: [{ label: 'Name', value: 'A Synthetic Name' }, { label: 'Abstract', value: 'A talk about what happens to pricing when the buyer is an agent.' }] } });
+  assert.deepEqual(form, { text: 'A talk about what happens to pricing when the buyer is an agent.', channel: 'form' }, 'only the written answers, never a name or a country');
+  assert.deepEqual(wordsOf({ channel: 'engage', taps: [{ label: 'a', text: 'Good point on agent pricing.', url: 'https://example.org/p' }] }), { text: 'Good point on agent pricing.', channel: 'comment' });
+  const cc = stand({ 'A robust idea.': [{ rule: 'words' }] });
+  const r = await voiceHolds({ cc, capabilities: served, proposals: [{ proposal_id: 'm', exact_payload: JSON.stringify({ version: 2, channel: 'whatsapp', body: 'A robust idea.' }) }] });
+  assert.deepEqual([...r.held.keys()], ['m']);
+  assert.equal(cc.calls[0].channel, 'message');
 });
 
 test('an older Control Center without the check holds nothing, and says it was not served', async () => {
