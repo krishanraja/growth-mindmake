@@ -19,7 +19,7 @@
  */
 import { readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
+import { resolve, relative } from 'node:path';
 import { selectDrafts, briefFor, briefSha, validAnswer, tally, tallyLine, ledgerEntry, mergeLedger, calibrate, calibrationLine, DEFAULT_PER_RUN } from '../src/crew/reader.mjs';
 import * as readerLint from '../src/crew/lints/reader.mjs';
 
@@ -107,7 +107,7 @@ if (cmd === 'brief') {
   await writeFile(resolve(dir, 'results.json'), JSON.stringify({ at: run.at, tally: t, findings: Object.fromEntries(findings) }, null, 2));
   console.log(tallyLine(t));
   console.log(`Reader lints, in shadow: ${findings.size ? [...findings].map(([k, v]) => `${k} ${v}`).join(', ') : 'none'}. Nothing is held by them.`);
-  console.log(`Ledger: ${ledger.length} prediction${ledger.length === 1 ? '' : 's'} kept, keys and verdicts only, in this machine's ignored ${LEDGER.slice(root.length)}.`);
+  console.log(`Ledger: ${ledger.length} prediction${ledger.length === 1 ? '' : 's'} kept, keys and verdicts only, in this machine's ignored ${relative(root, LEDGER)}.`);
 } else if (cmd === 'calibrate') {
   const file = flag('--context');
   if (!file) fail('calibrate needs --context <file>');
