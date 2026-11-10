@@ -41,3 +41,13 @@ Write the experiment as the [copy and offer doctrine's test record](10-copy-and-
 Record an experiment privately with a falsifiable hypothesis, eligible audience, one change, comparison method, leading signal, outcome signal, adverse signal, review date or event, owner and reversal condition. Use a decision aid angle or CTA change before considering a new paid tool or channel. Existing approval, privacy and sending boundaries still apply.
 
 Low volume limits causal claims. Compare comparable opportunities and explain selection differences. Call directional learning directional. Do not optimise on a tiny apparent conversion uplift or alter qualification to improve a chart. At day 30, inspect actual paid evidence, missing data, relationship cost and founder effort before recommending the next experiment.
+
+## The reader check
+
+A simulated reader is a way to find the weak link in a draft before Krish reads it. It is never evidence that the draft works (Ruling, Krish, 2026-11-10).
+- Each reader is built only from what the card says about its person, and reads the exact words that would arrive. A sub-agent with fresh context answers, never the session that wrote the draft (scripts/reader.mjs).
+- Each reader says whether they would reply within 7 days, which link of the persuasion chain stops them, and whether they felt remembered or worked.
+- The verdicts are counted in shadow: they hold nothing, propose nothing and never count toward the number. A reader's words are never quoted to anyone as a reply or a testimonial.
+- Every verdict is kept in the private ledger by its proposal and brief digest, with no words, and scored against what happened once the send is 7 days old.
+- The stop rule is set before the first run: too early until 20 sends are 7 days old with at least 3 real replies; then it earns weight only when it beats the majority guess and drafts it said would get a reply were answered at least twice as often as drafts it said would not, and otherwise it is retired.
+- Until it earns weight, a draft it says will fail is still shown to Krish as it is, and the reader's finding is a count in the report.

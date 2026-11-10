@@ -46,6 +46,7 @@ Each is in docs/RULINGS.md word for word, with his quotes; a line here says what
 - Openings written by the desk, and lookups for row people (Ruling, Krish, 2026-11-06): the research desk writes each catch-up's and invite's opening from one fact, fixed rules read it and a failing one holds the email; row people with no address are looked up.
 - A catch-up is written as a person writes one (Ruling, Krish, 2026-11-06): a while, why now, why you, a quick chat.
 - One voice (Rulings, Krish, 2026-11-07): emails pass the voice check.
+- The reader check (Ruling, Krish, 2026-11-10): fresh simulated readers read drafts in shadow, never as evidence, and earn weight only on real replies or are retired.
 
 ## Current release boundary
 

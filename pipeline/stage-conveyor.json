@@ -484,6 +484,7 @@
         "src/crew/switch.mjs",
         "src/crew/cards.mjs",
         "src/crew/library.mjs",
+        "src/crew/reader.mjs",
         "src/crew/lints/*.mjs",
         "src/crew/checks/*.mjs"
       ],

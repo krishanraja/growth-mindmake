@@ -23,6 +23,7 @@ import * as trust from './lints/trust.mjs';
 import * as measurement from './lints/measurement.mjs';
 import * as librarian from './lints/librarian.mjs';
 import * as guard from './lints/guard.mjs';
+import * as reader from './lints/reader.mjs';
 import * as networkChecks from './checks/network.mjs';
 import * as multiplierChecks from './checks/multiplier.mjs';
 import * as visibilityChecks from './checks/visibility.mjs';
@@ -32,11 +33,12 @@ import * as trustChecks from './checks/trust.mjs';
 import * as measurementChecks from './checks/measurement.mjs';
 import * as librarianChecks from './checks/librarian.mjs';
 import * as guardChecks from './checks/guard.mjs';
+import * as readerChecks from './checks/reader.mjs';
 
 /** Every specialist's lint module, in the order crew/index.json lists them. */
-export const LINT_MODULES = [network, multiplier, visibility, stages, signals, trust, measurement, librarian, guard];
+export const LINT_MODULES = [network, multiplier, visibility, stages, signals, trust, measurement, librarian, guard, reader];
 /** Every specialist's measured checks. */
-export const CHECK_MODULES = [networkChecks, multiplierChecks, visibilityChecks, stagesChecks, signalsChecks, trustChecks, measurementChecks, librarianChecks, guardChecks];
+export const CHECK_MODULES = [networkChecks, multiplierChecks, visibilityChecks, stagesChecks, signalsChecks, trustChecks, measurementChecks, librarianChecks, guardChecks, readerChecks];
 /** The prefix both crew lines start with, so a reader (and the golden test) can tell them apart from today's lines. */
 export const CREW_LINE = /^Crew (?:lints|checks), /;
 export const TAXONOMY = JSON.parse(await readFile(new URL('../../library/taxonomy.json', import.meta.url), 'utf8'));
@@ -45,13 +47,15 @@ const list = v => (Array.isArray(v) ? v : []);
 const byId = (rows, key) => { const m = new Map(); for (const r of rows) { const k = typeof r?.[key] === 'string' ? r[key] : null; if (k) { m.set(k, r); m.set(k.toLowerCase(), r); } } return m; };
 
 /** What every lint reads: the context's people, stages and guests by id, his lessons, and what was already pitched, invited or booked. Pure. */
-export function crewContext({ context = null, canon = null, research = null, at }) {
+export function crewContext({ context = null, canon = null, research = null, at, reader = null }) {
   const c = context ?? {};
   const people = byId([...list(c.network), ...list(c.quiet_ties), ...list(c.amplifier_candidates)], 'contact_id');
   const companies = byId(list(c.companies), 'domain');
   const all = research ?? list(c.research);
   return {
     at, canon, research: all, routes: c.routes ?? {}, people,
+    // The Reader Check's verdicts by proposal id, only where a session passes them (src/crew/reader.mjs); a dispatch has none.
+    reader: reader instanceof Map ? reader : null,
     stages: byId(list(c.records?.visibility), 'id'), guests: byId(list(c.records?.guests), 'contact_id'),
     L: lessons(c.feedback, at), pitched: pitchedStages(c), invited: invitedGuests(c), booked: bookedStages(c),
     // The other record prose a card may draw on: a profile Control Center answered, and the company's why_now.

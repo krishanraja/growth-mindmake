@@ -1,5 +1,10 @@
 # Release state
 
+## The reader check, 10 November 2026 (Ruling, Krish, 2026-11-10)
+
+- **Built and tested.** The crew's tenth specialist, the Reader Check: `npm run reader -- brief --report <file>` writes one brief per draft (card lines and exact words only) for fresh sub-agents in a Claude session; `check`, `save`, `tally` read their answers by fixed rules and keep a private ledger of verdicts with no words; `calibrate --context <file>` scores the ledger against real replies by the stop rule in docs/playbooks/07-scorecard-and-experiments.md. In shadow: nothing is held or counted. In a dispatch its lint finds nothing and `reader.calibration` is reported not measured, with its reason.
+- **Verified on:** `npm run check`, `npm run contracts`, `npm run conveyor`, the demos and 615 tests, and one end-to-end run on two synthetic drafts in a Claude Code session: two fresh sub-agents wrote answers in shape (`check` 2 of 2), `tally` gave counts and codes only and the ledger kept keys and verdicts only. Each reader cost about 136,000 sub-agent tokens there, most of it the sub-agent's own start-up, so a full run of 20 is about 2.7 million tokens of the session's allowance and no engine spend. **Not run live:** no reader has read a live draft; the ledger is empty, so its standing is `too_early`. The ledger lives in the runtime/ of the machine that runs it: a cloud session's copy is lost when its container goes, so calibration needs one machine that keeps it.
+
 ## Catch-ups written as a person writes one, 6 November 2026 (Ruling, Krish, 2026-11-06)
 
 - **Built and tested.** A NETWORK catch-up is one note in Krish's order, written whole by the desk's `write` kind (`catchUpQuery`) and read by `validCatchUp`: it has been a while, why he is reaching out, why he thought of them, a quick chat. A note that tells them their own career (`recites_career`) or misses a part is held.

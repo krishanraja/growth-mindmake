@@ -22,6 +22,7 @@
     "demo:review": "node src/cli.mjs weekly-review --context fixtures/review-context.json --at 2026-10-16T13:00:00Z --summary",
     "demo:engine": "node src/cli.mjs engine --context fixtures/engine-context.json --at 2026-10-16T18:00:00Z --summary",
     "check:crew": "node scripts/check-crew.mjs",
+    "reader": "node scripts/reader.mjs",
     "check:bespoke": "node scripts/check-bespoke.mjs",
     "check:links": "node scripts/check-links.mjs",
     "check:drift": "node scripts/check-drift.mjs",

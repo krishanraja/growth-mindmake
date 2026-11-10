@@ -191,3 +191,12 @@ In his words (7 November): "I want to ensure that the way I present in emails fr
 - Every email this engine prepares for Krish's box or Jonny's box passes Control Center's one voice check (`POST voice-check`, `features.voice_check`) before it is proposed; one that breaks a hard krish-voice rule is held (`voice_refused`, rule names only) and never reaches his list or Jonny's drafts (src/stages/voice.mjs).
 - The rules are krish-voice's kill list in ai-harness, read by Control Center; this engine keeps no list of its own. A check that cannot be read is counted (`voice_check_unread`) and Control Center checks again before anything lands.
 - No wall moves: a pass is never approval to send.
+
+## The reader check (Ruling, Krish, 2026-11-10)
+
+In his words (10 November, after reading the case for rebuilding the founder-skill repository's buyer panel for this engine as a calibrated reader check, in shadow, never evidence): "Do both: MindMake first and then legibility after. Complete both and then merge both to main and update the project documentation at the end."
+
+- A Reader Check, the crew's tenth specialist, reads drafts before they reach his rows: one fresh-context sub-agent per draft, built only from the card's own lines, says whether they would reply within 7 days, which link of the persuasion chain stops them, and whether they felt remembered or worked (src/crew/reader.mjs, scripts/reader.mjs).
+- It runs in shadow: it holds nothing, proposes nothing and never counts toward the number, and a simulated reader's words are never a reply or a testimonial.
+- It earns weight only on real sends, by the stop rule set before its first run (docs/playbooks/07-scorecard-and-experiments.md, "The reader check"), and is retired when it does not.
+- No wall moves, no model provider is added and nothing is spent by the engine: the readers run in a Claude session.

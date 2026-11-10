@@ -19,7 +19,7 @@ const failures = [];
 const texts = {};
 for (const s of index.specialists) for (const x of s.sources) texts[x.file] ??= await readFile(resolve(root, x.file), 'utf8');
 
-if (index.version !== 1 || index.specialists.length !== 9) failures.push('crew/index.json lists the nine specialists of plan section 3');
+if (index.version !== 1 || index.specialists.length !== 10) failures.push('crew/index.json lists the nine specialists of plan section 3 and the Reader Check');
 const slugs = new Set();
 for (const s of index.specialists) {
   if (!/^[a-z][a-z-]+$/.test(s.slug) || slugs.has(s.slug)) failures.push(`${s.slug}: a unique slug`);
