@@ -21,5 +21,5 @@ From 07-scorecard-and-experiments.md, One experiment at a time:
 
 ## Sources
 
-- docs/playbooks/07-scorecard-and-experiments.md, "Counting rules": sha256 25f1eacb6ddeca01
-- docs/playbooks/07-scorecard-and-experiments.md, "One experiment at a time": sha256 25f1eacb6ddeca01
+- docs/playbooks/07-scorecard-and-experiments.md, "Counting rules": sha256 b44448082302787c
+- docs/playbooks/07-scorecard-and-experiments.md, "One experiment at a time": sha256 b44448082302787c
