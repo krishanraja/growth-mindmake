@@ -24,7 +24,7 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 ## Where it is right now (as of 2026-10-28)
 
-<!-- north-star-state {"week_of":"2026-10-26","week_target":2,"current":0,"current_as_of":"2026-10-30","current_source":"growth-mindmake's latest live report to Control Center (objective good_meetings: meetings Krish marked good, each traced to its path, in the week it counts), read by Control Center","urgency":4,"urgency_reason":"at 0% of this week's target"} --> **North Star number: U4, far behind.** Good meetings a week, each marked good by Krish after it and traced to where it came from: 0, against 2 this week, on the way to 20 by 30 November 2026. A bold swing every day; work that does not move the number waits.
+<!-- north-star-state {"week_of":"2026-11-02","week_target":5,"current":0,"current_as_of":"2026-11-08","current_source":"growth-mindmake's latest live report to Control Center (objective good_meetings: meetings Krish marked good, each traced to its path, in the week it counts), read by Control Center","urgency":5,"urgency_reason":"under 40% of the week's target two weeks running (0% now)"} --> **North Star number: U5, stalled.** Good meetings a week, each marked good by Krish after it and traced to where it came from: 0, against 5 in the week of 2 November 2026, on the way to 20 by 30 November 2026. Everything else pauses unless it moves the number.
 
 Lifecycle: building. The detail is in `README.md`.
 
