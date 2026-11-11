@@ -46,3 +46,4 @@ This file is the session's whole brief. Read AGENTS.md first, then this file.
 - A reservation guards the share only. The approved execution ruling (2026-10-22) still governs every external action.
 - Never report a session spend again in a runner report's `credits_spent`. Control Center already counts the reservation, and it would be taken off the share twice.
 - This session changes no tracked file. It commits nothing and opens no pull request.
+- Krish's instruction to this engine (protocol 1.20.0) does not reach this session: Control Center's connector serves no read of it and no way to ack it yet (docs/CONTROL-CENTER-BRIEF.md). The daily dispatch acts on it and acks it; never guess his instruction here.

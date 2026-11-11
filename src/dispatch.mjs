@@ -37,6 +37,7 @@ import { wins as readWins, winsLine } from './stages/wins.mjs';
 import { poolOf, lanesLine, laneHistory, starvedLanes, poolFlat, starvedProposal, sourcingRequests, checkIn, stoppedPlans, STARVED_RUNS, CHECK_IN_DAYS, CHECK_IN_PREFIX, STARVED_PREFIX, CAPPED } from './stages/momentum.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
 import { voiceHolds, voiceHoldLine } from './stages/voice.mjs';
+import { readInstruction, takesEngineState, rowGoals, instructionSeen, instructionWork, priorities, obsessions, nextSteps, engineState, ENGINE_STATE_VERSION, ENGINE_STATE_KEYS } from './stages/instruction.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
 export const PRODUCT_SLUG = 'mindmake';
@@ -44,7 +45,7 @@ export const SLUG = 'mindmake';
 export const TIMEZONE = 'Europe/London';
 export const REPORT_SCHEMA = JSON.parse(await readFile(new URL('../docs/control-center/engine-report.schema.json', import.meta.url), 'utf8'));
 /** The weekly ladder Krish set in docs/NORTH_STAR.md, read from the file itself so it never drifts from his number. */
-const NORTH_STAR_TEXT = await readFile(new URL('../docs/NORTH_STAR.md', import.meta.url), 'utf8');
+export const NORTH_STAR_TEXT = await readFile(new URL('../docs/NORTH_STAR.md', import.meta.url), 'utf8');
 export const LADDER = readLadder(NORTH_STAR_TEXT);
 /** docs/NORTH_STAR.md by its blob SHA, which a default week spec names as the file it was written against. */
 export const NORTH_STAR_SHA = blobSha(NORTH_STAR_TEXT);
@@ -160,6 +161,10 @@ export function readDirective(value) {
     web: readWeb(d.web_analytics),
     // 1.16.0: the prepaid credits block, kept raw: it is trusted only where the capabilities say features.credits (readCredits).
     credits_block: d.credits && typeof d.credits === 'object' ? d.credits : null,
+    // 1.20.0: Krish's own next best action for this engine, his words kept in memory only (never printed, logged or
+    // committed: this repository is public), and whether the engine's state may be reported (features.engine_state).
+    instruction: readInstruction(d.krish_instruction),
+    engine_state: d.features?.engine_state === true,
     decisions_since: d.decisions_since.filter(x => x && typeof x.proposal_id === 'string' && ['approved','declined'].includes(x.decision)).map(x => ({ proposal_id: x.proposal_id, decision: x.decision, payload_sha256: typeof x.payload_sha256 === 'string' ? x.payload_sha256 : null })),
     in_house: counts && typeof counts === 'object' ? {
       advisory: part(counts.advisory, ['drafted_waiting','sent_this_week','replied_waiting','calls_booked_this_week','paid']),
@@ -409,7 +414,7 @@ export function deadPlans(context, proposing = new Set()) {
 }
 
 /** Build the report envelope exactly as engine-report.schema.json, then check it against that schema. */
-export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null, suppression = null, taxonomy = null, credits_spent = null, found_routes = null, circle = null, mirror = null }) {
+export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null, suppression = null, taxonomy = null, credits_spent = null, found_routes = null, circle = null, mirror = null, engine_state = null }) {
   // 1.16.0: credits_spent goes out only when this run spent something, and raises the report to the version that carries it.
   const spent = Array.isArray(credits_spent) && credits_spent.length ? credits_spent.slice(0, CREDITS_SPENT_MAX) : null;
   // 1.18.0: found_routes goes out only when there is one, and raises the report to the version that carries it.
@@ -420,6 +425,9 @@ export function buildReport({ run_id, mode, observed_at, source, status, objecti
   const people = Array.isArray(circle) && circle.length ? circle.slice(0, 50) : null;
   if (people) version = laterVersion(version, CIRCLE_VERSION);
   if (mirror) version = laterVersion(version, MIRROR_VERSION);
+  // 1.20.0: the engine's state and its acks to Krish's instruction, only the fields with an entry, and they raise the report to the version that carries them.
+  const state = engine_state ? Object.fromEntries(ENGINE_STATE_KEYS.filter(k => Array.isArray(engine_state[k]) && engine_state[k].length).map(k => [k, engine_state[k]])) : {};
+  if (Object.keys(state).length) version = laterVersion(version, ENGINE_STATE_VERSION);
   const body = {
     schema_version: version, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
     objectives, activity: activity.slice(0, 40).map(line => ({ line: cut(line, 500), evidence_url: null })),
@@ -435,7 +443,9 @@ export function buildReport({ run_id, mode, observed_at, source, status, objecti
     ...(routes ? { found_routes: routes } : {}),
     // The circle lane's people and the AI mirror's questions, only where Control Center serves them (features.circle, features.mirror).
     ...(people ? { circle: people } : {}),
-    ...(mirror ? { mirror } : {})
+    ...(mirror ? { mirror } : {}),
+    // Krish's instruction and the engine's state (1.20.0), only where the directive says features.engine_state.
+    ...state
   };
   const report = { ...body, payload_sha256: reportDigest(body) };
   const errors = schemaErrors(REPORT_SCHEMA, report);
@@ -689,6 +699,18 @@ export function failureClass(e) {
   return 'the engine could not plan from it';
 }
 
+/** Control Center's answer to a report's instruction acks (1.20.0), as counts; null when it gave none. Pure. */
+export function acksAnswer(answer) {
+  const whole = v => Number.isInteger(v) && v >= 0 ? v : null;
+  if (!answer || typeof answer !== 'object') return null;
+  if (answer.error === 'acks_unrecorded') return { recorded: false };
+  return { applied: whole(answer.applied), unknown: whole(answer.unknown), stale: whole(answer.stale) };
+}
+/** The two files the engine's next steps are read from (1.20.0): docs/GET-GOING.md and NOW.md, as text; a file that cannot be read is empty. */
+export async function readStateFiles() {
+  const read = async path => { try { return await readFile(new URL(`../${path}`, import.meta.url), 'utf8'); } catch { return ''; } };
+  return { getGoing: await read('docs/GET-GOING.md'), now: await read('NOW.md') };
+}
 /** A proposed week spec, specs/weeks/<monday>.json, as its text; null when none was proposed for that week. */
 /** This engine's recent live reports, where Control Center lists them (1.10.0, `features.recent_reports`); null otherwise. A synthetic run reads none. */
 export async function readHistory({ cc, mode, capabilities } = {}) {
@@ -701,7 +723,7 @@ export async function readSpecFile(week) {
   catch (e) { if (e?.code === 'ENOENT') return null; throw e; }
 }
 
-export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA, proofReader = readProofRuns, historyReader = readHistory }) {
+export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA, proofReader = readProofRuns, historyReader = readHistory, northStarText = NORTH_STAR_TEXT, stateReader = readStateFiles }) {
   if (!['live','synthetic'].includes(mode) || !/^[a-z][a-z0-9-]{0,40}$/.test(kind) || !/^gma-[A-Za-z0-9-]{8,80}$/.test(attemptId)) throw new Error('Invalid dispatch options');
   const started_at = clock();
   const run_id = `${SLUG}:${londonDate(started_at)}:${kind}`;
@@ -733,6 +755,10 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     }
     let activatedOn = null, capabilities = null;
     try { capabilities = await cc.capabilities(); activatedOn = typeof capabilities?.activation?.activated_on === 'string' ? capabilities.activation.activated_on : null; } catch { activatedOn = null; }
+    // 1.20.0: Krish's instruction goes first in this run's work: his words before the week's goals, in memory only, so each
+    // row says whether it serves them and those that do rank first. Never while Control Center holds the engine.
+    const held = ['held', 'paused'].includes(capabilities?.activation?.state);
+    const goalsForRows = !held && directive.instruction.state === 'open' ? rowGoals(directive.instruction.instruction, directive.week_goals) : directive.week_goals;
     phase = 'capture';
     const read = capabilities?.features?.context ? {} : await source();
     const snapshot = read?.snapshot ?? null;
@@ -915,8 +941,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     let schema_version = SCHEMA_VERSION, rowsRun = null;
     // Momentum and wins (C4): the lane lines of this engine's recent reports, read from Control Center, and what has worked lately.
     let history = null;
-    let seenBefore = null;
-    try { const recent = await historyReader({ cc, mode, capabilities }); history = laneHistory(recent); seenBefore = shownHistory(recent); } catch { history = null; seenBefore = null; }
+    let seenBefore = null, recent = null;
+    try { recent = await historyReader({ cc, mode, capabilities }); history = laneHistory(recent); seenBefore = shownHistory(recent); } catch { recent = null; history = null; seenBefore = null; }
     const pool = poolOf(suppliedContext);
     const won = suppliedContext ? readWins({ context: suppliedContext, meetings: taps?.meetings ?? null, at }) : null;
     const sourcing = suppliedContext ? sourcingRequests({ flat: poolFlat({ pool, history }), research: suppliedContext.research ?? [], at, weekOf: thisWeek.start, lanesOn: { visibility: caps.rows.visibility?.on, events: caps.rows.events?.on } }) : [];
@@ -927,7 +953,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       const cards = briefs && capabilities.schema_versions.includes(CARD_VERSION);
       const pitches = cards && capabilities.schema_versions.includes(PITCH_VERSION);
       schema_version = pitches ? PITCH_VERSION : cards ? CARD_VERSION : briefs ? BRIEF_VERSION : ROWS_VERSION;
-      const rows = await fiveRows({ cc, context: suppliedContext, directive, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps, wins: won, sourcing, shown: seenBefore });
+      const rows = await fiveRows({ cc, context: suppliedContext, directive: { ...directive, week_goals: goalsForRows }, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps, wins: won, sourcing, shown: seenBefore });
       if (week.spec) activity.push(...compiledDrift(week.spec, { canon: rows.canonFiles }));
       if (!pitches) holds.push({ reason: 'pitch_needs_1_9_0', detail: "Control Center does not yet take pitches for Jonny's Gmail (protocol 1.9.0), so none were written." });
       const shown = cards ? rows.proposals : briefs ? rows.proposals.map(({ card, ...p }) => p) : rows.proposals.map(({ because, brief, card, ...p }) => p);
@@ -1034,14 +1060,31 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // The lane line comes next, so the 40 lines a report keeps always carry it for the runs after this one.
     // What this report showed, for the runs after it to rotate past (rows.mjs, shownLine).
     const shownNow = rowsRun ? shownLine(mapped.proposals.filter(p => /^gm[wp]-/.test(p.proposal_id))) : null;
-    activity.unshift(gapNow, ...(lanesNow ? [lanesNow] : []), ...(shownNow ? [shownNow] : []));
+    // 1.20.0: what this run did with Krish's instruction leads, by its id and digest only, never his words.
+    const told = instructionWork({ read: directive.instruction, held, rowsRan: !!rowsRun, proposals: mapped.proposals, seen: instructionSeen(recent, directive.instruction.id), receivedAt: started_at, at: observed_at });
+    activity.unshift(...(told ? [told.activity] : []), gapNow, ...(lanesNow ? [lanesNow] : []), ...(shownNow ? [shownNow] : []));
+    // The engine's state (1.20.0), from this repository's own files and this run's numbers, never invented; only where the directive says features.engine_state.
+    let stateNow = null;
+    if (takesEngineState(directive, REPORT_SCHEMA, capabilities)) {
+      let files = {};
+      try { files = await stateReader(); } catch { files = {}; }
+      stateNow = engineState({
+        priorities: priorities({ gap, ladder, booked, targets: visibilityTargets(policy), raised: intense.raised.length, starved, starvedRuns: STARVED_RUNS }),
+        obsessions: obsessions(northStarText),
+        next_steps: nextSteps(files ?? {}),
+        acks: told?.acks ?? []
+      });
+    }
+    if (told) outcome.instruction = told.outcome;
     activity.push('Preparation used the existing daily dispatch. External actions require exact approval, a supported connector and independently verified receipts. Native drafts and human edits remain with their owners.');
     const report = buildReport({
       run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.some(h => !STANDING_HOLDS.has(h.reason)) ? 'held' : 'ready',
       source: strategicSource ?? { revision: snapshot && snapshot.source_revision.length <= 128 ? snapshot.source_revision : revision, captured_at: snapshot?.generated_at ?? observed_at },
       objectives, activity, proposals: mapped.proposals, events: events.slice(0, 40), holds, schema_version, origin_candidates, withdrawn, found_routes: rowsRun?.found_routes ?? null, circle: rowsRun?.circle ?? null, mirror: rowsRun?.mirror ?? null,
+      engine_state: stateNow,
       ...(suppressed.fields ?? {})
     });
+    if (stateNow) outcome.engine_state = Object.fromEntries(ENGINE_STATE_KEYS.map(k => [k, report[k]?.length ?? 0]));
     // A live run that read nothing to plan from is held by its class (F48): the report says degraded, and the attempt says why, never succeeded.
     // A synthetic run is a harness for one path, so it keeps reporting how the protocol went.
     outcome.held = mode !== 'live' ? null : !snapshot && !strategic ? (capabilities?.features?.context ? 'context_unread' : 'nothing_read') : holds.some(h => h.reason === 'nothing_prepared') ? 'nothing_prepared' : null;
@@ -1064,6 +1107,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // 1.19.0: what Control Center did with the circle, counted, never a name.
     const circleSaid = circleAnswer(report.circle?.length ?? 0, ack?.circle);
     if (circleSaid) outcome.circle = circleSaid;
+    // 1.20.0: what Control Center did with the acks, counted.
+    if (outcome.instruction && report.instruction_acks?.length) outcome.instruction.answer = acksAnswer(ack?.instruction_acks);
     phase = 'readback';
     let stored;
     try { stored = await cc.readReport(run_id); } catch { return await finish('unknown', 'readback_unconfirmed'); }

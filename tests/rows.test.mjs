@@ -899,3 +899,44 @@ test('facts can carry a card the record\'s prose alone could not', () => {
   assert.equal(cardOf(thin), null);
   assert.ok(cardOf({ ...thin, facts: [FACTS[1]] })?.why.includes(factLine(FACTS[1])));
 });
+
+test('1.20.0: his instruction goes first, the rows say whether they serve it, and the run acks started with counts, never his words', async () => {
+  const policy = JSON.parse(await readFile(new URL('../config/policy.json', import.meta.url)));
+  // Synthetic stand-in for his words; it names visibility, so the visibility row may serve it.
+  const WORDS = 'Synthetic: push podcast visibility first this week';
+  const KI = `ki_${'c3'.repeat(12)}`;
+  const served = ['1.5.0', '1.6.0', '1.7.0', '1.8.0', '1.20.0'];
+  const reports = [];
+  const ctx = () => ({
+    schema_version: '1.6.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }], records: { advisory: [] },
+    ...ampContext(), research: []
+  });
+  const cc = {
+    recordAttempt: async () => {},
+    directive: async () => directiveFixture({ schema_version: '1.20.0', week_goals: GOALS, features: { engine_state: true, krish_instruction: true }, krish_instruction: { id: KI, words: WORDS, given_at: NOW, given_by: 'krish', supersedes: null } }),
+    capabilities: async () => ({ activation: { state: 'active', activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true } }),
+    context: async () => ({ ok: true, context: ctx() }),
+    research: async requests => requests.map(r => ({ ...r, status: 'answered', answered_at: NOW, answer: null, evidence: [] })),
+    decisions: async () => [], postReport: async r => { reports.push(r); return { accepted: true, replayed: false, instruction_acks: { applied: 2, unknown: 0, stale: 0 } }; }, readReport: async () => reports.at(-1)
+  };
+  const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-rows-instruction-1', clock: () => NOW,
+    canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/rows.mjs', sha: 'b'.repeat(40) }],
+    stateReader: async () => ({ getGoing: '', now: '' }) });
+  assert.equal(result.status, 'succeeded');
+  const report = reports[0];
+  assert.equal(report.schema_version, '1.20.0');
+  const rows = report.proposals.filter(p => p.row);
+  assert.ok(rows.length >= 2);
+  const visibility = rows.filter(p => p.row === 'visibility');
+  assert.ok(visibility.length && visibility.every(p => p.serves === WORDS), 'a row his words name says it serves them, word for word');
+  assert.ok(rows.filter(p => p.row === 'partners').every(p => p.serves === GOALS[1]), 'a row they do not name keeps the week goal it serves');
+  assert.ok(visibility.every(p => 'because' in p && 'brief' in p && 'card' in p), 'a report raised to 1.20.0 still carries what 1.7.0 and 1.8.0 require of a row');
+  const serving = rows.filter(p => p.serves === WORDS).length;
+  assert.deepEqual(report.instruction_acks.map(a => a.state), ['received', 'started']);
+  assert.match(report.instruction_acks[1].line, new RegExp(`^Started: this run ranked its rows with it first, and ${serving} of ${rows.length} rows say they serve it\\.`));
+  assert.match(report.activity[0].line, new RegExp(`^Received Krish's instruction ${KI} `));
+  assert.equal(report.activity.some(a => a.line.includes(WORDS)), false, 'no activity line quotes his words');
+  assert.equal(JSON.stringify(result).includes(WORDS), false, 'the printed outcome never carries his words');
+  assert.deepEqual(result.instruction, { id: KI, sha256: result.instruction.sha256, acks: ['received', 'started'], serving, answer: { applied: 2, unknown: 0, stale: 0 } });
+  assert.equal('next_steps' in report, false, 'no file to read them from, so no next steps');
+});
