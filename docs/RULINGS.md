@@ -200,3 +200,12 @@ In his words (10 November, after reading the case for rebuilding the founder-ski
 - It runs in shadow: it holds nothing, proposes nothing and never counts toward the number, and a simulated reader's words are never a reply or a testimonial.
 - It earns weight only on real sends, by the stop rule set before its first run (docs/playbooks/07-scorecard-and-experiments.md, "The reader check"), and is retired when it does not.
 - No wall moves, no model provider is added and nothing is spent by the engine: the readers run in a Claude session.
+
+## Krish instructs each engine, and its state is live (Ruling, Krish, 2026-11-11)
+
+In his words (11 November): "Ensure the priorities, obsessions, and next steps for all the growth engines are feeding live to this dashboard, and not just in the growth tab. They are responsible for driving the overall success of each venture, so make sure I can instruct each one with my next best action and have it get going (as well as always understand the current state of play and what's outstanding)." And: "Get building".
+
+- His instruction (protocol 1.20.0, `krish_instruction`) goes first in the run that reads it: his words before the week's goals, in memory only, so each row says whether it serves them and those that do rank first; the run acks it `received`, then `started` or `blocked` with why (src/stages/instruction.mjs). His own Clear closes it.
+- His words are never printed, logged or committed: this repository and its Actions logs are public, so only the id and a SHA-256 digest leave memory, except as a row's `serves` in the report Control Center keeps.
+- The engine reports its `priorities`, `obsessions` and `next_steps` from this repository's own files and the run's own numbers, never invented, where Control Center serves `features.engine_state`.
+- No wall moves: an instruction is never an approval, so a send, post, spend, delete or permission change it asks for still comes back to him as a proposal he approves by its digest.

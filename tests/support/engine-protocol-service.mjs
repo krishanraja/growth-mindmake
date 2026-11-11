@@ -113,7 +113,7 @@ export function directiveFixture(changes = {}) {
   };
 }
 
-export async function startProtocolService({ token = STAND_IN_TOKEN, directive = directiveFixture(), decisions = [], activatedOn = '2026-10-18', active = true, recorded = true, credits = false, foundRoutes = null } = {}) {
+export async function startProtocolService({ token = STAND_IN_TOKEN, directive = directiveFixture(), decisions = [], activatedOn = '2026-10-18', active = true, recorded = true, credits = false, foundRoutes = null, activation = null, engineState = false } = {}) {
   const reports = new Map(), attempts = new Map(), requests = [], faults = [];
   const base = '/api/growth/engines/mindmake/';
   const server = createServer(async (req, res) => {
@@ -128,7 +128,7 @@ export async function startProtocolService({ token = STAND_IN_TOKEN, directive =
     const i = faults.findIndex(f => f.method === req.method && f.route === route);
     if (i >= 0) { const [f] = faults.splice(i, 1); if (f.drop) { req.socket.destroy(); return; } reply(f.status, f.body ?? { error: 'synthetic_fault' }); return; }
     if (route === null) { reply(404, { error: 'not_found' }); return; }
-    if (req.method === 'GET' && route === 'capabilities') { reply(200, { schema_version: foundRoutes ? '1.18.0' : credits ? '1.16.0' : '1.2.0', schema_versions: ['1.0.0', '1.1.0', '1.2.0', ...(credits ? ['1.16.0'] : []), ...(foundRoutes ? ['1.18.0'] : [])], engine_id: 'growth-mindmake', product_slug: 'mindmake', idempotency: true, activation: { state: active ? 'active' : 'inactive', activated_on: activatedOn }, features: { ...(credits ? { credits: true } : {}), ...(foundRoutes ? { found_routes: true } : {}) } }); return; }
+    if (req.method === 'GET' && route === 'capabilities') { reply(200, { schema_version: foundRoutes ? '1.18.0' : credits ? '1.16.0' : '1.2.0', schema_versions: ['1.0.0', '1.1.0', '1.2.0', ...(credits ? ['1.16.0'] : []), ...(foundRoutes ? ['1.18.0'] : []), ...(engineState ? ['1.20.0'] : [])], engine_id: 'growth-mindmake', product_slug: 'mindmake', idempotency: true, activation: { state: activation ?? (active ? 'active' : 'inactive'), activated_on: activatedOn }, features: { ...(credits ? { credits: true } : {}), ...(foundRoutes ? { found_routes: true } : {}) } }); return; }
     if (req.method === 'GET' && route === 'directive') { reply(200, directive); return; }
     if (req.method === 'GET' && route === 'decisions') { reply(200, { ok: true, decisions }); return; }
     if (route === 'attempts' && req.method === 'POST') {
@@ -152,6 +152,8 @@ export async function startProtocolService({ token = STAND_IN_TOKEN, directive =
       if ('credits_spent' in body && (!atLeast(body.schema_version, '1.16.0') || !credits)) { reply(400, { error: 'invalid_report', field: 'credits_spent' }); return; }
       // 1.18.0: found_routes only on a 1.18.0 report, and only where found routes are served.
       if ('found_routes' in body && (!atLeast(body.schema_version, '1.18.0') || !foundRoutes)) { reply(400, { error: 'invalid_report', field: 'found_routes' }); return; }
+      // 1.20.0: priorities, obsessions, next_steps and instruction_acks only on a 1.20.0 report.
+      for (const k of ['priorities', 'obsessions', 'next_steps', 'instruction_acks']) if (k in body && !atLeast(body.schema_version, '1.20.0')) { reply(400, { error: 'invalid_report', field: k }); return; }
       if (req.headers['idempotency-key'] !== body.run_id) { reply(400, { error: 'idempotency_key_mismatch' }); return; }
       if (digest(body) !== body.payload_sha256) { reply(400, { error: 'payload_sha256_mismatch' }); return; }
       if (body.mode === 'live' && !active) { reply(409, { error: 'engine_inactive' }); return; }
@@ -160,7 +162,9 @@ export async function startProtocolService({ token = STAND_IN_TOKEN, directive =
       if (!prior) reports.set(body.run_id, { payload_sha256: body.payload_sha256, mode: body.mode, accepted_at: '2026-10-19T05:11:00Z', report: structuredClone(body) });
       // 1.18.0: the acceptance answers what was done with each found route, counts and outcomes, never an address. The fixture decides the outcomes.
       const routesAnswer = 'found_routes' in body ? foundRoutes(body.found_routes, body) : undefined;
-      reply(200, { accepted: true, run_id: body.run_id, payload_sha256: body.payload_sha256, replayed: Boolean(prior), ...(routesAnswer !== undefined ? { found_routes: routesAnswer } : {}) }); return;
+      // 1.20.0: acks are applied from live reports only, and the answer is counts.
+      const acksAnswer = body.mode === 'live' && body.instruction_acks?.length ? { applied: body.instruction_acks.length, unknown: 0, stale: 0 } : undefined;
+      reply(200, { accepted: true, run_id: body.run_id, payload_sha256: body.payload_sha256, replayed: Boolean(prior), ...(routesAnswer !== undefined ? { found_routes: routesAnswer } : {}), ...(acksAnswer ? { instruction_acks: acksAnswer } : {}) }); return;
     }
     if (route?.startsWith('reports/') && req.method === 'GET') {
       const r = reports.get(decodeURIComponent(route.slice(8)));

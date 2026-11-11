@@ -679,6 +679,47 @@
       "tests": [
         "tests/circle.test.mjs"
       ]
+    },
+    {
+      "id": "instruction-words-in-activity",
+      "what": "the first activity line quotes Krish's instruction instead of its id and digest",
+      "file": "src/stages/instruction.mjs",
+      "find": "  const tag = read.instruction ? ` (sha256 ${read.instruction.sha256.slice(0, 12)})` : '';",
+      "replace": "  const tag = read.instruction ? ` (${read.instruction.words})` : '';",
+      "tests": [
+        "tests/instruction.test.mjs",
+        "tests/rows.test.mjs"
+      ]
+    },
+    {
+      "id": "instruction-received-every-run",
+      "what": "a later run says received again after an earlier report named the instruction",
+      "file": "src/stages/instruction.mjs",
+      "find": "    ...(seen ? [] : [{ instruction_id: id, state: 'received',",
+      "replace": "    ...(false ? [] : [{ instruction_id: id, state: 'received',",
+      "tests": [
+        "tests/instruction.test.mjs"
+      ]
+    },
+    {
+      "id": "instruction-acts-while-held",
+      "what": "a held engine ranks its rows by Krish's instruction instead of answering engine held",
+      "file": "src/stages/instruction.mjs",
+      "find": "  const why = read.state === 'unreadable' ? 'unreadable' : held ? 'held' :",
+      "replace": "  const why = read.state === 'unreadable' ? 'unreadable' : false ? 'held' :",
+      "tests": [
+        "tests/instruction.test.mjs"
+      ]
+    },
+    {
+      "id": "engine-state-before-1-20-0",
+      "what": "the engine's state goes out on a directive that does not say features.engine_state",
+      "file": "src/stages/instruction.mjs",
+      "find": "  return directive?.engine_state === true && ENGINE_STATE_KEYS.every(",
+      "replace": "  return ENGINE_STATE_KEYS.every(",
+      "tests": [
+        "tests/instruction.test.mjs"
+      ]
     }
   ]
 }
