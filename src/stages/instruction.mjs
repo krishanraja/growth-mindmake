@@ -18,7 +18,11 @@
  *   first time a run reads it, then `started` when the run ranked its rows
  *   with it first, or `blocked` with why and what would unblock it. Never
  *   `done`: the dispatch cannot prove his ask is finished, so his own Clear
- *   on the instruction closes it. An ack never goes in `holds`.
+ *   on the instruction closes it. An ack never goes in `holds`. A state is
+ *   acked only when it changes: Control Center applies acks forward only and
+ *   counts a repeat of the state it holds as stale, so a later run whose
+ *   state matches the one its own last report named sends no ack, and its
+ *   first activity line still says the state.
  * - The engine's state (`priorities`, `obsessions`, `next_steps`) is read from
  *   this repository's own files and the run's own numbers: the North Star
  *   and its ladder, the bookings against the ruled targets, the urgency,
@@ -115,6 +119,25 @@ export function instructionSeen(recent, id) {
   return recent.some(r => (Array.isArray(r?.activity) ? r.activity : []).some(a => (typeof a === 'string' ? a : a?.line ?? '').includes(`Krish's instruction ${id}`)));
 }
 
+/**
+ * The state this engine last acked his instruction with, read from the first
+ * activity line of its newest recent report that names it: `started`, or
+ * `blocked` (a block or the engine held), else `received`. Null when no
+ * report names it or the history could not be read, so the state is sent
+ * again. Pure.
+ */
+export function lastAck(recent, id) {
+  if (!Array.isArray(recent) || !id) return null;
+  for (const r of recent) {
+    const line = (Array.isArray(r?.activity) ? r.activity : []).map(a => (typeof a === 'string' ? a : a?.line ?? '')).find(l => l.includes(`Krish's instruction ${id}`));
+    if (line === undefined) continue;
+    if (/\. Started: /.test(line)) return 'started';
+    if (/\. (?:Blocked|Engine held): /.test(line)) return 'blocked';
+    return 'received';
+  }
+  return null;
+}
+
 const BLOCKED = {
   held: 'Engine held: Control Center holds this engine, so it acts on nothing until he releases it on Growth > Engines.',
   unreadable: 'Blocked: the instruction did not read as protocol 1.20.0 shapes it, so this run could not act on it; Control Center sending it in that shape would unblock it.',
@@ -128,9 +151,11 @@ const BLOCKED = {
  * What this run did with his instruction: the first activity line (the id and
  * a digest, never his words), the acks, and counts for the printed outcome.
  * `held` when Control Center holds the engine; `rowsRan` when the five rows
- * were built; `proposals` the report's final proposals. Pure.
+ * were built; `proposals` the report's final proposals; `seen` whether an
+ * earlier report named it and `last` the state that report named
+ * (`lastAck`), so an unchanged state is not acked again. Pure.
  */
-export function instructionWork({ read, held = false, rowsRan = false, proposals = [], seen = false, receivedAt, at }) {
+export function instructionWork({ read, held = false, rowsRan = false, proposals = [], seen = false, last = null, receivedAt, at }) {
   if (!read || read.state === 'none' || read.state === 'absent') return null;
   const id = read.id;
   const why = read.state === 'unreadable' ? 'unreadable' : held ? 'held' : unquotable(read.instruction) ?? (rowsRan ? null : 'no_rows');
@@ -138,13 +163,16 @@ export function instructionWork({ read, held = false, rowsRan = false, proposals
   const serving = why ? 0 : rows.filter(p => p.serves === read.instruction.words).length;
   const started = `Started: this run ranked its rows with it first, and ${serving} of ${rows.length} row${rows.length === 1 ? '' : 's'} say they serve it. Anything that sends, posts or spends still comes to him as a proposal; his Clear marks it done.`;
   const line = why ? BLOCKED[why] : started;
+  const state = why ? 'blocked' : 'started';
+  // Control Center applies acks forward only and counts a repeat of the state it holds as stale (ackStep), so it is not sent again.
+  const repeat = seen && last === state;
   const acks = id ? [
     ...(seen ? [] : [{ instruction_id: id, state: 'received', line: 'Received at the daily dispatch and put first in this run\'s work.', at: receivedAt, evidence_url: null }]),
-    { instruction_id: id, state: why ? 'blocked' : 'started', line, at, evidence_url: null }
+    ...(repeat ? [] : [{ instruction_id: id, state, line, at, evidence_url: null }])
   ] : [];
   const tag = read.instruction ? ` (sha256 ${read.instruction.sha256.slice(0, 12)})` : '';
   const activity = id
-    ? `${seen ? `Krish's instruction ${id}${tag} is first again this run` : `Received Krish's instruction ${id}${tag} and put it first in this run's work`}. ${line}`
+    ? `${seen ? `Krish's instruction ${id}${tag} is first again this run` : `Received Krish's instruction ${id}${tag} and put it first in this run's work`}. ${line}${repeat ? ` Acked ${state} on an earlier run, so no ack is sent again.` : ''}`
     : `The directive carried an instruction from Krish this run could not read, with no id to answer it by, so it acted on none and acked none.`;
   return { activity, acks, outcome: { id, sha256: read.instruction?.sha256 ?? null, acks: acks.map(a => a.state), serving } };
 }
@@ -203,31 +231,55 @@ function splitOutside(text, sep) {
 }
 const sentences = text => String(text).split(/(?<=[.!?])\s+(?=[A-Z])/).map(s => s.trim()).filter(Boolean);
 const upper = s => s.charAt(0).toUpperCase() + s.slice(1);
-const whenOf = s => /\b(\d{4}-\d{2}-\d{2})\b/.exec(s)?.[1] ?? null;
+// A date inside an id (`gms-2026-11-09`) names the thing, not when it is due.
+const whenOf = s => /(?<![\w-])(\d{4}-\d{2}-\d{2})\b/.exec(s)?.[1] ?? null;
+const DAY_NAME = '(?:(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday) )?';
+const DEADLINE = new RegExp(`\\b(?:by|on|before) ${DAY_NAME}(?:(\\d{4}-\\d{2}-\\d{2})|(\\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\.?(?: (\\d{4}))?)\\b`, 'g');
+const ABBR = MONTHS.map(m => m.slice(0, 3));
+/**
+ * The dates a line sets as its deadline ("on 2026-11-09", "by 5 Nov", "on
+ * Monday 9 November"), as YYYY-MM-DD; a day and month with no year take
+ * `year`. Pure.
+ */
+export function deadlines(text, year) {
+  return [...String(text).matchAll(DEADLINE)].map(m => m[1] ?? ((m[4] ?? year) ? `${m[4] ?? year}-${String(ABBR.indexOf(m[3]) + 1).padStart(2, '0')}-${m[2].padStart(2, '0')}` : null)).filter(Boolean);
+}
 /** Who a clause of NOW.md's "Next:" waits on: Krish when he is its subject, another session or Control Center when one is, else this engine. Pure. */
 const waitsOn = clause => /^Krish\b/.test(clause) ? 'krish' : /^(?:the |a )?(?:[A-Z][\w-]* ){0,3}(?:session|Control Center|Codex)\b/.test(clause) ? 'other' : 'engine';
 
 /**
  * What the engine does next: the first unticked step of docs/GET-GOING.md's
- * build, then NOW.md's "Next:" under "What is next and what is waiting on
- * Krish", clause by clause, and what it says waits on Krish. Unparsed or
- * overlong text is left out, never cut. Pure.
+ * build, then, under NOW.md's "What is next and what is waiting on Krish",
+ * the Next line (the fold's `- Next (YYYY-MM-DD):` or `- **Next:**`) clause
+ * by clause, and what waits on Krish, inside it or on its own `Waiting on
+ * Krish:` line. Given `today` (YYYY-MM-DD), a step whose own deadline has
+ * passed is left out: a dated line nobody updated is never sent as a next
+ * step. Unparsed or overlong text is left out, never cut. Pure.
  */
-export function nextSteps({ getGoing = '', now = '' } = {}) {
+export function nextSteps({ getGoing = '', now = '', today = null } = {}) {
   const out = [];
-  const step = /^- \[ \] \*\*(.+?)\*\*\s*(.*)$/m.exec(String(getGoing));
-  if (step) {
-    const label = step[1].replace(/[.:]\s*$/, '').trim();
-    const first = sentences(step[2])[0] ?? '';
-    out.push({ line: stateLine(first ? `${label}: ${first}` : label), waits_on: 'engine', when: whenOf(first) });
+  const year = typeof today === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(today) ? today.slice(0, 4) : null;
+  const step = (text, waits_on) => {
+    const due = deadlines(text, year);
+    if (year && due.some(d => d < today)) return;
+    out.push({ line: stateLine(text), waits_on, when: due[0] ?? whenOf(text) });
+  };
+  const first = /^- \[ \] \*\*(.+?)\*\*\s*(.*)$/m.exec(String(getGoing));
+  if (first) {
+    const label = first[1].replace(/[.:]\s*$/, '').trim();
+    const opening = sentences(first[2])[0] ?? '';
+    step(opening ? `${label}: ${opening}` : label, 'engine');
   }
   const section = /^## What is next and what is waiting on Krish\s*$([\s\S]*?)(?=^#{2,3} )/m.exec(`${String(now)}\n## `)?.[1] ?? '';
-  const next = /^- \*\*Next:\*\*\s*(.+)$/m.exec(section)?.[1] ?? '';
+  const next = (/^- Next(?: \(\d{4}-\d{2}-\d{2}\))?:\s*(.+)$/m.exec(section) ?? /^- \*\*Next:\*\*\s*(.+)$/m.exec(section))?.[1] ?? '';
+  const waitingItems = text => splitOutside(text.replace(/\.$/, ''), ', and ').flatMap(x => splitOutside(x, '; '));
   for (const s of sentences(next)) {
     const waiting = /^Waiting on Krish:\s*(.+?)\.?$/.exec(s);
-    if (waiting) { for (const item of splitOutside(waiting[1], ', and ').flatMap(x => splitOutside(x, '; '))) out.push({ line: stateLine(`Waiting on Krish: ${item.replace(/\.$/, '')}.`), waits_on: 'krish', when: whenOf(item) }); continue; }
-    for (const clause of splitOutside(s.replace(/\.$/, ''), '; ')) out.push({ line: stateLine(`${upper(clause)}.`), waits_on: waitsOn(clause), when: whenOf(clause) });
+    if (waiting) { for (const item of waitingItems(waiting[1])) step(`Waiting on Krish: ${item.replace(/\.$/, '')}.`, 'krish'); continue; }
+    for (const clause of splitOutside(s.replace(/\.$/, ''), '; ')) step(`${upper(clause)}.`, waitsOn(clause));
   }
+  const waitingLine = /^- (?:\*\*)?Waiting on Krish:(?:\*\*)?\s*(.+)$/m.exec(section)?.[1] ?? '';
+  for (const item of waitingLine ? waitingItems(waitingLine) : []) step(`Waiting on Krish: ${item.replace(/\.$/, '')}.`, 'krish');
   return out.filter(x => x.line).slice(0, NEXT_STEPS_MAX);
 }
 

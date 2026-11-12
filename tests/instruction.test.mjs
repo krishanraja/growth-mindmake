@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { engineClient } from '../src/control-center.mjs';
 import { runDispatch, readDirective, NORTH_STAR_TEXT, acksAnswer } from '../src/dispatch.mjs';
-import { readInstruction, takesEngineState, unquotable, rowGoals, instructionSeen, instructionWork, priorities, obsessions, nextSteps, engineState, stateLine, carriesContact, longDate, isoDate, ENGINE_STATE_KEYS } from '../src/stages/instruction.mjs';
+import { readInstruction, takesEngineState, unquotable, rowGoals, instructionSeen, lastAck, instructionWork, priorities, obsessions, nextSteps, deadlines, engineState, stateLine, carriesContact, longDate, isoDate, ENGINE_STATE_KEYS } from '../src/stages/instruction.mjs';
 import { startProtocolService, directiveFixture, violations } from './support/engine-protocol-service.mjs';
 import { AT, POLICY, snapshot } from './helpers.mjs';
 
@@ -107,6 +107,32 @@ test('an earlier report names the instruction in its first line, which is how a 
   assert.equal(instructionSeen(null, KI), false, 'unknown history is not seen, so received goes again and Control Center counts it stale');
 });
 
+test('a state is acked only when it changes, because Control Center counts a repeat of the state it holds as stale', () => {
+  const read = readInstruction(given());
+  const rows = [{ row: 'visibility', serves: WORDS }, { row: 'partners', serves: 'Goal one' }];
+  const first = instructionWork({ read, rowsRan: true, proposals: rows, seen: false, receivedAt: AT, at: AT });
+  const history = w => [{ activity: [{ line: w.activity }] }];
+  assert.equal(lastAck(history(first), KI), 'started', 'the newest report naming it says what was acked');
+  assert.equal(lastAck(history(instructionWork({ read, rowsRan: false, seen: false, receivedAt: AT, at: AT })), KI), 'blocked');
+  assert.equal(lastAck(history(instructionWork({ read, held: true, seen: false, receivedAt: AT, at: AT })), KI), 'blocked', 'an engine held is a block');
+  assert.equal(lastAck([{ activity: [{ line: 'Gap: unrelated.' }] }, ...history(first)], KI), 'started', 'an older report is read when the newest does not name it');
+  assert.equal(lastAck([{ activity: [{ line: `Received Krish's instruction ${KI2}. Started: x.` }] }], KI), null, 'another instruction is not this one');
+  assert.equal(lastAck(null, KI), null, 'unknown history is no state, so the state is sent again');
+  const again = instructionWork({ read, rowsRan: true, proposals: rows, seen: true, last: 'started', receivedAt: AT, at: AT });
+  assert.deepEqual(again.acks, [], 'started again is not sent');
+  assert.match(again.activity, /\. Started: this run ranked its rows with it first, and 1 of 2 rows say they serve it\..* Acked started on an earlier run, so no ack is sent again\.$/);
+  assert.equal(lastAck(history(again), KI), 'started', 'the line still names the state for the run after');
+  assert.ok(again.activity.length <= 500);
+  const unblocked = instructionWork({ read, rowsRan: true, proposals: rows, seen: true, last: 'blocked', receivedAt: AT, at: AT });
+  assert.deepEqual(unblocked.acks.map(a => a.state), ['started'], 'blocked to started is a change, so it is sent');
+  const reblocked = instructionWork({ read, rowsRan: false, seen: true, last: 'started', receivedAt: AT, at: AT });
+  assert.deepEqual(reblocked.acks.map(a => a.state), ['blocked'], 'started to blocked is a change, so it is sent');
+  const unknown = instructionWork({ read, rowsRan: true, proposals: rows, seen: true, last: null, receivedAt: AT, at: AT });
+  assert.deepEqual(unknown.acks.map(a => a.state), ['started'], 'with no readable state the state is sent');
+  const longest = instructionWork({ read: readInstruction(given({ words: 'x'.repeat(400) })), rowsRan: true, seen: true, last: 'blocked', receivedAt: AT, at: AT });
+  assert.ok(longest.activity.length <= 500 && longest.acks.length === 0);
+});
+
 test('the state is read from this repository and this run, never invented, and every line fits the protocol', async () => {
   const p = priorities({ gap: { current: null, target: 8, urgency: 5, short: null }, ladder: [['2026-10-26', 2], ['2026-11-30', 20]], booked: null, targets: { podcasts: 2, stages: 1 }, raised: 2, starved: [{ lane: 'reach_out' }] });
   assert.deepEqual(p.map(x => x.rank), [1, 2, 3, 4]);
@@ -130,6 +156,17 @@ test('the state is read from this repository and this run, never invented, and e
     { line: 'Waiting on Krish: the synthetic setting (a, b and c).', waits_on: 'krish', when: null }
   ], 'the first unticked step, then NOW.md\'s Next clause by clause, at most five');
   assert.deepEqual(nextSteps({}), []);
+  // The fold's own Next line and a Waiting on Krish line of its own, and a step whose deadline has passed is left out.
+  const folded = { getGoing: '- [ ] **Phase 9.** Sign by 5 Nov. More.\n', now: '## What is next and what is waiting on Krish\n\n- Next (2026-11-12): read the synthetic report; Krish signs the synthetic spec on Monday 9 November.\n- **Next:** an older line the fold left.\n- Waiting on Krish: the synthetic setting; the other synthetic setting by 20 November.\n- North Star check (2026-11-12): holds.\n' };
+  assert.deepEqual(nextSteps({ ...folded, today: '2026-11-12' }), [
+    { line: 'Read the synthetic report.', waits_on: 'engine', when: null },
+    { line: 'Waiting on Krish: the synthetic setting.', waits_on: 'krish', when: null },
+    { line: 'Waiting on Krish: the other synthetic setting by 20 November.', waits_on: 'krish', when: '2026-11-20' }
+  ], 'the fold line wins over an older bold one, and the passed 5 November and 9 November steps are left out');
+  assert.equal(nextSteps(folded).length, 5, 'with no today nothing is left out for its date');
+  assert.deepEqual(deadlines('Sign on Monday 9 November, then by 5 Nov and before 2026-12-01; a talk from 9 November.', '2026'), ['2026-11-09', '2026-11-05', '2026-12-01']);
+  assert.deepEqual(deadlines('by 9 November', null), [], 'a day and month with no year and no today names no date');
+  assert.equal(nextSteps({ now: '## What is next and what is waiting on Krish\n\n- Next (2026-11-12): sign gms-2026-11-09.\n' })[0].when, null, 'a date inside an id is not when it is due');
   // The real files parse to valid lines whatever they say today; nothing is required of their wording.
   const real = { getGoing: await readFile(new URL('../docs/GET-GOING.md', import.meta.url), 'utf8'), now: await readFile(new URL('../NOW.md', import.meta.url), 'utf8') };
   const state = engineState({ priorities: p, obsessions: o, next_steps: nextSteps(real), acks: [] });
@@ -225,8 +262,9 @@ test('a second wake the same day is its own run: a new run_id, both reports kept
     assert.deepEqual([first.run_id, second.run_id], [`mindmake:${AT.slice(0, 10)}:dispatch-41`, `mindmake:${AT.slice(0, 10)}:dispatch-42`]);
     assert.equal(service.reports.size, 2, 'Control Center keeps both, neither refused as a conflict');
     const secondReport = posted(service)[1];
-    assert.deepEqual(secondReport.instruction_acks.map(a => a.state), ['blocked']);
-    assert.match(secondReport.activity[0].line, /is first again this run/);
+    assert.equal('instruction_acks' in secondReport, false, 'blocked again is not acked again: Control Center would count it stale');
+    assert.match(secondReport.activity[0].line, /is first again this run\. Blocked: .* Acked blocked on an earlier run, so no ack is sent again\.$/);
+    assert.deepEqual(second.instruction.acks, []);
   } finally { await service.close(); }
 });
 

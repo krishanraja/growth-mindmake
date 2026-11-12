@@ -27,16 +27,17 @@ The demonstrations use invented people and businesses. The complete engine fixtu
 
 ## The daily Control Center dispatch
 
-Every morning at about 06:10 London, Control Center wakes this repository with a `cc-growth-directive` dispatch. The `dispatch` job in [operate.yml](.github/workflows/operate.yml) runs `node src/cli.mjs dispatch`, which:
+Every morning at about 06:10 London (05:10 UTC), Control Center wakes this repository with a `cc-growth-directive` dispatch. It wakes it again the same day when a row of Krish's widget runs low, and a merge to main that changes `src/` runs the same job at once. The `dispatch` job in [operate.yml](.github/workflows/operate.yml) runs `node src/cli.mjs dispatch`, which:
 
 1. journals a started attempt before reading anything;
-2. reads today's directive, including the `in_house` counts for Advisory, Network and Visibility;
-3. reads one snapshot page and prepares notes dry, exactly as `daily` does without `--commit`;
-4. turns the prepared notes and the one grounded improvement into proposals: an outward note is `wall: send` with its exact words, channel and digest, a qualification or proof call is `wall: strategy`, and research or internal preparation is `wall: none`. No note is proposed to anyone Advisory already holds;
-5. posts the report under a stable `run_id` per wake (`mindmake:<London date>:dispatch-<run number>`) and reads it back by digest;
-6. reads Krish's decisions and journals one terminal attempt.
+2. reads today's directive (Krish's instruction, `krish_instruction` at protocol 1.20.0; the week's goals; the number and its urgency; the `in_house` counts for Advisory, Network and Visibility; his approved voice rules; mindmake.co's traffic; the prepaid credits), then Control Center's capabilities, his decisions of the last 30 days, the cross-channel context (people, stages, shows, his held meetings, drafts and research) and the outcome windows;
+3. puts his instruction first in the run's work: his words go before the week's goals, in memory only, so the rows that serve them say so and rank first;
+4. builds the five rows of his widget (REACH OUT, NETWORK, VISIBILITY, EVENTS, PARTNERS), Jonny's podcast and speaking pitches and guest invites, and the stage forms, from Mindmake's canon read live; asks Control Center's research desk for addresses, openings, reach and new shows, inside its daily caps; holds two emails alike, a broken card sentence and anything that fails Control Center's voice check; and adds the week spec he signs, check-ins and asks for starved lanes. No note is proposed to anyone Advisory already holds;
+5. prepares an approved campaign plan's exact email through Control Center, and asks Control Center's shared executor to run a go-live email Krish approved exactly, counting it only on an independently verified receipt;
+6. reports the number (good meetings, from his tap after each meeting), podcasts booked, stages confirmed, the outcome scorecard and the engine's state (`priorities`, `obsessions`, `next_steps`, and its acks to his instruction) under a `run_id` per wake (`mindmake:<London date>:dispatch-<run number>`, or `merge-` and `manual-`), and reads it back by digest;
+7. reads Krish's decisions and journals one terminal attempt.
 
-It never sends, posts, spends, drafts into Gmail or commits an Advisory batch. Both objectives report as missing, with the reason, until Control Center serves complete outcome records. See [operations](docs/OPERATIONS.md#control-center-daily-dispatch).
+It sends, posts and spends nothing itself and never drafts into Gmail: Control Center drafts Jonny's pitches into Jonny's box, and only its shared executor runs an email Krish approved. His instruction's words are never printed, logged or committed. Measures it cannot read are reported missing, with the reason, never zero. See [operations](docs/OPERATIONS.md#control-center-daily-dispatch).
 
 ## What the producer owns
 
@@ -48,7 +49,7 @@ It validates current commercial facts, private source coverage and public eviden
 
 Outcome reporting remains separate from the bounded prospect page. A qualified conversation must have happened, with human confirmation of authority, owned problem, active need, offer fit and an agreed next step. Count each person once per London week. A paid proof requires a recorded payment outcome. The first-month measure remains inactive until the actual activation date exists.
 
-Five new recommendations per run is the default and ten is the hard maximum. These are preparation limits, never sending quotas or assumed conversion rates. There are no generic sequences, automatic connection requests, auto-subscriptions, sends, posts, advertisements or spend.
+Five new recommendations per run is the default and ten is the hard maximum, for the producer's own recommendations and the dispatch's campaign plans; the five rows, pitches, invites and forms have their own caps from the week spec in force, and a report carries at most 40 proposals. These are preparation limits, never sending quotas or assumed conversion rates. There are no generic sequences, automatic connection requests, auto-subscriptions, sends, posts, advertisements or spend.
 
 ## Intended consumer and operating boundary
 
