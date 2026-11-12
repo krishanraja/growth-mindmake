@@ -1,4 +1,0 @@
-Status: Closeout notes now fold into NOW.md by themselves (ci.yml's fold job runs ai-harness's closeout hook on every push to main); the engine acks a state of Krish's instruction only when it changes, and leaves out of its next steps any whose own deadline has passed; the docs say what the engine does as of 12 November.
-Changed: **The docs match the engine, and notes fold by themselves.** Krish, 2026-11-12: "Are the project documentations up to date, 100%, every single word, with what this engine now is and how it works?" README, the Control Center brief, operations, Get going, the release record and the protocol copy (from Control Center main) now say what the code and the live runs do; twelve closeout notes of 5 to 11 November were folded in by hand.
-Next: read the first live report after this merge: its next steps, and, once he gives the engine an instruction, Control Center's acks answer with no stale count.
-North Star check (2026-11-12): holds.
