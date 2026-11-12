@@ -6,13 +6,14 @@
  * fixture from it so the fixture cannot drift from what main held. Pure.
  */
 import { createHash } from 'node:crypto';
+import { withoutCanon } from '../../scripts/pack.mjs';
 
 export const sha = text => createHash('sha256').update(text, 'utf8').digest('hex');
 
-/** `## ` sections of a Markdown text: each heading with its body trimmed. Pure. */
+/** `## ` sections of a Markdown text: each heading with its body trimmed. The canon block ai-harness renders between its krish-canon markers is not a section of this repository's own and is left out. Pure. */
 export function sections(markdown) {
   const out = []; let cur = null;
-  for (const l of String(markdown).split('\n')) {
+  for (const l of withoutCanon(markdown).split('\n')) {
     if (l.startsWith('## ')) { if (cur) out.push(cur); cur = { heading: l.slice(3), lines: [] }; }
     else if (cur) cur.lines.push(l);
   }
