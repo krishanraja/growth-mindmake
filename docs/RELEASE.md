@@ -1,5 +1,28 @@
 # Release state
 
+## The docs match the engine, acks only on a change, and notes fold by themselves, 12 November 2026
+
+Krish, 2026-11-12: "Are the project documentations up to date, 100%, every single word, with what this engine now is and how it works?"
+
+- **Built and tested.** A state of his instruction is acked only when it changes (`lastAck` in src/stages/instruction.mjs reads the state the newest recent report named): Control Center applies acks forward only and counts a repeat as stale, which every run after the first would have sent. `nextSteps` reads the fold's `- Next (YYYY-MM-DD):` line and a `Waiting on Krish:` line of its own, and leaves out a step whose own deadline has passed, so a dated line nobody updated is never sent live as a next step (the 11 and 12 November reports sent "Krish signs the week spec on Monday 9 November"). The `fold` job in .github/workflows/ci.yml runs ai-harness's closeout hook on every push to main, so a note in now-notes/ reaches NOW.md without a hand edit; twelve notes of 5 to 11 November were folded by hand in this change.
+- **Docs.** NOW.md, README.md, docs/CONTROL-CENTER-BRIEF.md, docs/OPERATIONS.md, docs/GET-GOING.md, docs/CREDITS-SESSION.md (several reservations may be open since 9 November; the brief is read with `get_engine_brief`), docs/OWNERS.md and this record say what the code and the live runs do; docs/control-center/ENGINE-PROTOCOL.md is Control Center main's again (it lacked the voice check, the research desk's `write` kind, person routes and the raised caps), with its source commit named at the top.
+- **Verified on:** the seven repository checks, 629 tests, `npm run mutate` (73 of 73 mutations killed, two new ones for these guards), the pack (about 25 KB) and the fold run on a copy of NOW.md with this change's note. **Live:** the merge's own dispatch is the first run with these next steps; the fold runs on the merge's push.
+
+## Krish's instruction and the engine's state (protocol 1.20.0), 11 November 2026 (Ruling, Krish, 2026-11-11)
+
+- **Built, tested and merged** (krishanraja/growth-mindmake#78). The dispatch reads `krish_instruction`, puts his words first in the run's work in memory only, acks it by id and reports `priorities`, `obsessions` and `next_steps`, only where `features.engine_state` is served.
+- **Live run:** the merge's dispatch (merge-90, 11 November) and the 12 November run (dispatch-91) reported at 1.20.0 with four priorities, three obsessions and five next steps. **Not yet live:** no run has carried an instruction, because Krish has given this engine none, so no ack has reached Control Center.
+
+## Everything in Krish's name passes the voice check, 7 and 9 November 2026 (Rulings, Krish, 2026-11-07 and 2026-11-09)
+
+- **Built, tested and merged** (krishanraja/growth-mindmake#75 and #76). Every action with words in his name (emails for his box or Jonny's, WhatsApp and X messages, a speaker form's written answers, an engagement task's taps) goes through Control Center's `POST voice-check` before it is proposed; a hard fail is held as `voice_refused` with rule names only, an unread check is `voice_check_unread`.
+- **Live run:** the 11 and 12 November runs held some as `voice_refused`.
+
+## The circle lane and the AI mirror (protocol 1.19.0), 5 November 2026 (Rulings, Krish, 2026-11-05)
+
+- **Built, tested and merged** (krishanraja/growth-mindmake#58 and #59). One cited question a kind a day finds strangers for the report's `circle`, up to ten a run until 50 are found, then up to ten a run from his own network by contact id; the AI mirror's questions go in `mirror`.
+- **Live run:** the 11 and 12 November reports carry `circle` and `mirror`. Control Center links the people already in his records, and has refused every new stranger as `store_failed` (five in each run of 10 to 12 November), so none is filed yet: its insert names a consent tier its contacts table does not allow. That fix is Control Center's; nothing here changes.
+
 ## The reader check, 10 November 2026 (Ruling, Krish, 2026-11-10)
 
 - **Built and tested.** The crew's tenth specialist, the Reader Check: `npm run reader -- brief --report <file>` writes one brief per draft (card lines and exact words only) for fresh sub-agents in a Claude session; `check`, `save`, `tally` read their answers by fixed rules and keep a private ledger of verdicts with no words; `calibrate --context <file>` scores the ledger against real replies by the stop rule in docs/playbooks/07-scorecard-and-experiments.md. In shadow: nothing is held or counted. In a dispatch its lint finds nothing and `reader.calibration` is reported not measured, with its reason.

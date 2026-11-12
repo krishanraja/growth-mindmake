@@ -2,6 +2,15 @@
 
 The dated records of this engine's sessions, newest first. NOW.md names this file as its history log; scripts/check-drift.mjs fails when it is missing. The completion record stays docs/RELEASE.md.
 
+## 2026-11-12: older NOW.md changes
+
+Moved here verbatim from NOW.md's "What changed recently" on 2026-11-12, when the closeout notes of 5 to 11 November were folded in, to keep the session pack under 36 KB; newest first, as NOW.md listed them. Each was merged on 6 November (krishanraja/growth-mindmake#60 to #68) and has run in every live dispatch since, whatever a line below says; the closeout notes they name were folded into NOW.md and removed on 2026-11-12.
+
+- 2026-11-06 **Openings by the desk, lookups for row people (Ruling, Krish, 2026-11-06).** Each catch-up and invite opens on a sentence the research desk writes from one fact, read by fixed rules; a failing one holds the email. Row people with no address are looked up and found routes sent to record. Built and tested.
+- 2026-11-06 **Partner offers fit the partner; catch-ups name the shared past.** The live run after #62 passed the bar's measures, and reading its emails found offers about a portfolio sent to people with none. Founders only for someone who backs them, a fund only when it is one, otherwise their own leaders; a catch-up uses the card's ask line and a place you both worked (now-notes/2026-11-06-emails-from-card-facts.md). Built and tested.
+- 2026-11-06 **Emails from card facts, checked by sentence.** Each email is about one fact on its card; no decision, episode or idea repeats in a run; companies as the card writes them; two emails may share one sentence at most (now-notes/2026-11-06-emails-from-card-facts.md). Built and tested.
+- 2026-11-06 **Specific words, fresh rows, one event one card.** Krish: the drafts were generic and the events weak. Emails come from each card's facts; a run holds two emails alike once names are out (`row_same_words`); a `Shown:` line rotates unseen rows first; one event is one row; forms need a talk, abstract or bio; titles name their subject; clashing employers hold a card (now-notes/2026-11-06-specific-fresh-rows.md). Built and tested; not run live.
+
 ## 2026-11-10: older NOW.md changes
 
 Moved here verbatim from NOW.md's "What changed recently" on 2026-11-10 to keep the session pack under 36 KB; newest first, as NOW.md listed them.
