@@ -28,6 +28,7 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 Lifecycle: building. The detail is in `README.md`.
 
+- The session pack leaves out the Krish canon block ai-harness renders at the end of AGENTS.md (one line in its place; it loads with AGENTS.md itself), and the rulings test reads AGENTS.md's own sections without it, so the canon block can land while the 36 KB budget and the standing rules word for word both hold. (2026-11-12)
 - Closeout notes now fold into NOW.md by themselves (ci.yml's fold job runs ai-harness's closeout hook on every push to main); the engine acks a state of Krish's instruction only when it changes, and leaves out of its next steps any whose own deadline has passed; the docs say what the engine does as of 12 November. (2026-11-12)
 - The daily dispatch runs live: Control Center wakes it at about 05:10 UTC, again the same day when a row of his widget runs low, and a merge to main that changes `src/` runs it at once. Each run reads Krish's instruction first (protocol 1.20.0), builds the five rows, Jonny's pitches and invites and the stage forms from Control Center's context, asks the research desk for lookups and openings, passes every action with words in Krish's name through Control Center's voice check, and reports the number, the bookings and the engine's state (README.md, "The daily Control Center dispatch").
 - Nothing here sends, posts or spends. Control Center drafts Jonny's pitches into Jonny's Gmail each day for Jonny to send; every other action waits on Krish's own press, and an approved exact email runs only through Control Center's shared executor.
@@ -39,6 +40,7 @@ Lifecycle: building. The detail is in `README.md`.
 The 27 October trusted-distribution closeout is in [the dated handoff](docs/history/2026-10-27-growth-session-handoff.md). The 22 October producer and Control Center release and its preparation-only canary are historical evidence, not proof of today's outcomes. Of the five 22 October route plans, four were withdrawn on 27 October because their Advisory records are gone, and one is still a real ask on his list. Later AGENTS.md human-action rules and the forms and mailbox gates remain in force.
 
 ## What changed recently
+- 2026-11-12 scripts/pack.mjs (CANON_BLOCK, withoutCanon, packed), tests/support/rulings.mjs, tests/pack.test.mjs, AGENTS.md ("Every session: the pack"), docs/OWNERS.md. With ai-harness's canon block (pull request #51) the heaviest pack is under 36 KB and all 629 tests pass.
 - 2026-11-12 **The docs match the engine, and notes fold by themselves.** Krish, 2026-11-12: "Are the project documentations up to date, 100%, every single word, with what this engine now is and how it works?" README, the Control Center brief, operations, Get going, the release record and the protocol copy (from Control Center main) now say what the code and the live runs do; twelve closeout notes of 5 to 11 November were folded in by hand.
 - 2026-11-11 **Krish instructs the engine, and it reports its state (protocol 1.20.0; Ruling, Krish, 2026-11-11).** The dispatch reads `krish_instruction` from the directive, puts his words first in the run's work in memory only (the rows that serve them say so and rank first), acks it by id (received, then started or blocked with why), and reports `priorities`, `obsessions` and `next_steps` from this repository's own files and the run's numbers. His words are never printed, logged or committed (krishanraja/growth-mindmake#78). Built and tested; no live run has carried an instruction yet.
 - 2026-11-10 **Codex signs in by itself (Krish, 2026-11-10).** Claude sessions here show Krish a ChatGPT sign-in link and code whenever Codex is signed out (`.claude/hooks/codex-login.sh` at session start, cloud included); his subscription, never an API key.
@@ -52,7 +54,7 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-12): read the first live report after this merge: its next steps, and, once he gives the engine an instruction, Control Center's acks answer with no stale count.
+- Next (2026-11-12): merge pull request #51 (the canon block) once its checks pass on main.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 - North Star check (2026-11-12): holds.
 
