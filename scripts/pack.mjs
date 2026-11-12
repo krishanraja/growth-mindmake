@@ -30,6 +30,22 @@ export const MAX_CARDS = 3;
 export const ALWAYS = ['AGENTS.md', 'NOW.md', 'docs/NORTH_STAR.md'];
 /** Read only when a task needs them; the pack names them and never holds them. */
 export const REFERENCES = ['docs/BRIEF.md', 'docs/history/2026-10-27-growth-session-handoff.md', 'docs/CONTROL-CENTER-BRIEF.md', 'docs/control-center/ENGINE-PROTOCOL.md', 'docs/OWNERS.md', 'docs/RULINGS.md', 'docs/GET-GOING.md'];
+/**
+ * The canon block ai-harness renders at the end of AGENTS.md, between its
+ * krish-canon markers. The pack leaves it out and holds one line in its place:
+ * every client loads it with AGENTS.md itself, and its skills are read live
+ * with Control Center `get_skill`, so the 36 KB holds this repository's own
+ * rules. Everything outside the markers is held whole.
+ */
+export const CANON_BLOCK = /\n*<!-- krish-canon:start\b[^\n]*-->\n[\s\S]*?<!-- krish-canon:end -->/;
+export const CANON_POINTER = '(The Krish canon block ai-harness renders at the end of AGENTS.md is left out of the pack: it loads with AGENTS.md itself, and its skills are read live with Control Center `get_skill`.)';
+/** A text without the canon block, or with `pointer` in its place. Pure. */
+export function withoutCanon(text, pointer = '') {
+  return String(text).replace(CANON_BLOCK, pointer ? `\n\n${pointer}` : '');
+}
+/** What the pack holds of an always-on file: AGENTS.md less its canon block, the others whole. Pure. */
+export const packed = (file, text) => file === 'AGENTS.md' ? withoutCanon(text, CANON_POINTER) : text;
+
 /** The pack's part markers. A test checks every mandatory part is named. */
 export const MARK = name => `=== pack part: ${name} ===`;
 export const MANDATORY_PARTS = [...ALWAYS, 'week spec', 'cards', 'findings and holds', 'gate status'];
@@ -107,7 +123,7 @@ export async function buildPack({ root, cards = [], report = undefined, specFile
 
   const header = `# Session pack\n\nWritten by \`npm run pack\` for ${at} (London ${today}). It holds every mandatory load for a session in ${PACK_MAX} bytes or fewer: ${MANDATORY_PARTS.join(', ')}. Open anything else only when the task needs it: ${REFERENCES.join(', ')}.\n\n`;
   parts.push({ name: 'header', text: header });
-  for (const f of ALWAYS) add(f, await read(f));
+  for (const f of ALWAYS) add(f, packed(f, await read(f)));
 
   // The week spec in force: one passed in, else this week's proposed file, else the default spec.
   let spec, source;

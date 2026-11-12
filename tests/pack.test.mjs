@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { buildPack, reportCounts, buildSteps, PACK_MAX, MARK, MANDATORY_PARTS, ALWAYS, MAX_CARDS, londonDate, mondayOf } from '../scripts/pack.mjs';
+import { buildPack, reportCounts, buildSteps, PACK_MAX, MARK, MANDATORY_PARTS, ALWAYS, MAX_CARDS, londonDate, mondayOf, packed, withoutCanon, CANON_POINTER } from '../scripts/pack.mjs';
 
 // The session pack (plan Phase 4, section 5): every mandatory load in 36 KB
 // or less, or the command fails. Synthetic reports only.
@@ -25,8 +25,8 @@ test('this repository\'s pack with the three largest cards fits in 36 KB and nam
   assert.equal(pack.parts.reduce((n, p) => n + p.bytes, 0), pack.total, 'the parts add up to the whole');
   for (const part of MANDATORY_PARTS) assert.ok(pack.text.includes(MARK(part)), `the pack does not name ${part}`);
   for (const c of HEAVIEST) assert.ok(pack.text.includes(MARK(`card: ${c}`)));
-  // Each always-on file is held whole, not summarised.
-  for (const f of ALWAYS) assert.ok(pack.text.includes(await readFile(join(root, f), 'utf8')), `${f} is not in the pack whole`);
+  // Each always-on file is held whole, not summarised, AGENTS.md less the canon block ai-harness renders.
+  for (const f of ALWAYS) assert.ok(pack.text.includes(packed(f, await readFile(join(root, f), 'utf8'))), `${f} is not in the pack whole`);
   for (const c of HEAVIEST) assert.ok(pack.text.includes(await readFile(join(root, `crew/${c}/card.md`), 'utf8')));
   // With no report, findings and holds are unknown, never zero.
   assert.match(pack.text, /=== pack part: findings and holds ===\n\nUnknown: no report file was passed/);
@@ -61,6 +61,17 @@ test('the limit is exact: 36,864 bytes fits, one byte more fails, and the comman
   const ok = spawnSync(process.execPath, [join(root, 'scripts/pack.mjs'), '--at', AT, '--out', join(dir, 'ok.md'), '--cards', HEAVIEST.join(',')], { cwd: root, encoding: 'utf8' });
   assert.equal(ok.status, 0, ok.stderr);
   for (const p of ['header', ...ALWAYS, 'week spec', 'cards', 'findings and holds', 'gate status']) assert.match(ok.stdout, new RegExp(`\\n  ${p.replace(/\./g, '\\.')}: \\d+ bytes`));
+});
+
+test('the canon block ai-harness renders into AGENTS.md is left out of the pack, one line in its place, and nothing else of AGENTS.md is', () => {
+  const own = '# Working on this engine\n\n## Checks and delivery\n\nRun the checks.\n';
+  const block = '<!-- krish-canon:start release=v2026.11.11.1 sha=000000000000 rendered=2026-11-12 -->\n## Krish canon\n\nThe canon, rendered.\n<!-- krish-canon:end -->\n';
+  const agents = `${own}\n${block}`;
+  assert.equal(withoutCanon(agents), own, 'without the block, AGENTS.md is byte for byte what this repository wrote');
+  assert.equal(packed('AGENTS.md', agents), `${own}\n${CANON_POINTER}\n`);
+  assert.equal(packed('AGENTS.md', own), own, 'with no block there is nothing to leave out');
+  assert.equal(packed('NOW.md', agents), agents, 'only AGENTS.md is trimmed');
+  assert.equal(withoutCanon(`${own}\n${block}\n## After\n\nKept.\n`), `${own}\n## After\n\nKept.\n`, 'text after the block stays');
 });
 
 test('cards: at most three, each a specialist crew/index.json names, never twice', async () => {
