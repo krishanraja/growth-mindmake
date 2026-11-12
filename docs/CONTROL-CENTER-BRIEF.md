@@ -10,7 +10,7 @@ send with a version 2 action that names no address, written from Mindmake's
 canon read live this run and naming those files by blob SHA. It asks Control
 Center's research desk for cited reach figures and LinkedIn signals, inside
 its daily caps. Before Control Center serves 1.6.0 the report is 1.2.0 and
-unchanged; it serves every version from 1.0.0 to 1.20.0 today. Doctrine:
+unchanged; it serves every version from 1.0.0 to 1.21.0 today (1.21.0 adds only growth-makeyourmindup's inspiration instructions, so this engine speaks up to 1.20.0). Doctrine:
 playbook 11; contract: docs/control-center/ENGINE-PROTOCOL.md.
 
 **Current implementation, 2026-10-22:** the additive shared protocol provides
@@ -57,7 +57,7 @@ Every directive carries `in_house: { rule, counts }`, this week's Advisory, Netw
 | `engine_id` | `growth-mindmake` |
 | `product_slug` | `mindmake` |
 | Aim | Every paid proof starts from a warm path or a room, never a list, and leaders arrive already asking for the brain because someone they trust told them. By 2026-11-30 |
-| Objectives | `good_meetings`: the weekly ladder in docs/NORTH_STAR.md, 20 by 2026-11-30, the objective every row and pitch proposal names (since 2026-10-29); `podcasts_booked`: 2 a week; `stages_confirmed`: 1 a fortnight; `qualified_conversations`: target 5 people per week (Europe/London), a reported subset; `paid_proofs`: target 1 in the first 30 days (Europe/London) |
+| Objectives | `good_meetings`: the weekly ladder in docs/NORTH_STAR.md, 20 by 2026-11-30, the objective every row and pitch proposal names (since 2026-10-29); its target in the directive is this repository's north-star block's, read each morning, never the registry's copy (krishanraja/control-center#718, 12 November); `podcasts_booked`: 2 a week; `stages_confirmed`: 1 a fortnight; `qualified_conversations`: target 5 people per week (Europe/London), a reported subset; `paid_proofs`: target 1 in the first 30 days (Europe/London) |
 | Cadence | daily |
 | State | Active: switched on 2026-10-18, with dispatch on. The bearer is this repository's secret `CONTROL_CENTER_ENGINE_TOKEN`, with `CONTROL_CENTER_URL` as a variable. Tests and local proofs still use `mode: synthetic` |
 
