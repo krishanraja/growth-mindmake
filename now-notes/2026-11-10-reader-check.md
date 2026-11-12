@@ -1,4 +1,0 @@
-Status: the Reader Check is built and tested as the crew's tenth specialist, in shadow: fresh sub-agents in a session read each draft as its recipient or booker, from the card's own lines only, and a private ledger scores their predictions against real replies. Not run on a live draft yet; its standing is too_early.
-Next: on the next session with a live report, run `npm run reader -- brief --report <file>` on its drafts, fan out the readers, `tally`, and keep the ledger on one machine so `calibrate` can score it once 20 sends are 7 days old.
-Changed: Krish, 2026-11-10: "Do both: MindMake first and then legibility after. Complete both and then merge both to main and update the project documentation at the end."
-North Star check (2026-11-10): holds. This moves the number only through better drafts reaching his rows; good meetings are still unmeasured, so the urgency stays U4.

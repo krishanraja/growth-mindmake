@@ -37,7 +37,7 @@ import { wins as readWins, winsLine } from './stages/wins.mjs';
 import { poolOf, lanesLine, laneHistory, starvedLanes, poolFlat, starvedProposal, sourcingRequests, checkIn, stoppedPlans, STARVED_RUNS, CHECK_IN_DAYS, CHECK_IN_PREFIX, STARVED_PREFIX, CAPPED } from './stages/momentum.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
 import { voiceHolds, voiceHoldLine } from './stages/voice.mjs';
-import { readInstruction, takesEngineState, rowGoals, instructionSeen, instructionWork, priorities, obsessions, nextSteps, engineState, ENGINE_STATE_VERSION, ENGINE_STATE_KEYS } from './stages/instruction.mjs';
+import { readInstruction, takesEngineState, rowGoals, instructionSeen, lastAck, instructionWork, priorities, obsessions, nextSteps, engineState, ENGINE_STATE_VERSION, ENGINE_STATE_KEYS } from './stages/instruction.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
 export const PRODUCT_SLUG = 'mindmake';
@@ -1061,7 +1061,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // What this report showed, for the runs after it to rotate past (rows.mjs, shownLine).
     const shownNow = rowsRun ? shownLine(mapped.proposals.filter(p => /^gm[wp]-/.test(p.proposal_id))) : null;
     // 1.20.0: what this run did with Krish's instruction leads, by its id and digest only, never his words.
-    const told = instructionWork({ read: directive.instruction, held, rowsRan: !!rowsRun, proposals: mapped.proposals, seen: instructionSeen(recent, directive.instruction.id), receivedAt: started_at, at: observed_at });
+    const told = instructionWork({ read: directive.instruction, held, rowsRan: !!rowsRun, proposals: mapped.proposals, seen: instructionSeen(recent, directive.instruction.id), last: lastAck(recent, directive.instruction.id), receivedAt: started_at, at: observed_at });
     activity.unshift(...(told ? [told.activity] : []), gapNow, ...(lanesNow ? [lanesNow] : []), ...(shownNow ? [shownNow] : []));
     // The engine's state (1.20.0), from this repository's own files and this run's numbers, never invented; only where the directive says features.engine_state.
     let stateNow = null;
@@ -1071,7 +1071,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       stateNow = engineState({
         priorities: priorities({ gap, ladder, booked, targets: visibilityTargets(policy), raised: intense.raised.length, starved, starvedRuns: STARVED_RUNS }),
         obsessions: obsessions(northStarText),
-        next_steps: nextSteps(files ?? {}),
+        next_steps: nextSteps({ ...(files ?? {}), today }),
         acks: told?.acks ?? []
       });
     }

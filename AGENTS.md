@@ -18,7 +18,7 @@ When Krish says "Get going", or opens a session with no more specific task, foll
 
 ## Every session: the pack
 
-Run `npm run pack` (add `-- --cards <slug>,<slug>` for up to three specialists in play from crew/index.json, and `--report <file>` for a report's holds and lint findings) and read runtime/pack.md. It holds this file, NOW.md, docs/NORTH_STAR.md, the week spec in force, those cards, open findings and holds as counts and codes, and gate status, in 36 KB or less, and fails above it. Open docs/BRIEF.md, docs/CONTROL-CENTER-BRIEF.md, docs/control-center/ENGINE-PROTOCOL.md, the dated handoff, docs/OWNERS.md or docs/RULINGS.md only when the task needs them.
+Run `npm run pack` (add `-- --cards <slug>,<slug>` for up to three specialists in play from crew/index.json, and `--report <file>` for a report's holds and lint findings) and read runtime/pack.md. It holds this file (less the Krish canon block ai-harness renders at its end, which loads with AGENTS.md itself), NOW.md, docs/NORTH_STAR.md, the week spec in force, those cards, open findings and holds as counts and codes, and gate status, in 36 KB or less, and fails above it. Open docs/BRIEF.md, docs/CONTROL-CENTER-BRIEF.md, docs/control-center/ENGINE-PROTOCOL.md, the dated handoff, docs/OWNERS.md or docs/RULINGS.md only when the task needs them.
 
 Apply the canonical personal harness and krish-principles, then strategy-brief, krish-build and verification-loop for material changes. Read docs/BRIEF.md and docs/RELEASE.md before changing scope. Commercial content also uses Mindmake context, conversion strategy and Krish's voice rules. Every draft, aid, review and proof-scope proposal applies docs/playbooks/10-copy-and-offer-doctrine.md.
 

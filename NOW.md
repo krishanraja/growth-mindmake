@@ -1,8 +1,8 @@
 ---
 repo: krishanraja/growth-mindmake
 product: Mindmake growth engine
-as_of: 2026-10-28
-head: 5d2877d
+as_of: 2026-11-12
+head: 5d3d7ff
 lifecycle: building
 production_url: none
 state_doc: README.md
@@ -22,44 +22,57 @@ Mindmake's growth engine: relationships, introductions, researched named outreac
 
 The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish's calendar with the right conversations.
 
-## Where it is right now (as of 2026-10-28)
+## Where it is right now (as of 2026-11-12)
 
 <!-- north-star-state {"week_of":"2026-11-02","week_target":5,"current":0,"current_as_of":"2026-11-08","current_source":"growth-mindmake's latest live report to Control Center (objective good_meetings: meetings Krish marked good, each traced to its path, in the week it counts), read by Control Center","urgency":5,"urgency_reason":"under 40% of the week's target two weeks running (0% now)"} --> **North Star number: U5, stalled.** Good meetings a week, each marked good by Krish after it and traced to where it came from: 0, against 5 in the week of 2 November 2026, on the way to 20 by 30 November 2026. Everything else pauses unless it moves the number.
 
 Lifecycle: building. The detail is in `README.md`.
 
-This session's trusted-distribution closeout is in [the dated handoff](docs/history/2026-10-27-growth-session-handoff.md). The 22 October producer/Control Center release and preparation-only canary were completed; they are historical evidence, not proof of today's outcomes. A read-only check on 27 October found the earlier route plans still pending, their original Advisory records unresolved, and their prepared action windows expired. Reconcile current private lifecycle state before reusing them. Later AGENTS.md human-action rules and the newer forms/mailbox gates below remain in force. The proposed reusable decision demo has not been built or accepted as the next task.
+- The session pack leaves out the Krish canon block ai-harness renders at the end of AGENTS.md (one line in its place; it loads with AGENTS.md itself), and the rulings test reads AGENTS.md's own sections without it, so the canon block can land while the 36 KB budget and the standing rules word for word both hold. (2026-11-12)
+- Closeout notes now fold into NOW.md by themselves (ci.yml's fold job runs ai-harness's closeout hook on every push to main); the engine acks a state of Krish's instruction only when it changes, and leaves out of its next steps any whose own deadline has passed; the docs say what the engine does as of 12 November. (2026-11-12)
+- The daily dispatch runs live: Control Center wakes it at about 05:10 UTC, again the same day when a row of his widget runs low, and a merge to main that changes `src/` runs it at once. Each run reads Krish's instruction first (protocol 1.20.0), builds the five rows, Jonny's pitches and invites and the stage forms from Control Center's context, asks the research desk for lookups and openings, passes every action with words in Krish's name through Control Center's voice check, and reports the number, the bookings and the engine's state (README.md, "The daily Control Center dispatch").
+- Nothing here sends, posts or spends. Control Center drafts Jonny's pitches into Jonny's Gmail each day for Jonny to send; every other action waits on Krish's own press, and an approved exact email runs only through Control Center's shared executor.
+- The number is read from his one tap after each meeting (protocol 1.10.0). On the 12 November run good meetings, podcasts booked and stages confirmed all read as measured; the count itself is the state line above, which Control Center writes.
+- Krish has not given this engine an instruction yet. The code that reads one, ranks the rows that serve it first and acks it (only when its state changes) is built and tested.
+- This week's spec (`gms-2026-11-09`) is unsigned on his list, so every run holds `spec_unsigned` and runs on today's settings, raised to the policy's bounds at U5. Nothing has switched to Phase 5's enforcing route.
+- In shadow, never evidence: the crew's lints and checks, the stages moved out of Control Center (plan section 12) and the Reader Check.
+
+The 27 October trusted-distribution closeout is in [the dated handoff](docs/history/2026-10-27-growth-session-handoff.md). The 22 October producer and Control Center release and its preparation-only canary are historical evidence, not proof of today's outcomes. Of the five 22 October route plans, four were withdrawn on 27 October because their Advisory records are gone, and one is still a real ask on his list. Later AGENTS.md human-action rules and the forms and mailbox gates remain in force.
 
 ## What changed recently
-- 2026-11-10 **The reader check (Ruling, Krish, 2026-11-10).** The crew's tenth specialist: fresh sub-agents read each draft as its recipient or booker, built only from the card, and say whether they would reply within 7 days, the weakest link and whether they felt remembered or worked (`npm run reader`). In shadow, never evidence; a private ledger scores it against real replies, and it earns weight or is retired by a stop rule set before its first run (docs/playbooks/07-scorecard-and-experiments.md). Built and tested; not run on a live draft (now-notes/2026-11-10-reader-check.md).
-- 2026-11-06 **Openings by the desk, lookups for row people (Ruling, Krish, 2026-11-06).** Each catch-up and invite opens on a sentence the research desk writes from one fact, read by fixed rules; a failing one holds the email. Row people with no address are looked up and found routes sent to record. Built and tested.
-- 2026-11-06 **Partner offers fit the partner; catch-ups name the shared past.** The live run after #62 passed the bar's measures, and reading its emails found offers about a portfolio sent to people with none. Founders only for someone who backs them, a fund only when it is one, otherwise their own leaders; a catch-up uses the card's ask line and a place you both worked (now-notes/2026-11-06-emails-from-card-facts.md). Built and tested.
-- 2026-11-06 **Emails from card facts, checked by sentence.** Each email is about one fact on its card; no decision, episode or idea repeats in a run; companies as the card writes them; two emails may share one sentence at most (now-notes/2026-11-06-emails-from-card-facts.md). Built and tested.
-- 2026-11-06 **Specific words, fresh rows, one event one card.** Krish: the drafts were generic and the events weak. Emails come from each card's facts; a run holds two emails alike once names are out (`row_same_words`); a `Shown:` line rotates unseen rows first; one event is one row; forms need a talk, abstract or bio; titles name their subject; clashing employers hold a card (now-notes/2026-11-06-specific-fresh-rows.md). Built and tested; not run live.
+- 2026-11-12 scripts/pack.mjs (CANON_BLOCK, withoutCanon, packed), tests/support/rulings.mjs, tests/pack.test.mjs, AGENTS.md ("Every session: the pack"), docs/OWNERS.md. With ai-harness's canon block (pull request #51) the heaviest pack is under 36 KB and all 629 tests pass.
+- 2026-11-12 **The docs match the engine, and notes fold by themselves.** Krish, 2026-11-12: "Are the project documentations up to date, 100%, every single word, with what this engine now is and how it works?" README, the Control Center brief, operations, Get going, the release record and the protocol copy (from Control Center main) now say what the code and the live runs do; twelve closeout notes of 5 to 11 November were folded in by hand.
+- 2026-11-11 **Krish instructs the engine, and it reports its state (protocol 1.20.0; Ruling, Krish, 2026-11-11).** The dispatch reads `krish_instruction` from the directive, puts his words first in the run's work in memory only (the rows that serve them say so and rank first), acks it by id (received, then started or blocked with why), and reports `priorities`, `obsessions` and `next_steps` from this repository's own files and the run's numbers. His words are never printed, logged or committed (krishanraja/growth-mindmake#78). Built and tested; no live run has carried an instruction yet.
+- 2026-11-10 **Codex signs in by itself (Krish, 2026-11-10).** Claude sessions here show Krish a ChatGPT sign-in link and code whenever Codex is signed out (`.claude/hooks/codex-login.sh` at session start, cloud included); his subscription, never an API key.
+- 2026-11-10 **The reader check (Ruling, Krish, 2026-11-10).** The crew's tenth specialist: fresh sub-agents read each draft as its recipient or booker, built only from the card, and say whether they would reply within 7 days, the weakest link and whether they felt remembered or worked (`npm run reader`). In shadow, never evidence; a private ledger scores it against real replies, and it earns weight or is retired by a stop rule set before its first run (docs/playbooks/07-scorecard-and-experiments.md). Built and tested; not yet run on a live draft.
+- 2026-11-09 **Everything in Krish's name passes the voice check (Krish, 2026-11-09: "Absolutely everything").** Emails (Jonny's box as Jonny in Krish's style), WhatsApp and X messages, a speaker form's written answers and an engagement task's taps go through Control Center's voice check before they are proposed (krishanraja/growth-mindmake#76); a hard fail is held as `voice_refused`, rule names only. Live: the 11 and 12 November runs held some as `voice_refused`.
+- 2026-11-07 **One voice check (Rulings, Krish, 2026-11-07).** Every email for Krish's box or Jonny's passes Control Center's voice check (`features.voice_check`) before it is proposed (krishanraja/growth-mindmake#75); a check that cannot be read is counted as `voice_check_unread`, and Control Center checks again before anything lands.
+- 2026-11-06 **Catch-ups written as a person writes one (Ruling, Krish, 2026-11-06).** A NETWORK catch-up is one note in his order (a while, why now, why you, a quick chat), written whole by the research desk's `write` kind (Claude with no web search, up to 30 a run, krishanraja/control-center#659) and held when it recites their career, quotes them or misses a part (krishanraja/growth-mindmake#71 to #74).
+- 2026-11-05 **The circle lane and the AI mirror (Rulings, Krish, 2026-11-05).** One cited question a kind a day (exited founders, PE and VC partners, public figures, family office heads) finds up to ten strangers a run for the report's `circle` until 50 are found, then up to ten a run from his own network by contact id, each for Make Your Mind Up; the AI mirror's questions go in `mirror`; both only where Control Center serves 1.19.0 (krishanraja/growth-mindmake#58, #59). Live: Control Center links the people already in his records, and has refused every new stranger so far as `store_failed`, because its insert names a consent tier its contacts table does not allow (a Control Center fix; nothing in this repository changes).
 
-- Older changes are in [docs/history/LOG.md](docs/history/LOG.md), moved there word for word on 2026-10-27 to keep this file short.
+- Older changes are in [docs/history/LOG.md](docs/history/LOG.md), moved there word for word to keep this file short.
 
 ## What is next and what is waiting on Krish
 
-- **Reader check (2026-11-10):** run it on the next live report's drafts (`npm run reader -- brief --report <file>`), on a machine that keeps runtime/reader/ledger.json, so `calibrate` can score it once 20 sends are 7 days old.
-- Krish approved the whole plan on 27 October and asked the session to merge its own pull requests; the brand kit is built. Build order: kit check, Phase 0, Phase 1, Control Center 1.10.0, Phase 1b, then Phases 2 to 5 and the visibility track. Control Center owes protocol 1.10.0 (first the held meetings, the one-tap good prompt and `origin_candidates` that wire the number, then the web part and the show-notes kind), and three approved mindmake-repository changes follow: Analytics events for the brief (marking them as key events is his own change in the Analytics property), tags kept until a visitor answers the banner, and the brief recording its `growth-*` source with the site's privacy page updated. Merging that site change publishes it, so it waits for his yes at the time.
-- North Star check (2026-10-28): holds. Control Center now only reads and reports for Mindmake, guest invites lean to volume, and a visit from a growth placement now reaches the brief request (krishanraja/mindmake#255), so the number can be tied to its path; the number itself is still unmeasured, so it stays U4.
-- **Next:** read the 05:10 report for the first calendar read of his meetings and measure the number; Krish signs the week spec on Monday 9 November so Phase 5's proof runs can start; the Canva Cowork session finishes C1 and C2, after which this engine attaches `asset_ref` to the one-sheet's link (C3). Waiting on Krish: the bin of the 8 Gmail pilot drafts from an operator session (`scripts/bin-pilot-drafts.mts` in control-center), and the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
+- Next (2026-11-12): merge pull request #51 (the canon block) once its checks pass on main.
+- Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
+- North Star check (2026-11-12): holds.
 
 ### Existing integration gates to retain
 
-- After Control Center serves `form_fields` and `forms` in the context with its Submit press (its stage forms change, not yet on its main), run the dispatch once and read back the forms: each on a stage that asked, every answer under a label its own form shows, none to a stage already pitched; then Krish presses Submit on one and the next context's `forms` shows it `submitted` or `confirmed`, or `not_sent` with why. Not live until then.
-- After Control Center serves 1.9.0 (krishanraja/control-center#575, which also lets Jonny's box serve the events row), run the dispatch once and read back the pitches: each about a show or a stage with its own address, in Jonny's words, none to one already drafted; then Control Center's drafts in Jonny's Gmail and, later, which ones answer.
-- Measure the North Star number and record it on the first line under "Where it is right now".
-- After Control Center's 1.6.0 is live, read the first live report with rows and spot-check ten reach figures against their sources.
-- The pinned `APPROVED_CANON` in `contracts/growth.ts` no longer matches Mindmake's canon and its 30-day review lapses on 15 November; the snapshot path needs Krish's review of the current canon before then.
+- His Submit on one stage form, and the next context's `forms` showing it `submitted` or `confirmed`, or `not_sent` with why. No form has been submitted yet.
+- Ten reach figures in a live report spot-checked against their sources.
+- The Reader Check on a live report's drafts (`npm run reader -- brief --report <file>`), on a machine that keeps runtime/reader/ledger.json, so `calibrate` can score it once 20 sends are 7 days old.
+- The Canva Cowork session finishes C1 and C2, after which this engine attaches `asset_ref` to the one-sheet's link (C3).
+- Control Center's own Mindmake pilot drafts still left in his Gmail are binned from an operator session (`scripts/bin-pilot-drafts.mts` in control-center; his yes is given).
+- The pinned `APPROVED_CANON` in `contracts/growth.ts` lapses on 15 November by decision: it gates only the snapshot route (`daily`, `plan`), which the live dispatch does not use. That route needs Krish's review of the current canon before it runs again.
 
 ## Read next
 
 - `docs/NORTH_STAR.md`: the North Star, its number and its weekly ladder.
-- [Trusted-distribution session handoff](docs/history/2026-10-27-growth-session-handoff.md): this session's checkpoint, later-policy precedence and the precise resume boundary.
 - `README.md`: what this repository is and how it runs.
+- [Trusted-distribution session handoff](docs/history/2026-10-27-growth-session-handoff.md): the 27 October checkpoint and later-policy precedence.
 
 ## Do not trust
 
-The old trusted-distribution action manifests and Advisory links are historical until reconciled in Control Center. Older "not merged" notes do not override verified later merges. Read current capabilities and decisions before acting; the North Star remains unmeasured rather than zero.
+The old trusted-distribution action manifests and Advisory links are historical until reconciled in Control Center. Older "not merged" or "not run live" notes do not override verified later merges and live runs. Read current capabilities and decisions before acting. The North Star number is Control Center's measured reading on the state line, never a figure written here by hand.

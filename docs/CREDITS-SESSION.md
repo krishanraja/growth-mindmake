@@ -6,7 +6,7 @@ Mindmake's share of the prepaid credits (protocol 1.16.0) is spent by one schedu
 - Ruling (Krish, 2026-10-29): engine credits are spent by one scheduled session per engine, recording each spend through Control Center.
 - Ruling (Krish, 2026-10-29): Apify is pay as you go: a ceiling to stay under, never a pool to use up, and engines learn which actors are worth their cost.
 
-This file is the session's whole brief. Read AGENTS.md first, then this file.
+This file is the session's whole brief. Read AGENTS.md first, then this file. A scheduled session starts with no repository of its own, so it reads both from main with the Control Center connector's `get_engine_brief` (`{ engine: 'mindmake' }`).
 
 ## Each run
 
@@ -32,11 +32,11 @@ This file is the session's whole brief. Read AGENTS.md first, then this file.
    1. `reserve_credit_spend` with `{ engine: 'mindmake', pool, amount, asset, objective_key: 'good_meetings' }`.
       - `amount` is the expected cost, from the tool's own quote or the block's `unit_costs`.
       - `asset` says what is made, in words, never an address or a name.
-      - A refusal (`over_share`, `held`, `no_pool`, `unknown`, `open_reservation`) stops that spend.
+      - A refusal (`over_share`, `held`, `no_pool`, `unknown`, `allowance_first`, `write_failed`) stops that spend. `allowance_first` means a pool behind an included allowance is refused until that allowance is used to its gate.
    2. Run it.
    3. `settle_credit_spend` with the provider's actual cost and its run or generation ids as the receipt. Pass `0` when it failed or nothing was charged, which voids the reservation.
       - For every Apify run, also pass `actor` (the actor id), `job` (one short slug reused across runs, such as `podcast_hosts`), `items` (results returned) and `used` (results you kept). Counts only, never names. This is how the next run learns which actors are worth their cost.
-   - One reservation is open at a time: settle before the next.
+   - Several reservations may be open at once, each off the share (Krish, 2026-11-09: "Just remove the rule entirely"); settle each one when its generation ends. One left open for 24 hours is voided.
 5. **Finish** with one line: what was made, from which pools, and what is left until `use_by`. For Apify, say what each run cost and how many results it kept.
 
 ## The walls
