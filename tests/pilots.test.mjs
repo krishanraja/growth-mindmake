@@ -386,6 +386,27 @@ test('a valid note becomes a REACH OUT email in his own box: the note, then the 
   assert.deepEqual(cardGrammar(p.card, { records: [person(1).who, person(1).why_them] }), [], 'the card reads as whole sentences');
 });
 
+test('a note the desk refused over its cap holds no place in the five, and is asked again the next London day', async () => {
+  const { pilotRows } = await import('../src/stages/pilots.mjs');
+  const { openingRequest } = await import('../src/stages/openings.mjs');
+  const rows = Array.from({ length: 7 }, (_, i) => listed(i + 1));
+  const ctx = warmContext({ rows, people: rows.map((_, i) => person(i + 1)) });
+  const asked = pilotRows({ context: ctx, canon, at: AT, ...live }).research;
+  // The desk refused all five over its cap: none of them freezes the batch, so the next two are asked too.
+  const refused = asked.map(r => ({ ...r, status: 'over_cap', requested_at: AT }));
+  const out = pilotRows({ context: { ...ctx, research: refused }, canon, at: AT, ...live });
+  assert.equal(out.counts.waiting, 7);
+  assert.ok(!out.held.includes('batch_full'), 'refused notes take no place in the five');
+  assert.equal(out.research.filter(r => r.kind === 'write').length, 7);
+  // The same day, the same words keep their refused id; the next London day they are asked under a new one.
+  const first = asked[0];
+  const same = openingRequest({ id: id(101), research: refused, at: AT, kind: 'write', purpose: 'buyer', query: first.query });
+  const next = openingRequest({ id: id(101), research: refused, at: new Date(Date.parse(AT) + 86_400_000).toISOString(), kind: 'write', purpose: 'buyer', query: first.query });
+  assert.notEqual(next.request_id, first.request_id);
+  assert.ok(next.request_id.startsWith(`${first.request_id.split(':').slice(0, 3).join(':')}:`));
+  assert.ok(same.request_id);
+});
+
 test('never more than five a run, and never past the row\'s cap or with the row turned off', async () => {
   const { pilotRows, MONDAY_BATCH } = await import('../src/stages/pilots.mjs');
   const rows = Array.from({ length: 7 }, (_, i) => listed(i + 1));
@@ -474,11 +495,33 @@ test("the desk writes one sentence, read by fixed rules: the trigger's own reaso
     ['a research word', 'I saw your profile says you are rebuilding your pricing for AI this quarter.', 'research_words'],
     ['a broken shape', 'I saw that you spotted the pricing rebuild for AI this quarter.', 'krish_line_turned'],
     ['too short', 'Pricing for AI.', 'length'],
+    // Nothing of his but what struck him: "my" and "me" only in caught my eye or made me think, and no second thing he did.
+    ['my', `${NOW}, and my team works on that.`, 'claims_about_us'],
+    ['me', `${NOW}, so it fits me well.`, 'claims_about_us'],
+    ['a second verb said of him', `${NOW} and built a model for it.`, 'claims_about_us'],
+    ['a second verb in the past', `${NOW} and sketched how it could work.`, 'claims_about_us'],
+    // Numbers in any form the trigger does not hold: joined, or in order.
+    ['a joined number', `${NOW} with twenty-five leaders.`, 'new_number'],
+    ['an ordinal', `${NOW}, the third such change.`, 'new_number'],
+    ['an ordinal in figures', `${NOW}, the 3rd such change.`, 'new_number'],
+    // A claim about them never rides on one shared word.
+    ['a claim on one shared word', 'I saw your pricing changes after investors replaced your board.', 'beyond_trigger'],
+    // More offers and more asks, however they are worded.
+    ['consulting', `${NOW}, where consulting could help.`, 'offer_words'],
+    ['a demo', `${NOW}, so a demo might suit.`, 'offer_words'],
+    ['an audit', `${NOW}, and an audit is the usual first step.`, 'offer_words'],
+    ['compare notes', `${NOW}, so we could compare notes.`, 'claims_about_us'],
+    ['compare notes without we', `${NOW}, worth comparing notes.`, 'second_ask'],
+    ['reach out', `${NOW}, so I wanted to reach out.`, 'claims_about_us'],
+    ['open to', `${NOW}, if you are open to it.`, 'second_ask'],
+    ['talk', `${NOW}, which would be good to talk through.`, 'second_ask'],
   ];
   for (const [what, text, reason] of cases) assert.deepEqual(validBuyerNote(text, args), { ok: false, reason }, what);
   // A word of the trigger, a stem of one (pricing, price), or the company may start or fill it; an ordinary opener names no one.
   for (const ok of ['I noticed you are rebuilding how you charge for AI this quarter, which caught my eye.', 'Rebuilding your pricing for AI this quarter is a big call.', 'Your rebuild of pricing for AI this quarter caught my eye.',
     'I read that Example Works 1 is rebuilding its pricing around AI this quarter.', 'Seeing Example Works 1 rebuild its pricing for AI this quarter made me think of you.']) assert.equal(validBuyerNote(ok, args).ok, true, ok);
+  // What struck him may say so, and the trigger's own verbs after "and" are theirs.
+  for (const ok of [`${NOW}, which got my attention.`, `${NOW}, and it reminded me of you.`, 'I saw you are rebuilding your pricing and cutting tiers for AI this quarter.']) assert.equal(validBuyerNote(ok, { ...args, trigger: 'We are rebuilding our pricing and cutting tiers for AI this quarter.' }).ok, true, ok);
   assert.equal(validBuyerNote('I saw your pricing is now set by AI.', args).ok, true, "a stem of the trigger's own word is its reason");
   assert.equal(validBuyerNote('I saw you plan to scale with AI this year.', { ...args, trigger: 'Example Works is scaling its data team with AI agents.' }).ok, true, 'scale and scaling meet, as no five-letter cut lets them');
   assert.equal(validBuyerNote('I saw your board meeting set a new pricing plan for AI.', { ...args, trigger: 'The board meeting at Example Works set a new pricing plan for AI.' }).ok, true, "a word of the trigger's own is no ask");

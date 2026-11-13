@@ -132,7 +132,9 @@ export function openingRequest({ id, name, fact, purpose = 'catchup', show = '',
   const base = `open:${id}:${seal(kind === 'write' ? { query, kind } : { query }).slice(0, 12)}`;
   const tried = (Array.isArray(research) ? research : []).filter(r => typeof r?.request_id === 'string' && (r.request_id === base || r.request_id.startsWith(`${base}:`)));
   const day = at ? londonDay(at) : null;
-  const request_id = !tried.length || !day || tried.some(r => !['failed', 'empty'].includes(r.status)) ? (tried.find(r => !['failed', 'empty'].includes(r.status))?.request_id ?? base) : `${base}:${day}`;
+  // A try the desk refused over its daily cap ran nothing and cost nothing: like a failed one, it is asked again under the next London day.
+  const RETRY = ['failed', 'empty', 'over_cap'];
+  const request_id = !tried.length || !day || tried.some(r => !RETRY.includes(r.status)) ? (tried.find(r => !RETRY.includes(r.status))?.request_id ?? base) : `${base}:${day}`;
   const why = purpose === 'buyer' ? 'Writes a warm note to a buyer from one cited reason to write now.'
     : purpose === 'intro' ? 'Writes a warm ask for one introduction from one cited reason to write now.'
       : `Writes the opening sentence of ${purpose === 'invite' ? 'an invite' : 'a catch-up'} from one fact on the card.`;
@@ -148,9 +150,10 @@ export function openingAnswer(research, request) {
   const done = list.find(x => typeof x?.request_id === 'string' && (x.request_id === base || x.request_id.startsWith(`${base}:`)) && x.status === 'answered' && typeof x.answer === 'string' && x.answer.trim());
   if (done) return { state: 'answered', text: done.answer };
   const r = list.find(x => x?.request_id === request.request_id);
-  if (!r) return { state: 'waiting' };
+  // Asked again after the desk refused these words over its cap: still waiting on its cap, not on a write in hand.
+  if (!r) return list.some(x => typeof x?.request_id === 'string' && (x.request_id === base || x.request_id.startsWith(`${base}:`)) && x.status === 'over_cap') ? { state: 'waiting', over_cap: true } : { state: 'waiting' };
   if (r.status === 'answered' && typeof r.answer === 'string' && r.answer.trim()) return { state: 'answered', text: r.answer };
-  if (r.status === 'over_cap') return { state: 'waiting' };
+  if (r.status === 'over_cap') return { state: 'waiting', over_cap: true };
   return { state: 'failed' };
 }
 
@@ -245,7 +248,7 @@ export function warmNote(sentence, { label, ask = 'buyer' } = {}) {
  * by a test.
  */
 export const OFFER_WORDS = new RegExp([
-  String.raw`\b(?:offer(?:s|ed|ing)?|price[sd]?|fees?|discount(?:s|ed)?|pilots?|workshops?|sprints?|programmes?|programs?|guarantee[sd]?|results?|free|trials?|promise[sd]?)\b`,
+  String.raw`\b(?:offer(?:s|ed|ing)?|price[sd]?|fees?|discount(?:s|ed)?|pilots?|workshops?|sprints?|programmes?|programs?|guarantee[sd]?|results?|free|trials?|promise[sd]?|consult(?:s|ed|ing|ancy|ancies|ants?)?|services?|packages?|proposals?|audits?|assessments?|demos?|solutions?|retainers?|engagements?|deliverables?|roadmaps?|blueprints?|frameworks?|playbooks?|templates?|toolkits?|courses?|training|coaching)\b`,
   String.raw`\b(?:\d{1,4}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fourteen|fifteen|twenty|thirty|forty|sixty|ninety|few|couple of|several)[- ](?:hours?|days?|weeks?|months?|years?|quarters?)\b`,
   String.raw`\b(?:matter of|within|inside|in under|takes?|took|lasting)\s+(?:a\s+|an\s+|the\s+)?(?:few\s+)?(?:hours?|days?|weeks?|months?)\b`,
   String.raw`\b(?:hours?|days?|weeks?|months?)[- ]long\b|\bovernight\b`,
@@ -254,12 +257,19 @@ export const OFFER_WORDS = new RegExp([
 /** Number words: none may stand in the desk's sentence unless the trigger holds that exact word. */
 const NUMBER_WORDS = new Set(('zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen '
   + 'twenty thirty forty fifty sixty seventy eighty ninety hundred hundreds thousand thousands million millions billion billions trillion '
-  + 'dozen dozens half halve halved halves twice double doubled triple tripled quadruple quadrupled percent').split(' '));
+  + 'dozen dozens half halve halved halves twice double doubled triple tripled quadruple quadrupled percent '
+  + 'first second third fourth fifth sixth seventh eighth ninth tenth eleventh twelfth twentieth thirtieth fiftieth hundredth thousandth millionth').split(' '));
 /** The first word of the sentence when it is not a word the note may hold: "I" (the desk is asked to begin with it) or an ordinary opener that names no one. */
 const FIRST_WORDS = new Set(["i", "i'm", "i've", 'your', 'you', "you're", "you've", 'saw', 'seeing', 'read', 'reading', 'noticed', 'spotted', 'just', 'lately', 'recently', 'this', 'that', 'the', 'it', 'its', "it's", 'glad', 'good', 'looks', 'sounds', 'seems']);
 /** What Krish may say he did before the reason: saw it, read it, noticed it. Anything else said of "I" is a claim about him. */
 const PERCEIVE = new Set(['saw', 'see', 'seen', 'seeing', 'read', 'reading', 'noticed', 'notice', 'noticing', 'spotted', 'spot', 'spotting', 'heard', 'hear', 'hearing', 'caught', 'catch', 'came', 'come', 'liked', 'loved', 'enjoyed', 'followed', 'following', 'watched', 'watching', 'found', 'thought', 'think']);
 const AUXILIARY = new Set(['just', 'recently', 'also', 'really', 'only', 'lately', 'have', 'had', 'was', 'am', 'been']);
+/** How Krish may say a thing struck him, which says nothing he did: these hold "me" and "my" and nothing else may. */
+const STRUCK = /\b(?:caught my (?:eye|attention)|got my attention|made me (?:think|wonder)(?: of you)?|got me thinking|reminded me(?: of you)?|struck me)\b/gi;
+/** The words that name how he came across the trigger, never a claim of their own: they are not counted as new. */
+const FRAME_WORDS = new Set(['saw', 'seen', 'seeing', 'read', 'reading', 'noticed', 'noticing', 'spotted', 'caught', 'catch', 'eye', 'attention', 'think', 'thinking', 'thought', 'made', 'reminded', 'struck', 'heard', 'came', 'across', 'post', 'posts', 'news', 'piece', 'article', 'update', 'announcement', 'interview', 'podcast', 'episode', 'wonder', 'wondering']);
+/** A verb said after "and", "then" or "so" with no subject of its own is said of "I": a second thing Krish did. Read as a past form, or a common doing word. */
+const DOING = new Set(['built', 'made', 'wrote', 'ran', 'took', 'sent', 'put', 'set', 'got', 'led', 'drew', 'gave', 'found', 'brought', 'began', 'won', 'did', 'done', 'went', 'spent', 'kept', 'sold', 'bought', 'paid', 'met', 'told', 'taught', 'shared', 'build', 'make', 'write', 'run', 'help', 'work', 'send', 'share', 'show', 'sketch', 'draft', 'map', 'pull', 'start', 'started']);
 /** Words too common to show the sentence took its reason from the trigger. */
 const COMMON = new Set(['about', 'after', 'again', 'also', 'been', 'before', 'being', 'from', 'have', 'here', 'into', 'just', 'lately', 'like', 'more', 'most', 'much', 'over', 'recently', 'really', 'same', 'saw', 'seen', 'some', 'than', 'that', 'their', 'them', 'then', 'there', 'these', 'they', 'this', 'those', 'very', 'were', 'what', 'when', 'where', 'which', 'while', 'will', 'with', 'would', 'could', 'should', 'your', 'yours', 'other', 'every', 'still', 'since', 'today', 'thing', 'things', 'think', 'thought', 'noticed', 'reading', 'read', 'spotted', 'year', 'years', 'quarter', 'month', 'months', 'week', 'weeks', 'news', 'post']);
 /** A run of nine digits or an address never reaches the desk. */
@@ -345,7 +355,8 @@ export function validBuyerNote(text, { name = '', company = '', trigger = '', of
   if (numbersOf(s).some(n => !factNumbers.has(n))) return { ok: false, reason: 'new_number' };
   const toks = tokensOf(s);
   const licensed = new Set([...factTokens, ...tokensOf(company)]);
-  if (toks.some(t => (NUMBER_WORDS.has(t) || /^\p{L}+fold$/u.test(t)) && !licensed.has(t))) return { ok: false, reason: 'new_number' };
+  // A joined number (twenty-five, a third-quarter) is read part by part.
+  if (toks.flatMap(t => [t, ...t.split('-')]).some(t => (NUMBER_WORDS.has(t) || /^\p{L}+fold$/u.test(t)) && !licensed.has(t))) return { ok: false, reason: 'new_number' };
   const allowed = new Set([...tokensOf(givenParts(name)[0] ?? ''), ...tokensOf(company), ...factTokens, 'mindmake', 'ai', 'i', "i'm", "i've", "i'd", "i'll"]);
   const capped = (String(s).match(/[\p{L}\p{N}]+(?:['\u2019&.-][\p{L}\p{N}]+)*/gu) ?? []);
   for (const [i, w] of capped.entries()) {
@@ -364,12 +375,25 @@ export function validBuyerNote(text, { name = '', company = '', trigger = '', of
     const verb = (s.slice(m.index + m[0].length).match(/\p{L}+/gu) ?? []).map(x => x.toLowerCase()).find(x => !AUXILIARY.has(x));
     if (verb && !PERCEIVE.has(verb)) return { ok: false, reason: 'claims_about_us' };
   }
+  // "Me" and "my" only where something struck him (caught my eye, made me think): anything else of his is a claim.
+  if (/\b(?:me|my|mine|myself)\b/i.test(s.replace(STRUCK, ' '))) return { ok: false, reason: /\b(?:told me|tells me)\b/i.test(s) ? 'hearsay' : 'claims_about_us' };
+  // A second doing word after "and", "then" or "so", with no subject of its own, is a second thing he did; the trigger's own words are theirs.
+  for (const m of s.matchAll(/\b(?:and|then|so|but)\s+(?:also\s+|then\s+|just\s+|quickly\s+)?(\p{L}+)/giu)) {
+    const w = m[1].toLowerCase();
+    // Seeing, reading or thinking of them again is not a second thing he did.
+    if (factTokens.has(w) || PERCEIVE.has(w)) continue;
+    if (DOING.has(w) || (/^\p{Ll}{3,}ed$/u.test(w) && !['need', 'speed', 'seed', 'feed', 'bed', 'red', 'shed'].includes(w))) return { ok: false, reason: 'claims_about_us' };
+  }
   if (/\b(?:told me|tells me|mentioned|according to|heard from|said that|says that)\b/i.test(s)) return { ok: false, reason: 'hearsay' };
   // The one ask is fixed text after the sentence: the sentence itself asks for nothing, a call, a time or a chat (a word the trigger itself holds aside).
-  const asks = s.match(/\b(?:let['\u2019]?s|let me|book|grab|a call|on a call|quick call|short call|a chat|quick chat|catch up|meet|meeting|coffee|lunch|calendar|a time|a slot|minutes|hop on|jump on|would love|keen to|happy to)\b/gi) ?? [];
+  const asks = s.match(/\b(?:let['\u2019]?s|let me|book|grab|a call|on a call|quick call|short call|a chat|quick chat|catch up|meet|meeting|coffee|lunch|calendar|a time|a slot|minutes|hop on|jump on|would love|keen to|happy to|reach out|connect|talk|speak|discuss|explore|compar(?:e|ing) notes|pick your brain|hear more|share more|show you|walk you through|introduce|intro|get together|touch base|drop me|send you|open to|interested in|love to|worth a)\b/gi) ?? [];
   if (asks.some(a => !a.split(/\s+/).every(w => factTokens.has(w.toLowerCase())))) return { ok: false, reason: 'second_ask' };
   const stems = contentStems(fact);
-  if (!contentStems(s).some(w => stems.includes(w))) return { ok: false, reason: 'no_why_now' };
+  const own = contentStems(s), shared = own.filter(w => stems.includes(w));
+  if (!shared.length) return { ok: false, reason: 'no_why_now' };
+  // Every other word of meaning is new: no more of them than of the trigger's own, so a claim about them never rides on one shared word.
+  const theirs = new Set([...contentStems(givenParts(name)[0] ?? ''), ...contentStems(company), ...[...FRAME_WORDS].map(stemOf)]);
+  if (own.filter(w => !stems.includes(w) && !theirs.has(w)).length > Math.max(1, shared.length)) return { ok: false, reason: 'beyond_trigger' };
   if (PRAISE.test(s)) return { ok: false, reason: 'praise' };
   const research = s.match(/\b(?:suggests|role unknown|named contact|already replied|suppress|card|score|record|research|profile|database|ICP|our data|venture)\b/gi) ?? [];
   if (research.some(w => !factTokens.has(w.toLowerCase()))) return { ok: false, reason: 'research_words' };
@@ -400,5 +424,6 @@ export function buyerNote({ id, name, company = '', trigger, canon, research = [
     return v.ok ? { request: null, note: warmNote(v.sentence, { label: canon?.ask?.label, ask }), sentence: v.sentence, hold: null } : { request: null, note: null, hold: 'note_failed', reason: v.reason };
   }
   if (!required) return { request: null, note: null, hold: 'desk_closed' };
-  return got.state === 'waiting' ? { request, note: null, hold: 'note_waiting' } : { request: null, note: null, hold: 'note_failed', reason: 'desk_failed' };
+  // A note the desk refused over its cap waits for the next day's ask and holds no place in the batch meanwhile.
+  return got.state === 'waiting' ? { request, note: null, hold: 'note_waiting', ...(got.over_cap ? { over_cap: true } : {}) } : { request: null, note: null, hold: 'note_failed', reason: 'desk_failed' };
 }

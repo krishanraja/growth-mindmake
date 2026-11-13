@@ -642,7 +642,8 @@ export function pilotRows({ context, canon, research: researchIn = null, at, fil
     if (note.request) requests.push(note.request);
     if (note.hold) {
       hold(note.hold);
-      if (note.hold === 'note_waiting') { inHand++; counts.waiting++; }
+      // Only a note the desk is writing holds a place in the five; one it refused over its cap waits for tomorrow's ask without one.
+      if (note.hold === 'note_waiting') { counts.waiting++; if (!note.over_cap) inHand++; }
       continue;
     }
     inHand++;
