@@ -6,7 +6,8 @@
 // quality"). A sentence that fails, or one not yet answered where the desk is
 // open, holds the email: no frame is used in its place.
 import { seal, clean } from '../guards.mjs';
-import { sentences, quotesClosed, brokenSentence, givenParts } from './rows.mjs';
+import { sentences, quotesClosed, brokenSentence, givenParts, JOINERS } from './rows.mjs';
+import { offerFindings } from './canon.mjs';
 
 /** The words a prompt may carry, under the desk's 400 characters. */
 export const QUERY_MAX = 400;
@@ -60,6 +61,9 @@ export function openingQuery({ name, fact, purpose = 'catchup', show = '', last 
   return q && q.length <= QUERY_MAX ? q : null;
 }
 
+/** The line on what he is building, said the same to everyone: a catch-up asks the desk to carry it, and a warm buyer's note carries it as fixed text (warmNote). Its one home. */
+export const BUILDING_LINE = "I'm building Mindmake, AI that works the way a leader thinks.";
+
 /**
  * A catch-up as a person writes one (Krish, 2026-11-06: "I'd sincerely reach
  * out and say, 'It's been a long time. Here's why I'm reaching out. Here's why
@@ -67,7 +71,7 @@ export function openingQuery({ name, fact, purpose = 'catchup', show = '', last 
  * that order, from one fact, never their career told back to them. Pure.
  */
 export function catchUpQuery({ first, fact, last = null }) {
-  const frame = f => `Catch-up email from Krish to ${first}${last ? `, last in touch ${last}` : ''}. Four short sentences: it's been a while. I'm reaching out because I'm building Mindmake, AI that works the way a leader thinks, and want views from people I rate. Why I thought of you, in my words, from only this: ${f}. Would you be open to a quick chat? Warm, plain, no quotes, no career recap.`;
+  const frame = f => `Catch-up email from Krish to ${first}${last ? `, last in touch ${last}` : ''}. Four short sentences: it's been a while. I'm reaching out because ${BUILDING_LINE.replace(/\.$/, '')}, and want views from people I rate. Why I thought of you, in my words, from only this: ${f}. Would you be open to a quick chat? Warm, plain, no quotes, no career recap.`;
   const room = QUERY_MAX - frame('').length;
   const q = room >= 40 ? frame(cut(String(fact ?? '').replace(/[.!?\s]+$/, ''), room)) : '';
   return q && q.length <= QUERY_MAX ? q : null;
@@ -120,15 +124,19 @@ const londonDay = at => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Lon
  * answered nothing and charged nothing), the same words are asked again under
  * the London day, at most once a day. Pure.
  */
-export function openingRequest({ id, name, fact, purpose = 'catchup', show = '', research = [], at = null, kind = 'question', last = null }) {
-  const query = openingQuery({ name, fact, purpose, show, last });
+export function openingRequest({ id, name, fact, purpose = 'catchup', show = '', research = [], at = null, kind = 'question', last = null, query: given = null }) {
+  // A warm buyer's note (purpose buyer or intro) brings its own words (buyerQuery); every other purpose is built here.
+  const query = given ?? openingQuery({ name, fact, purpose, show, last });
   if (!query) return null;
   // A write is keyed apart from a question with the same words: the desk refuses one id asked two ways.
   const base = `open:${id}:${seal(kind === 'write' ? { query, kind } : { query }).slice(0, 12)}`;
   const tried = (Array.isArray(research) ? research : []).filter(r => typeof r?.request_id === 'string' && (r.request_id === base || r.request_id.startsWith(`${base}:`)));
   const day = at ? londonDay(at) : null;
   const request_id = !tried.length || !day || tried.some(r => !['failed', 'empty'].includes(r.status)) ? (tried.find(r => !['failed', 'empty'].includes(r.status))?.request_id ?? base) : `${base}:${day}`;
-  return { request_id, kind, subject_ref: `contact:${id}`, query, why: clean(`Writes the opening sentence of ${purpose === 'invite' ? 'an invite' : 'a catch-up'} from one fact on the card.`).slice(0, 300) };
+  const why = purpose === 'buyer' ? 'Writes a warm note to a buyer from one cited reason to write now.'
+    : purpose === 'intro' ? 'Writes a warm ask for one introduction from one cited reason to write now.'
+      : `Writes the opening sentence of ${purpose === 'invite' ? 'an invite' : 'a catch-up'} from one fact on the card.`;
+  return { request_id, kind, subject_ref: `contact:${id}`, query, why: clean(why).slice(0, 300) };
 }
 
 /** The desk's answer to an opening request: { state: 'answered', text } | { state: 'failed' } | { state: 'waiting' }. Pure. */
@@ -194,4 +202,203 @@ export function opening({ id, name, card, why = [], research, required = false, 
     return v.ok ? { request: null, sentence: v.sentence, hold: null } : { request: null, sentence: null, hold: required ? 'opening_failed' : null, reason: v.reason };
   }
   return { request: got.state === 'waiting' && required ? request : null, sentence: null, hold: required ? (got.state === 'waiting' ? 'opening_waiting' : 'opening_failed') : null };
+}
+
+// ── A warm buyer's note (Ruling, Krish, 2026-11-13: the full-funnel engine) ──
+// The Monday five of Advisory's listed buyers on his two closest tiers
+// (src/stages/pilots.mjs). An allowlist, not a denylist: the desk writes one
+// sentence only, the reason to write now, from the cited trigger alone, and
+// every other word of the note is fixed text. The body is "Hi <first name>,",
+// that one sentence, the line on what he is building (BUILDING_LINE, the one
+// the catch-up carries), the one ask (the canon's own for a buyer, INTRO_ASK
+// for an introduction), the canon's link untagged on its own line, and
+// "Krish". The sentence is read by fixed rules (validBuyerNote); one that
+// fails, or one not yet answered, holds the email, and no template is ever
+// used in its place.
+
+/** The most words the desk's one sentence may carry. */
+export const BUYER_SENTENCE_WORDS_MAX = 30;
+/** The house ask for an introduction: one fixed sentence, a single question. */
+export const INTRO_ASK = 'Do you know one leader I should show it to?';
+/** The canon's one ask for a buyer as one fixed question in its own words ("Would you like to start building your AI brain?"), or null with no label read. Pure. */
+export function buyerAsk(label) {
+  const l = clean(String(label ?? '')).replace(/[.!?]+$/, '');
+  return l ? `Would you like to ${l.charAt(0).toLowerCase()}${l.slice(1)}?` : null;
+}
+/** The fixed sentences a warm note carries around the desk's one: what he is building, then the ask, for a buyer and for an introduction. Pure. */
+export function warmFrame(canon) {
+  return [BUILDING_LINE, buyerAsk(canon?.ask?.label), INTRO_ASK].filter(Boolean);
+}
+/** A warm note's paragraph: the desk's one sentence, the building line, then the one ask; null without an ask. Pure. */
+export function warmNote(sentence, { label, ask = 'buyer' } = {}) {
+  const line = ask === 'intro' ? INTRO_ASK : buyerAsk(label);
+  return sentence && line ? `${sentence} ${BUILDING_LINE} ${line}` : null;
+}
+
+/**
+ * Words of an offer the desk's sentence never carries, whatever the trigger
+ * says: an offer, a price, a fee, a discount, a pilot, a workshop, a sprint, a
+ * programme, a guarantee, a result, anything free, a trial, a promise, or
+ * any length of time. The trigger
+ * licenses nothing here: news about their own prices is said by the trigger's
+ * page, never by a note in his name. One list, read the same by the rules and
+ * by a test.
+ */
+export const OFFER_WORDS = new RegExp([
+  String.raw`\b(?:offer(?:s|ed|ing)?|price[sd]?|fees?|discount(?:s|ed)?|pilots?|workshops?|sprints?|programmes?|programs?|guarantee[sd]?|results?|free|trials?|promise[sd]?)\b`,
+  String.raw`\b(?:\d{1,4}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fourteen|fifteen|twenty|thirty|forty|sixty|ninety|few|couple of|several)[- ](?:hours?|days?|weeks?|months?|years?|quarters?)\b`,
+  String.raw`\b(?:matter of|within|inside|in under|takes?|took|lasting)\s+(?:a\s+|an\s+|the\s+)?(?:few\s+)?(?:hours?|days?|weeks?|months?)\b`,
+  String.raw`\b(?:hours?|days?|weeks?|months?)[- ]long\b|\bovernight\b`,
+].join('|'), 'i');
+
+/** Number words: none may stand in the desk's sentence unless the trigger holds that exact word. */
+const NUMBER_WORDS = new Set(('zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen '
+  + 'twenty thirty forty fifty sixty seventy eighty ninety hundred hundreds thousand thousands million millions billion billions trillion '
+  + 'dozen dozens half halve halved halves twice double doubled triple tripled quadruple quadrupled percent').split(' '));
+/** The first word of the sentence when it is not a word the note may hold: "I" (the desk is asked to begin with it) or an ordinary opener that names no one. */
+const FIRST_WORDS = new Set(["i", "i'm", "i've", 'your', 'you', "you're", "you've", 'saw', 'seeing', 'read', 'reading', 'noticed', 'spotted', 'just', 'lately', 'recently', 'this', 'that', 'the', 'it', 'its', "it's", 'glad', 'good', 'looks', 'sounds', 'seems']);
+/** What Krish may say he did before the reason: saw it, read it, noticed it. Anything else said of "I" is a claim about him. */
+const PERCEIVE = new Set(['saw', 'see', 'seen', 'seeing', 'read', 'reading', 'noticed', 'notice', 'noticing', 'spotted', 'spot', 'spotting', 'heard', 'hear', 'hearing', 'caught', 'catch', 'came', 'come', 'liked', 'loved', 'enjoyed', 'followed', 'following', 'watched', 'watching', 'found', 'thought', 'think']);
+const AUXILIARY = new Set(['just', 'recently', 'also', 'really', 'only', 'lately', 'have', 'had', 'was', 'am', 'been']);
+/** Words too common to show the sentence took its reason from the trigger. */
+const COMMON = new Set(['about', 'after', 'again', 'also', 'been', 'before', 'being', 'from', 'have', 'here', 'into', 'just', 'lately', 'like', 'more', 'most', 'much', 'over', 'recently', 'really', 'same', 'saw', 'seen', 'some', 'than', 'that', 'their', 'them', 'then', 'there', 'these', 'they', 'this', 'those', 'very', 'were', 'what', 'when', 'where', 'which', 'while', 'will', 'with', 'would', 'could', 'should', 'your', 'yours', 'other', 'every', 'still', 'since', 'today', 'thing', 'things', 'think', 'thought', 'noticed', 'reading', 'read', 'spotted', 'year', 'years', 'quarter', 'month', 'months', 'week', 'weeks', 'news', 'post']);
+/** A run of nine digits or an address never reaches the desk. */
+const CONTACT_LIKE = text => /@/.test(text) || (String(text).match(/\+?\d[\d\s().-]{7,}\d/g) ?? []).some(run => (run.match(/\d/g) ?? []).length >= 9);
+/** "rebuilt ... pricing ." as a sentence is read: no space before a stop or a comma. Pure. */
+export const tidySignal = text => clean(String(text ?? '')).replace(/\s+([.,!?;:])/g, '$1');
+/** A word as its meaning is compared: price, prices, priced and pricing meet. Pure. */
+export function stemOf(word) {
+  let w = String(word ?? '').toLowerCase().replace(/['\u2019]s$/, '');
+  const bare = w.replace(/(?:ings?|ed|es|ers?|s|ly)$/, '');
+  if (bare.length >= 3) w = bare;
+  return w.replace(/e$/, '').slice(0, 5);
+}
+/** The words of a text that carry its meaning, four letters or more and never a common one, each by its stem. Pure. */
+export function contentStems(text) {
+  return [...new Set((String(text ?? '').toLowerCase().match(/[a-z][a-z'-]{3,}/g) ?? []).filter(w => !COMMON.has(w)).map(stemOf))];
+}
+/** The words of a text as whole tokens, lower case, a possessive taken off. Pure. */
+const tokensOf = text => (String(text ?? '').match(/[\p{L}\p{N}]+(?:['\u2019&.-][\p{L}\p{N}]+)*/gu) ?? []).map(t => t.toLowerCase().replace(/['\u2019]s?$/, ''));
+/** The numbers of a text as whole tokens: 40 is not inside 2026, nor 20. Pure. */
+const numbersOf = text => (String(text ?? '').match(/\d+(?:[.,]\d+)*/g) ?? []).map(n => n.replace(/[.,]+$/, ''));
+
+/**
+ * The instruction the desk writes a warm note's one sentence from, at most
+ * QUERY_MAX characters: the reason Krish is writing now, from only the cited
+ * trigger, said to them, beginning "I". The trigger is kept whole where it
+ * fits, else cut at a word (60 characters or more kept, never ending on a
+ * joiner). Null when it cannot be asked: no name or trigger, or a run of
+ * digits or an address in it. Pure.
+ */
+export function buyerQuery({ first, trigger }) {
+  const f0 = String(first ?? '').trim(), t = tidySignal(trigger).replace(/[.!?\s]+$/, '');
+  if (!f0 || !t) return null;
+  // The greeting, what he is building, the ask and the sign-off are fixed text added after (warmNote, rows.mjs actionFor).
+  const frame = fact => `Krish's reason for writing to ${f0} now, as one sentence to them, from only this: ${fact}. Begin with "I". Plain words, under ${BUYER_SENTENCE_WORDS_MAX}. No question, link, offer, price, sum of money, time span, praise, or name or number the fact does not hold. The sentence only.`;
+  let q = frame(t).length <= QUERY_MAX ? frame(t) : null;
+  if (!q) {
+    const room = QUERY_MAX - frame('').length;
+    const words = cut(t, room).split(' ');
+    while (words.length && JOINERS.has(words.at(-1).toLowerCase())) words.pop();
+    const kept = words.join(' ').replace(/[,;:\s]+$/, '');
+    q = room >= 60 && kept.length >= 60 ? frame(kept) : null;
+  }
+  return q && q.length <= QUERY_MAX && !CONTACT_LIKE(q) ? q : null;
+}
+
+/**
+ * The desk's one sentence, read by fixed rules before any note carries it:
+ * one sentence of at most BUYER_SENTENCE_WORDS_MAX words, no question, and no
+ * link, domain, address or handle of any kind; no word of OFFER_WORDS,
+ * whatever the trigger says; no digit or number word that is not that exact
+ * token in the trigger; no capitalised word but the recipient's first name or
+ * company, a word of the trigger, Mindmake, AI or I (the first word too, or
+ * "I" and a few openers that name no one); at least one word of the trigger's
+ * own meaning; nothing said of Krish or Mindmake (no "we", "our" or "us", no
+ * Mindmake, and "I" only seeing or reading something), no one else's
+ * telling and no ask of its own (a call, a time, a chat: the one ask follows
+ * as fixed text); and no dash, praise, quotation, research word or broken
+ * shape.
+ * { ok: true, sentence } or { ok: false, reason }. Pure.
+ */
+export function validBuyerNote(text, { name = '', company = '', trigger = '', offer = null } = {}) {
+  const raw = String(text ?? '');
+  // A dash is read before anything is cleaned: the cleaner would turn it into a comma.
+  if (/[\u2013\u2014]|\s-\s/.test(raw)) return { ok: false, reason: 'dash' };
+  // A greeting of a few words, and a sign-off, are taken off before the words are read.
+  let s = raw.replace(/^\s*(?:hi|hello|hey|dear)(?:\s+[\p{L}'\u2019.-]+){0,3}\s*[,!.:\n]\s*/iu, '')
+    .replace(/[\s,]*(?:best|cheers|thanks|thank you|warmly|best wishes|kind regards|warm regards|all the best|regards|speak soon)?,?\s*\n*\s*krish\.?\s*$/i, '');
+  s = clean(s).replace(/^["'“]+|["'”]+$/g, '').trim();
+  if (!s) return { ok: false, reason: 'empty' };
+  // Any link, domain, address or handle: the canon's one link follows the note, untagged, and nothing else may.
+  if (/https?:|www\.|@|#\p{L}|\b[\p{L}\d-]+\.[a-z]{2,}\b|\S\/\S/u.test(s)) return { ok: false, reason: 'link' };
+  if (!/[.!]$/.test(s)) s = `${s}.`;
+  if (sentences(s).length !== 1 || /[.!?]\s+\p{Lu}/u.test(s.slice(0, -1))) return { ok: false, reason: 'not_one_sentence' };
+  if (s.includes('?')) return { ok: false, reason: 'question' };
+  const words = s.split(/\s+/).length;
+  if (words < 5 || words > BUYER_SENTENCE_WORDS_MAX) return { ok: false, reason: 'length' };
+  if (OFFER_WORDS.test(s) || offerFindings(s, offer).length || (offer?.noun && new RegExp(`\\b${offer.noun.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(s))) return { ok: false, reason: 'offer_words' };
+  // The trigger licenses its own exact names and numbers, nothing more.
+  const fact = tidySignal(trigger);
+  // A company's own name may hold a number (a channel, a fund): it is theirs, as the trigger's are.
+  const factTokens = new Set(tokensOf(fact)), factNumbers = new Set([...numbersOf(fact), ...numbersOf(company)]);
+  if (numbersOf(s).some(n => !factNumbers.has(n))) return { ok: false, reason: 'new_number' };
+  const toks = tokensOf(s);
+  const licensed = new Set([...factTokens, ...tokensOf(company)]);
+  if (toks.some(t => (NUMBER_WORDS.has(t) || /^\p{L}+fold$/u.test(t)) && !licensed.has(t))) return { ok: false, reason: 'new_number' };
+  const allowed = new Set([...tokensOf(givenParts(name)[0] ?? ''), ...tokensOf(company), ...factTokens, 'mindmake', 'ai', 'i', "i'm", "i've", "i'd", "i'll"]);
+  const capped = (String(s).match(/[\p{L}\p{N}]+(?:['\u2019&.-][\p{L}\p{N}]+)*/gu) ?? []);
+  for (const [i, w] of capped.entries()) {
+    // Every part of a word with a capital in it, "eBay" and "AI-native" too, is one the note may hold.
+    const parts = w.split('-').filter(x => /\p{Lu}/u.test(x)).map(x => x.toLowerCase().replace(/['\u2019]s?$/, ''));
+    if (!parts.length) continue;
+    if (parts.every(x => allowed.has(x))) continue;
+    if (i === 0 && FIRST_WORDS.has(w.toLowerCase().replace(/\u2019/g, "'"))) continue;
+    return { ok: false, reason: 'new_name' };
+  }
+  // Nothing said of Krish or Mindmake: the building line and the ask say all of that, as fixed text.
+  if (/\b(?:we|we're|we've|we'll|we'd|our|ours)\b/i.test(s) || /\bus\b|^Us\b/.test(s) || /\bMindmake\b/i.test(s)) return { ok: false, reason: 'claims_about_us' };
+  // "I" may only see, read or notice something: past the helping words, the first word after it is one of those. "I'd" and "I'll" offer something.
+  for (const m of s.matchAll(/\bI(?:['\u2019](m|ve|d|ll))?\b/gu)) {
+    if (m[1] === 'd' || m[1] === 'll') return { ok: false, reason: 'claims_about_us' };
+    const verb = (s.slice(m.index + m[0].length).match(/\p{L}+/gu) ?? []).map(x => x.toLowerCase()).find(x => !AUXILIARY.has(x));
+    if (verb && !PERCEIVE.has(verb)) return { ok: false, reason: 'claims_about_us' };
+  }
+  if (/\b(?:told me|tells me|mentioned|according to|heard from|said that|says that)\b/i.test(s)) return { ok: false, reason: 'hearsay' };
+  // The one ask is fixed text after the sentence: the sentence itself asks for nothing, a call, a time or a chat (a word the trigger itself holds aside).
+  const asks = s.match(/\b(?:let['\u2019]?s|let me|book|grab|a call|on a call|quick call|short call|a chat|quick chat|catch up|meet|meeting|coffee|lunch|calendar|a time|a slot|minutes|hop on|jump on|would love|keen to|happy to)\b/gi) ?? [];
+  if (asks.some(a => !a.split(/\s+/).every(w => factTokens.has(w.toLowerCase())))) return { ok: false, reason: 'second_ask' };
+  const stems = contentStems(fact);
+  if (!contentStems(s).some(w => stems.includes(w))) return { ok: false, reason: 'no_why_now' };
+  if (PRAISE.test(s)) return { ok: false, reason: 'praise' };
+  const research = s.match(/\b(?:suggests|role unknown|named contact|already replied|suppress|card|score|record|research|profile|database|ICP|our data|venture)\b/gi) ?? [];
+  if (research.some(w => !factTokens.has(w.toLowerCase()))) return { ok: false, reason: 'research_words' };
+  if (!quotesClosed(s.replace(/\b\p{L}+'\p{L}+\b/gu, 'x'))) return { ok: false, reason: 'open_quote' };
+  if (/["“”]/.test(s)) return { ok: false, reason: 'quotes_them' };
+  const broken = brokenSentence(s);
+  if (broken) return { ok: false, reason: broken };
+  return { ok: true, sentence: s.charAt(0).toUpperCase() + s.slice(1) };
+}
+
+/**
+ * A warm buyer's note, end to end: the desk request to send and the note the
+ * email carries, the desk's one sentence inside the fixed frame (warmNote).
+ * `required` is true where the desk is open this run: then a sentence not yet
+ * answered holds `note_waiting` with its request, and one that fails the rules
+ * holds `note_failed`. Where the desk is closed nothing can be written, so
+ * the email is held (`desk_closed`), never written from a frame alone. `ask`
+ * is `buyer` or `intro`. Pure.
+ */
+export function buyerNote({ id, name, company = '', trigger, canon, research = [], required = false, at = null, kind = 'question', ask = 'buyer' }) {
+  if (!(ask === 'intro' ? INTRO_ASK : buyerAsk(canon?.ask?.label))) return { request: null, note: null, hold: 'note_failed', reason: 'no_ask' };
+  const query = buyerQuery({ first: givenParts(name)[0], trigger: trigger?.signal });
+  if (!query) return { request: null, note: null, hold: 'note_failed', reason: 'unaskable' };
+  const request = openingRequest({ id, research, at, kind, purpose: ask === 'intro' ? 'intro' : 'buyer', query });
+  const got = openingAnswer(research, request);
+  if (got.state === 'answered') {
+    const v = validBuyerNote(got.text, { name, company, trigger: trigger?.signal ?? '', offer: canon?.offer ?? null });
+    return v.ok ? { request: null, note: warmNote(v.sentence, { label: canon?.ask?.label, ask }), sentence: v.sentence, hold: null } : { request: null, note: null, hold: 'note_failed', reason: v.reason };
+  }
+  if (!required) return { request: null, note: null, hold: 'desk_closed' };
+  return got.state === 'waiting' ? { request, note: null, hold: 'note_waiting' } : { request: null, note: null, hold: 'note_failed', reason: 'desk_failed' };
 }

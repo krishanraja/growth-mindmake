@@ -62,7 +62,9 @@ test('plan section 12, M6, M9, M12, then M7, M10 and M13: each reports one count
   for (const i of at.slice(6)) assert.ok(lines[i].length < 500, 'whole inside the report line');
   assert.ok(lines.findIndex(l => /^Switch readiness: /.test(l)) > at[8], "the switch's readiness line is still reported, after every shadow line");
   assert.ok(report.activity.length <= 40, 'inside the report\'s forty lines');
-  assert.equal(report.holds.some(h => /pilot|brief|ingest|canon_buyer|offer|focus|suppress|places/i.test(h.reason)), false, 'nothing is held by them');
+  assert.equal(report.holds.filter(h => !h.reason.startsWith('pilot_')).some(h => /pilot|brief|ingest|canon_buyer|offer|focus|suppress|places/i.test(h.reason)), false, 'nothing is held by them');
+  // Since 13 November the Monday five are live (src/stages/pilots.mjs pilotRows): the listed buyer is held by that stage's own code, not by a shadow.
+  assert.deepEqual(report.holds.filter(h => h.reason.startsWith('pilot_')).map(h => [h.reason, h.detail]), [['pilot_not_eligible', '1 listed buyer and intro ask was not written to this run (not_close_tier 1).']], 'no tier is served for the listed buyer, so the live stage holds it');
   assert.deepEqual(ctx, frozen, 'the context is read, never changed');
   // Without the nine shadow lines the report is the one the same run gives with the shadows unable to see anything.
   const blind = await run({ ...context(), records: { ...context().records, advisory: [] }, network: [] });

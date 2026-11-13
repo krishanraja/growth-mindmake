@@ -45,7 +45,7 @@ import { shadowLine } from './visibility.mjs';
 export const REASONS = Object.freeze(['wrong_person', 'not_now', 'already_in_touch', 'too_small', 'wrong_audience', 'not_my_topic', 'pitch_off', 'other']);
 /** How he may carry out a row action on his widget (Control Center's CARRIED_OUT). */
 export const CARRIED = Object.freeze(['draft', 'message', 'submit']);
-/** The version of the taxonomy and doctrine below; it moves when either does. */
+/** The version of the taxonomy and doctrine below, the schema ENGINE-PROTOCOL.md fixes at 1: a new name in a list or map (the warm buyer's `buyer` ask, 2026-11-13) is read by name and does not move it. */
 export const TAXONOMY_VERSION = 1;
 /** The row doctrine's bounds, from the rows stage's own constants, never restated. */
 export const ROW_DOCTRINE = Object.freeze({
