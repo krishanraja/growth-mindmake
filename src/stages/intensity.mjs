@@ -59,19 +59,28 @@ const clone = v => JSON.parse(JSON.stringify(v));
  * every meeting was read, else Control Center's own reading of the number when
  * it is a figure, else unknown. Pure.
  */
-export function gapOf({ northStar, thisTarget, tapsThisWeek = null }) {
+export function gapOf({ northStar, thisTarget, tapsThisWeek = null, heldThisWeek = null, untappedThisWeek = null }) {
   const target = whole(thisTarget);
   const current = whole(tapsThisWeek) ?? whole(northStar?.current);
   const urgency = Number.isInteger(northStar?.urgency) && northStar.urgency >= 1 && northStar.urgency <= 5 ? northStar.urgency : null;
   const short = target !== null && current !== null ? Math.max(0, target - current) : null;
-  return { current, target, urgency, short };
+  // What he held this week and has not tapped yet, from his taps when every meeting was read: unknown otherwise, never zero.
+  const held = whole(heldThisWeek), untapped = whole(untappedThisWeek);
+  return { current, target, urgency, short, held, untapped };
 }
 
 const say = v => v === null ? 'unknown' : String(v);
-/** The gap line: "X of Y, U-n, short by Z", unknown where it is unknown. Pure. */
+/**
+ * The gap line: "X of Y, U-n, short by Z", unknown where it is unknown, then
+ * what he held this week and has not tapped, when known. With taps still open
+ * the good count is a floor, so it is said as "at least". Pure.
+ */
 export function gapLine(gap, reason = null) {
   const why = gap.current === null && typeof reason === 'string' && reason ? ` (${reason.slice(0, 120)})` : '';
-  return `Gap: good meetings ${say(gap.current)} of ${say(gap.target)} this week, ${gap.urgency === null ? 'urgency unknown' : `U${gap.urgency}`}, short by ${say(gap.short)}${why}.`;
+  const open = Number.isInteger(gap.untapped) && gap.untapped > 0;
+  const now = open && gap.current !== null ? `at least ${gap.current}` : say(gap.current);
+  const held = Number.isInteger(gap.held) ? `; ${gap.held} held this week, ${gap.untapped ?? 'unknown'} not tapped yet` : '';
+  return `Gap: good meetings ${now} of ${say(gap.target)} this week, ${gap.urgency === null ? 'urgency unknown' : `U${gap.urgency}`}, short by ${say(gap.short)}${why}${held}.`;
 }
 
 /** The policy's intensity block, checked: the keys it raises are bound volume caps whose safer move is down. Else null, and nothing rises. Pure. */

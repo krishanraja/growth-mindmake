@@ -17,7 +17,7 @@ Complete this repository's growth producer, operating playbooks, reporting contr
 ## Accepted product decisions
 
 - Runnable software plus playbooks.
-- Warm relationships, introductions and researched named cold opportunities. No generic sequences, bought lists or automatic connection requests.
+- Warm relationships, introductions and cold prospects on email, LinkedIn and calls (Ruling, Krish, 2026-11-13), each person researched until something specific is known before a note. Cold sources may be the pools Control Center already holds and lists the engine builds from public sources; buying a list is spend and waits on his yes. No generic sequences (a note and at most one follow-up that adds a new fact), no automatic connection requests (LinkedIn notes are prepared for his tap), and no AI-voiced or auto-dialled calls.
 - Growth orchestration only. The existing website, free AI brief, lead delivery and capability stay in mindmake.
 - A mixed profile: Krish handles relationships, selected posts and speaking; Mindmake carries reusable aids, proof and campaigns.
 - Control Center remains the intended private source of operational truth and the single human dashboard. This producer creates no UI, second CRM or parallel action queue.

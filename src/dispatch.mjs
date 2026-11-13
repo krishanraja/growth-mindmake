@@ -54,7 +54,7 @@ export const NORTH_STAR_SHA = blobSha(NORTH_STAR_TEXT);
 /** Campaign plans are the only plans prepare-action may act on (N18). Other plans (`gmg-` and later kinds) are read by their own readers. */
 export const CAMPAIGN_PREFIX = 'gmc-';
 /** Holds that record a standing ruling or a signature still his to give, rather than a problem with this run; they never make a run read as held. */
-const STANDING_HOLDS = new Set(['founder_visibility_open', 'spec_unsigned']);
+const STANDING_HOLDS = new Set(['clone_realism_unproven', 'spec_unsigned']);
 const DAY = 86400000;
 const CODE = /^[a-z][a-z0-9_]{0,63}$/;
 const CONTACT = /^[A-Za-z0-9_-]{1,64}$/;
@@ -776,8 +776,9 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     let decisionsRead = null;
     try { decisionsRead = await cc.decisions(new Date(Date.parse(started_at) - 30 * DAY).toISOString()); }
     catch (e) { holds.push({ reason: 'decisions_unavailable', detail: `Krish's decisions could not be read before planning (${failureClass(e)}); no answer is assumed.` }); }
-    // HeyGen outbound waits on the open founder-visibility ruling (docs/briefs/2026-10-22-heygen-outbound.md; N10).
-    holds.push({ reason: 'founder_visibility_open', detail: 'Avatar-led outbound waits on the open founder-visibility ruling; growth-makeyourmindup asks it, so no duplicate question is raised here.' });
+    // Video notes in his AI clone (docs/briefs/2026-10-22-heygen-outbound.md; N10, N21). Founder visibility for the clone was
+    // settled on 22 Oct 2026; what holds it now is realism (taste rule s075bbc2d7d), lifted only by his decision on a krish-clone evaluation.
+    holds.push({ reason: 'clone_realism_unproven', detail: 'Video notes in his AI clone wait until the clone passes krish-clone\'s realism test: his face and voice clone were cleared for Mindmake outbound on 22 Oct 2026, and taste rule s075bbc2d7d keeps them on backup until they are convincing.' });
     let strategic = null, outcomes = null, strategicSource = null, liveWorkContext = null, suppliedContext = null;
     if (capabilities?.features?.context) {
       try {
@@ -906,8 +907,9 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       goodObjective = tappedObjective({ read: taps, count, lastWeek, midnight: londonMidnight, timezone: TIMEZONE });
       activity.push(tappedLine({ read: taps, count, lastWeekOf: lastWeek.start, lastTarget: ladderTarget(ladder, lastWeek.start), thisTarget, targetSource, northStar: directive.north_star }));
       origin_candidates = originCandidates({ meetings: taps.meetings, context: suppliedContext });
-      const open = new Set(taps.meetings.filter(m => m.good === null && m.origin_path === null).map(m => m.contact_id)).size;
+      const open = new Set(taps.meetings.filter(m => m.good === null && m.origin_path === null && m.contact_id !== null).map(m => m.contact_id)).size;
       activity.push(`Where his meetings came from: ${origin_candidates.length} of the ${open} ${open === 1 ? 'person' : 'people'} in an unanswered meeting ${origin_candidates.length === 1 ? 'has' : 'have'} a path from the engine's records; the rest are recorded as unknown at his tap.`);
+      if (taps.unknown_paths) activity.push(`${taps.unknown_paths} held meeting${taps.unknown_paths === 1 ? '' : 's'} came with a path this engine does not know yet, so ${taps.unknown_paths === 1 ? 'it is' : 'they are'} counted with the path unknown.`);
       if (taps.dropped) holds.push({ reason: 'meetings_unreadable', detail: `${taps.dropped} held meeting${taps.dropped === 1 ? '' : 's'} in the context did not parse, so the number is not claimed.` });
     } else {
       const viaAsk = !due ? { state: 'not_due' } : decisionsRead ? readStopgap(decisionsRead, lastWeek.start, payloadDigest) : { state: 'unread' };
@@ -931,8 +933,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     holds.push(...week.holds); activity.push(...week.lines);
     if (week.spec) activity.push(...compiledDrift(week.spec, { northStarSha, weekGoalsSha: payloadDigest(directive.week_goals) }));
     // Intensity (C3; Ruling, Krish, 2026-10-29): the gap leads the report, and at U3 and above volume rises to the policy's bounds with no signed spec.
-    const thisWeekTaps = taps?.complete ? countGood(taps.meetings, thisWeek, londonDate).total : null;
-    const gap = gapOf({ northStar: directive.north_star, thisTarget, tapsThisWeek: thisWeekTaps });
+    const thisWeekCount = taps?.complete ? countGood(taps.meetings, thisWeek, londonDate) : null;
+    const gap = gapOf({ northStar: directive.north_star, thisTarget, tapsThisWeek: thisWeekCount?.total ?? null, heldThisWeek: thisWeekCount?.held ?? null, untappedThisWeek: thisWeekCount?.unanswered ?? null });
     const intense = intensify(week.caps, { urgency: gap.urgency, source: week.source, policy });
     const caps = intense.caps;
     activity.push(intense.line);

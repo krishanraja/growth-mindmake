@@ -22,4 +22,4 @@ From 10-copy-and-offer-doctrine.md, Rule of One for every note:
 ## Sources
 
 - docs/playbooks/01-network-and-introductions.md, "Protect the connector": sha256 805a597c1806beda
-- docs/playbooks/10-copy-and-offer-doctrine.md, "Rule of One for every note": sha256 6a4679349aad4989
+- docs/playbooks/10-copy-and-offer-doctrine.md, "Rule of One for every note": sha256 bd3a5bcb39bc7c4c

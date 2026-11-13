@@ -2,6 +2,15 @@
 
 The dated records of this engine's sessions, newest first. NOW.md names this file as its history log; scripts/check-drift.mjs fails when it is missing. The completion record stays docs/RELEASE.md.
 
+## 2026-11-13: older NOW.md changes
+
+Moved here verbatim from NOW.md's "What changed recently" on 2026-11-13, to keep the session pack under 36 KB as the full-funnel build's steps joined docs/GET-GOING.md; newest first, as NOW.md listed them.
+
+- 2026-11-09 **Everything in Krish's name passes the voice check (Krish, 2026-11-09: "Absolutely everything").** Emails (Jonny's box as Jonny in Krish's style), WhatsApp and X messages, a speaker form's written answers and an engagement task's taps go through Control Center's voice check before they are proposed (krishanraja/growth-mindmake#76); a hard fail is held as `voice_refused`, rule names only. Live: the 11 and 12 November runs held some as `voice_refused`.
+- 2026-11-07 **One voice check (Rulings, Krish, 2026-11-07).** Every email for Krish's box or Jonny's passes Control Center's voice check (`features.voice_check`) before it is proposed (krishanraja/growth-mindmake#75); a check that cannot be read is counted as `voice_check_unread`, and Control Center checks again before anything lands.
+- 2026-11-06 **Catch-ups written as a person writes one (Ruling, Krish, 2026-11-06).** A NETWORK catch-up is one note in his order (a while, why now, why you, a quick chat), written whole by the research desk's `write` kind (Claude with no web search, up to 30 a run, krishanraja/control-center#659) and held when it recites their career, quotes them or misses a part (krishanraja/growth-mindmake#71 to #74).
+- 2026-11-05 **The circle lane and the AI mirror (Rulings, Krish, 2026-11-05).** One cited question a kind a day (exited founders, PE and VC partners, public figures, family office heads) finds up to ten strangers a run for the report's `circle` until 50 are found, then up to ten a run from his own network by contact id, each for Make Your Mind Up; the AI mirror's questions go in `mirror`; both only where Control Center serves 1.19.0 (krishanraja/growth-mindmake#58, #59). Live: Control Center links the people already in his records, and has refused every new stranger so far as `store_failed`, because its insert names a consent tier its contacts table does not allow (a Control Center fix; nothing in this repository changes).
+
 ## 2026-11-12: older NOW.md changes
 
 Moved here verbatim from NOW.md's "What changed recently" on 2026-11-12, when the closeout notes of 5 to 11 November were folded in, to keep the session pack under 36 KB; newest first, as NOW.md listed them. Each was merged on 6 November (krishanraja/growth-mindmake#60 to #68) and has run in every live dispatch since, whatever a line below says; the closeout notes they name were folded into NOW.md and removed on 2026-11-12.

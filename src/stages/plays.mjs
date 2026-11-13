@@ -42,7 +42,11 @@ import { shadowLine, stageStrength } from './visibility.mjs';
  *   - draftContext and ASK_WORDS: those are words for Control Center's model,
  *     and the engine writes its own (rows.mjs, pitches.mjs)
  *   - host_room: "Rooms are guest seats only: no hosted rooms this year"
- *     (Rulings, Krish, 2026-10-27), so it is ruled out, not ported
+ *     (Rulings, Krish, 2026-10-27), so it is ruled out, not ported. The one
+ *     exception since 13 November 2026 is a free Maven Lightning Lesson every
+ *     two weeks (Ruling, Krish, 2026-11-13), which gets a lane of its own
+ *     (docs/GET-GOING.md, "The full-funnel build", 1.6); any other hosted
+ *     room stays ruled out
  *   - the founder visibility ruling's store (system_config): his visibility
  *     targets (two podcasts booked a week and a stage a fortnight, the same
  *     rulings) put his name out by his own word, so the engine never holds a
