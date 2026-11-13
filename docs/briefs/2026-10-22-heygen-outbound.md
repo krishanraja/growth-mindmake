@@ -12,3 +12,7 @@ Krish's tool placements in Control Center (ruled 2026-10-22) put HeyGen on Mindm
 - **If he says yes**, a video note is still a note: it goes only to a contact the warm-path or richness evidence supports (Rule 2 as revised on 2026-10-14), drafted with the exact script as `wall: send`, and the render's credit cost is read first. It never goes to a list.
 
 No work is needed in this engine until that ruling exists. Record it as a hold with reason `founder_visibility_open`.
+
+## Update, 13 November 2026
+
+Founder visibility for his clone was settled the same day this brief was written: "HeyGen is for training his face clone and ElevenLabs for his voice clone, both for Mindmake outbound and makeyourmindup shorts. This closes founder visibility for those two uses." (Ruling, Krish, 2026-10-22, in ai-harness docs/proposals/2026-10-22-outcome-allocation.md). The hold above outlived it. It is now `clone_realism_unproven` (invariants/register.json N21): taste rule s075bbc2d7d keeps the synthetic Krish on backup until it is convincing, and the current ElevenLabs voice scores 0.41 against his own 0.74 to 0.84 (krish-clone docs/EVALUATION.md). The path to video notes is docs/GET-GOING.md, "The full-funnel build", 3.1 and 3.2. Everything else above stands: warm or rich path only, never a list, the exact script as `wall: send`, its credit cost read first.

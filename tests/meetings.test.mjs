@@ -167,7 +167,7 @@ test('the printed outcome carries no count of meetings, bookings or traffic', as
 
 // ── Held meetings and his good tap (protocol 1.10.0, synthetic shapes) ──────
 
-import { readMeetings, countGood, originCandidates, meetingsServed, MEETINGS_VERSION, ORIGIN_CANDIDATES_MAX } from '../src/stages/meetings.mjs';
+import { readMeetings, countGood, originCandidates, meetingsServed, tappedObjective, MEETINGS_VERSION, ORIGIN_CANDIDATES_MAX } from '../src/stages/meetings.mjs';
 import { violations } from './support/engine-protocol-service.mjs';
 
 const cid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -201,6 +201,24 @@ test('the number from his taps: good meetings held in the London week, by the pa
   assert.deepEqual(c.by_path, { podcast: 2, unknown: 2 });
   assert.equal(c.unanswered, 1);
   assert.equal(c.held, 6);
+});
+
+test('the objective is measured only when every meeting he held that week is answered; open taps make it a floor, never a 0', () => {
+  const lastWeek = { start: '2026-10-26', end: '2026-11-02' };
+  const args = (count, read = { state: 'served', complete: true, reason: null }) => ({ read, count, lastWeek, midnight: d => `${d}T00:00:00Z`, timezone: 'Europe/London' });
+  const done = tappedObjective(args({ total: 3, by_path: {}, held: 4, unanswered: 0 }));
+  assert.equal(done.availability, 'measured');
+  assert.equal(done.value, 3);
+  const open = tappedObjective(args({ total: 0, by_path: {}, held: 5, unanswered: 5 }));
+  assert.equal(open.availability, 'missing');
+  assert.equal(open.value, null, 'untapped meetings are never counted as a measured 0');
+  assert.match(open.reason, /^5 of the 5 meetings he held that week are not answered yet, so the 0 good so far is a floor/);
+  assert.equal(tappedObjective(args({ total: 1, by_path: {}, held: 2, unanswered: 1 })).reason.startsWith('1 of the 2 meetings he held that week is not answered yet'), true);
+  assert.equal(tappedObjective(args({ total: 0, by_path: {}, held: 0, unanswered: 0 })).availability, 'measured', 'a week with no meetings held is a measured 0');
+  const partial = tappedObjective(args({ total: 2, by_path: {}, held: 2, unanswered: 0 }, { state: 'served', complete: false, reason: 'calendar_partly_read' }));
+  assert.equal(partial.availability, 'missing');
+  assert.match(partial.reason, /could not read every meeting/);
+  for (const o of [done, open, partial]) assert.equal(/[\u2014\u2013]/.test(o.reason ?? ''), false);
 });
 
 test('where an unanswered meeting came from is read from the engine\'s own records, one candidate a person, oldest first', () => {
@@ -252,13 +270,21 @@ test('once Control Center serves his meetings, the number is counted from his ta
   const rep = h.reports[0];
   assert.equal(rep.schema_version, MEETINGS_VERSION);
   const o = rep.objectives.find(x => x.key === 'good_meetings');
-  assert.equal(o.availability, 'measured');
-  assert.equal(o.value, 2);
+  // One of the three he held is not tapped yet, so the 2 good so far is a floor, never claimed as the number.
+  assert.equal(o.availability, 'missing');
+  assert.equal(o.value, null);
+  assert.match(o.reason, /^1 of the 3 meetings he held that week is not answered yet, so the 2 good so far is a floor/);
   assert.equal(rep.proposals.some(p => p.proposal_id.startsWith('gmg-')), false, 'his taps replace the Monday ask');
   assert.deepEqual(rep.origin_candidates, [{ contact_id: cid(1), path: 'own-show-guest', origin_ref: 'guest:g1' }]);
   assert.ok(rep.activity.some(a => a.line.startsWith('Good meetings in the week of 2026-10-26: 2 against a target of 2, from his taps') && a.line.includes('1 of the 3 held that week is not answered yet')));
   assert.deepEqual(violations(schema, rep), []);
   assert.equal(JSON.stringify(rep).includes('@'), false, 'contact ids only, never an address');
+  // Every meeting answered: the count is the number.
+  const all = tapped({ meetings: [mtg(2, { good: true, origin_path: 'podcast' }), mtg(3, { good: true, origin_path: 'existing-relationship' })] });
+  await run(all);
+  const measured = all.reports[0].objectives.find(x => x.key === 'good_meetings');
+  assert.equal(measured.availability, 'measured');
+  assert.equal(measured.value, 2);
 });
 
 test('a partial read of his meetings is never the number, and an unavailable one falls back to the Monday ask', async () => {

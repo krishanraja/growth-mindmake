@@ -100,6 +100,15 @@ export function buildSteps(markdown) {
   return { done: steps.filter(s => s.done).length, open: steps.filter(s => !s.done).map(s => s.label) };
 }
 
+/** The open build steps a pack names, first first: the step to do is always the first, so the rest are counted, not listed. */
+export const OPEN_LISTED = 8;
+/** The open steps as the gate line says them: up to OPEN_LISTED by name, then how many more. Pure. */
+export function openList(open) {
+  if (!open.length) return '';
+  const more = open.length - OPEN_LISTED;
+  return `: ${open.slice(0, OPEN_LISTED).join('; ')}${more > 0 ? `; and ${more} more in docs/GET-GOING.md` : ''}`;
+}
+
 /** NOW.md's north-star-state block, parsed, or null. Pure. */
 export function northStarState(markdown) {
   const m = /<!-- north-star-state (\{.*?\}) -->/.exec(String(markdown));
@@ -148,7 +157,7 @@ export async function buildPack({ root, cards = [], report = undefined, specFile
   const last = Array.isArray(ledger) && ledger.length ? ledger[ledger.length - 1] : null;
   add('gate status', [
     `- North Star: ${ns ? `U${ns.urgency}, ${ns.current === null ? 'not measured yet' : `${ns.current} good meetings`} against ${ns.week_target} for the week of ${ns.week_of} (NOW.md)` : 'unknown: NOW.md has no north-star-state line'}.`,
-    `- The build (docs/GET-GOING.md): ${steps.done} ticked, ${steps.open.length} open${steps.open.length ? `: ${steps.open.join('; ')}` : ''}. Do the first open step.`,
+    `- The build (docs/GET-GOING.md): ${steps.done} ticked, ${steps.open.length} open${openList(steps.open)}. Do the first open step.`,
     `- Week spec: ${monday < FIRST_SPEC_WEEK ? `none posted before the week of ${FIRST_SPEC_WEEK}; today's settings apply` : counts?.specState ? `${counts.specState} for the week of ${monday}, per the report` : `for the week of ${monday}, signature unknown here`}.`,
     `- Recurring gates: Monday's one ask ${nextMonday}, Friday's review ${nextFriday}. No mid-turn questions: they go into the next spec's questions[].`,
     `- Codex cards: ${last ? `last dispatched ${last.card_id} at ${last.dispatched_at}` : 'none dispatched from this machine'}; each needs a dated usage reading at 80% or less and his yes on its digest (scripts/dispatch-card.mjs).`
