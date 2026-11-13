@@ -28,6 +28,7 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 Lifecycle: building. The detail is in `README.md`.
 
+- Wave 0 is live in Control Center: every untapped held meeting is asked about at once (#736), morning drafts of this engine's email rows land in his Gmail each morning with no press and a reply comes to his list to book the call (#742, protocol 1.23.0), and a first meeting with someone new is kept and counted, with four more meeting paths (#743, protocol 1.24.0). Warm buyers (0.6) are built and held until the desk's words are safe and Control Center serves the Advisory buyers. (2026-11-13)
 - The engine now reads the full-funnel meeting paths (webinar, post-engager, cold-outbound, video-note) before Control Center records them, so the good-meetings count stays whole when it does. A meeting with a path the engine does not know is counted with the path unknown instead of blanking the number, and a meeting with nobody filed yet still counts. The new paths go in a report only once Control Center serves 1.24.0 with `features.meeting_paths`. (2026-11-13)
 - The full-funnel build is set (docs/GET-GOING.md, "The full-funnel build", Waves 0 to 3) on Krish's four rulings of 13 November (docs/RULINGS.md, "The full-funnel engine"): cold outbound on email, LinkedIn and calls within the law, Maven Lightning Lessons every two weeks, up to 10 morning drafts a day in his Gmail with no press, and his personal LinkedIn. The good count now reads as a floor while any meeting he held that week is untapped, and the gap line names held and not tapped. Video notes are held as clone_realism_unproven (N21), since his clone was cleared for Mindmake outbound on 22 October and realism is what holds it now. (2026-11-13)
 - Mindmake's AI answers are AEO-Engine's, the one AI-answers specialist (Ruling, Krish, 2026-11-12): each run reads Mindmake's standing from the directive (protocol 1.22.0, ai_answers) and, when none is on file, asks AEO once with the weekly review's planned questions for Mindmake's places and the canon's hosts (src/stages/answers.mjs). The ruling is in docs/RULINGS.md. The protocol copy in docs/control-center/ is Control Center's at 36df34bc (protocol 1.22.0). (2026-11-13)
@@ -60,7 +61,7 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-13): Control Center ships 1.24.0 (the growth_meetings check, ORIGIN_PATHS, ORIGIN_WORDS, the report schema) and files a new attendee as a contact, so a first meeting with someone new counts.
+- Next (2026-11-13): read the first morning drafts on 14 November (05:00 to noon New York) and the run's `drafts` part showing job `morning`.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 - North Star check (2026-11-13): holds.
 
