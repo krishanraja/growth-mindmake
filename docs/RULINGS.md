@@ -214,11 +214,10 @@ In his words (11 November): "Ensure the priorities, obsessions, and next steps f
 
 In his words (12 November, on Control Centre's Engines panel showing "mind/make, Mindmake" and "mind/make, AI answers" side by side): "this UI is terrible - shouldn't every Engine take care of its own AI answers calling on AEO-engine which is supposed to be the specialist at this job? Why is mindmake separate to mindmake ai answers?" Then, answering: "AEO-Engine becomes the one specialist that every venture's growth engine calls for its AI-answer work. Each venture's tile shows its own AI-answer standing, the separate 'mind/make, AI answers' tile goes, and Control Centre's own AI-answer checks and Heartside's separate Answers job fold into AEO." And on AEO's North Star: "the share counts the questions asked that fortnight (1 of 100 = 1% on 8 Nov); questions not asked stay unknown rather than lost."
 
-- This engine never asks an AI assistant itself. Mindmake's AI-answer work is AEO-Engine's, asked for through Control Center's protocol (1.22.0, `POST answers`): the questions the weekly review plans for Mindmake's places (src/stages/places.mjs `enginePlan`) and the hosts the canon names, once, when Mindmake has no request on file (src/stages/answers.mjs).
+- This engine never asks an AI assistant itself. Mindmake's AI-answer work is AEO-Engine's, asked for through Control Center's protocol (1.22.0, `POST answers`): the questions the weekly review plans for Mindmake's places (src/stages/places.mjs `enginePlan`) and the hosts the canon names, once when Mindmake has no request on file, and again only when the plan holds more of the questions AEO's route takes than the request on file counts, at most 25 a request (src/stages/answers.mjs). Where the request on file carries a `digest`, the 13 November section below says when it asks again.
 - Mindmake's standing is read back from each directive (`ai_answers`) and said in one line; it is on Mindmake's own tile in Control Center.
 - M13's `places` plan, which Control Center's retired Monday probe owed, now goes to AEO; nothing of it goes into a report.
 - No wall moves: asking AEO is not spending, and AEO asks at its own research run under its own cap.
-
 
 ## The full-funnel engine (Rulings, Krish, 2026-11-13)
 
@@ -230,3 +229,14 @@ In his words (13 November, opening the session that set the full-funnel build): 
 - **This engine owns his personal LinkedIn posts.** He clicks every post. His X and the publication's own accounts stay with growth-makeyourmindup, which hands his personal LinkedIn over in its own change.
 - **Reconciled, not a new ruling:** his face and voice clone were cleared for Mindmake outbound on 22 October 2026 (ai-harness docs/proposals/2026-10-22-outcome-allocation.md), so the `founder_visibility_open` hold is gone; video notes are held as `clone_realism_unproven` until the clone passes krish-clone's realism test (taste rule s075bbc2d7d).
 - **Standing promises these do not touch:** mindmake.co's "Two emails, and then nothing" for anyone who takes the free brief (they are suppressed from every lane while their brief record exists); only he emails anyone inside his network; one ask per engine on his list; Control Center writes no Mindmake pitch; the Pipeline Sheet wins the CRM.
+
+## AEO's win kits reach him through each venture's engine (Ruling, Krish, 2026-11-13)
+
+As recorded (13 November, in AEO-Engine's brief to Control Center, docs/briefs/2026-11-13-aeo-specialist.md, section E), in the fleet's ruling-line form: "Ruling (Krish, 2026-11-13): AEO's win kits reach him through each venture's own growth engine." His own typed words were in no record this change could read; they go here word for word when found, and the recorded line above stands until then.
+
+- Where Control Center serves `features.ai_answers_detail` (proposed protocol 1.23.0), the run reads AEO's win kits for Mindmake and, in `portfolio[]`, for CTRL, Circle and Pulse, loosely (src/stages/answers.mjs `kitsFor`: a missing or misshapen field means no kits, never an error), and keeps the best five by priority in the run's memory, shaped as decision aids for the Trust-Asset Steward and as angles for pitches (src/weekly-review.mjs `weeklyAnswerKits`).
+- No stage reads them yet: no pitch or decision aid is written from a kit, and the weekly review object Control Center keeps does not carry them. The report's line says so (`weeklyKitsLine`).
+- A kit's words stay in the run's memory: this repository and its Actions logs are public, so the report and the logs carry counts only.
+- Where the request on file carries its `digest`, the run asks AEO again, replacing the request (`mode: 'replace'`), when the plan's own digest differs (`questionsDigest`, Control Center's definition, tested on a fixed vector), and only once for an exact list: the line that asks carries the list's short digest mark, never its words (`questionsMark`), and a run that reads that mark back from its recent reports (`askedMarks`) while the request on file still differs says so and waits for the plan to change. With no digest on file, the count rule above stands.
+- This engine sends no `shipped` or `targets`: it has no record of either.
+- No wall moves: a kit is read, never published, and asking AEO is not spending.

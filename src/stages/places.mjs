@@ -96,9 +96,11 @@ export function controlCenterPlan(touchpoints) {
 /**
  * The engine's plan: Mindmake's live AI-answer touchpoints alone, in Control
  * Center's order and under its caps, with a question that names a retired
- * offer held by code. Pure.
+ * offer held by code. `cap` is the questions planned a run: Control Center's
+ * twelve by default (the weekly review and the shadow), and a request to
+ * AEO-Engine passes its own (src/stages/answers.mjs). Pure.
  */
-export function enginePlan(touchpoints, canon) {
+export function enginePlan(touchpoints, canon, cap = MAX_PROBES_PER_RUN) {
   const mine = (Array.isArray(touchpoints) ? touchpoints : []).filter(t => live(t) && t.product_slug === PRODUCT);
   const all = [], held = [];
   const ordered = [...mine].sort((a, b) => (b.cost_efficiency_score ?? 0) - (a.cost_efficiency_score ?? 0) || a.id.localeCompare(b.id));
@@ -106,7 +108,7 @@ export function enginePlan(touchpoints, canon) {
     if (offerFindings(question, canon?.offer).includes('retired_offer')) { held.push({ touchpoint_id: t.id, question, code: 'question_names_retired_offer' }); continue; }
     all.push({ touchpoint_id: t.id, product_slug: PRODUCT, question, score: t.cost_efficiency_score ?? 0 });
   }
-  return { planned: all.slice(0, MAX_PROBES_PER_RUN), skipped: all.slice(MAX_PROBES_PER_RUN), held };
+  return { planned: all.slice(0, cap), skipped: all.slice(cap), held };
 }
 
 const hostOf = u => { try { return new URL(u).hostname.toLowerCase().replace(/^www\./, ''); } catch { return null; } };
