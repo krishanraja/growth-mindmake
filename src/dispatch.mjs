@@ -903,8 +903,9 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       goodObjective = tappedObjective({ read: taps, count, lastWeek, midnight: londonMidnight, timezone: TIMEZONE });
       activity.push(tappedLine({ read: taps, count, lastWeekOf: lastWeek.start, lastTarget: ladderTarget(ladder, lastWeek.start), thisTarget, targetSource, northStar: directive.north_star }));
       origin_candidates = originCandidates({ meetings: taps.meetings, context: suppliedContext });
-      const open = new Set(taps.meetings.filter(m => m.good === null && m.origin_path === null).map(m => m.contact_id)).size;
+      const open = new Set(taps.meetings.filter(m => m.good === null && m.origin_path === null && m.contact_id !== null).map(m => m.contact_id)).size;
       activity.push(`Where his meetings came from: ${origin_candidates.length} of the ${open} ${open === 1 ? 'person' : 'people'} in an unanswered meeting ${origin_candidates.length === 1 ? 'has' : 'have'} a path from the engine's records; the rest are recorded as unknown at his tap.`);
+      if (taps.unknown_paths) activity.push(`${taps.unknown_paths} held meeting${taps.unknown_paths === 1 ? '' : 's'} came with a path this engine does not know yet, so ${taps.unknown_paths === 1 ? 'it is' : 'they are'} counted with the path unknown.`);
       if (taps.dropped) holds.push({ reason: 'meetings_unreadable', detail: `${taps.dropped} held meeting${taps.dropped === 1 ? '' : 's'} in the context did not parse, so the number is not claimed.` });
     } else {
       const viaAsk = !due ? { state: 'not_due' } : decisionsRead ? readStopgap(decisionsRead, lastWeek.start, payloadDigest) : { state: 'unread' };
