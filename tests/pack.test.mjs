@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { buildPack, reportCounts, buildSteps, PACK_MAX, MARK, MANDATORY_PARTS, ALWAYS, MAX_CARDS, londonDate, mondayOf, packed, withoutCanon, CANON_POINTER } from '../scripts/pack.mjs';
+import { buildPack, reportCounts, buildSteps, openList, OPEN_LISTED, PACK_MAX, MARK, MANDATORY_PARTS, ALWAYS, MAX_CARDS, londonDate, mondayOf, packed, withoutCanon, CANON_POINTER } from '../scripts/pack.mjs';
 
 // The session pack (plan Phase 4, section 5): every mandatory load in 36 KB
 // or less, or the command fails. Synthetic reports only.
@@ -86,7 +86,7 @@ test('cards: at most three, each a specialist crew/index.json names, never twice
 test('a report gives counts and codes only: holds by reason, lint findings from the shadow line, never a detail', async () => {
   const report = { status: 'held', holds: [
     { reason: 'spec_unsigned', detail: 'Synthetic Person at Example Co was held for a private reason.' },
-    { reason: 'founder_visibility_open', detail: 'x' },
+    { reason: 'clone_realism_unproven', detail: 'x' },
     { reason: 'pitch_not_live', detail: 'y' },
     { reason: 'pitch_not_live', detail: 'z' },
     { reason: 'Not A Code', detail: 'w' }
@@ -95,11 +95,11 @@ test('a report gives counts and codes only: holds by reason, lint findings from 
     { line: 'Crew lints, in shadow: read 4 proposals; 3 findings (card_grammar 2, visibility.one_link 1). Nothing is held by them until the switch (plan Phase 5).' }
   ] };
   const c = reportCounts(report);
-  assert.deepEqual(c.holds, [['pitch_not_live', 2], ['founder_visibility_open', 1], ['spec_unsigned', 1], ['unrecognised', 1]]);
+  assert.deepEqual(c.holds, [['pitch_not_live', 2], ['clone_realism_unproven', 1], ['spec_unsigned', 1], ['unrecognised', 1]]);
   assert.deepEqual(c.findings, [['card_grammar', 2], ['visibility.one_link', 1]]);
   assert.equal(c.specState, 'not signed');
   const pack = await buildPack({ root, report: { report }, at: '2026-11-10T08:00:00Z' });
-  assert.match(pack.text, /Report status: held\.\nOpen lint findings, in shadow: 3 \(card_grammar 2, visibility\.one_link 1\)\.\nHolds: 5 \(pitch_not_live 2, founder_visibility_open 1, spec_unsigned 1, unrecognised 1\)\./);
+  assert.match(pack.text, /Report status: held\.\nOpen lint findings, in shadow: 3 \(card_grammar 2, visibility\.one_link 1\)\.\nHolds: 5 \(pitch_not_live 2, clone_realism_unproven 1, spec_unsigned 1, unrecognised 1\)\./);
   assert.ok(!pack.text.includes('Synthetic Person') && !pack.text.includes('Not A Code'), 'a detail or a raw reason reached the pack');
   assert.match(pack.text, /- Week spec: not signed for the week of 2026-11-09, per the report\./);
   assert.deepEqual(reportCounts({ activity: [{ line: 'Crew lints, in shadow: read 1 proposal; no findings. Nothing is held.' }], holds: [] }).findings, []);
@@ -109,6 +109,10 @@ test('a report gives counts and codes only: holds by reason, lint findings from 
 
 test('gate status reads the build\'s open steps and the London week', () => {
   assert.deepEqual(buildSteps('- [x] **Phase 1.** a\n- [ ] **Phase 4.** b\n- [ ] **Canva C1.** c\n'), { done: 1, open: ['Phase 4', 'Canva C1'] });
+  assert.equal(openList([]), '');
+  assert.equal(openList(['Phase 4', 'Canva C1']), ': Phase 4; Canva C1');
+  const many = Array.from({ length: OPEN_LISTED + 3 }, (_, i) => `Step ${i + 1}`);
+  assert.equal(openList(many), `: ${many.slice(0, OPEN_LISTED).join('; ')}; and 3 more in docs/GET-GOING.md`, 'the first steps by name, the rest counted');
   assert.equal(londonDate('2026-10-25T23:30:00Z'), '2026-10-25');
   assert.equal(londonDate('2026-07-01T23:30:00Z'), '2026-07-02');
   assert.equal(mondayOf('2026-11-15'), '2026-11-09');

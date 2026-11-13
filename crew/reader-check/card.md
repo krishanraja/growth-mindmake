@@ -23,4 +23,4 @@ From 10-copy-and-offer-doctrine.md, Diagnose the weakest link first:
 ## Sources
 
 - docs/playbooks/07-scorecard-and-experiments.md, "The reader check": sha256 b44448082302787c
-- docs/playbooks/10-copy-and-offer-doctrine.md, "Diagnose the weakest link first": sha256 6a4679349aad4989
+- docs/playbooks/10-copy-and-offer-doctrine.md, "Diagnose the weakest link first": sha256 bd3a5bcb39bc7c4c

@@ -20,8 +20,17 @@ test('the gap line says X of Y, U-n, short by Z, and unknown stays unknown', () 
   assert.equal(gapLine(gapOf({ northStar: { urgency: 4, current: null }, thisTarget: 2 }), 'not measured yet'), 'Gap: good meetings unknown of 2 this week, U4, short by unknown (not measured yet).');
   assert.equal(gapLine(gapOf({ northStar: {}, thisTarget: null })), 'Gap: good meetings unknown of unknown this week, urgency unknown, short by unknown.');
   // His taps this week are fresher than Control Center's reading; ahead of target is short by 0, never negative.
-  assert.deepEqual(gapOf({ northStar: { urgency: 2, current: 1 }, thisTarget: 5, tapsThisWeek: 7 }), { current: 7, target: 5, urgency: 2, short: 0 });
+  assert.deepEqual(gapOf({ northStar: { urgency: 2, current: 1 }, thisTarget: 5, tapsThisWeek: 7 }), { current: 7, target: 5, urgency: 2, short: 0, held: null, untapped: null });
   assert.equal(gapOf({ northStar: { urgency: 9 }, thisTarget: 5 }).urgency, null, 'an urgency out of range is unknown, never guessed');
+});
+
+test('the gap line counts what he held this week and has not tapped, and a count with taps open is a floor', () => {
+  assert.equal(gapLine(gapOf({ northStar: { urgency: 5 }, thisTarget: 11, tapsThisWeek: 0, heldThisWeek: 4, untappedThisWeek: 3 })),
+    'Gap: good meetings at least 0 of 11 this week, U5, short by 11; 4 held this week, 3 not tapped yet.');
+  assert.equal(gapLine(gapOf({ northStar: { urgency: 5 }, thisTarget: 11, tapsThisWeek: 2, heldThisWeek: 2, untappedThisWeek: 0 })),
+    'Gap: good meetings 2 of 11 this week, U5, short by 9; 2 held this week, 0 not tapped yet.', 'every meeting answered: the count is the count');
+  // Not read this run: nothing said about meetings held, and never a zero.
+  assert.equal(gapLine(gapOf({ northStar: { urgency: 5, current: null }, thisTarget: 11 }), 'not measured yet'), 'Gap: good meetings unknown of 11 this week, U5, short by unknown (not measured yet).');
 });
 
 test('the policy names only volume caps, each bound and safer down, with no authority', () => {

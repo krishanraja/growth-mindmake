@@ -257,11 +257,20 @@ export function countGood(meetings, { start, end }, londonDate) {
   return { total, by_path, held: inWeek.length, unanswered: inWeek.filter(x => x.good === null).length };
 }
 
-/** The good_meetings objective from his taps: measured only when every meeting was read, else missing with the reason. */
+/**
+ * The good_meetings objective from his taps: measured only when every meeting
+ * was read and he has answered every one he held that week, else missing with
+ * the reason. A meeting he has not tapped yet may be a good one, so a count
+ * with taps still open is a floor, said as a floor and never claimed as the
+ * number (Krish's full-funnel build, 13 Nov 2026: count what already happened
+ * before anything else). Pure.
+ */
 export function tappedObjective({ read, count, lastWeek, midnight, timezone }) {
   const base = { key: 'good_meetings', unit: 'meetings', window_start: midnight(lastWeek.start), window_end: midnight(lastWeek.end), timezone };
-  if (read.state === 'served' && read.complete) return { ...base, value: count.total, availability: 'measured', reason: null };
-  const why = read.state === 'served' ? `Control Center could not read every meeting he held (${read.reason}), so no count is claimed.` : `Control Center did not serve his held meetings this run (${read.reason}), so no count is claimed.`;
+  if (read.state === 'served' && read.complete && !count.unanswered) return { ...base, value: count.total, availability: 'measured', reason: null };
+  const why = read.state !== 'served' ? `Control Center did not serve his held meetings this run (${read.reason}), so no count is claimed.`
+    : !read.complete ? `Control Center could not read every meeting he held (${read.reason}), so no count is claimed.`
+    : `${count.unanswered} of the ${count.held} meetings he held that week ${count.unanswered === 1 ? 'is' : 'are'} not answered yet, so the ${count.total} good so far is a floor and is not claimed as the number.`;
   return { ...base, value: null, availability: 'missing', reason: why };
 }
 

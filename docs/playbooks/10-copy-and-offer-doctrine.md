@@ -188,7 +188,7 @@ Below 28 of 48, return `needs_review` with the weakest link named. A high score 
 
 ## Where this engine's rules change the corpus
 
-1. Never a list. The corpus's list and market primacy becomes warm paths, rooms and researched named individuals; bought, rented or scraped lists are excluded.
+1. A list is a source, never an audience. Cold lists are in scope for Mindmake (Ruling, Krish, 2026-11-13), but every person on one is researched until something specific is known, written to one at a time, and admitted only by the country and recipient-type allowlist; buying or renting a list is spend and waits on his yes.
 2. One ask per message, from the approved routes. No follow-up sequence and no "build the follow-up before launch".
 3. No invented urgency, scarcity, deadline, guarantee, testimonial, statistic or familiarity. The corpus's "real" urgency is used only when an observed source supplies it.
 4. Approved testimonials are quoted exactly, within their proof family and placement scope; attendance is never client proof.
@@ -196,7 +196,7 @@ Below 28 of 48, return `needs_review` with the weakest link named. A high score 
 6. Agents prepare and Krish acts. Nothing is sent, published, scheduled or spent; the corpus's CTA, tracking and response path end at Krish's manual action.
 7. Offers, pricing, guarantees, bonuses and naming are Krish's and the canon's. The Value Equation, USP test and money model produce strategy proposals only.
 8. No fear framing for expensed buyers. Motives are ambition, competence and autonomy.
-9. No paid acquisition, generic sequences or automatic connection requests; the Core Four's paid and cold one-to-many-at-scale motions are out.
+9. No paid acquisition, generic sequences or automatic connection requests; cold one-to-one runs on email, LinkedIn notes he taps and calls a person dials (Ruling, Krish, 2026-11-13), while the Core Four's paid and cold one-to-many-at-scale motions stay out.
 10. No em dashes in new material, and British English throughout.
 11. Measurement uses recorded outcomes only: qualified conversations with human confirmation and paid proofs with payment evidence. Opens, clicks and rubric scores never count as results. Visits to mindmake.co, which Krish asked the engine to drive (2026-10-27), are a supporting reading: they only break ties between levers that meetings by path have ranked, and are never a result.
 12. Discovery and closing belong to Krish's conversation. The engine prepares questions and records evidence; it never closes or qualifies on its own.

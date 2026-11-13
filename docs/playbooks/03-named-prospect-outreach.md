@@ -1,6 +1,6 @@
 # Individual outreach
 
-Write a useful note to one named person about one live decision. Warm and researched cold work are in scope. Bulk sequences, bought lists, automated connection requests and recurring chase schedules are outside this engine.
+Write a useful note to one named person about one live decision. Warm and cold work are in scope on email, LinkedIn and calls (Ruling, Krish, 2026-11-13), cold only once the person is researched and only to recipients the country and recipient-type allowlist admits. Bulk sequences, automated connection requests, AI-voiced or auto-dialled calls and recurring chase schedules are outside this engine; a note gets at most one follow-up, and only with a new fact. Buying a list is spend and waits on his yes.
 
 ## Required brief
 
