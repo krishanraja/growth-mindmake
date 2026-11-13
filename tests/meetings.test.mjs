@@ -167,7 +167,7 @@ test('the printed outcome carries no count of meetings, bookings or traffic', as
 
 // ── Held meetings and his good tap (protocol 1.10.0, synthetic shapes) ──────
 
-import { readMeetings, countGood, originCandidates, meetingsServed, tappedObjective, MEETINGS_VERSION, ORIGIN_CANDIDATES_MAX } from '../src/stages/meetings.mjs';
+import { readMeetings, countGood, originCandidates, meetingsServed, tappedObjective, MEETINGS_VERSION, ORIGIN_CANDIDATES_MAX, NEXT_PATHS, PATHS_VERSION, pathsFor } from '../src/stages/meetings.mjs';
 import { violations } from './support/engine-protocol-service.mjs';
 
 const cid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -181,7 +181,7 @@ test('held meetings are read only where served and available; a row that does no
   assert.equal(meetingsServed({ schema_versions: ['1.9.0'], features: { meetings: true } }), false);
   assert.deepEqual(readMeetings({ coverage: [] }), { state: 'unserved', reason: 'meetings_not_in_context' });
   assert.deepEqual(readMeetings({ coverage: [covered({ available: false, reason: 'calendar_read_stale' })], meetings: [] }), { state: 'unavailable', reason: 'calendar_read_stale' });
-  const r = readMeetings({ coverage: [covered()], meetings: [mtg(1), { ...mtg(2), contact_id: 'someone@example.com' }, { ...mtg(3), origin_path: 'made-up' }] });
+  const r = readMeetings({ coverage: [covered()], meetings: [mtg(1), { ...mtg(2), contact_id: 'someone@example.com' }, { ...mtg(3), origin_path: 'Not A Path!' }] });
   assert.equal(r.state, 'served');
   assert.equal(r.meetings.length, 1);
   assert.equal(r.dropped, 2);
@@ -318,3 +318,30 @@ test('every row and pitch aims at the number the North Star counts: the policy n
   assert.equal(policy.targets.qualified_conversations_per_week, 5);
 });
 
+
+test('the full-funnel paths are read now, an unknown path is counted as unknown, and a meeting with nobody filed yet still counts', () => {
+  const r = readMeetings({ coverage: [covered()], meetings: [
+    mtg(1, { good: true, origin_path: 'webinar' }), mtg(2, { good: true, origin_path: 'cold-outbound' }),
+    mtg(3, { good: true, origin_path: 'a-path-from-next-year' }), mtg(4, { good: true, contact_id: null }), mtg(5, { contact_id: null })
+  ] });
+  assert.equal(r.state, 'served');
+  assert.equal(r.complete, true, 'nothing was dropped, so the count is whole');
+  assert.equal(r.dropped, 0);
+  assert.equal(r.unknown_paths, 1);
+  assert.deepEqual(r.meetings.map(m => m.origin_path), ['webinar', 'cold-outbound', 'unknown', null, null]);
+  assert.equal(r.meetings[3].contact_id, null);
+  const week = { start: '2026-10-26', end: '2026-11-02' };
+  const count = countGood(r.meetings, week, iso => iso.slice(0, 10));
+  assert.equal(count.total, 4);
+  assert.deepEqual(count.by_path, { webinar: 1, 'cold-outbound': 1, unknown: 2 });
+  assert.equal(count.unanswered, 1);
+  assert.deepEqual(originCandidates({ meetings: r.meetings, context: {} }), [], 'nobody filed means nobody to trace');
+});
+
+test('the next four paths go in a report only where Control Center serves them', () => {
+  assert.deepEqual(NEXT_PATHS, ['webinar', 'post-engager', 'cold-outbound', 'video-note']);
+  assert.equal(NEXT_PATHS.some(p => PATHS.includes(p)), false);
+  assert.deepEqual(pathsFor({ schema_versions: [MEETINGS_VERSION], features: { meetings: true } }), PATHS);
+  assert.deepEqual(pathsFor({ schema_versions: [PATHS_VERSION], features: {} }), PATHS, 'the flag, not the version alone');
+  assert.deepEqual(pathsFor({ schema_versions: [MEETINGS_VERSION, PATHS_VERSION], features: { meeting_paths: true } }), [...PATHS, ...NEXT_PATHS]);
+});

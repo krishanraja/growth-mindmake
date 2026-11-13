@@ -12,6 +12,17 @@ import { stageKind } from './pitches.mjs';
 
 /** Where a good meeting came from. The engine pre-fills one; Krish confirms it. */
 export const PATHS = ['existing-relationship', 'multiplier-intro', 'partner', 'guest-seat', 'podcast', 'own-show-guest', 'public-signal', 'inbound', 'referral', 'unknown'];
+/**
+ * The paths of the full-funnel build (Rulings, Krish, 2026-11-13): a hosted
+ * lesson, someone who answered his own post, cold outbound and a video note.
+ * Read now, wherever Control Center records them; this engine emits one only
+ * once Control Center serves `PATHS_VERSION` with `features.meeting_paths`
+ * (`pathsFor`), so a report never carries a path the receiver refuses.
+ */
+export const NEXT_PATHS = ['webinar', 'post-engager', 'cold-outbound', 'video-note'];
+export const PATHS_VERSION = '1.24.0';
+/** The paths this engine may put in a report: the next four only where Control Center serves them. Pure. */
+export const pathsFor = capabilities => capabilities?.features?.meeting_paths === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes(PATHS_VERSION) ? [...PATHS, ...NEXT_PATHS] : PATHS;
 export const STOPGAP_PREFIX = 'gmg-';
 /** His visibility targets (Ruling, Krish, 2026-10-27), as config/policy.json's `recognition` holds them; these are the fallback when a policy has none. */
 export const PODCASTS_A_WEEK = 2;
@@ -221,6 +232,8 @@ export const MEETINGS_VERSION = '1.10.0';
 export const ORIGIN_CANDIDATES_MAX = 40;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REF = /^[A-Za-z0-9][A-Za-z0-9:._-]{0,119}$/;
+/** A path as Control Center spells one: lower case words joined by hyphens. */
+const SLUG = /^[a-z][a-z-]{0,39}$/;
 
 /** Whether Control Center serves held meetings to this engine: 1.10.0 and its feature flag. */
 export const meetingsServed = capabilities => capabilities?.features?.meetings === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes(MEETINGS_VERSION);
@@ -236,16 +249,20 @@ export function readMeetings(context) {
   if (!cov || !Array.isArray(context?.meetings)) return { state: 'unserved', reason: 'meetings_not_in_context' };
   if (cov.available !== true) return { state: 'unavailable', reason: typeof cov.reason === 'string' ? cov.reason.slice(0, 80) : 'source_unavailable' };
   const meetings = [];
-  let dropped = 0;
+  let dropped = 0, unknownPaths = 0;
   for (const m of context.meetings) {
-    const ok = m && typeof m.meeting_id === 'string' && typeof m.contact_id === 'string' && UUID.test(m.contact_id)
+    const contact = m?.contact_id === null || m?.contact_id === undefined ? null : typeof m.contact_id === 'string' && UUID.test(m.contact_id) ? m.contact_id.toLowerCase() : false;
+    const path = m?.origin_path === null || m?.origin_path === undefined ? null : typeof m.origin_path === 'string' && SLUG.test(m.origin_path) ? m.origin_path : false;
+    const ok = m && typeof m.meeting_id === 'string' && contact !== false && path !== false
       && typeof m.held_at === 'string' && Number.isFinite(Date.parse(m.held_at))
-      && (m.good === null || typeof m.good === 'boolean')
-      && (m.origin_path === null || m.origin_path === undefined || PATHS.includes(m.origin_path));
+      && (m.good === null || typeof m.good === 'boolean');
     if (!ok) { dropped++; continue; }
-    meetings.push({ meeting_id: m.meeting_id, contact_id: m.contact_id.toLowerCase(), held_at: m.held_at, good: m.good, origin_path: m.origin_path ?? null });
+    // A path Control Center recorded that this engine does not know yet is still a held meeting: counted, its path unknown.
+    const known = path === null || PATHS.includes(path) || NEXT_PATHS.includes(path);
+    if (!known) unknownPaths++;
+    meetings.push({ meeting_id: m.meeting_id, contact_id: contact, held_at: m.held_at, good: m.good, origin_path: known ? path : 'unknown' });
   }
-  return { state: 'served', meetings, complete: cov.complete === true && dropped === 0, reason: dropped ? 'meetings_unreadable' : cov.complete === true ? null : (typeof cov.reason === 'string' ? cov.reason.slice(0, 80) : 'incomplete'), dropped };
+  return { state: 'served', meetings, complete: cov.complete === true && dropped === 0, reason: dropped ? 'meetings_unreadable' : cov.complete === true ? null : (typeof cov.reason === 'string' ? cov.reason.slice(0, 80) : 'incomplete'), dropped, unknown_paths: unknownPaths };
 }
 
 /** His good meetings held in the London week [start, end), by recorded path, and how many there are still unanswered. Pure. */
@@ -327,7 +344,8 @@ export function originCandidates({ meetings, context }) {
     return null;
   };
   const out = [], seen = new Set();
-  const open = [...meetings].filter(m => m.good === null && m.origin_path === null).sort((a, b) => Date.parse(a.held_at) - Date.parse(b.held_at));
+  // A meeting with nobody filed for it yet has no one to trace; it stays unknown at his tap.
+  const open = [...meetings].filter(m => m.good === null && m.origin_path === null && m.contact_id !== null).sort((a, b) => Date.parse(a.held_at) - Date.parse(b.held_at));
   for (const m of open) {
     if (seen.has(m.contact_id)) continue;
     seen.add(m.contact_id);
