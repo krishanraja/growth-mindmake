@@ -1,7 +1,7 @@
 ---
 repo: krishanraja/growth-mindmake
 product: Mindmake growth engine
-as_of: 2026-11-12
+as_of: 2026-11-13
 head: 5d3d7ff
 lifecycle: building
 production_url: none
@@ -22,12 +22,13 @@ Mindmake's growth engine: relationships, introductions, researched named outreac
 
 The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish's calendar with the right conversations.
 
-## Where it is right now (as of 2026-11-12)
+## Where it is right now (as of 2026-11-13)
 
 <!-- north-star-state {"week_of":"2026-11-02","week_target":5,"current":0,"current_as_of":"2026-11-08","current_source":"growth-mindmake's latest live report to Control Center (objective good_meetings: meetings Krish marked good, each traced to its path, in the week it counts), read by Control Center","urgency":5,"urgency_reason":"under 40% of the week's target two weeks running (0% now)"} --> **North Star number: U5, stalled.** Good meetings a week, each marked good by Krish after it and traced to where it came from: 0, against 5 in the week of 2 November 2026, on the way to 20 by 30 November 2026. Everything else pauses unless it moves the number.
 
 Lifecycle: building. The detail is in `README.md`.
 
+- Mindmake's AI answers are AEO-Engine's, the one AI-answers specialist (Ruling, Krish, 2026-11-12): each run reads Mindmake's standing from the directive (protocol 1.22.0, ai_answers) and, when none is on file, asks AEO once with the weekly review's planned questions for Mindmake's places and the canon's hosts (src/stages/answers.mjs). The ruling is in docs/RULINGS.md. The protocol copy in docs/control-center/ is Control Center's at 36df34bc (protocol 1.22.0). (2026-11-13)
 - The Control Center brief says Control Center serves 1.0.0 to 1.21.0 (this engine speaks up to 1.20.0) and that the directive's good_meetings target is this repository's north-star block's (20 by 30 November), read each morning, never the registry's copy (krishanraja/control-center#718). (2026-11-12)
 - The protocol copy is Control Center's at 212379e1 (1.21.0): its voice_check row lists exactly the 16 channels Control Center's voice check accepts, it says the number objective's target is this repository's own north-star block, and the circle lane files a stranger as cold_scraped. 1.21.0 itself adds only growth-makeyourmindup's inspiration instructions; this engine still speaks up to 1.20.0 (ENGINE_STATE_VERSION in src/stages/instruction.mjs). (2026-11-12)
 - The session pack leaves out the Krish canon block ai-harness renders at the end of AGENTS.md (one line in its place; it loads with AGENTS.md itself), and the rulings test reads AGENTS.md's own sections without it, so the canon block can land while the 36 KB budget and the standing rules word for word both hold. (2026-11-12)
@@ -58,9 +59,9 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-12): refresh the copy again when Control Center's protocol next changes.
+- Next (2026-11-13): After AEO-Engine's research run of Sunday 2026-11-22, read Mindmake's tile in Control Center and confirm the request the engine filed is marked served.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
-- North Star check (2026-11-12): holds.
+- North Star check (2026-11-13): holds.
 
 ### Existing integration gates to retain
 
