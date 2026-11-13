@@ -1,3 +1,0 @@
-Status: The engine now reads the full-funnel meeting paths (webinar, post-engager, cold-outbound, video-note) before Control Center records them, so the good-meetings count stays whole when it does. A meeting with a path the engine does not know is counted with the path unknown instead of blanking the number, and a meeting with nobody filed yet still counts. The new paths go in a report only once Control Center serves 1.24.0 with `features.meeting_paths`.
-Next: Control Center ships 1.24.0 (the growth_meetings check, ORIGIN_PATHS, ORIGIN_WORDS, the report schema) and files a new attendee as a contact, so a first meeting with someone new counts.
-North Star check (2026-11-13): holds.
