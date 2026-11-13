@@ -48,6 +48,8 @@ test("Control Center's plan shares twelve probes across products; the engine pla
   assert.equal(theirs.skipped.length, 1);
   const mine = enginePlan(tps, canon);
   assert.equal(mine.planned.length, 4);
+  assert.equal(enginePlan(tps, canon, 2).planned.length, 2, 'a caller may pass its own cap');
+  assert.equal(enginePlan(tps, canon, 2).skipped.length, 2);
   assert.deepEqual(mine.held.map(h => h.code), ['question_names_retired_offer']);
   assert.ok(mine.planned.every(p => p.product_slug === 'mindmake'));
   const shadow = placesShadow({ context: { records: { touchpoints: tps } }, canon, at: AT }).line;
