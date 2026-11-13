@@ -32,6 +32,7 @@ import { qualifyShadow } from './stages/qualify.mjs';
 import { playsShadow } from './stages/plays.mjs';
 import { suppressionShadow, suppressionFields } from './stages/suppression.mjs';
 import { placesShadow } from './stages/places.mjs';
+import { answersStep, readAiAnswers } from './stages/answers.mjs';
 import { gapOf, gapLine, intensify } from './stages/intensity.mjs';
 import { wins as readWins, winsLine } from './stages/wins.mjs';
 import { poolOf, lanesLine, laneHistory, starvedLanes, poolFlat, starvedProposal, sourcingRequests, checkIn, stoppedPlans, STARVED_RUNS, CHECK_IN_DAYS, CHECK_IN_PREFIX, STARVED_PREFIX, CAPPED } from './stages/momentum.mjs';
@@ -165,6 +166,9 @@ export function readDirective(value) {
     // committed: this repository is public), and whether the engine's state may be reported (features.engine_state).
     instruction: readInstruction(d.krish_instruction),
     engine_state: d.features?.engine_state === true,
+    // 1.22.0: Mindmake's AI answers from AEO-Engine, the one specialist (Ruling, Krish, 2026-11-12), and whether they are served.
+    ai_answers: readAiAnswers(d.ai_answers),
+    ai_answers_served: d.features?.ai_answers === true || !!(d.ai_answers && typeof d.ai_answers === 'object'),
     decisions_since: d.decisions_since.filter(x => x && typeof x.proposal_id === 'string' && ['approved','declined'].includes(x.decision)).map(x => ({ proposal_id: x.proposal_id, decision: x.decision, payload_sha256: typeof x.payload_sha256 === 'string' ? x.payload_sha256 : null })),
     in_house: counts && typeof counts === 'object' ? {
       advisory: part(counts.advisory, ['drafted_waiting','sent_this_week','replied_waiting','calls_booked_this_week','paid']),
@@ -1040,6 +1044,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       try { const { line } = shadow({ context: suppliedContext, canon: rowsRun?.canon ?? null, at, sent: !!suppressed.fields }); if (typeof line === 'string' && line) activity.push(line); }
       catch { activity.push(`${shadow.name}: could not be read this run, so it says nothing rather than a guess.`); }
     }
+    // 1.22.0: Mindmake's AI answers are AEO-Engine's: one line, and the weekly plan's questions to AEO when none are on file.
+    activity.push(...await answersStep({ cc, standing: directive.ai_answers, served: directive.ai_answers_served, capabilities, mode, context: suppliedContext, canon: rowsRun?.canon ?? null }));
     // The Phase 5 switch (src/crew/switch.mjs): one readiness line every run. Only this week's signed spec with
     // `enabled: true`, five proof runs, the shadow lines and the number measured make the crew hold what it finds.
     let proofRuns;

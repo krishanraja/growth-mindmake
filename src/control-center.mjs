@@ -178,6 +178,12 @@ export function engineClient(base, token, { fetcher = fetch, slug = ENGINE_SLUG,
       if (!value || value.ok !== true || !value.check || typeof value.check !== 'object') throw new Error('Control Center returned no voice check');
       return value.check;
     },
+    /** 1.22.0 (`features.ai_answers`): ask AEO-Engine, the one AI-answers specialist, to track this product's buyer questions. */
+    async answers(body) {
+      const value = await call('POST', 'answers', body);
+      if (!value || value.ok !== true || typeof value.request_id !== 'string') throw new Error('Control Center did not record the AI-answers request');
+      return value;
+    },
     async decisions(since) {
       const value = await call('GET', `decisions?since=${encodeURIComponent(since)}`);
       if (!value || value.ok !== true || !Array.isArray(value.decisions)) throw new Error('Control Center returned no decisions');
