@@ -26,7 +26,8 @@ import { crewShadow } from './crew/shadow.mjs';
 import { guestsShadow } from './stages/guests.mjs';
 import { visibilityShadow } from './stages/visibility.mjs';
 import { roomsShadow } from './stages/rooms.mjs';
-import { pilotsShadow } from './stages/pilots.mjs';
+import { pilotsShadow, pilotRows, pilotHolds, pilotLine, isWarmProposal, othersThisRun } from './stages/pilots.mjs';
+import { warmFrame } from './stages/openings.mjs';
 import { briefsShadow } from './stages/pitches.mjs';
 import { qualifyShadow } from './stages/qualify.mjs';
 import { playsShadow } from './stages/plays.mjs';
@@ -559,11 +560,24 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const showNotes = capabilities?.features?.show_notes === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes('1.10.0');
   // The research the pitches read is this run's too: a lookup the desk answered this run gives its route in the same run.
   const pitchArgs = (c, r = c?.research) => ({ context: c, weekGoals: directive.week_goals, canon, record, files, at, titleMax, caps: caps.pitches, showNotes, networkRoutes, wins, research: r, shown, openingsRequired, openingKind });
+  const pitchedFirst = pitches ? pitchRows(pitchArgs(ctx)) : null;
+  // The Monday five, live (Ruling, Krish, 2026-11-13; src/stages/pilots.mjs): Advisory's listed buyers on his two closest tiers,
+  // on REACH OUT in his own box. One ask a person: anyone another row proposes this run, or asks the desk to write to, is
+  // skipped before anything is spent on them (othersThisRun). Their trigger questions and notes join the round.
+  const isOpening = r => typeof r?.request_id === 'string' && r.request_id.startsWith('open:');
+  const othersFirst = othersThisRun({
+    rows: [...amplifiersFirst.rows, ...signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax }).rows, ...(pitchedFirst?.krishRows ?? [])],
+    openings: [...amplifiersFirst.research, ...(pitchedFirst?.openings ?? [])].filter(isOpening), proposals: pitchedFirst?.proposals ?? [],
+  });
+  const pilotArgs = (r, taken) => ({ context: ctx, canon, research: r, at, files, titleMax, lane: caps.rows.reach_out, taken, required: openingsRequired, kind: openingKind, weekGoals: directive.week_goals, fitFloor: caps.fit_floor });
+  const pilotsFirst = pilotRows(pilotArgs(research, othersFirst));
+  // The trigger questions the desk took this run: the row's own pass reads them back as asked, so they are counted here.
+  let pilotAsked = 0;
   let pitchOpenings = [];
   let lookups = { requests: [], waiting: 0, asked_today: 0, by: { stages: 0, podcasts: 0, guests: 0 } };
   if (mode === 'live' && capabilities?.features?.research === true) {
     // A stage, show or guest held only for want of an address asks the desk to find it in the same run (C2), up to LOOKUPS_PER_RUN, first in the round.
-    if (pitches) { const first = pitchRows(pitchArgs(ctx)); lookups = first.lookups; pitchOpenings = first.openings ?? []; }
+    if (pitchedFirst) { lookups = pitchedFirst.lookups; pitchOpenings = pitchedFirst.openings ?? []; }
     // The engine's own asks first (an address a pitch lacks, a cited reach, a profile for a card too thin to show), then the signals' collection.
     // A pool that has stood still asks for new shows and stages after the addresses (C4, src/stages/momentum.mjs).
     // The first round carries up to RESEARCH_ROUND, sent RESEARCH_BATCH at a time (Control Center takes 1 to 10 a request).
@@ -574,21 +588,43 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
     // The circle lane's daily questions come after the addresses and the sourcing (Ruling, Krish, 2026-11-05), only where Control Center files what they find.
     const circleAsks = takesCircle(capabilities, REPORT_SCHEMA) ? circleRequests({ research, at }) : [];
     // The openings come straight after the lookups (Ruling, Krish, 2026-10-31: lookups first in the round); any the round cannot take go in the next.
-    const isOpening = r => typeof r?.request_id === 'string' && r.request_id.startsWith('open:');
-    const openings = [...pitchOpenings, ...amplifiersFirst.research.filter(isOpening)];
+    const openings = [...pitchOpenings, ...amplifiersFirst.research.filter(isOpening), ...pilotsFirst.research.filter(isOpening)];
+    // A warm buyer's trigger question comes straight after the lookups, ahead of the openings, the row people's lookups and every
+    // profile, reach and channel question: at most five, and a reason found in this round gets its note in the next (U5).
+    const pilotAsks = pilotsFirst.research.filter(r => !isOpening(r));
     // Row people's lookups come after the pitches' and invites' (Ruling, Krish, 2026-10-31), PERSON_LOOKUPS_PER_RUN a run.
     const personLookups = personRoutes ? lookupRequests({ guests: amplifiersFirst.lookups ?? [], research, at, max: PERSON_LOOKUPS_PER_RUN }).requests : [];
     if (personRoutes) counts.person_lookups_asked = 0;
-    let pending = fit([...lookups.requests, ...openings, ...personLookups, ...sourcing, ...circleAsks, ...amplifiersFirst.research.filter(r => !isOpening(r)), ...signalRequests({ voices: ctx.voices, research, at })].slice(0, RESEARCH_ROUND));
+    // Control Center refuses a whole call for one bad request (an id twice, 400; an id asked before in other words, 409),
+    // so a request is sent once in a round, by its id and by its words about one person (the warm buyers' and the amplifier
+    // rows' profile question for the same person is one question), and a call it refuses is asked one request at a time:
+    // a refusal holds only its own row, never the round.
+    const once = list => { const ids = new Set(), words = new Set(); return list.filter(r => { const w = `${r?.subject_ref}|${r?.kind}|${r?.query}`; if (ids.has(r?.request_id) || words.has(w)) return false; ids.add(r?.request_id); words.add(w); return true; }); };
+    const refused = [];
+    const ask = async batch => {
+      try { return await cc.research(batch); }
+      catch (error) {
+        if (![400, 409].includes(error?.status)) throw error;
+        if (batch.length === 1) { refused.push(batch[0]); return []; }
+        const got = [];
+        for (const r of batch) got.push(...await ask([r]));
+        return got;
+      }
+    };
+    // A trigger question counts as asked this run only when the desk ran it now: a replay of a stored answer is not a new question.
+    const ranNow = r => r.status !== 'over_cap' && Date.parse(r.requested_at ?? '') >= Date.parse(at) - 15 * 60000;
+    let pending = fit(once([...lookups.requests, ...pilotAsks, ...openings, ...personLookups, ...sourcing, ...circleAsks, ...amplifiersFirst.research.filter(r => !isOpening(r)), ...signalRequests({ voices: ctx.voices, research, at })]).slice(0, RESEARCH_ROUND));
     let down = false;
     for (let round = 0; round < 2 && pending.length && !down; round++) {
       for (let i = 0; i < pending.length; i += RESEARCH_BATCH) {
         const batch = pending.slice(i, i + RESEARCH_BATCH);
         try {
-          const got = await cc.research(batch);
-          counts.research_asked += batch.length;
+          const got = await ask(batch);
+          const took = new Set(got.map(r => r.request_id)), sent = batch.filter(r => took.has(r.request_id));
+          counts.research_asked += sent.length;
           counts.research_answered += got.filter(r => r.status === 'answered').length;
-          if (round === 0) { if (personRoutes) counts.person_lookups_asked += batch.filter(r => personLookups.includes(r)).length; counts.lookups_asked += batch.filter(r => lookups.requests.includes(r)).length; counts.sourcing_asked += batch.filter(r => sourcing.includes(r)).length; counts.circle_asked = (counts.circle_asked ?? 0) + batch.filter(r => circleAsks.includes(r)).length; }
+          pilotAsked += got.filter(r => pilotAsks.some(q => q.request_id === r.request_id) && ranNow(r)).length;
+          if (round === 0) { if (personRoutes) counts.person_lookups_asked += sent.filter(r => personLookups.includes(r)).length; counts.lookups_asked += sent.filter(r => lookups.requests.includes(r)).length; counts.sourcing_asked += sent.filter(r => sourcing.includes(r)).length; counts.circle_asked = (counts.circle_asked ?? 0) + sent.filter(r => circleAsks.includes(r)).length; }
           research = mergeResearch(got, research);
         } catch {
           holds.push({ reason: 'research_unavailable', detail: 'Control Center could not run the lookups asked for this run; rows use what was already known.' });
@@ -596,9 +632,13 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
           break;
         }
       }
-      const askedIds = new Set(research.map(r => r.request_id));
-      pending = fit([...openings.filter(r => !askedIds.has(r.request_id)), ...signalRequests({ voices: ctx.voices, research, at })].slice(0, RESEARCH_ROUND));
+      const askedIds = new Set([...research.map(r => r.request_id), ...refused.map(r => r.request_id)]);
+      // A trigger the desk found this round gets its note asked for in the next, so a warm buyer can be written to in the same run;
+      // a trigger question the first round had no room for is carried into the next.
+      const pilotNotes = pilotRows(pilotArgs(research, othersFirst)).research.filter(r => isOpening(r) && !openings.some(o => o.request_id === r.request_id));
+      pending = fit(once([...[...openings, ...pilotNotes, ...pilotAsks].filter(r => !askedIds.has(r.request_id)), ...signalRequests({ voices: ctx.voices, research, at })]).slice(0, RESEARCH_ROUND));
     }
+    if (refused.length) holds.push({ reason: 'research_refused', detail: `${refused.length} research request${refused.length === 1 ? '' : 's'} Control Center refused ${refused.length === 1 ? 'was' : 'were'} left out, each holding only its own row; the rest of the round ran.` });
     // Someone filed this run has no routes in the context read before it: read it again once.
     if (research.some(r => r.kind === 'person_route' && r.status === 'answered' && !(ctx.research ?? []).some(x => x.request_id === r.request_id))) {
       try { ctx = validateStrategicRead(await cc.context(), 'context', clock()); research = mergeResearch(research, ctx.research ?? []); }
@@ -617,14 +657,18 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const onRows = new Set([...amplifiers.rows, ...signals.rows].map(e => e.proposal.target));
   const krishRows = (pitched.krishRows ?? []).filter(e => !onRows.has(e.proposal.target));
   const sameRow = (pitched.krishRows ?? []).length - krishRows.length;
-  const { kept, dropped, off } = rankRows([...amplifiers.rows, ...signals.rows, ...krishRows], caps.rows, shown);
+  // A warm buyer is never someone another row proposes this run, asks the desk to write to, or Jonny writes to this run.
+  const others = othersThisRun({ rows: [...amplifiers.rows, ...signals.rows, ...krishRows], openings: [...amplifiers.research, ...(pitched.openings ?? [])].filter(isOpening), proposals: pitched.proposals });
+  const pilots = pilotRows(pilotArgs(mergeResearch(research, ctx.research ?? []), others));
+  const { kept, dropped, off } = rankRows([...amplifiers.rows, ...signals.rows, ...krishRows, ...pilots.rows], caps.rows, shown);
   // A stage that asked leads its row, one tap from done: the people ranked on that row come after its forms (at most two a row).
   const lead = {};
   for (const p of pitched.proposals.filter(isForm)) lead[p.row] = (lead[p.row] ?? 0) + 1;
   const drafted = kept.map(p => finishProposal({ ...p, rank: p.rank + (lead[p.row] ?? 0) }));
   drafted.push(...pitched.proposals.map(finishProposal));
   // No two emails in one run are the same words with a name swapped (Krish, 2026-11-06): the lower-ranked one is held.
-  const same = new Set(sharedBodies(drafted).map(d => d.proposal_id));
+  // A warm buyer's note is fixed text around the desk's one sentence: its fixed sentences are frame for those notes only, never for any other email.
+  const same = new Set(sharedBodies(drafted, { frame: warmFrame(canon), framed: isWarmProposal }).map(d => d.proposal_id));
   // Every sentence built from a card fact is read before it is proposed: an email with a broken one is held (Control Center's reads of 6 November).
   const broken = brokenEmails(drafted.filter(p => !same.has(p.proposal_id)));
   const brokenIds = new Set(broken.map(b => b.proposal_id));
@@ -652,11 +696,15 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const held = [...amplifiers.held, ...signals.held];
   counts.held = held.length;
   for (const [reason, count] of tally(held)) holds.push({ reason: holdCode('row', reason), detail: `${count} possible row action${count === 1 ? '' : 's'} held: ${reason.replace(/_/g, ' ')}.` });
+  holds.push(...pilotHolds(pilots.held));
+  counts.pilots = { ...pilots.counts, asked: pilotAsked };
   const sixEach = ROWS.every(r => caps.rows[r]?.max === PER_ROW);
   if (dropped) holds.push({ reason: 'row_per_row_cap', detail: `${dropped} more row action${dropped === 1 ? '' : 's'} ranked below ${sixEach ? 'the six a row shows' : "the cap the week's spec sets for its row"}.` });
   if (sameRow) holds.push({ reason: 'row_network_same_person', detail: `${sameRow} invite${sameRow === 1 ? '' : 's'} or pitch${sameRow === 1 ? '' : 'es'} to someone in his network left off his rows: that person already has one.` });
   if (off) holds.push({ reason: 'row_lane_off', detail: `${off} possible row action${off === 1 ? '' : 's'} on a row the week's spec turned off.` });
   activity.push(`Rows from Mindmake's canon as it is today (${canon.files.map(f => f.sha.slice(0, 7)).join(', ')}): ${ROWS.map(r => `${proposals.filter(p => p.row === r && !isPitch(p) && !isForm(p)).length} ${r.replace('_', ' ')}`).join(', ')}.`);
+  const warm = pilotLine(counts.pilots);
+  if (warm) activity.push(warm);
   if (pitches) activity.push(`Pitches for Jonny's Gmail: ${counts.invites} guests invited onto his shows, ${counts.pitches} podcasts, ${counts.speaking_pitches} stages to speak on.`);
   const unsure = [...(pitched.inviteHeld ?? []), ...pitched.held, ...(pitched.stageHeld ?? []), ...(pitched.notesHeld ?? [])].filter(r => r === 'jonny_network_unknown').length;
   if (pitches && ((pitched.krishRows ?? []).length || unsure)) activity.push(`His network, never Jonny's box: ${(pitched.krishRows ?? []).length} invite${(pitched.krishRows ?? []).length === 1 ? '' : 's'} or pitch${(pitched.krishRows ?? []).length === 1 ? '' : 'es'} to someone in it written as his own row${(pitched.krishRows ?? []).length === 1 ? '' : 's'}; ${unsure} held because Control Center ${networkRoutes ? 'could not say' : 'does not yet say'} whether the person is in it.`);

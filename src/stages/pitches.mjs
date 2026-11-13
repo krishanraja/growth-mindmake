@@ -5,6 +5,7 @@ import { showNoteRows } from './shownotes.mjs';
 import { shadowLine, stageVerdict, stageStrength, ccStageVerdict, isDeadDate } from './visibility.mjs';
 import { guestVerdictOf, guestStrength, isCircleGuest, WARM_TIERS } from './guests.mjs';
 import { routeFromEvidence, ownSites } from './routes.mjs';
+import { advisoryPerson } from './pilots.mjs';
 
 /**
  * Podcast pitches, written in Jonny's voice for Krish (protocol 1.9.0, playbook 11).
@@ -518,10 +519,12 @@ export const NETWORK_HOLD = Object.freeze({ krish: 'network_is_krish', unknown: 
 /** A card's line for someone in his network when nothing more is on record. */
 const IN_NETWORK_KNOWN = 'They are in your own network, so you write to them yourself.';
 
-/** The tier each network list the context serves gives a contact (network, quiet_ties, amplifier_candidates), by lower-cased id; one of his own tiers wins. Pure. */
+/** The tier each network list the context serves gives a contact (network, quiet_ties, amplifier_candidates, and a person an Advisory row carries), by lower-cased id; one of his own tiers wins. Pure. */
 export function networkListed(context) {
   const out = new Map();
-  const lists = [context?.network, context?.quiet_ties, context?.amplifier_candidates].flatMap(l => Array.isArray(l) ? l : []);
+  // A person an Advisory row carries (src/stages/pilots.mjs advisoryPerson, docs/GET-GOING.md 1.1b) is on his network by the same tier.
+  const advisory = (Array.isArray(context?.records?.advisory) ? context.records.advisory : []).map(advisoryPerson).filter(Boolean);
+  const lists = [context?.network, context?.quiet_ties, context?.amplifier_candidates, advisory].flatMap(l => Array.isArray(l) ? l : []);
   for (const c of lists) {
     if (typeof c?.contact_id !== 'string') continue;
     const id = c.contact_id.toLowerCase(), tier = typeof c.network_tier === 'string' ? c.network_tier : null;

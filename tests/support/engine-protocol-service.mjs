@@ -113,8 +113,13 @@ export function directiveFixture(changes = {}) {
   };
 }
 
-export async function startProtocolService({ token = STAND_IN_TOKEN, directive = directiveFixture(), decisions = [], activatedOn = '2026-10-18', active = true, recorded = true, credits = false, foundRoutes = null, activation = null, engineState = false } = {}) {
-  const reports = new Map(), attempts = new Map(), requests = [], faults = [];
+/**
+ * `research`, when given, serves the research desk with Control Center's own rules (api/_growthResearch.ts): 1 to 10
+ * requests a call, a request id twice in one call refused whole (400), an id stored before with other words refused
+ * whole (409), a stored id replayed as stored, and a new one answered by `research(request, now)` and stored.
+ */
+export async function startProtocolService({ token = STAND_IN_TOKEN, directive = directiveFixture(), decisions = [], activatedOn = '2026-10-18', active = true, recorded = true, credits = false, foundRoutes = null, activation = null, engineState = false, research = null, now = '2026-10-27T09:00:00.000Z' } = {}) {
+  const reports = new Map(), attempts = new Map(), requests = [], faults = [], researchStore = new Map();
   const base = '/api/growth/engines/mindmake/';
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://stand-in.test');
@@ -166,6 +171,15 @@ export async function startProtocolService({ token = STAND_IN_TOKEN, directive =
       const acksAnswer = body.mode === 'live' && body.instruction_acks?.length ? { applied: body.instruction_acks.length, unknown: 0, stale: 0 } : undefined;
       reply(200, { accepted: true, run_id: body.run_id, payload_sha256: body.payload_sha256, replayed: Boolean(prior), ...(routesAnswer !== undefined ? { found_routes: routesAnswer } : {}), ...(acksAnswer ? { instruction_acks: acksAnswer } : {}) }); return;
     }
+    if (route === 'research' && req.method === 'POST' && research) {
+      const list = body?.requests;
+      if (!Array.isArray(list) || list.length < 1 || list.length > 10) { reply(400, { error: 'research takes 1 to 10 requests' }); return; }
+      const ids = list.map(r => r?.request_id);
+      if (new Set(ids).size !== ids.length) { reply(400, { error: 'request_id appears twice' }); return; }
+      for (const r of list) { const stored = researchStore.get(r.request_id); if (stored && (stored.kind !== r.kind || stored.query !== r.query)) { reply(409, { error: `request ${r.request_id} was already asked with different words` }); return; } }
+      const out = list.map(r => { if (!researchStore.has(r.request_id)) researchStore.set(r.request_id, { ...r, requested_at: now, answered_at: now, ...research(r, now) }); return researchStore.get(r.request_id); });
+      reply(200, { ok: true, research: out }); return;
+    }
     if (route?.startsWith('reports/') && req.method === 'GET') {
       const r = reports.get(decodeURIComponent(route.slice(8)));
       reply(r ? 200 : 404, r ? { accepted: true, run_id: r.report.run_id, ...r } : { error: 'not_found' }); return;
@@ -176,7 +190,7 @@ export async function startProtocolService({ token = STAND_IN_TOKEN, directive =
   await once(server, 'listening');
   const localOrigin = `http://127.0.0.1:${server.address().port}`;
   return {
-    origin: 'https://controlcenter.example.test', localOrigin, token, reports, attempts, requests,
+    origin: 'https://controlcenter.example.test', localOrigin, token, reports, attempts, requests, researchStore,
     fault(method, route, status, body) { faults.push({ method, route, status, body }); },
     drop(method, route) { faults.push({ method, route, drop: true }); },
     fetcher(input, init) { const u = new URL(input); return fetch(new URL(u.pathname + u.search, localOrigin), init); },

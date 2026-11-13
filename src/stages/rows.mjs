@@ -32,7 +32,7 @@ export const BRIEF_LINE_MAX = 200;
 
 /** The ask decides the row. */
 export const ASK_FOR = { investor: 'partner', ai_capital: 'partner', ai_trainer: 'partner', connector: 'introduce', broadcaster: 'appear', ceo_educator: 'teach', student_educator: 'teach' };
-export const ROW_FOR = { partner: 'partners', introduce: 'reach_out', appear: 'visibility', teach: 'events', relationship: 'network', signal: 'reach_out' };
+export const ROW_FOR = { partner: 'partners', introduce: 'reach_out', appear: 'visibility', teach: 'events', relationship: 'network', signal: 'reach_out', buyer: 'reach_out' };
 
 // Who someone is, from the words on their record. A title is never proof of
 // wealth, authority or permission (playbook 03): ai_capital needs a named
@@ -375,6 +375,7 @@ const ASK_WORDS = {
   teach: kind => `a session for their ${kind === 'student_educator' ? 'students' : 'leaders'}`,
   relationship: () => 'a catch-up call, nothing more',
   signal: () => 'a reply to their comment, with the one Mindmake link',
+  buyer: () => 'the one ask on Mindmake\'s site, for a leader who can decide',
 };
 const BAND_WORDS = { under_1k: 'under 1,000', '1k_10k': '1,000 to 10,000', '10k_100k': '10,000 to 100,000', '100k_1m': '100,000 to 1 million', over_1m: 'over 1 million', unknown: 'not yet known' };
 const reachWords = r => r?.value ? `${r.value.toLocaleString('en-GB')}, ${r.basis}` : `${BAND_WORDS[r?.band] ?? 'not yet known'}${r?.band && r.band !== 'unknown' ? `, ${r.basis}` : ''}`;
@@ -416,8 +417,9 @@ export function caseFor({ c, name, company: rawCompany, ask, kind, reach, fit, s
     knownWords(c).length <= BRIEF_LINE_MAX ? knownWords(c) : mailWords(c),
     ...(story ? [cutClean(`${story}.`, BRIEF_LINE_MAX)] : []),
     askLine,
-    ...(ask === 'relationship' ? [] : [clause(`Reach: ${reachWords(reach)}`, BRIEF_LINE_MAX)]),
-    `Mindmake fit ${fit} of 100, as Control Center scores it.`,
+    // A tie or a buyer is a relationship, not an audience: no reach line. A fit Control Center has not scored is not said.
+    ...(['relationship', 'buyer'].includes(ask) ? [] : [clause(`Reach: ${reachWords(reach)}`, BRIEF_LINE_MAX)]),
+    ...(Number.isFinite(fit) ? [`Mindmake fit ${fit} of 100, as Control Center scores it.`] : []),
   ].filter(Boolean);
   return { because, brief: brief.slice(0, 6).map(l => cutClean(l, BRIEF_LINE_MAX)) };
 }
@@ -745,10 +747,14 @@ export function factSources(facts) {
     .map(f => ({ label: `Their post${monthYear(f.observed_at) ? `, ${monthYear(f.observed_at)}` : ''}`, url: f.source_url }));
 }
 
-/** Why them, and why now: whole sentences from the record, the most specific first. */
-export function whyLines(c, { ask, quietSince, company, profile, at }) {
+/**
+ * Why them, and why now: whole sentences from the record, the most specific first. `lead` lines a stage already
+ * knows are the reason (a warm buyer's cited trigger and why this person, src/stages/pilots.mjs) come first.
+ */
+export function whyLines(c, { ask, quietSince, company, profile, at, lead = [] }) {
   const lines = [];
   const add = s => { if (s && s.length <= CARD_LINE_MAX && !lines.some(l => l.slice(0, 40).toLowerCase() === s.slice(0, 40).toLowerCase())) lines.push(s); };
+  for (const l of Array.isArray(lead) ? lead : []) add(typeof l === 'string' ? l : '');
   if (ask === 'relationship' && quietSince) add(`A close tie, and nothing between you since ${quietSince}.`);
   // What Control Center holds as facts comes before its prose (1.10.0).
   for (const l of factLines(c?.facts)) add(l);
@@ -795,6 +801,7 @@ export function gainLines({ ask, kind, name, reach, fit, serves, company = '', s
       ? room('A partner in front of the people they train', GATHERED)
       : room(`A working session for the leaders ${company ? `${company} backs or gathers` : 'they back or gather'}`, GATHERED),
     signal: () => ['A reply to someone who has said in public they have the problem Mindmake works on.'],
+    buyer: () => [`One reply could be a first meeting with ${f}, a leader who can move the decision.`],
   }[ask]?.() ?? [];
   const goal = serves ? within(`It serves this week's goal: ${serves.replace(/[.!?]+$/, '')}.`) : '';
   return [...lead.map(l => within(l)).filter(Boolean).slice(0, CARD_LINES - (goal ? 1 : 0)), ...(goal ? [goal] : [])];
@@ -840,6 +847,7 @@ export function angleLines({ ask, kind, name, c, company, canon }) {
     appear: [publication, brain],
     teach: [intern, publication, brain],
     signal: [reply, start],
+    buyer: [start, brain],
   }[ask] ?? [brain];
   const out = [];
   for (const a of order) {
@@ -888,10 +896,10 @@ export function profileOf(research, id) {
  * The full card for one row suggestion, or null when it cannot say who they
  * are and why them: a thinner row is better than a card that says nothing.
  */
-export function cardFor({ c, id, name, title, company, ask, kind, reach, fit, serves, canon, research = [], companyRow = null, quietSince = null, at, extraSources = [], show = '' }) {
+export function cardFor({ c, id, name, title, company, ask, kind, reach, fit, serves, canon, research = [], companyRow = null, quietSince = null, at, extraSources = [], show = '', lead = [] }) {
   const profile = profileOf(research, id);
   const who = leadSentences(titleCase(plain(c?.who)), CARD_WHO_MAX, 2) || leadFacts(profile?.answer, CARD_WHO_MAX, 1) || wholeRole(title, company, CARD_WHO_MAX);
-  const why = whyLines(c, { ask, quietSince, company: companyRow, profile: profile?.answer, at });
+  const why = whyLines(c, { ask, quietSince, company: companyRow, profile: profile?.answer, at, lead });
   const gain = gainLines({ ask, kind, name, reach, fit, serves, company, show });
   if (!who || !why.length || !gain.length) return null;
   const angles = angleLines({ ask, kind, name, c, company, canon });
@@ -1311,8 +1319,9 @@ export function sentenceSkeletons(body, names = []) {
   return t.split(/(?<=[.?!])\s+|\n+/)
     .map(s => s.split(/\s+/).filter(w => w && !/^["'(“]?[\p{Lu}\d$]/u.test(w)).join(' ').toLowerCase().replace(/[^a-z' ]+/g, ' ').replace(/\s+/g, ' ').trim())
     .filter(s => s.split(' ').length >= 4)
-    // His own frame, the same to everyone in real life (Krish, 2026-11-06): it has been a while, why he is reaching out, a quick chat.
-    .filter(s => !/\b(?:been a while|long time|reaching out|quick chat|quick call)\b/.test(s));
+    // His own frame, the same to everyone in real life (Krish, 2026-11-06): it has been a while, why he is reaching out, a quick chat,
+    // and the one line on what he is building that a catch-up and a warm buyer's note both carry.
+    .filter(s => !/\b(?:been a while|long time|reaching out|quick chat|quick call|the way a leader thinks)\b/.test(s));
 }
 /** A body with the greeting, the names and the sign-off taken out, as one string of its skeletons. Pure. */
 export function bodySkeleton(body, names = []) { return sentenceSkeletons(body, names).join(' | '); }
@@ -1330,14 +1339,19 @@ export function namesOf(p) {
  * an earlier send once slots are out: [{ proposal_id, same_as, shared }]. Empty
  * is a pass. The earlier send, ranked first, keeps its place. Pure.
  */
-export function sharedBodies(proposals) {
+export function sharedBodies(proposals, { frame = [], framed = () => false } = {}) {
   const kept = [], out = [];
+  // A warm buyer's note is fixed text around the desk's one sentence (src/stages/openings.mjs warmNote). Its fixed sentences
+  // (`frame`, whole sentences, never a phrase inside one) are said the same to everyone and are not counted, for those notes
+  // only (`framed`); what is left is the one sentence that is theirs, and it may share none. Every other email is read as before.
+  const fixed = new Set(frame.flatMap(f => sentenceSkeletons(f)));
   for (const p of Array.isArray(proposals) ? proposals : []) {
     let a; try { a = JSON.parse(p?.exact_payload ?? 'null'); } catch { a = null; }
     if (!a || typeof a.body !== 'string' || a.channel === 'form') continue;
-    const mine = new Set(sentenceSkeletons(a.body, namesOf(p)));
+    const own = framed(p);
+    const mine = new Set(sentenceSkeletons(a.body, namesOf(p)).filter(s => !own || !fixed.has(s)));
     if (!mine.size) continue;
-    const clash = kept.find(k => [...mine].filter(s => k.set.has(s)).length > SHARED_SENTENCES_MAX);
+    const clash = kept.find(k => [...mine].filter(s => k.set.has(s)).length > (own ? 0 : SHARED_SENTENCES_MAX));
     if (clash) out.push({ proposal_id: p.proposal_id, same_as: clash.id, shared: [...mine].filter(s => clash.set.has(s)).length });
     else kept.push({ id: p.proposal_id, set: mine });
   }
@@ -1411,13 +1425,20 @@ export const OBJECTIVE = policy.north_star.objective;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** One row proposal, shaped as dispatch's finishProposal expects. */
-export function rowProposal({ row, ask, contactId, name, title, why, because, brief, card, action, reach, kind, features, serves, files, evidence, at }) {
+/**
+ * One row proposal, shaped as dispatch's finishProposal expects. Its id is the
+ * person, the row and the ask; a play of its own (a warm buyer's `warm_ask` or
+ * `intro_ask`, src/stages/pilots.mjs) is keyed by the play and the month its
+ * reason to write is from instead, and closes on its own reference, so it never
+ * shares an id or a close with another row's ask to the same person (an
+ * amplifier's connector ask is also `introduce` on REACH OUT).
+ */
+export function rowProposal({ row, ask, contactId, name, title, why, because, brief, card, action, reach, kind, features, serves, files, evidence, at, play = null, month = null }) {
   return {
-    proposal_id: `gmw-${seal({ subject: contactId, row, ask }).slice(0, 32)}`,
+    proposal_id: `gmw-${seal(play ? { subject: contactId, row, play, month } : { subject: contactId, row, ask }).slice(0, 32)}`,
     title, why: clean(why).slice(0, 1000), kind: 'prepared', wall: 'send', channel: action.channel, amount_usd: 0,
     objective_key: OBJECTIVE, exact_payload: JSON.stringify(action), target: contactId,
-    evidence: evidence.slice(0, 12), close_condition: { event: 'outreach_sent', reference: `${row}:${ask}` },
+    evidence: evidence.slice(0, 12), close_condition: { event: 'outreach_sent', reference: `${row}:${play ?? ask}` },
     expires_at: new Date(Date.parse(at) + 14 * DAY).toISOString(), stage: null, parent_proposal_id: null,
     row, reach, amplifier_kind: kind, features, serves, source_revision: files.slice(0, 8), name,
     // 1.7.0: the line under the title and the brief a tap opens. Dispatch drops both for an older Control Center.
@@ -1644,6 +1665,7 @@ export function titleFor(ask, kind, rawName, company, max = TITLE_MAX, show = ''
     ? fit(`Pair Mindmake with ${name}'s AI training`, `Pair Mindmake with ${f}'s AI training`)
     : fit(`Offer ${name}${at ? ` at ${at}` : ''} a session for their leaders`, `Offer ${name} a session for their leaders`, `Offer ${f} a session for their leaders`, `Offer ${f} a session`);
   if (ask === 'introduce') return fit(`Ask ${name} for one introduction`, `Ask ${f} for one introduction`);
+  if (ask === 'buyer') return fit(`Write to ${name} about Mindmake`, `Write to ${f} about Mindmake`, `Write to ${f}`);
   if (ask === 'appear') return show ? fit(`Ask ${name} to have you on ${show}`, `Ask ${f} to have you on ${show}`, `Ask to go on ${show}`, `Ask ${f} for a guest spot`) : fit(`Ask to go on ${name}'s channel`, `Ask to go on ${f}'s channel`);
   if (ask === 'teach') return fit(`Offer ${name} a session for their ${kind === 'student_educator' ? 'students' : 'leaders'}`, `Offer ${f} a session for their ${kind === 'student_educator' ? 'students' : 'leaders'}`, `Offer ${f} a session`);
   return fit(`Reach out to ${name}`, `Reach out to ${f}`);
