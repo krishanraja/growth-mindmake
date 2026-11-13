@@ -209,3 +209,13 @@ In his words (11 November): "Ensure the priorities, obsessions, and next steps f
 - His words are never printed, logged or committed: this repository and its Actions logs are public, so only the id and a SHA-256 digest leave memory, except as a row's `serves` in the report Control Center keeps.
 - The engine reports its `priorities`, `obsessions` and `next_steps` from this repository's own files and the run's own numbers, never invented, where Control Center serves `features.engine_state`.
 - No wall moves: an instruction is never an approval, so a send, post, spend, delete or permission change it asks for still comes back to him as a proposal he approves by its digest.
+
+## AEO-Engine is the one AI-answers specialist (Ruling, Krish, 2026-11-12)
+
+In his words (12 November, on Control Centre's Engines panel showing "mind/make, Mindmake" and "mind/make, AI answers" side by side): "this UI is terrible - shouldn't every Engine take care of its own AI answers calling on AEO-engine which is supposed to be the specialist at this job? Why is mindmake separate to mindmake ai answers?" Then, answering: "AEO-Engine becomes the one specialist that every venture's growth engine calls for its AI-answer work. Each venture's tile shows its own AI-answer standing, the separate 'mind/make, AI answers' tile goes, and Control Centre's own AI-answer checks and Heartside's separate Answers job fold into AEO." And on AEO's North Star: "the share counts the questions asked that fortnight (1 of 100 = 1% on 8 Nov); questions not asked stay unknown rather than lost."
+
+- This engine never asks an AI assistant itself. Mindmake's AI-answer work is AEO-Engine's, asked for through Control Center's protocol (1.22.0, `POST answers`): the questions the weekly review plans for Mindmake's places (src/stages/places.mjs `enginePlan`) and the hosts the canon names, once, when Mindmake has no request on file (src/stages/answers.mjs).
+- Mindmake's standing is read back from each directive (`ai_answers`) and said in one line; it is on Mindmake's own tile in Control Center.
+- M13's `places` plan, which Control Center's retired Monday probe owed, now goes to AEO; nothing of it goes into a report.
+- No wall moves: asking AEO is not spending, and AEO asks at its own research run under its own cap.
+

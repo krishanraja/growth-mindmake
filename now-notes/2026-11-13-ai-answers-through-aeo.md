@@ -1,0 +1,3 @@
+Status: Mindmake's AI answers are AEO-Engine's, the one AI-answers specialist (Ruling, Krish, 2026-11-12): each run reads Mindmake's standing from the directive (protocol 1.22.0, ai_answers) and, when none is on file, asks AEO once with the weekly review's planned questions for Mindmake's places and the canon's hosts (src/stages/answers.mjs). The ruling is in docs/RULINGS.md. The protocol copy in docs/control-center/ is Control Center's at 36df34bc (protocol 1.22.0).
+Next: After AEO-Engine's research run of Sunday 2026-11-22, read Mindmake's tile in Control Center and confirm the request the engine filed is marked served.
+North Star check (2026-11-13): holds.

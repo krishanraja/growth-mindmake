@@ -47,6 +47,7 @@ Each is in docs/RULINGS.md word for word, with his quotes; a line here says what
 - A catch-up is written as a person writes one (Ruling, Krish, 2026-11-06): a while, why now, why you, a quick chat.
 - One voice (Rulings, Krish, 2026-11-07): emails pass the voice check.
 - The reader check (Ruling, Krish, 2026-11-10): fresh simulated readers read drafts in shadow, never as evidence, and earn weight only on real replies or are retired.
+- AEO-Engine is the one AI-answers specialist (Ruling, Krish, 2026-11-12): this engine never asks an AI assistant itself; it asks AEO for Mindmake's AI-answer work through the protocol (1.22.0) with the weekly review's planned questions, and reads its standing back.
 - Krish instructs each engine, and its state is live (Ruling, Krish, 2026-11-11): his next best action goes first in the run that reads it and is acked by id, his words are never printed, logged or committed, the engine reports its priorities, obsessions and next steps from its own files, and no wall moves.
 
 ## Current release boundary
