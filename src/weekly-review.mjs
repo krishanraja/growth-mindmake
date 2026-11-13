@@ -3,6 +3,7 @@ import { chooseImprovement } from './stages/report.mjs';
 import { ageDays, seal } from './guards.mjs';
 import { parseImprovement } from '../contracts/reporting.ts';
 import { placesReview } from './stages/places.mjs';
+import { readKits } from './stages/answers.mjs';
 
 /**
  * Plan section 12, M13: where Mindmake's buyers already go and which questions
@@ -13,6 +14,51 @@ import { placesReview } from './stages/places.mjs';
 export function weeklyPlaces({ touchpoints = null, probes = null, accounts = null, canon = null }, at) {
   if (!Number.isFinite(Date.parse(at))) throw new Error('Weekly places need the review time');
   return placesReview({ touchpoints, probes, accounts, canon, at });
+}
+
+/** The weekly review carries at most this many of AEO's win kits, the best priority across Mindmake and its portfolio. */
+export const WEEKLY_KITS = 5;
+
+/** A kit as a decision aid for the Trust-Asset Steward (docs/playbooks/04-decision-aids.md): the buyer's question is the decision, AEO's outline the page. Pure. */
+const decisionAid = k => ({
+  kit_id: k.kit_id, product: k.product, decision: k.question ?? k.title, title: k.title, sections: k.h2s,
+  rules: k.capsule.rules, must_cover: k.capsule.must_cover, target: k.target,
+  beat_hosts: [...new Set(k.beat.map(b => b.host).filter(Boolean))], evidence: k.evidence
+});
+/** A kit as an angle for pitches: the question buyers ask AI assistants, and the places AEO says answer it first. Pure. */
+const pitchAngle = k => ({
+  kit_id: k.kit_id, product: k.product, angle: k.question ?? k.title,
+  places: [...new Set(k.off_site.map(o => o.host).filter(Boolean))]
+});
+
+/**
+ * AEO's win kits (Ruling, Krish, 2026-11-13: AEO's win kits reach him through each venture's own growth engine):
+ * up to five, the best priority across Mindmake and its portfolio (CTRL, Circle and Pulse), each shaped as a decision
+ * aid for the Trust-Asset Steward and as an angle for pitches. No stage reads these shapes yet: the dispatch reports
+ * their counts and nothing more, and the weekly review object (contracts/operations.ts `parseWeeklyReview`, posted to
+ * Control Center) does not carry them. Only where Control Center serves `features.ai_answers_detail` (`detail`);
+ * before that every part is null and nothing is assumed. The kits' words live in the run's memory only (this
+ * repository is public): a report or a log carries `weeklyKitsLine`'s counts. Pure.
+ */
+export function weeklyAnswerKits({ standing = null, detail = false } = {}) {
+  if (detail !== true) return { ai_answer_kits: null, trust_asset_steward: null, pitches: null, read: null };
+  const { kits, dropped, mindmake, portfolio } = readKits(standing);
+  const ai_answer_kits = kits.slice(0, WEEKLY_KITS);
+  return {
+    ai_answer_kits,
+    trust_asset_steward: ai_answer_kits.map(decisionAid),
+    pitches: ai_answer_kits.map(pitchAngle),
+    read: { mindmake, portfolio, dropped }
+  };
+}
+
+/** The kits in one line, counts only, never a kit's words, saying only what the run did with them; null where kits are not served. Pure. */
+export function weeklyKitsLine(review) {
+  if (!review?.read) return null;
+  const { mindmake, portfolio, dropped } = review.read, n = review.ai_answer_kits.length;
+  const left = dropped ? `, ${dropped} misshapen and left out` : '';
+  if (!mindmake && !portfolio) return `AI-answer kits from AEO-Engine: none served this run${left}.`;
+  return `AI-answer kits from AEO-Engine: ${mindmake} for Mindmake and ${portfolio} for its portfolio read${left}, the best ${n} kept in this run's memory; no stage uses them yet.`;
 }
 
 export function weeklyReview(input, policy, at) {

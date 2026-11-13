@@ -1,5 +1,10 @@
 # Release state
 
+## AEO's win kits and the request's digest (proposed protocol 1.23.0), 13 November 2026 (Ruling, Krish, 2026-11-13)
+
+- **Built and tested.** Where the directive serves `features.ai_answers_detail`, the run reads AEO's win kits for Mindmake and its portfolio (CTRL, Circle and Pulse) loosely, best priority first (`kitsFor` in src/stages/answers.mjs; a missing or misshapen field means no kits, never an error), and keeps the best five in the run's memory, shaped as decision aids for the Trust-Asset Steward and as angles for pitches (`weeklyAnswerKits` in src/weekly-review.mjs). The report carries one line of counts that says no stage uses them yet; a kit's words never leave the run's memory. Where the request on file carries `digest`, the run asks AEO again when its plan's digest differs (`questionsDigest`, Control Center's definition, tested on a fixed vector Python gives byte for byte), and says `mode: 'replace'`, once for an exact list: the line that asks carries the list's short digest mark (`questionsMark`), and a run that reads it back from its recent reports (`askedMarks`) while the request on file still differs says so and waits for the plan to change; with no digest the count rule stands. Each page to beat keeps AEO's `features` object (`readFeatures`).
+- **Not yet:** no stage reads the kits: no pitch or decision aid is written from one, and the weekly review object Control Center keeps (`parseWeeklyReview`) does not carry them; this engine sends no `shipped` or `targets`, having no record of either. **Consumer pending:** Control Center has not shipped `features.ai_answers_detail`, so every live run is unchanged until it does.
+
 ## The docs match the engine, acks only on a change, and notes fold by themselves, 12 November 2026
 
 Krish, 2026-11-12: "Are the project documentations up to date, 100%, every single word, with what this engine now is and how it works?"
