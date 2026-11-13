@@ -28,6 +28,7 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 Lifecycle: building. The detail is in `README.md`.
 
+- The full-funnel build is set (docs/GET-GOING.md, "The full-funnel build", Waves 0 to 3) on Krish's four rulings of 13 November (docs/RULINGS.md, "The full-funnel engine"): cold outbound on email, LinkedIn and calls within the law, Maven Lightning Lessons every two weeks, up to 10 morning drafts a day in his Gmail with no press, and his personal LinkedIn. The good count now reads as a floor while any meeting he held that week is untapped, and the gap line names held and not tapped. Video notes are held as clone_realism_unproven (N21), since his clone was cleared for Mindmake outbound on 22 October and realism is what holds it now. (2026-11-13)
 - Mindmake's AI answers are AEO-Engine's, the one AI-answers specialist (Ruling, Krish, 2026-11-12): each run reads Mindmake's standing from the directive (protocol 1.22.0, ai_answers) and, when none is on file, asks AEO once with the weekly review's planned questions for Mindmake's places and the canon's hosts (src/stages/answers.mjs). The ruling is in docs/RULINGS.md. The protocol copy in docs/control-center/ is Control Center's at 36df34bc (protocol 1.22.0). (2026-11-13)
 - The Control Center brief says Control Center serves 1.0.0 to 1.21.0 (this engine speaks up to 1.20.0) and that the directive's good_meetings target is this repository's north-star block's (20 by 30 November), read each morning, never the registry's copy (krishanraja/control-center#718). (2026-11-12)
 - The protocol copy is Control Center's at 212379e1 (1.21.0): its voice_check row lists exactly the 16 channels Control Center's voice check accepts, it says the number objective's target is this repository's own north-star block, and the circle lane files a stranger as cold_scraped. 1.21.0 itself adds only growth-makeyourmindup's inspiration instructions; this engine still speaks up to 1.20.0 (ENGINE_STATE_VERSION in src/stages/instruction.mjs). (2026-11-12)
@@ -43,6 +44,7 @@ Lifecycle: building. The detail is in `README.md`.
 The 27 October trusted-distribution closeout is in [the dated handoff](docs/history/2026-10-27-growth-session-handoff.md). The 22 October producer and Control Center release and its preparation-only canary are historical evidence, not proof of today's outcomes. Of the five 22 October route plans, four were withdrawn on 27 October because their Advisory records are gone, and one is still a real ask on his list. Later AGENTS.md human-action rules and the forms and mailbox gates remain in force.
 
 ## What changed recently
+- 2026-11-13 Krish, 2026-11-13: "This should be as autonomous as possible."
 - 2026-11-12 Krish, 2026-11-12: "make sure everything's a cohesive system and that the project documentation is 100% up to date with absolutely nothing old or misleading left in there".
 - 2026-11-12 docs/control-center/ENGINE-PROTOCOL.md, refreshed word for word.
 - 2026-11-12 scripts/pack.mjs (CANON_BLOCK, withoutCanon, packed), tests/support/rulings.mjs, tests/pack.test.mjs, AGENTS.md ("Every session: the pack"), docs/OWNERS.md. With ai-harness's canon block (pull request #51) the heaviest pack is under 36 KB and all 629 tests pass.
@@ -57,9 +59,9 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-13): After AEO-Engine's research run of Sunday 2026-11-22, read Mindmake's tile in Control Center and confirm the request the engine filed is marked served.
+- Next (2026-11-13): Control Center's held meetings and morning drafts lane (0.1 to 0.3) merge and read back on the next 05:10 run.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
-- North Star check (2026-11-13): holds.
+- North Star check (2026-11-13): recalibration proposed. The near-term line "every paid proof starts from a warm path or a room, never a list" contradicts his 13 November ruling that cold outbound from lists is in scope; only he changes it.
 
 ### Existing integration gates to retain
 
