@@ -1,3 +1,0 @@
-Status: Advisory's listed buyers and intro asks leave shadow as REACH OUT rows for his own box, at most five a run, each note one desk sentence (the reason to write now, from a cited trigger) inside fixed text, read by fixed rules that refuse anything said of him, any invented number and any claim past the trigger. Control Center serves their person rows at protocol 1.25.0. The selling-partner proposal is prepared in his Gmail for his send.
-Next: read the first live report after Control Center's 1.25.0 deploy: warm notes written or held by name, and no `pilot_person_not_served` line.
-North Star check (2026-11-13): holds.

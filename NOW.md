@@ -28,6 +28,7 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 Lifecycle: building. The detail is in `README.md`.
 
+- Advisory's listed buyers and intro asks leave shadow as REACH OUT rows for his own box, at most five a run, each note one desk sentence (the reason to write now, from a cited trigger) inside fixed text, read by fixed rules that refuse anything said of him, any invented number and any claim past the trigger. Control Center serves their person rows at protocol 1.25.0. The selling-partner proposal is prepared in his Gmail for his send. (2026-11-13)
 - Requests to AEO-Engine take up to 25 planned questions under their own cap (not the twelve of MAX_PROBES_PER_RUN), filtered as Control Center filters them. The run asks again only when the plan's valid questions outgrow the request on file, and only when the canon's offer was read; once Control Center serves a request digest, a differing digest re-asks once per list. A standing Control Center could not read is never taken as no request on file. Once Control Center serves features.ai_answers_detail, AEO's kits for Mindmake and CTRL, Circle and Pulse are read into memory and reported as counts (Ruling, Krish, 2026-11-13: AEO's win kits reach him through each venture's own growth engine); no stage writes words from them yet. Control Center holds one request from this engine (one question, filed 13 November) for AEO's 22 November run. (2026-11-13)
 - Wave 0 is live in Control Center: every untapped held meeting is asked about at once (#736), morning drafts of this engine's email rows land in his Gmail each morning with no press and a reply comes to his list to book the call (#742, protocol 1.23.0), and a first meeting with someone new is kept and counted, with four more meeting paths (#743, protocol 1.24.0). Warm buyers (0.6) are built and held until the desk's words are safe and Control Center serves the Advisory buyers. (2026-11-13)
 - The engine now reads the full-funnel meeting paths (webinar, post-engager, cold-outbound, video-note) before Control Center records them, so the good-meetings count stays whole when it does. A meeting with a path the engine does not know is counted with the path unknown instead of blanking the number, and a meeting with nobody filed yet still counts. The new paths go in a report only once Control Center serves 1.24.0 with `features.meeting_paths`. (2026-11-13)
@@ -58,7 +59,7 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-13): after AEO's research run of 22 November, confirm the request is marked served and read Mindmake's standing.
+- Next (2026-11-13): read the first live report after Control Center's 1.25.0 deploy: warm notes written or held by name, and no `pilot_person_not_served` line.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 - North Star check (2026-11-13): holds.
 
