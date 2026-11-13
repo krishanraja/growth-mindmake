@@ -28,6 +28,7 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 Lifecycle: building. The detail is in `README.md`.
 
+- Requests to AEO-Engine take up to 25 planned questions under their own cap (not the twelve of MAX_PROBES_PER_RUN), filtered as Control Center filters them. The run asks again only when the plan's valid questions outgrow the request on file, and only when the canon's offer was read; once Control Center serves a request digest, a differing digest re-asks once per list. A standing Control Center could not read is never taken as no request on file. Once Control Center serves features.ai_answers_detail, AEO's kits for Mindmake and CTRL, Circle and Pulse are read into memory and reported as counts (Ruling, Krish, 2026-11-13: AEO's win kits reach him through each venture's own growth engine); no stage writes words from them yet. Control Center holds one request from this engine (one question, filed 13 November) for AEO's 22 November run. (2026-11-13)
 - Wave 0 is live in Control Center: every untapped held meeting is asked about at once (#736), morning drafts of this engine's email rows land in his Gmail each morning with no press and a reply comes to his list to book the call (#742, protocol 1.23.0), and a first meeting with someone new is kept and counted, with four more meeting paths (#743, protocol 1.24.0). Warm buyers (0.6) are built and held until the desk's words are safe and Control Center serves the Advisory buyers. (2026-11-13)
 - The engine now reads the full-funnel meeting paths (webinar, post-engager, cold-outbound, video-note) before Control Center records them, so the good-meetings count stays whole when it does. A meeting with a path the engine does not know is counted with the path unknown instead of blanking the number, and a meeting with nobody filed yet still counts. The new paths go in a report only once Control Center serves 1.24.0 with `features.meeting_paths`. (2026-11-13)
 - The full-funnel build is set (docs/GET-GOING.md, "The full-funnel build", Waves 0 to 3) on Krish's four rulings of 13 November (docs/RULINGS.md, "The full-funnel engine"): cold outbound on email, LinkedIn and calls within the law, Maven Lightning Lessons every two weeks, up to 10 morning drafts a day in his Gmail with no press, and his personal LinkedIn. The good count now reads as a floor while any meeting he held that week is untapped, and the gap line names held and not tapped. Video notes are held as clone_realism_unproven (N21), since his clone was cleared for Mindmake outbound on 22 October and realism is what holds it now. (2026-11-13)
@@ -46,6 +47,7 @@ Lifecycle: building. The detail is in `README.md`.
 The 27 October trusted-distribution closeout is in [the dated handoff](docs/history/2026-10-27-growth-session-handoff.md). The 22 October producer and Control Center release and its preparation-only canary are historical evidence, not proof of today's outcomes. Of the five 22 October route plans, four were withdrawn on 27 October because their Advisory records are gone, and one is still a real ask on his list. Later AGENTS.md human-action rules and the forms and mailbox gates remain in force.
 
 ## What changed recently
+- 2026-11-13 Mindmake asks AEO-Engine for up to 25 planned questions under their own cap, re-asks when the plan grows or the digest differs, and reads AEO's win kits once Control Center serves them (Krish, 13 November).
 - 2026-11-13 Krish, 2026-11-13: "This should be as autonomous as possible."
 - 2026-11-12 Krish, 2026-11-12: "make sure everything's a cohesive system and that the project documentation is 100% up to date with absolutely nothing old or misleading left in there".
 - 2026-11-12 docs/control-center/ENGINE-PROTOCOL.md, refreshed word for word.
@@ -59,7 +61,7 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-13): read the first morning drafts on 14 November (05:00 to noon New York) and the run's `drafts` part showing job `morning`.
+- Next (2026-11-13): after AEO's research run of 22 November, confirm the request is marked served and read Mindmake's standing.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 - North Star check (2026-11-13): holds.
 
