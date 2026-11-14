@@ -6,6 +6,12 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
 
+- Wave 0 is live in Control Center: every untapped held meeting is asked about at once (#736), morning drafts of this engine's email rows land in his Gmail each morning with no press and a reply comes to his list to book the call (#742, protocol 1.23.0), and a first meeting with someone new is kept and counted, with four more meeting paths (#743, protocol 1.24.0). Warm buyers (0.6) are built and held until the desk's words are safe and Control Center serves the Advisory buyers. (2026-11-13)
+
+## 2026-11-14: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
+
 - The engine now reads the full-funnel meeting paths (webinar, post-engager, cold-outbound, video-note) before Control Center records them, so the good-meetings count stays whole when it does. A meeting with a path the engine does not know is counted with the path unknown instead of blanking the number, and a meeting with nobody filed yet still counts. The new paths go in a report only once Control Center serves 1.24.0 with `features.meeting_paths`. (2026-11-13)
 
 ## 2026-11-14: older NOW.md lines
