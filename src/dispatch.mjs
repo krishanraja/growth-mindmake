@@ -21,7 +21,7 @@ import { pitchRows, lookupRequests } from './stages/pitches.mjs';
 import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, readSpecCounts, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, visibilityTargets, STOPGAP_PREFIX, MEETINGS_VERSION, meetingsServed, readMeetings, countGood, tappedObjective, tappedLine, originCandidates } from './stages/meetings.mjs';
 import { readWeb, trafficLines, bookedHosts } from './stages/traffic.mjs';
 import { readCredits, creditsLine, CREDITS_VERSION, CREDITS_SPENT_MAX } from './stages/credits.mjs';
-import { weekSpec, defaultSpec, parseSpec, compiledDrift, STAGE_CAPS, SPEC_PREFIX, FIRST_SPEC_WEEK } from './crew/compile.mjs';
+import { weekSpec, defaultSpec, parseSpec, compiledDrift, STAGE_CAPS, SPEC_PREFIX, FIRST_SPEC_WEEK, summary as capsSummary } from './crew/compile.mjs';
 import { crewShadow } from './crew/shadow.mjs';
 import { guestsShadow } from './stages/guests.mjs';
 import { visibilityShadow } from './stages/visibility.mjs';
@@ -172,7 +172,7 @@ export function readDirective(value) {
     ai_answers: readAiAnswers(d.ai_answers),
     ai_answers_served: d.features?.ai_answers === true || !!(d.ai_answers && typeof d.ai_answers === 'object'),
     ai_answers_readable: aiAnswersReadable(d.ai_answers),
-    // Proposed 1.23.0: AEO's win kits and the request's digest in the standing, and `mode` on a request, only where served.
+    // 1.26.0 (features.ai_answers_detail): AEO's win kits and the request's digest in the standing, and `mode` on a request, only where served.
     ai_answers_detail: d.features?.ai_answers_detail === true,
     decisions_since: d.decisions_since.filter(x => x && typeof x.proposal_id === 'string' && ['approved','declined'].includes(x.decision)).map(x => ({ proposal_id: x.proposal_id, decision: x.decision, payload_sha256: typeof x.payload_sha256 === 'string' ? x.payload_sha256 : null })),
     in_house: counts && typeof counts === 'object' ? {
@@ -1025,6 +1025,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const gap = gapOf({ northStar: directive.north_star, thisTarget, tapsThisWeek: thisWeekCount?.total ?? null, heldThisWeek: thisWeekCount?.held ?? null, untappedThisWeek: thisWeekCount?.unanswered ?? null });
     const intense = intensify(week.caps, { urgency: gap.urgency, source: week.source, policy });
     const caps = intense.caps;
+    // The spec_unsigned hold names the caps this run uses: raised by urgency, it says so, never the lower settings (audit gm-10).
+    if (intense.raised.length) for (const h of holds) if (h.reason === 'spec_unsigned') h.detail = `${h.detail.replace(/so today's settings apply: .*$/, '')}so today's settings apply, raised at U${gap.urgency} to config/policy.json's bounds: ${capsSummary(caps)}`;
     activity.push(intense.line);
     outcome.intensity = { urgency: gap.urgency, raised: intense.raised.length };
     const booked = suppliedContext ? bookings({ context: suppliedContext, at, weekStart: thisWeek.start, londonDate, addDays }) : null;
@@ -1141,7 +1143,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // 1.22.0: Mindmake's AI answers are AEO-Engine's: one line, and the weekly plan's questions to AEO when none are on file.
     // The recent reports say which exact lists it already asked for (their digest marks), so a digest that never meets never asks every day.
     activity.push(...await answersStep({ cc, standing: directive.ai_answers, served: directive.ai_answers_served, readable: directive.ai_answers_readable, detail: directive.ai_answers_detail, capabilities, mode, context: suppliedContext, canon: rowsRun?.canon ?? null, reports: recent }));
-    // Proposed 1.23.0 (Ruling, Krish, 2026-11-13): AEO's win kits, read and kept in memory only; no stage uses them yet, and the report carries counts.
+    // 1.26.0, features.ai_answers_detail (Ruling, Krish, 2026-11-13): AEO's win kits, read and kept in memory only; no stage uses them yet, and the report carries counts.
     if (directive.ai_answers_served && directive.ai_answers_readable) {
       try { const line = weeklyKitsLine(weeklyAnswerKits({ standing: directive.ai_answers, detail: directive.ai_answers_detail })); if (line) activity.push(line); }
       catch { activity.push('AI-answer kits from AEO-Engine: could not be read this run, so none are carried.'); }

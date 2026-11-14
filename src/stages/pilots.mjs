@@ -84,7 +84,7 @@ export const MONDAY_BATCH = 5;
 export const PIPELINE_ASK_KINDS = Object.freeze(['buyer', 'intro', 'collaborator']);
 /** src/lib/pilotDealsHunter.ts HUNTER_CARD_PREFIX: a listed row whose notes begin with this is a door-in card whose opening line was already checked. */
 export const HUNTER_CARD_PREFIX = 'hunter door-in:';
-/** api/pilot-deals/seed.ts TIERS: candidates come from his two closest tiers only. */
+/** His two closest tiers: this engine's own rule for a warm buyer's note (Control Center's seed that once held it is retired, plan section 12, M6). An Advisory row listed before then on another tier is refused here, never written. */
 export const SEED_TIERS = Object.freeze(['1_reciprocated', '2_core_network']);
 /** api/_pilotDeals.ts INTENT_LIVE_DAYS: a stored quote older than this is no longer a reason to write this week. */
 export const INTENT_LIVE_DAYS = 90;

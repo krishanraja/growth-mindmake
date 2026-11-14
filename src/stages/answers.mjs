@@ -24,7 +24,7 @@ import { canonDomains, enginePlan } from './places.mjs';
  * Monday probe used to owe (M13's `places`): it now goes to AEO, never into a
  * report. Pure but for the one call, which never fails the run.
  *
- * Where the request on file carries its `digest` (proposed protocol 1.23.0,
+ * Where the request on file carries its `digest` (protocol 1.26.0,
  * `features.ai_answers_detail`), the run compares the plan's own digest with
  * it instead of the count, and asks again, replacing the request, whenever the
  * two differ (`questionsDigest`, Control Center's definition exactly). The
@@ -95,7 +95,7 @@ export function byCodePoint(a, b) {
 }
 
 /**
- * `request.digest` as Control Center defines it (proposed protocol 1.23.0): the lowercase hex SHA-256 of the
+ * `request.digest` as Control Center defines it (protocol 1.26.0): the lowercase hex SHA-256 of the
  * questions, each trimmed with its internal whitespace collapsed to one space, sorted by code point, written as
  * compact JSON with non-ASCII left unescaped, UTF-8 encoded. Python's `json.dumps(sorted(...), separators=(',',':'),
  * ensure_ascii=False)` gives the same bytes. Pure.
@@ -146,7 +146,7 @@ export function answersRequest({ context, canon }) {
 
 /**
  * Whether this run asks AEO, from the request on file and the request it would make: `first` when none is on file;
- * where the request on file carries a well-formed `digest` (1.23.0), `changed` when the plan's own digest differs
+ * where the request on file carries a well-formed `digest` (1.26.0), `changed` when the plan's own digest differs
  * from it, `settled` instead when this engine already asked for exactly this list (its mark is in `asked`, read by
  * `askedMarks`) and the request on file still reads otherwise, else null; otherwise `more` when the plan now holds
  * more questions than the one on file counts, else null. A count that is not a whole number, or a digest that is
@@ -164,7 +164,7 @@ export function askFor(onFile, body, asked = null) {
 
 /**
  * The run's AI-answer lines: the standing, and the request to AEO when none is on file, when the plan's digest
- * differs from the one on file (1.23.0), or, with no digest on file, when the plan has grown past it; only when
+ * differs from the one on file (1.26.0), or, with no digest on file, when the plan has grown past it; only when
  * Control Center takes one (features.ai_answers, a live run). A run that did not read the canon's offer never asks
  * again: its plan would carry the questions a retired offer holds. Where Control Center serves
  * `features.ai_answers_detail` (`detail`), the request says it replaces the one on file (`mode: 'replace'`); before
@@ -200,7 +200,7 @@ export async function answersStep({ cc, standing, served, readable = true, detai
   }
 }
 
-// ── AEO's win kits (proposed protocol 1.23.0, `features.ai_answers_detail`) ──
+// ── AEO's win kits (protocol 1.26.0, `features.ai_answers_detail`) ──
 
 /** A standing serves at most this many kits (Control Center's cap), and the portfolio at most this many products. */
 export const KITS_PER_STANDING = 5;
