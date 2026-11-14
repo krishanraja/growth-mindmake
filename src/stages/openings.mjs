@@ -50,11 +50,11 @@ export function openingFact(c, why = []) {
 }
 
 /** The question the desk answers: one opening sentence from one fact, in plain words. Pure. */
-export function openingQuery({ name, fact, purpose = 'catchup', show = '', last = null }) {
+export function openingQuery({ name, fact, purpose = 'catchup', show = '', last = null, note = '' }) {
   const first = givenParts(name)[0] ?? 'them';
-  if (purpose === 'catchup') return catchUpQuery({ first, fact, last });
+  if (purpose === 'catchup') return catchUpQuery({ first, fact, last, note });
   const what = purpose === 'invite' ? `why ${first} would make a good conversation for ${show || 'the show'}` : `the opening line of a catch-up email to ${first}`;
-  const frame = f => `Write one sentence for ${what}, from only this fact: ${f}. Say to them, as "you", one thing they did or said. Plain words, under 25 words, no dashes, praise, question, sources or new names. Reply with the sentence only.`;
+  const frame = f => `Write one sentence for ${what}, from only this fact: ${f}. Say to them, as "you", one thing they did or said. Plain words, under 25 words, no dashes, praise, question, sources or new names. Reply with the sentence only.${note}`;
   // The fact is cut at a word to what the desk's 400 characters leave it.
   const room = QUERY_MAX - frame('').length;
   const q = room >= 40 ? frame(cut(String(fact ?? '').replace(/[.!?\s]+$/, ''), room)) : '';
@@ -70,8 +70,8 @@ export const BUILDING_LINE = "I'm building Mindmake, AI that works the way a lea
  * I thought of you. Would you be open to a quick chat?'"): the whole note in
  * that order, from one fact, never their career told back to them. Pure.
  */
-export function catchUpQuery({ first, fact, last = null }) {
-  const frame = f => `Catch-up email from Krish to ${first}${last ? `, last in touch ${last}` : ''}. Four short sentences: it's been a while. I'm reaching out because ${BUILDING_LINE.replace(/\.$/, '')}, and want views from people I rate. Why I thought of you, in my words, from only this: ${f}. Would you be open to a quick chat? Warm, plain, no quotes, no career recap.`;
+export function catchUpQuery({ first, fact, last = null, note = '' }) {
+  const frame = f => `Catch-up email from Krish to ${first}${last ? `, last in touch ${last}` : ''}. Four short sentences: it's been a while. I'm reaching out because ${BUILDING_LINE.replace(/\.$/, '')}, and want views from people I rate. Why I thought of you, in my words, from only this: ${f}. Would you be open to a quick chat? Warm, plain${note ? '.' : ', no quotes, no career recap.'}${note}`;
   const room = QUERY_MAX - frame('').length;
   const q = room >= 40 ? frame(cut(String(fact ?? '').replace(/[.!?\s]+$/, ''), room)) : '';
   return q && q.length <= QUERY_MAX ? q : null;
@@ -141,20 +141,81 @@ export function openingRequest({ id, name, fact, purpose = 'catchup', show = '',
   return { request_id, kind, subject_ref: `contact:${id}`, query, why: clean(why).slice(0, 300) };
 }
 
+/** The id of the words a request asks, without its day or retry suffix. Pure. */
+const baseOf = id => /^open:[^:]+:[0-9a-f]{12}/.exec(id)?.[0] ?? id;
+/** Whether a desk id is a try at these words: `try` 0 is the first ask (with or without a day), 1 the one retry (`:r1`). Pure. */
+const isTry = (id, base, n) => typeof id === 'string' && (n === 0 ? (id === base || (id.startsWith(`${base}:`) && !id.startsWith(`${base}:r1`))) : (id === `${base}:r1` || id.startsWith(`${base}:r1:`)));
+
 /** The desk's answer to an opening request: { state: 'answered', text } | { state: 'failed' } | { state: 'waiting' }. Pure. */
 export function openingAnswer(research, request) {
   if (!request) return { state: 'failed' };
   const list = Array.isArray(research) ? research : [];
+  const base = baseOf(request.request_id);
+  const n = isTry(request.request_id, base, 1) ? 1 : 0;
   // Any attempt at these words that was answered is the answer: the words' id, with or without a day after it.
-  const base = /^open:[^:]+:[0-9a-f]{12}/.exec(request.request_id)?.[0] ?? request.request_id;
-  const done = list.find(x => typeof x?.request_id === 'string' && (x.request_id === base || x.request_id.startsWith(`${base}:`)) && x.status === 'answered' && typeof x.answer === 'string' && x.answer.trim());
+  const done = list.find(x => isTry(x?.request_id, base, n) && x.status === 'answered' && typeof x.answer === 'string' && x.answer.trim());
   if (done) return { state: 'answered', text: done.answer };
   const r = list.find(x => x?.request_id === request.request_id);
   // Asked again after the desk refused these words over its cap: still waiting on its cap, not on a write in hand.
-  if (!r) return list.some(x => typeof x?.request_id === 'string' && (x.request_id === base || x.request_id.startsWith(`${base}:`)) && x.status === 'over_cap') ? { state: 'waiting', over_cap: true } : { state: 'waiting' };
+  if (!r) return list.some(x => isTry(x?.request_id, base, n) && x.status === 'over_cap') ? { state: 'waiting', over_cap: true } : { state: 'waiting' };
   if (r.status === 'answered' && typeof r.answer === 'string' && r.answer.trim()) return { state: 'answered', text: r.answer };
   if (r.status === 'over_cap') return { state: 'waiting', over_cap: true };
   return { state: 'failed' };
+}
+
+/** The most tries the desk gets at one set of words: the first ask and one retry that names the rule it broke (audit gm-3). */
+export const DESK_TRIES = 2;
+/** The retry's added line: the fixed rule the first answer broke, by its code, in words. Pure. */
+const BROKE = {
+  new_name: 'any name not given', new_number: 'any number not given', recites_career: 'recapping their career', praise: 'praise',
+  research_words: 'research words', quotes_them: 'quoting them', open_quote: 'quotes', not_one_sentence: 'more than one sentence',
+  not_four_sentences: 'other than four sentences', length: 'that length', dash_question_or_link: 'dashes, questions, links', dash: 'dashes',
+  link: 'links', question: 'questions', no_ask: 'leaving out the chat ask', no_why_now: 'leaving out why now', no_why_you: 'leaving out why them',
+  no_while: "leaving out it's been a while", not_to_them: 'not saying you', no_verb: 'a fragment', claims_about_us: 'claims about Krish',
+  hearsay: 'hearsay', beyond_trigger: 'going past the fact', offer_words: 'offer words', second_ask: 'a second ask'
+};
+/** The retry's added line: the fixed rule the first answer broke, in a few words. Short, since a catch-up's ask leaves little room. Pure. */
+export const retryNote = reason => ` Avoid ${BROKE[reason] ?? String(reason ?? 'the last error').replace(/_/g, ' ')}.`;
+
+/**
+ * The one retry at a set of words whose first answer failed the fixed rules:
+ * `query` is the same ask rebuilt with retryNote (its fact cut to make room),
+ * sent under `<base>:r1` (a day after it when that try failed or was refused
+ * over the desk's cap, at most once a day). Null without a query that fits
+ * the desk's 400 characters. Pure.
+ */
+export function retryRequest(request, query, { research = [], at = null } = {}) {
+  if (!request || typeof query !== 'string' || !query || query.length > QUERY_MAX) return null;
+  const base = `${baseOf(request.request_id)}:r1`;
+  const tried = (Array.isArray(research) ? research : []).filter(r => r?.request_id === base || (typeof r?.request_id === 'string' && r.request_id.startsWith(`${base}:`)));
+  const day = at ? londonDay(at) : null;
+  const RETRY = ['failed', 'empty', 'over_cap'];
+  const request_id = !tried.length || !day || tried.some(r => !RETRY.includes(r.status)) ? (tried.find(r => !RETRY.includes(r.status))?.request_id ?? base) : `${base}:${day}`;
+  return { ...request, request_id, query };
+}
+
+/**
+ * A desk sentence end to end, with its one retry (audit gm-3, 14 November
+ * 2026: a failing sentence used to be replayed forever). `validate` reads an
+ * answer by the fixed rules; `retryQuery(note)` rebuilds the ask with the note. Returns { state: 'ok', sentence } when a try
+ * passes; { state: 'waiting', request, over_cap? } with the request to send
+ * (the first ask, or the retry naming the rule the first broke); or
+ * { state: 'failed', reason, tries } when both tries failed, or the first
+ * failed and no retry fits: the hold then stands until the card's words
+ * change, which asks afresh. Pure.
+ */
+export function deskSentence({ request, research = [], at = null, validate, retryQuery = () => null }) {
+  const first = openingAnswer(research, request);
+  if (first.state !== 'answered') return first.state === 'waiting' ? { state: 'waiting', request, ...(first.over_cap ? { over_cap: true } : {}) } : { state: 'failed', reason: 'desk_failed', tries: 1 };
+  const v = validate(first.text);
+  if (v.ok) return { state: 'ok', sentence: v.sentence };
+  const again = retryRequest(request, retryQuery(retryNote(v.reason)), { research, at });
+  if (!again) return { state: 'failed', reason: v.reason, tries: 1 };
+  const second = openingAnswer(research, again);
+  if (second.state === 'waiting') return { state: 'waiting', request: again, retry: v.reason, ...(second.over_cap ? { over_cap: true } : {}) };
+  if (second.state !== 'answered') return { state: 'failed', reason: v.reason, tries: DESK_TRIES };
+  const w = validate(second.text);
+  return w.ok ? { state: 'ok', sentence: w.sentence } : { state: 'failed', reason: w.reason, tries: DESK_TRIES };
 }
 
 /**
@@ -199,12 +260,11 @@ export function opening({ id, name, card, why = [], research, required = false, 
   const fact = openingFact(card, why);
   if (!fact) return { request: null, sentence: null, hold: required ? 'opening_no_fact' : null };
   const request = openingRequest({ id, name, fact, purpose, show, research, at, kind, last });
-  const got = openingAnswer(research, request);
-  if (got.state === 'answered') {
-    const v = purpose === 'catchup' ? validCatchUp(got.text, { name, fact, last: last ?? '' }) : validOpening(got.text, { name, fact, show });
-    return v.ok ? { request: null, sentence: v.sentence, hold: null } : { request: null, sentence: null, hold: required ? 'opening_failed' : null, reason: v.reason };
-  }
-  return { request: got.state === 'waiting' && required ? request : null, sentence: null, hold: required ? (got.state === 'waiting' ? 'opening_waiting' : 'opening_failed') : null };
+  const validate = text => purpose === 'catchup' ? validCatchUp(text, { name, fact, last: last ?? '' }) : validOpening(text, { name, fact, show });
+  const got = deskSentence({ request, research, at, validate, retryQuery: note => openingQuery({ name, fact, purpose, show, last, note }) });
+  if (got.state === 'ok') return { request: null, sentence: got.sentence, hold: null };
+  if (got.state === 'waiting') return { request: required ? got.request : null, sentence: null, hold: required ? 'opening_waiting' : null, ...(got.retry ? { reason: got.retry } : {}) };
+  return { request: null, sentence: null, hold: required ? 'opening_failed' : null, reason: got.reason };
 }
 
 // ── A warm buyer's note (Ruling, Krish, 2026-11-13: the full-funnel engine) ──
@@ -300,11 +360,11 @@ const numbersOf = text => (String(text ?? '').match(/\d+(?:[.,]\d+)*/g) ?? []).m
  * joiner). Null when it cannot be asked: no name or trigger, or a run of
  * digits or an address in it. Pure.
  */
-export function buyerQuery({ first, trigger }) {
+export function buyerQuery({ first, trigger, note = '' }) {
   const f0 = String(first ?? '').trim(), t = tidySignal(trigger).replace(/[.!?\s]+$/, '');
   if (!f0 || !t) return null;
   // The greeting, what he is building, the ask and the sign-off are fixed text added after (warmNote, rows.mjs actionFor).
-  const frame = fact => `Krish's reason for writing to ${f0} now, as one sentence to them, from only this: ${fact}. Begin with "I". Plain words, under ${BUYER_SENTENCE_WORDS_MAX}. No question, link, offer, price, sum of money, time span, praise, or name or number the fact does not hold. The sentence only.`;
+  const frame = fact => `Krish's reason for writing to ${f0} now, as one sentence to them, from only this: ${fact}. Begin with "I". Plain words, under ${BUYER_SENTENCE_WORDS_MAX}. No question, link, offer, price, sum of money, time span, praise, or name or number the fact does not hold. The sentence only.${note}`;
   let q = frame(t).length <= QUERY_MAX ? frame(t) : null;
   if (!q) {
     const room = QUERY_MAX - frame('').length;
@@ -418,12 +478,10 @@ export function buyerNote({ id, name, company = '', trigger, canon, research = [
   const query = buyerQuery({ first: givenParts(name)[0], trigger: trigger?.signal });
   if (!query) return { request: null, note: null, hold: 'note_failed', reason: 'unaskable' };
   const request = openingRequest({ id, research, at, kind, purpose: ask === 'intro' ? 'intro' : 'buyer', query });
-  const got = openingAnswer(research, request);
-  if (got.state === 'answered') {
-    const v = validBuyerNote(got.text, { name, company, trigger: trigger?.signal ?? '', offer: canon?.offer ?? null });
-    return v.ok ? { request: null, note: warmNote(v.sentence, { label: canon?.ask?.label, ask }), sentence: v.sentence, hold: null } : { request: null, note: null, hold: 'note_failed', reason: v.reason };
-  }
+  const got = deskSentence({ request, research, at, retryQuery: note => buyerQuery({ first: givenParts(name)[0], trigger: trigger?.signal, note }), validate: text => validBuyerNote(text, { name, company, trigger: trigger?.signal ?? '', offer: canon?.offer ?? null }) });
+  if (got.state === 'ok') return { request: null, note: warmNote(got.sentence, { label: canon?.ask?.label, ask }), sentence: got.sentence, hold: null };
+  if (got.state === 'failed') return { request: null, note: null, hold: 'note_failed', reason: got.reason };
   if (!required) return { request: null, note: null, hold: 'desk_closed' };
   // A note the desk refused over its cap waits for the next day's ask and holds no place in the batch meanwhile.
-  return got.state === 'waiting' ? { request, note: null, hold: 'note_waiting', ...(got.over_cap ? { over_cap: true } : {}) } : { request: null, note: null, hold: 'note_failed', reason: 'desk_failed' };
+  return { request: got.request, note: null, hold: 'note_waiting', ...(got.over_cap ? { over_cap: true } : {}), ...(got.retry ? { reason: got.retry } : {}) };
 }

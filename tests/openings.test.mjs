@@ -90,10 +90,19 @@ test('where the desk is open, a catch-up opens on its sentence, and one not writ
   const r = amplifierRows({ context, weekGoals: [], canon, files: FILES, at: NOW, openingsRequired: true, research });
   assert.equal(r.rows.length, 1);
   assert.match(body(r.rows[0].proposal), /^Hi Robin,\n\nIt's been a while since we last spoke\. I'm reaching out because .+ I thought of you because .+ Would you be open to a quick chat\?\n\nKrish$/s);
-  assert.deepEqual(r.held.filter(h => h.startsWith('opening_')).sort(), ['opening_failed', 'opening_waiting'], 'a sentence that fails is held; a desk failure is asked again');
+  // A note that fails the rules is asked once more, naming the rule it broke (audit gm-3); a desk failure is asked again under the day.
+  assert.deepEqual(r.held.filter(h => h.startsWith('opening_')).sort(), ['opening_waiting', 'opening_waiting'], 'a sentence that fails gets one retry; a desk failure is asked again');
   const again = r.research.filter(x => x.request_id.startsWith('open:'));
-  assert.deepEqual(again.map(x => x.subject_ref), [`contact:${id(3)}`], 'only the desk failure is asked again, never an answered one');
-  assert.match(again[0].request_id, /:\d{4}-\d{2}-\d{2}$/);
+  assert.deepEqual(again.map(x => x.subject_ref).sort(), [`contact:${id(2)}`, `contact:${id(3)}`].sort(), 'never an answered one that passed');
+  const retry = again.find(x => x.subject_ref === `contact:${id(2)}`);
+  assert.equal(retry.request_id, `${byId[`contact:${id(2)}`].request_id}:r1`);
+  assert.match(retry.query, /Warm, plain\. Avoid recapping their career\.$/);
+  assert.ok(retry.query.length <= QUERY_MAX);
+  assert.match(again.find(x => x.subject_ref === `contact:${id(3)}`).request_id, /:\d{4}-\d{2}-\d{2}$/);
+  // The retry fails the rules too: held for good, and nothing more is asked of these words.
+  const second = amplifierRows({ context, weekGoals: [], canon, files: FILES, at: NOW, openingsRequired: true, research: [...research, { ...retry, status: 'answered', answer: research[1].answer }] });
+  assert.ok(second.held.includes('opening_failed'));
+  assert.equal(second.research.filter(x => x.subject_ref === `contact:${id(2)}`).length, 0);
   // Where the desk is closed (a dry run, a test), the catch-up keeps its own sentence.
   const closed = amplifierRows({ context, weekGoals: [], canon, files: FILES, at: NOW });
   assert.equal(closed.rows.length, 3);
