@@ -56,6 +56,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Fold closeout notes into NOW.md
         run: |
           set -uo pipefail
@@ -67,8 +68,11 @@ jobs:
             git fetch --quiet origin "$GITHUB_REF_NAME" && git reset --quiet --hard "origin/$GITHUB_REF_NAME" || exit 1
             if ! ls now-notes/*.md >/dev/null 2>&1; then echo "No closeout notes to fold."; exit 0; fi
             status=0; node "$hook" --fold || status=$?
-            if [ -z "$(git status --porcelain -- NOW.md now-notes)" ]; then exit "$status"; fi
-            git add -A -- NOW.md now-notes
+            # A fold push starts no CI run, so keep the session pack inside 36 KB here: the oldest dated
+            # NOW.md lines move to docs/history/LOG.md word for word until the heaviest pack fits (audit gm-1).
+            node scripts/trim-now.mjs || exit 1
+            if [ -z "$(git status --porcelain -- NOW.md now-notes docs/history/LOG.md)" ]; then exit "$status"; fi
+            git add -A -- NOW.md now-notes docs/history/LOG.md
             git commit --quiet -m "docs(closeout): fold closeout notes into NOW.md" -m "Written by ai-harness's .claude/hooks/harness-closeout.mjs --fold, run by this repository's ci.yml."
             if git push --quiet origin "HEAD:$GITHUB_REF_NAME"; then exit "$status"; fi
             sleep $((attempt * 5))
