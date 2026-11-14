@@ -1,10 +1,10 @@
 {
-  "version": "1.29.0",
+  "version": "1.30.0",
   "files": {
-    "ENGINE-PROTOCOL.md": "16868ce61a34d5efa364d8b1c179fd6b145ff73e74487e44c7c6b62f98963331",
+    "ENGINE-PROTOCOL.md": "a4486b27b65ee5abe02914e68370c2a4f43da008e3fbce18a47e8c33588a071c",
     "engine-directive.schema.json": "16db2ef5e6e64018b17e582cd79eb1957fc5b42fba810e1ec98362a962609ebc",
-    "engine-report.schema.json": "a3018514765ae5c2d2bab71f624d78d6460c6710a2f8236a125fab6d98829d35",
+    "engine-report.schema.json": "6bdfa11b7f8875c8983935a2e6755f384252b17ee1e57616fe4b65ec26352472",
     "engine-report.example.json": "40d1dd3005392f7f9e2907f166863327aed913363bfffc82312a66e704b498ce"
   },
-  "bundle_sha256": "521f80d1fa79667a99f01e74a24c4025e2bb6d129a93fbc30fb2720ae83a7ffc"
+  "bundle_sha256": "fa550022790dbbb7d26105a8aa0ff462c1210d1e618b6f0fa5a845dfd12842cb"
 }
