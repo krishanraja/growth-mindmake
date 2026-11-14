@@ -329,7 +329,7 @@ test('a note not yet answered files its write request and holds; a closed desk h
   const ctx = warmContext({ rows: [listed(1)], people: [person(1)] });
   const waiting = pilotRows({ context: ctx, canon, at: AT, ...live });
   assert.deepEqual([waiting.held, waiting.research.length, waiting.research[0].kind, waiting.rows.length], [['note_waiting'], 1, 'write', 0]);
-  assert.equal(waiting.research[0].query, 'Krish\'s reason for writing to Avery now, as one sentence to them, from only this: We are rebuilding our pricing for AI this quarter. Begin with "I". Plain words, under 30. No question, link, offer, price, sum of money, time span, praise, or name or number the fact does not hold. The sentence only.', 'one sentence is asked for, from the trigger alone');
+  assert.equal(waiting.research[0].query, 'To Avery, one sentence on why Krish writes now, from only this (its "I" or "we" is the source, not Krish): We are rebuilding our pricing for AI this quarter. Start "I saw", "I read" or "I noticed". Under 30 plain words; no question, link, offer, price, money, time span, praise, or name or number it lacks. Sentence only.');
   assert.ok(waiting.research[0].query.length <= 400);
   assert.equal(pilotRows({ context: ctx, canon, at: AT, required: false }).research.length, 0);
   assert.deepEqual(pilotRows({ context: ctx, canon, at: AT, required: false }).held, ['desk_closed']);
@@ -550,8 +550,25 @@ test("the desk writes one sentence, read by fixed rules: the trigger's own reaso
   const long = `${'Example Works is rebuilding the way it sets its pricing for every product line with AI agents, '.repeat(4)}said its chief executive.`;
   const q = buyerQuery({ first: 'Avery', trigger: long });
   assert.ok(q && q.length <= 400, 'a long trigger is cut to fit');
-  const kept = /from only this: (.+?)\. Begin with/.exec(q)[1];
+  const kept = /not Krish\): (.+?)\. Start "I saw"/.exec(q)[1];
   assert.ok(long.startsWith(kept) && kept.length >= 60 && !/\s(?:a|the|with|for|and|of|to)$/.test(kept), 'cut at a whole word, never on a joiner');
+  // The source is often their own post in their own "I": the ask says so, and asks for what he saw, read or noticed (14 Nov 2026).
+  const own = 'Screen time is great, but there is nothing quite like meeting people. I am excited to be heading back to the Example Summit tomorrow.';
+  const asked = buyerQuery({ first: 'Avery', trigger: own });
+  assert.ok(asked && asked.length <= 400);
+  assert.match(asked, /its "I" or "we" is the source, not Krish/);
+  assert.match(asked, /Start "I saw", "I read" or "I noticed"/);
+  assert.ok(!/Begin with "I"\./.test(asked), 'never a bare "Begin with I", which brought "I\'m writing because"');
+  // A retry still has room for a fact of sixty characters or more.
+  const { retryNote } = await import('../src/stages/openings.mjs');
+  assert.ok(buyerQuery({ first: 'Avery', trigger: long, note: retryNote('claims_about_us') }), 'a retry fits with its note');
+  // The shapes the desk wrote on 13 and 14 Nov stay refused: an opener about him, and their own words said as his.
+  const theirs = { name: 'Avery Example1', company: 'Example Works 1', trigger: own };
+  for (const said of ["I'm writing because there is nothing quite like meeting people, and I'm excited to be heading back.",
+    'I am writing because I came across your post on meeting people at the Example Summit.',
+    'I wanted to share that you are heading back to the Example Summit tomorrow.',
+    "I'm excited to be heading back to the Example Summit tomorrow, as you are."]) assert.equal(validBuyerNote(said, theirs).reason, 'claims_about_us', said);
+  assert.equal(validBuyerNote('I saw you are heading back to the Example Summit tomorrow.', theirs).ok, true, 'what he saw, said of them, passes');
 });
 
 test("two warm notes sharing only their fixed frame are not a template; the same reason with a name swapped is; the frame is never frame for another row", async () => {
@@ -729,7 +746,7 @@ test('the dispatch keeps one ask a person: a listed buyer another row reaches th
   const to = p => p.subject_ref === `target:${id(900)}` ? `contact:${id(102)}` : p.subject_ref;
   assert.deepEqual(report.proposals.map(p => [to(p), p.close_condition.reference]).sort(), [[`contact:${id(101)}`, 'network:relationship'], [`contact:${id(102)}`, 'visibility:pitch'], [`contact:${id(103)}`, 'reach_out:warm_ask']].sort(), 'one ask a person');
   assert.ok(report.holds.some(h => h.reason === 'pilot_not_eligible' && /on_another_row 2/.test(h.detail)));
-  const warmWrites = batches.flat().filter(r => r.kind === 'write' && r.query.startsWith("Krish's reason for writing")).map(r => r.subject_ref);
+  const warmWrites = batches.flat().filter(r => r.kind === 'write' && r.query.startsWith('To ') && r.query.includes('one sentence on why Krish writes now')).map(r => r.subject_ref);
   assert.deepEqual(warmWrites, [`contact:${id(103)}`], 'the desk never writes a warm sentence for someone another row reaches this run');
   const { othersThisRun } = await import('../src/stages/pilots.mjs');
   const jonnyPitch = { subject_ref: `target:${id(900)}`, exact_payload: JSON.stringify({ version: 2, channel: 'email', mailbox: 'jonny', recipient_contact_id: id(104), subject: 's', body: 'b' }) };
