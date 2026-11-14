@@ -28,6 +28,7 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 Lifecycle: building. The detail is in `README.md`.
 
+- Each run reads his Pipeline deals in detail where Control Center serves features.deals_detail (protocol 1.30.0, integration I-05): open deals and deals gone quiet (Parked, or Closed Lost for Timing or Went quiet), counted in one shadow line; null is said as not read, never none. No catch-up is proposed from them yet, and the morning lane still skips only open deals. (2026-11-14)
 - The protocol copy in docs/control-center/ is Control Center's protocol bundle byte for byte (1.28.0, integration I-11), with bundle.json; scripts/check-drift.mjs proves it whole, and each run's "Protocol copy" line says current, behind or unknown against capabilities' protocol_bundle. The engine still reports at 1.20.0, the newest version of a field it sends. (2026-11-14)
 - The protocol copy in docs/control-center/ (ENGINE-PROTOCOL.md and both schemas) is Control Center's at 38e6c7ba (protocol 1.27.0). The engine still reports at 1.20.0, the newest version of a field it sends, as the protocol's "raise yours only for a field you use" asks; it reads the four 1.24.0 meeting paths tolerantly, and no lane names them in origin_candidates yet. The spec_unsigned hold names the caps a run uses, raised by urgency when they are. His personal LinkedIn is this engine's since growth-makeyourmindup handed it over on 13 November, not built, and next_steps says so while GET-GOING 1.4 is open. (2026-11-14)
 - The fleet audit's growth-mindmake findings repaired. The session pack fits 36 KB again, and the fold job now moves NOW.md's oldest dated lines to docs/history/LOG.md until it does (#90). A full report keeps its AI-answer, kits, switch and crew lines, holds past 40 are named in `holds_truncated`, and Control Center's week target stands only for the week its `week_of` names (#91). A desk sentence that fails the fixed rules gets one retry naming the rule it broke, then holds (#92). The credits brief and GET-GOING 0.8 say what the credits session can do today: booking addresses are the research desk's, and the session waits on two Control Center connector tools before it does any booking-contact work (#93). (2026-11-14)
@@ -51,7 +52,7 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-14): refresh docs/control-center/ by copying Control Center's docs/app/growth/protocol-bundle/ whole when a run's line says behind.
+- Next (2026-11-14): refresh docs/control-center/ to Control Center's 1.30.0 bundle once its bundle.json says 1.30.0.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 - North Star check (2026-11-14): holds.
 
