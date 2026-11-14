@@ -328,7 +328,7 @@ automated next best route."
   `form_no_pitch` hold reads it). A page that asks only who he is, such as a
   bureau booking its own speakers, is held as `form_no_pitch`.
 - **The answers.** Each field by its own label: his name (Krish Raja, or Krish
-  and Raja), his public business address `hello@krishraja.com` and no other,
+  and Raja), his public business address `krish@mindmake.co` and no other (Ruling, Krish, 2026-11-14),
   Mindmake, the title the run uses for him, `https://mindmake.co` as the
   website (and as the company's website; `https://krishraja.com` only where the
   label asks for his personal or speaker site; Ruling, Krish, 2026-10-27), a bio and
