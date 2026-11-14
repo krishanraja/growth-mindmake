@@ -8,7 +8,7 @@
   "voice": "mixed",
   "send_authority": "none",
   "spend_authority": "none",
-  "execution": { "authority": "exact_approval", "channels": ["email"], "maximum_cost_usd": 0, "assets": false, "require_independent_receipt": true },
+  "execution": { "authority": "exact_approval", "channels": ["email"], "maximum_cost_usd": 0, "assets": true, "require_independent_receipt": true },
   "recognition": { "podcasts_booked_per_week": 2, "stages_confirmed_per_fortnight": 1, "ruled": "2026-10-27", "counts_when": "the show or stage confirms a date" },
   "acquisition": { "multiplier_institution_share": 0.7, "direct_learning_share": 0.3, "rebalance_days": 14, "in_person": ["London", "New York"], "virtual": "global" },
   "pilot": { "free": true, "weeks": 2, "workflows": 1, "require_before_after": true, "portfolio_rollout": "separately_scoped" },
