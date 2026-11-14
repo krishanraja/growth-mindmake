@@ -123,10 +123,10 @@ Still owed, as of 14 November 2026:
 - The refusal flags its judges set but do not store or serve: a stage's `pay_to_play` and `generic_take`, and a guest's wrong-show judgment. The engine now judges stages and guests on their served axes alone (plan section 12, M3 to M5), so a stage or guest refused only on one of these flags is not refused by the engine; none was on record at the 27 October readback, and the shadow lines count such cases as `flag_not_served` and `show_fit_not_served`.
 - The Gmail draft readback close.
 - A read of Krish's open instruction, and its acks, through the connector for the daily credits session (below, "Krish's instruction and the engine's state").
-- Two connector tools for the daily credits session (asked 14 November 2026): a read of the subjects this engine's rows hold for want of a booking address (`pitch_no_booking_address`, `speak_no_booking_address`, `invite_no_contact`: ids and public names, never an address), and a write that files a route the session found on one of them, checked as `found_routes` are (`api/_foundRoutes.ts`). Until both are served, docs/CREDITS-SESSION.md has the session run no booking-contact or show-check work, since what it found could reach no row.
 
 Served since it was asked, each read by the dispatch only where its flag says so:
 
+- Done (14 November 2026, control-center #803 and #806): two connector tools for the daily credits session, `get_route_gaps` (the stages with no booking route, never an address) and `file_found_route` (a route the session found, recorded only by the found_routes rules, answered `recorded` or a reason code). docs/CREDITS-SESSION.md uses them.
 - Global outcome reads from Control Center's own deals (qualified conversations, paid proofs): `GET .../outcomes` with `features.outcomes`, read by `outcomeScorecard` in src/strategy.mjs, so the engine computes nothing from a page.
 - Done: a read of this engine's own latest live reports, newest first (`GET .../reports?recent=<n>`, `features.recent_reports`, krishanraja/control-center#589), each with only `run_id`, `accepted_at`, `status` and `activity`. The Phase 5 switch counts its proof runs from it (`readProofRuns` in src/crew/switch.mjs) and reads nothing where it is not served.
 
