@@ -6,6 +6,13 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
 
+- Mindmake's AI answers are AEO-Engine's, the one AI-answers specialist (Ruling, Krish, 2026-11-12): each run reads Mindmake's standing from the directive (protocol 1.22.0, ai_answers) and, when none is on file, asks AEO once with the weekly review's planned questions for Mindmake's places and the canon's hosts (src/stages/answers.mjs). The ruling is in docs/RULINGS.md. The protocol copy in docs/control-center/ is Control Center's at 36df34bc (protocol 1.22.0). (2026-11-13)
+- 2026-11-13 Mindmake asks AEO-Engine for up to 25 planned questions under their own cap, re-asks when the plan grows or the digest differs, and reads AEO's win kits once Control Center serves them (Krish, 13 November).
+
+## 2026-11-14: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
+
 - 2026-11-13 Krish, 2026-11-13: "This should be as autonomous as possible."
 - The Control Center brief says Control Center serves 1.0.0 to 1.21.0 (this engine speaks up to 1.20.0) and that the directive's good_meetings target is this repository's north-star block's (20 by 30 November), read each morning, never the registry's copy (krishanraja/control-center#718). (2026-11-12)
 
