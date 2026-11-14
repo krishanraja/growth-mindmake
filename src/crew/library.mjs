@@ -47,6 +47,7 @@ export function taxonomyOf(markdown) {
   const archive = need(folders.find(f => /\/Growth archive$/.test(f)), 'the archive folder');
   const canvaRoot = need(/Canva: the folder \*\*([^*]+)\*\*/.exec(text)?.[1], 'the Canva folder');
   const canvaSubs = need(/in its subfolders ([^.]+)\./.exec(rules)?.[1].split(/,\s*/).map(s => s.trim().replace(/^and\s+/, '')).filter(Boolean), 'the Canva subfolders');
+  const declared = /Drive map \(drive-map\/1\): `([^`]+)`/.exec(text)?.[1] ?? null;
   return {
     version: 1,
     source: 'docs/DRIVE.md',
@@ -62,7 +63,9 @@ export function taxonomyOf(markdown) {
     current: { folder: 'Current', max_pdf: need(WORDS[pdfs], 'the PDFs a Current holds') },
     drafts: { folder: 'Drafts', max: need(drafts, 'the drafts kept') },
     archive,
-    canva: { root: canvaRoot, folders: [canvaRoot, ...canvaSubs.map(s => `${canvaRoot}/${s}`)] }
+    canva: { root: canvaRoot, folders: [canvaRoot, ...canvaSubs.map(s => `${canvaRoot}/${s}`)] },
+    // The root this engine declares to Control Center (fleet integration I-25), by path only: this repository is public.
+    drive_map: declared ? { schema: 'drive-map/1', roots: [{ path: declared }] } : null
   };
 }
 
@@ -80,6 +83,26 @@ const leaf = folder => String(folder).split('/').at(-1);
 /** Whether a file keeps its own name: the READ ME and index at the top, and anything in a Source files folder. */
 export function exempt(file, taxonomy) {
   return (file.folder === taxonomy.root && taxonomy.top_files.includes(file.title)) || taxonomy.exception_folders.some(x => String(file.folder).split('/').includes(x));
+}
+
+/**
+ * The directive's `library` (protocol 1.35.0, fleet integration I-25) as checkListing's listing: the file titles,
+ * folders, types and dates under the root this engine declares. Control Center reads titles, never contents, so the
+ * index's entries, the Canva designs and the repository copies are not in it: `canva`, `index` and `sources` are left
+ * out and their counts stay unknown. An id is kept only where Control Center serves one (a Current folder), in memory
+ * only. Returns `{ unknown: reason }` when the part is not available, null when it is not served. Pure.
+ */
+export function libraryListing(part) {
+  if (!part || typeof part !== 'object') return null;
+  if (part.available !== true || part.complete !== true) return { unknown: String(part.reason ?? 'not_available') };
+  const roots = Array.isArray(part.roots) ? part.roots : [];
+  if (roots.length !== 1) return { unknown: roots.length ? 'more_than_one_root' : 'no_roots' };
+  const files = Array.isArray(roots[0].files) ? roots[0].files : [];
+  return {
+    as_of: typeof part.as_of === 'string' ? part.as_of : null,
+    drive: files.filter(f => f && typeof f.title === 'string' && typeof f.folder === 'string')
+      .map(f => ({ title: f.title, folder: f.folder, mime: typeof f.mime === 'string' ? f.mime : null, modified: typeof f.modified === 'string' ? f.modified : null, ...(typeof f.id === 'string' ? { id: f.id } : {}) }))
+  };
 }
 
 export const COUNTS = ['outside_map', 'loose', 'bad_names', 'duplicates', 'current_over_one_pdf', 'drafts_over_cap', 'canva_outside', 'stale_copies', 'index_mismatch'];

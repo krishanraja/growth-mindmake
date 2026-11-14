@@ -1,7 +1,7 @@
 {
   "version": 1,
   "source": "docs/DRIVE.md",
-  "source_sha256": "0e8143d4d4aad6cff8b23486726b225c4ac2e1d5ca49e0ef528279ecdcce4d44",
+  "source_sha256": "a2c77ccc5313a1d521e4efa58b339c26288449ae27bf65c989ec3ef75c959351",
   "root": "03_Growth",
   "folders": [
     "03_Growth",
@@ -66,6 +66,14 @@
       "Mindmake Growth/Brand kit",
       "Mindmake Growth/Speaker and guest one-sheet",
       "Mindmake Growth/Drafts"
+    ]
+  },
+  "drive_map": {
+    "schema": "drive-map/1",
+    "roots": [
+      {
+        "path": "Ventures/Active Ventures/mind/make/03_Growth"
+      }
     ]
   }
 }
