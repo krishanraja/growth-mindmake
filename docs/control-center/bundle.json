@@ -1,10 +1,10 @@
 {
-  "version": "1.30.0",
+  "version": "1.33.0",
   "files": {
-    "ENGINE-PROTOCOL.md": "a4486b27b65ee5abe02914e68370c2a4f43da008e3fbce18a47e8c33588a071c",
-    "engine-directive.schema.json": "16db2ef5e6e64018b17e582cd79eb1957fc5b42fba810e1ec98362a962609ebc",
-    "engine-report.schema.json": "6bdfa11b7f8875c8983935a2e6755f384252b17ee1e57616fe4b65ec26352472",
+    "ENGINE-PROTOCOL.md": "d50b303fd63df76be8917dc5f8c09b90630e8d4052140b485416ba5636197db5",
+    "engine-directive.schema.json": "7c28d47fa4831f6f98c510ba2373907f522cbf9bbf8281a4f7bb66dcb1a52613",
+    "engine-report.schema.json": "70222a8fe48ae5d2068c2da403a65f6253d092f3eedd438af101a663005d3cf8",
     "engine-report.example.json": "40d1dd3005392f7f9e2907f166863327aed913363bfffc82312a66e704b498ce"
   },
-  "bundle_sha256": "fa550022790dbbb7d26105a8aa0ff462c1210d1e618b6f0fa5a845dfd12842cb"
+  "bundle_sha256": "4b7175a8aebbb8979eaefbeea1b7f0f44f2cffa0bbba9cea341da784fe7fde4d"
 }
