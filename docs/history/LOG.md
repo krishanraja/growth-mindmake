@@ -6,6 +6,13 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
 
+- The protocol copy is Control Center's at 212379e1 (1.21.0): its voice_check row lists exactly the 16 channels Control Center's voice check accepts, it says the number objective's target is this repository's own north-star block, and the circle lane files a stranger as cold_scraped. 1.21.0 itself adds only growth-makeyourmindup's inspiration instructions; this engine still speaks up to 1.20.0 (ENGINE_STATE_VERSION in src/stages/instruction.mjs). (2026-11-12)
+- The session pack leaves out the Krish canon block ai-harness renders at the end of AGENTS.md (one line in its place; it loads with AGENTS.md itself), and the rulings test reads AGENTS.md's own sections without it, so the canon block can land while the 36 KB budget and the standing rules word for word both hold. (2026-11-12)
+
+## 2026-11-14: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
+
 - Closeout notes now fold into NOW.md by themselves (ci.yml's fold job runs ai-harness's closeout hook on every push to main); the engine acks a state of Krish's instruction only when it changes, and leaves out of its next steps any whose own deadline has passed; the docs say what the engine does as of 12 November. (2026-11-12)
 - 2026-11-12 Krish, 2026-11-12: "make sure everything's a cohesive system and that the project documentation is 100% up to date with absolutely nothing old or misleading left in there".
 - 2026-11-12 docs/control-center/ENGINE-PROTOCOL.md, refreshed word for word.

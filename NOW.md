@@ -1,7 +1,7 @@
 ---
 repo: krishanraja/growth-mindmake
 product: Mindmake growth engine
-as_of: 2026-11-13
+as_of: 2026-11-14
 head: 5d3d7ff
 lifecycle: building
 production_url: none
@@ -22,12 +22,13 @@ Mindmake's growth engine: relationships, introductions, researched named outreac
 
 The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish's calendar with the right conversations.
 
-## Where it is right now (as of 2026-11-13)
+## Where it is right now (as of 2026-11-14)
 
 <!-- north-star-state {"week_of":"2026-11-02","week_target":5,"current":0,"current_as_of":"2026-11-08","current_source":"growth-mindmake's latest live report to Control Center (objective good_meetings: meetings Krish marked good, each traced to its path, in the week it counts), read by Control Center","urgency":5,"urgency_reason":"under 40% of the week's target two weeks running (0% now)"} --> **North Star number: U5, stalled.** Good meetings a week, each marked good by Krish after it and traced to where it came from: 0, against 5 in the week of 2 November 2026, on the way to 20 by 30 November 2026. Everything else pauses unless it moves the number.
 
 Lifecycle: building. The detail is in `README.md`.
 
+- The fleet audit's growth-mindmake findings repaired. The session pack fits 36 KB again, and the fold job now moves NOW.md's oldest dated lines to docs/history/LOG.md until it does (#90). A full report keeps its AI-answer, kits, switch and crew lines, holds past 40 are named in `holds_truncated`, and Control Center's week target stands only for the week its `week_of` names (#91). A desk sentence that fails the fixed rules gets one retry naming the rule it broke, then holds (#92). The credits brief and GET-GOING 0.8 say what the credits session can do today: booking addresses are the research desk's, and the session waits on two Control Center connector tools before it does any booking-contact work (#93). (2026-11-14)
 - Advisory's listed buyers and intro asks leave shadow as REACH OUT rows for his own box, at most five a run, each note one desk sentence (the reason to write now, from a cited trigger) inside fixed text, read by fixed rules that refuse anything said of him, any invented number and any claim past the trigger. Control Center serves their person rows at protocol 1.25.0. The selling-partner proposal is prepared in his Gmail for his send. (2026-11-13)
 - Requests to AEO-Engine take up to 25 planned questions under their own cap (not the twelve of MAX_PROBES_PER_RUN), filtered as Control Center filters them. The run asks again only when the plan's valid questions outgrow the request on file, and only when the canon's offer was read; once Control Center serves a request digest, a differing digest re-asks once per list. A standing Control Center could not read is never taken as no request on file. Once Control Center serves features.ai_answers_detail, AEO's kits for Mindmake and CTRL, Circle and Pulse are read into memory and reported as counts (Ruling, Krish, 2026-11-13: AEO's win kits reach him through each venture's own growth engine); no stage writes words from them yet. Control Center holds one request from this engine (one question, filed 13 November) for AEO's 22 November run. (2026-11-13)
 - Wave 0 is live in Control Center: every untapped held meeting is asked about at once (#736), morning drafts of this engine's email rows land in his Gmail each morning with no press and a reply comes to his list to book the call (#742, protocol 1.23.0), and a first meeting with someone new is kept and counted, with four more meeting paths (#743, protocol 1.24.0). Warm buyers (0.6) are built and held until the desk's words are safe and Control Center serves the Advisory buyers. (2026-11-13)
@@ -35,8 +36,6 @@ Lifecycle: building. The detail is in `README.md`.
 - The full-funnel build is set (docs/GET-GOING.md, "The full-funnel build", Waves 0 to 3) on Krish's four rulings of 13 November (docs/RULINGS.md, "The full-funnel engine"): cold outbound on email, LinkedIn and calls within the law, Maven Lightning Lessons every two weeks, up to 10 morning drafts a day in his Gmail with no press, and his personal LinkedIn. The good count now reads as a floor while any meeting he held that week is untapped, and the gap line names held and not tapped. Video notes are held as clone_realism_unproven (N21), since his clone was cleared for Mindmake outbound on 22 October and realism is what holds it now. (2026-11-13)
 - Mindmake's AI answers are AEO-Engine's, the one AI-answers specialist (Ruling, Krish, 2026-11-12): each run reads Mindmake's standing from the directive (protocol 1.22.0, ai_answers) and, when none is on file, asks AEO once with the weekly review's planned questions for Mindmake's places and the canon's hosts (src/stages/answers.mjs). The ruling is in docs/RULINGS.md. The protocol copy in docs/control-center/ is Control Center's at 36df34bc (protocol 1.22.0). (2026-11-13)
 - The Control Center brief says Control Center serves 1.0.0 to 1.21.0 (this engine speaks up to 1.20.0) and that the directive's good_meetings target is this repository's north-star block's (20 by 30 November), read each morning, never the registry's copy (krishanraja/control-center#718). (2026-11-12)
-- The protocol copy is Control Center's at 212379e1 (1.21.0): its voice_check row lists exactly the 16 channels Control Center's voice check accepts, it says the number objective's target is this repository's own north-star block, and the circle lane files a stranger as cold_scraped. 1.21.0 itself adds only growth-makeyourmindup's inspiration instructions; this engine still speaks up to 1.20.0 (ENGINE_STATE_VERSION in src/stages/instruction.mjs). (2026-11-12)
-- The session pack leaves out the Krish canon block ai-harness renders at the end of AGENTS.md (one line in its place; it loads with AGENTS.md itself), and the rulings test reads AGENTS.md's own sections without it, so the canon block can land while the 36 KB budget and the standing rules word for word both hold. (2026-11-12)
 - The daily dispatch runs live: Control Center wakes it at about 05:10 UTC, again the same day when a row of his widget runs low, and a merge to main that changes `src/` runs it at once. Each run reads Krish's instruction first (protocol 1.20.0), builds the five rows, Jonny's pitches and invites and the stage forms from Control Center's context, asks the research desk for lookups and openings, passes every action with words in Krish's name through Control Center's voice check, and reports the number, the bookings and the engine's state (README.md, "The daily Control Center dispatch").
 - Nothing here sends, posts or spends. Control Center drafts Jonny's pitches into Jonny's Gmail each day for Jonny to send; every other action waits on Krish's own press, and an approved exact email runs only through Control Center's shared executor.
 - The number is read from his one tap after each meeting (protocol 1.10.0). On the 12 November run good meetings, podcasts booked and stages confirmed all read as measured; the count itself is the state line above, which Control Center writes.
@@ -54,9 +53,9 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-13): read the first live report after Control Center's 1.25.0 deploy: warm notes written or held by name, and no `pilot_person_not_served` line.
+- Next (2026-11-14): Control Center serves the credits session a read of the subjects held for want of a booking address and a write that files a found route (docs/CONTROL-CENTER-BRIEF.md, "Still owed by Control Center").
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
-- North Star check (2026-11-13): holds.
+- North Star check (2026-11-14): holds.
 
 ### Existing integration gates to retain
 
