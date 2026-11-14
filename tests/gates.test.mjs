@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { literals, findings, ALLOW } from '../scripts/check-bespoke.mjs';
 import { linkTargets, brokenLinks } from '../scripts/check-links.mjs';
-import { frontMatter, namedPaths, protocolDrift } from '../scripts/check-drift.mjs';
+import { frontMatter, namedPaths } from '../scripts/check-drift.mjs';
 import { cardFor, lensFor, section, CARD_MAX, LENS_MAX } from '../src/crew/cards.mjs';
 
 // The fast gates of plan Phase 3: no per-run bespoke code, the local link
@@ -35,13 +35,16 @@ test('the link check finds a link out of the repository and a missing file, and 
   assert.deepEqual(await brokenLinks(new URL('.', root).pathname.replace(/\/$/, '')), []);
 });
 
-test('the drift check reads NOW.md\'s named files and the protocol header against its newest version', async () => {
+test('the drift check reads NOW.md\'s named files, and the protocol copy is Control Center\'s bundle byte for byte (I-11)', async () => {
   const fm = frontMatter(await readFile(new URL('NOW.md', root), 'utf8'));
   assert.match(fm.head, /^[0-9a-f]{7,40}$/);
   assert.ok(namedPaths(fm).includes('docs/history/LOG.md'));
-  assert.equal(protocolDrift('# The growth engine protocol, version 1.9.0\n\n1.9.0 adds pitches.'), null);
-  assert.equal(protocolDrift('# The growth engine protocol, version 1.8.0\n\n1.9.0 adds pitches.'), 'the header says 1.8.0 but the document reaches 1.9.0');
-  assert.equal(protocolDrift(await readFile(new URL('docs/control-center/ENGINE-PROTOCOL.md', root), 'utf8')), null);
+  const { verifyBundle, bundleDigest } = await import('../src/protocol-bundle.mjs');
+  const b = verifyBundle();
+  assert.deepEqual(b.failures, []);
+  const json = JSON.parse(await readFile(new URL('docs/control-center/bundle.json', root), 'utf8'));
+  assert.equal(bundleDigest(json.version, json.files), json.bundle_sha256);
+  assert.equal(b.version, json.version);
 });
 
 test('every card and lens is generated from its sources, within its size, and a changed playbook is drift', async () => {

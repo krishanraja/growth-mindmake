@@ -13,5 +13,5 @@ test('every relative Markdown link resolves inside the repository, the copied pr
   assert.deepEqual(await brokenLinks(root), []);
   const protocol = await readFile(new URL('../../docs/control-center/ENGINE-PROTOCOL.md', import.meta.url), 'utf8');
   assert.doesNotMatch(protocol, /\]\(\.\.\/\.\.\//, 'no link climbs out of docs/');
-  assert.match(protocol, /Control Center ADR-038/, 'the ADR is named in words');
+  assert.match(protocol, /\]\(https:\/\/github\.com\/krishanraja\/control-center\/blob\/main\/docs\/DECISIONS\/038-/, 'the ADR is an absolute link (the bundle, byte for byte, I-11)');
 });

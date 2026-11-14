@@ -466,6 +466,7 @@
         "src/stages/traffic.mjs",
         "src/stages/credits.mjs",
         "src/stages/receipts.mjs",
+        "src/protocol-bundle.mjs",
         "src/stages/instruction.mjs",
         "src/stages/shownotes.mjs",
         "src/stages/voice.mjs",
