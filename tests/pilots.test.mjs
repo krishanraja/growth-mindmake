@@ -335,7 +335,15 @@ test('a note not yet answered files its write request and holds; a closed desk h
   assert.deepEqual(pilotRows({ context: ctx, canon, at: AT, required: false }).held, ['desk_closed']);
   const bad = () => 'I saw Northwind Group is rebuilding pricing for AI this quarter.';
   const failed = pilotRows({ context: { ...ctx, research: answered(waiting.research, bad) }, canon, at: AT, ...live });
-  assert.deepEqual([failed.held, failed.rows.length, failed.research.length], [['note_failed'], 0, 0], 'a name the trigger does not hold fails the rules');
+  // A sentence that fails the rules is asked once more, naming the rule it broke (audit gm-3), and a second failure holds for good.
+  assert.deepEqual([failed.held, failed.rows.length, failed.research.length], [['note_waiting'], 0, 1], 'a name the trigger does not hold fails the rules, and the desk gets one retry');
+  assert.equal(failed.research[0].request_id, `${waiting.research[0].request_id}:r1`);
+  assert.match(failed.research[0].query, / Avoid any name not given\.$/);
+  assert.ok(failed.research[0].query.length <= 400);
+  const retried = pilotRows({ context: { ...ctx, research: [...answered(waiting.research, bad), ...answered(failed.research, bad)] }, canon, at: AT, ...live });
+  assert.deepEqual([retried.held, retried.rows.length, retried.research.length], [['note_failed'], 0, 0], 'two tries that fail hold, never a third ask');
+  const fixed = pilotRows({ context: { ...ctx, research: [...answered(waiting.research, bad), ...answered(failed.research, good)] }, canon, at: AT, ...live });
+  assert.equal(fixed.rows.length, 1, 'a retry that passes writes the note');
   // A sentence the desk could not write is asked again once under the day, and failing that too is a failed note, never one still waiting.
   const base = waiting.research[0], day = { ...base, request_id: `${base.request_id}:2026-10-27` };
   const once = pilotRows({ context: { ...ctx, research: [{ ...base, status: 'failed', answer: null, requested_at: AT }] }, canon, at: AT, ...live });
