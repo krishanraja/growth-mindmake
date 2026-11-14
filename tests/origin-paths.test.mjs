@@ -42,3 +42,22 @@ test('a full-funnel path raises the report to 1.24.0, and the stand-in takes it'
   assert.equal(r.schema_version, PATHS_VERSION);
   assert.deepEqual(violations(schema, r), []);
 });
+
+test("the meeting's own tie (features.meeting_ties) traces a tie he had before; null or a tier 4 met that day is no path", async () => {
+  const { readMeetings } = await import('../src/stages/meetings.mjs');
+  const cov = [{ source: 'meetings', available: true, complete: true }];
+  const read = readMeetings({ coverage: cov, meetings: [
+    mtg(1, { tie: { network_tier: '1_reciprocated', known_since: null } }),
+    mtg(2, { tie: { network_tier: '4_owned_network', known_since: '2023-05-01' } }),
+    mtg(3, { tie: { network_tier: '4_owned_network', known_since: '2026-11-10T10:00:00Z' } }),
+    mtg(4, { tie: null }),
+    mtg(5)
+  ] });
+  assert.equal(read.state, 'served');
+  const by = Object.fromEntries(originCandidates({ meetings: read.meetings, context: {} }).map(c => [c.contact_id, c.path]));
+  assert.equal(by[cid(1)], 'existing-relationship');
+  assert.equal(by[cid(2)], 'existing-relationship', 'known before the meeting');
+  assert.equal(by[cid(3)], undefined, 'filed from the meeting itself');
+  assert.equal(by[cid(4)], undefined, 'an unread tie is unknown, never none');
+  assert.equal(by[cid(5)], undefined, 'not served yet');
+});
