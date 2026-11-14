@@ -38,8 +38,10 @@ test('the ladder is read from docs/NORTH_STAR.md itself, and a week takes its ow
 });
 
 test("the directive's private figures stay unknown, and its constraints are read as data", () => {
-  assert.deepEqual(readNorthStar({ north_star: { own: { week_target: 'private', urgency: 4, urgency_reason: 'not measured' }, intensity: { urgency: 4 } } }), { week_target: null, current: null, urgency: 4, reason: 'not measured' });
-  assert.deepEqual(readNorthStar({}), { week_target: null, current: null, urgency: null, reason: null });
+  assert.deepEqual(readNorthStar({ north_star: { own: { week_target: 'private', urgency: 4, urgency_reason: 'not measured' }, intensity: { urgency: 4 } } }), { week_target: null, week_of: null, current: null, urgency: 4, reason: 'not measured' });
+  assert.deepEqual(readNorthStar({}), { week_target: null, week_of: null, current: null, urgency: null, reason: null });
+  assert.equal(readNorthStar({ north_star: { own: { week_of: '2026-11-02', week_target: 5 } } }).week_of, '2026-11-02');
+  assert.equal(readNorthStar({ north_star: { own: { week_of: 'last week' } } }).week_of, null, 'a week that is not a date is unknown');
   assert.equal(readNorthStar({ north_star: { own: { current: 3 } } }).current, 3);
   assert.deepEqual(readConstraints({ constraints: { spend_cap_usd: 0, max_actions: 5 } }), { max_actions: 5, spend_cap_usd: 0 });
   assert.equal(readConstraints({}), null);
@@ -344,4 +346,14 @@ test('the next four paths go in a report only where Control Center serves them',
   assert.deepEqual(pathsFor({ schema_versions: [MEETINGS_VERSION], features: { meetings: true } }), PATHS);
   assert.deepEqual(pathsFor({ schema_versions: [PATHS_VERSION], features: {} }), PATHS, 'the flag, not the version alone');
   assert.deepEqual(pathsFor({ schema_versions: [MEETINGS_VERSION, PATHS_VERSION], features: { meeting_paths: true } }), [...PATHS, ...NEXT_PATHS]);
+});
+
+test("Control Center's week target stands only for the week it was read for; a stale one gives way to this week's rung (audit gm-5)", async () => {
+  const gap = async week_of => {
+    const h = harness({ directive: directiveFixture({ north_star: { own: { week_of, week_target: 3, urgency: 5 }, intensity: { urgency: 5 } } }) });
+    await run(h);
+    return h.reports[0].activity.find(a => a.line.startsWith('Gap: ')).line;
+  };
+  assert.match(await gap('2026-11-02'), / of 3 this week/, "this week's reading is Control Center's");
+  assert.match(await gap('2026-10-26'), / of 5 this week/, "last week's reading gives way to the ladder's rung for 2 November");
 });
