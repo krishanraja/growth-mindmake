@@ -355,7 +355,8 @@ const numbersOf = text => (String(text ?? '').match(/\d+(?:[.,]\d+)*/g) ?? []).m
 /**
  * The instruction the desk writes a warm note's one sentence from, at most
  * QUERY_MAX characters: the reason Krish is writing now, from only the cited
- * trigger, said to them, beginning "I". The trigger is kept whole where it
+ * trigger, said to them, opening on what he saw, read or noticed, with the
+ * source's own "I" and "we" kept as the source's. The trigger is kept whole where it
  * fits, else cut at a word (60 characters or more kept, never ending on a
  * joiner). Null when it cannot be asked: no name or trigger, or a run of
  * digits or an address in it. Pure.
@@ -364,7 +365,9 @@ export function buyerQuery({ first, trigger, note = '' }) {
   const f0 = String(first ?? '').trim(), t = tidySignal(trigger).replace(/[.!?\s]+$/, '');
   if (!f0 || !t) return null;
   // The greeting, what he is building, the ask and the sign-off are fixed text added after (warmNote, rows.mjs actionFor).
-  const frame = fact => `Krish's reason for writing to ${f0} now, as one sentence to them, from only this: ${fact}. Begin with "I". Plain words, under ${BUYER_SENTENCE_WORDS_MAX}. No question, link, offer, price, sum of money, time span, praise, or name or number the fact does not hold. The sentence only.${note}`;
+  // The source is often their own post, in their own "I" and "we": said as theirs, and opened on what Krish saw (PERCEIVE),
+  // never as his own words. The desk's "I'm writing because" and a copied "I'm excited" were both refused on 14 Nov 2026.
+  const frame = fact => `To ${f0}, one sentence on why Krish writes now, from only this (its "I" or "we" is the source, not Krish): ${fact}. Start "I saw", "I read" or "I noticed". Under ${BUYER_SENTENCE_WORDS_MAX} plain words; no question, link, offer, price, money, time span, praise, or name or number it lacks. Sentence only.${note}`;
   let q = frame(t).length <= QUERY_MAX ? frame(t) : null;
   if (!q) {
     const room = QUERY_MAX - frame('').length;
