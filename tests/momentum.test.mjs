@@ -263,3 +263,9 @@ test("an answer or a booked call on one of his own notes (morning, row_press) li
   assert.equal(w.lift({ kind: 'connector' }), 1, "another job's draft, a proposal it cannot join and a draft outside the window lift nothing");
   assert.match(winsLine(w), /1 note from his box answered, 1 booked/);
 });
+
+test('a reply to an approved exact email the executor sent from his box is a win of his own note (job executor, I-03)', () => {
+  const feedback = [{ proposal_id: 'gmr-x', subject_ref: `contact:${id(31)}`, amplifier_kind: 'operator', features: {} }];
+  const drafts = [{ job: 'executor', proposal_id: 'gmr-x', sent_at: '2026-10-18T00:00:00Z', replied_at: '2026-10-20T00:00:00Z' }];
+  assert.equal(wins({ context: { records: { visibility: [], drafts }, feedback }, at: AT }).counts.note_replies, 1);
+});

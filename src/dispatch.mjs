@@ -18,7 +18,7 @@ import { circleRequests, circlePeople, circleFromNetwork, takesCircle, circleAns
 import { mirrorPlan, takesMirror, MIRROR_VERSION } from './stages/mirror.mjs';
 import { readCanon, readRecord, blobSha, CanonError } from './stages/canon.mjs';
 import { pitchRows, lookupRequests } from './stages/pitches.mjs';
-import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, readSpecCounts, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, visibilityTargets, STOPGAP_PREFIX, MEETINGS_VERSION, meetingsServed, readMeetings, countGood, tappedObjective, tappedLine, originCandidates, readUpcoming, upcomingLine } from './stages/meetings.mjs';
+import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, readSpecCounts, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, visibilityTargets, STOPGAP_PREFIX, MEETINGS_VERSION, meetingsServed, readMeetings, countGood, tappedObjective, tappedLine, originCandidates, readUpcoming, upcomingLine, pathsFor, NEXT_PATHS, PATHS_VERSION } from './stages/meetings.mjs';
 import { readWeb, trafficLines, bookedHosts } from './stages/traffic.mjs';
 import { readCredits, creditsLine, CREDITS_VERSION, CREDITS_SPENT_MAX } from './stages/credits.mjs';
 import { weekSpec, defaultSpec, parseSpec, compiledDrift, STAGE_CAPS, SPEC_PREFIX, FIRST_SPEC_WEEK, summary as capsSummary } from './crew/compile.mjs';
@@ -507,6 +507,8 @@ export function buildReport({ run_id, mode, observed_at, source, status, objecti
   // 1.20.0: the engine's state and its acks to Krish's instruction, only the fields with an entry, and they raise the report to the version that carries them.
   const state = engine_state ? Object.fromEntries(ENGINE_STATE_KEYS.filter(k => Array.isArray(engine_state[k]) && engine_state[k].length).map(k => [k, engine_state[k]])) : {};
   if (Object.keys(state).length) version = laterVersion(version, ENGINE_STATE_VERSION);
+  // 1.24.0: a candidate on one of the four full-funnel paths raises the report to the version that carries them (originCandidates sends one only where pathsFor allows it).
+  if (origin_candidates?.some(c => NEXT_PATHS.includes(c?.path))) version = laterVersion(version, PATHS_VERSION);
   const body = {
     schema_version: version, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
     objectives, activity: fitActivity(activity).map(line => ({ line: cut(line, 500), evidence_url: null })),
@@ -1033,7 +1035,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       const count = countGood(taps.meetings, lastWeek, londonDate);
       goodObjective = tappedObjective({ read: taps, count, lastWeek, midnight: londonMidnight, timezone: TIMEZONE });
       activity.push(tappedLine({ read: taps, count, lastWeekOf: lastWeek.start, lastTarget: ladderTarget(ladder, lastWeek.start), thisTarget, targetSource, northStar: directive.north_star }));
-      origin_candidates = originCandidates({ meetings: taps.meetings, context: suppliedContext });
+      origin_candidates = originCandidates({ meetings: taps.meetings, context: suppliedContext, paths: pathsFor(capabilities) });
       const open = new Set(taps.meetings.filter(m => m.good === null && m.origin_path === null && m.contact_id !== null).map(m => m.contact_id)).size;
       activity.push(`Where his meetings came from: ${origin_candidates.length} of the ${open} ${open === 1 ? 'person' : 'people'} in an unanswered meeting ${origin_candidates.length === 1 ? 'has' : 'have'} a path from the engine's records; the rest are recorded as unknown at his tap.`);
       if (taps.unknown_paths) activity.push(`${taps.unknown_paths} held meeting${taps.unknown_paths === 1 ? '' : 's'} came with a path this engine does not know yet, so ${taps.unknown_paths === 1 ? 'it is' : 'they are'} counted with the path unknown.`);

@@ -115,7 +115,7 @@ kai-growth-hacker (cgallic/kai-cmo-harness, its `harness/` and `knowledge/` unde
 
 ### Wave 3, December and January: clone, brain, standard operating procedures
 
-- [ ] **3.1 Clone realism.** He records the 75-minute voice session and the twin take; each upload on his yes; krish-clone's test (similarity at or above the fifth percentile of his own spread, a blind A/B at most 60%). A pass lifts N21 by his decision.
+- [ ] **3.1 Clone realism.** The 75-minute voice session and the twin take are recorded (krish-clone pull request #3, 14 November 2026), so nothing waits on him to record. Next is krish-clone's free local evaluation by its RUNBOOK, which spends nothing; every step after it that uploads or spends (a voice or avatar build, a paid model call) waits on his yes for that step. krish-clone's test is unchanged: similarity at or above the fifth percentile of his own spread, and a blind A/B at most 60%. A pass lifts N21 by his decision.
 - [ ] **3.2 Video notes.** Warm or rich path, 5 to 10 a week, disclosed as made with his AI clone, from a demo-of-value script through the voice check, a HeyGen render on its own credit pool, a separate reviewer, a SendLinks page and a morning draft.
 - [ ] **3.3 Brain.** Control Center stores edges only (post, contact, meeting, deal, client, procedure, call) pointing at existing rows by id, with a connector query tool; learnings stay in this engine; only the ontology goes in the public mindmake repository.
 - [ ] **3.4 Proof procedures.** The paid proof's procedures, held privately and cited by id, so one nobody uses is flagged.

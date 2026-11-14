@@ -1,0 +1,3 @@
+Status: Held meetings get an origin where the engine can trace one: long-standing ties served outside the ranked hundred count as existing relationships, a path Control Center does not serve is never sent, and a full-funnel path raises the report to 1.24.0. Executor sends count as his own notes in wins. isSpeakerForm and its patterns are exported for Control Center's form capture. GET-GOING 3.1 now starts from krish-clone's free local evaluation.
+Next: read the next live report's "Where his meetings came from" line and confirm candidates are sent for the held meetings.
+North Star check (2026-11-14): holds.

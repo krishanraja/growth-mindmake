@@ -129,7 +129,7 @@ function countsOf(total, paths) {
   if (!count(total)) return { state: 'unreadable' };
   const by_path = {};
   for (const [k, x] of Object.entries(paths ?? {})) {
-    if (!PATHS.includes(k) || !(x === null || count(x))) return { state: 'unreadable' };
+    if (!(PATHS.includes(k) || NEXT_PATHS.includes(k)) || !(x === null || count(x))) return { state: 'unreadable' };
     if (x !== null) by_path[k] = x;
   }
   if (Object.values(by_path).reduce((a, b) => a + b, 0) > total) return { state: 'unreadable' };
@@ -304,6 +304,8 @@ export function tappedLine({ read, count, lastWeekOf, lastTarget, thisTarget, ta
   return `Good meetings in the week of ${lastWeekOf}: ${count.total}${Number.isInteger(lastTarget) ? ` against a target of ${lastTarget}` : ''}, from his taps after each meeting${paths ? ` (${paths})` : ''}.${open}${whole}${target}${urgency}`;
 }
 
+/** A tie he had before any meeting: Control Center's tiers 1 to 3. */
+const TIED = /^[123]_/;
 const ROW_PATH = { partners: 'partner', network: 'existing-relationship' };
 
 /**
@@ -314,7 +316,7 @@ const ROW_PATH = { partners: 'partner', network: 'existing-relationship' };
  * about gets no candidate, so Control Center records `unknown`. Oldest
  * meeting first, as his list asks; at most 40, one a person. Pure.
  */
-export function originCandidates({ meetings, context }) {
+export function originCandidates({ meetings, context, paths = PATHS }) {
   const records = context?.records ?? {};
   const list = v => (Array.isArray(v) ? v : []);
   const lc = v => (typeof v === 'string' ? v.toLowerCase() : null);
@@ -343,8 +345,20 @@ export function originCandidates({ meetings, context }) {
       return { path: 'existing-relationship', origin_ref: ref('pilot', pilot.id) };
     }
     if (list(context?.network).some(n => lc(n?.contact_id) === c)) return { path: 'existing-relationship', origin_ref: null };
+    // The network part ranks only a hundred people, so a long-standing tie in a
+    // meeting is often not in it. Anyone Control Center serves elsewhere with
+    // a tie he had before (tiers 1 to 3), or known before the meeting, is an
+    // existing relationship; a contact filed from the meeting itself (tier 4,
+    // known since then) is not.
+    const held = heldAt.get(c);
+    if (people.some(n => lc(n?.contact_id) === c && (TIED.test(String(n?.network_tier ?? '')) || (Number.isFinite(Date.parse(n?.known_since ?? '')) && Date.parse(n.known_since) < held))))
+      return { path: 'existing-relationship', origin_ref: null };
     return null;
   };
+  const people = [...list(context?.amplifier_candidates), ...list(context?.quiet_ties),
+    ...list(records.advisory).filter(a => a?.person && typeof a.contact_id === 'string').map(a => ({ ...a.person, contact_id: a.contact_id }))];
+  const heldAt = new Map();
+  for (const m of meetings) { const t = Date.parse(m?.held_at ?? ''); if (m?.contact_id && Number.isFinite(t) && !(heldAt.get(m.contact_id) <= t)) heldAt.set(m.contact_id, t); }
   const out = [], seen = new Set();
   // A meeting with nobody filed for it yet has no one to trace; it stays unknown at his tap.
   const open = [...meetings].filter(m => m.good === null && m.origin_path === null && m.contact_id !== null).sort((a, b) => Date.parse(a.held_at) - Date.parse(b.held_at));
@@ -352,7 +366,8 @@ export function originCandidates({ meetings, context }) {
     if (seen.has(m.contact_id)) continue;
     seen.add(m.contact_id);
     const p = pathOf(m.contact_id);
-    if (p) out.push({ contact_id: m.contact_id, path: p.path, origin_ref: p.origin_ref });
+    // A path the receiver does not serve yet is never sent (pathsFor).
+    if (p && paths.includes(p.path)) out.push({ contact_id: m.contact_id, path: p.path, origin_ref: p.origin_ref });
     if (out.length >= ORIGIN_CANDIDATES_MAX) break;
   }
   return out;

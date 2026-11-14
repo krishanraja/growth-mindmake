@@ -28,8 +28,8 @@ export const LIFT_STEP = 0.1;
 export const LIFT_MAX = 1.5;
 export const POINTS = Object.freeze({ reply: 1, booking: 2, good_meeting: 3 });
 const DAY = 86400000;
-/** The drafts that are this engine's notes from his own box: the morning lane's and his Draft press's (protocol 1.23.0). */
-export const PERSON_JOBS = Object.freeze(['morning', 'row_press']);
+/** The drafts that are this engine's notes from his own box: the morning lane's, his Draft press's (protocol 1.23.0) and the approved exact emails the guarded executor sent (job `executor`, followed since Control Center's #820, 14 November 2026). */
+export const PERSON_JOBS = Object.freeze(['morning', 'row_press', 'executor']);
 
 /** The wins in the context and his held meetings, and the lift they give a candidate. Pure. */
 export function wins({ context, meetings = null, at }) {
