@@ -424,6 +424,36 @@ export function deadPlans(context, proposing = new Set()) {
     .map(f => ({ proposal_id: f.proposal_id, reason: 'Its Advisory record is no longer held, so this plan can never run.' }));
 }
 
+/** Integration I-07: the one asset an exact email may name, by Control Center's contract. */
+const ASSET_LIBRARIES = Object.freeze(['makeyourmindup', 'heartside']);
+const ASSET_LINK = /\[[^\]\n]+\]\(asset:1\)/g;
+/**
+ * Why a prepared action's assets may not go out, or null when they may: none,
+ * or (only where `allowed`) exactly one, `{ placeholder: 'asset:1', title,
+ * purpose, and one of library_ref | drive_file_id | url }`, named in the body
+ * exactly once as `[words](asset:1)` with no other `(asset:` link. Pure.
+ */
+export function assetsHold(a, { allowed = false } = {}) {
+  if (!Array.isArray(a?.assets)) return 'assets_not_a_list';
+  const body = typeof a.body === 'string' ? a.body : '';
+  const named = (body.match(ASSET_LINK) ?? []).length, any = (body.match(/\(asset:/g) ?? []).length;
+  if (!a.assets.length) return any ? 'asset_named_but_none_attached' : null;
+  if (!allowed) return 'assets_not_allowed';
+  if (a.assets.length > 1) return 'more_than_one_asset';
+  const x = a.assets[0];
+  if (!x || typeof x !== 'object' || x.placeholder !== 'asset:1') return 'asset_placeholder';
+  if (typeof x.title !== 'string' || !x.title.trim() || x.title.length > 200) return 'asset_title';
+  if (typeof x.purpose !== 'string' || !/^[a-z0-9_-]{1,40}$/.test(x.purpose)) return 'asset_purpose';
+  const refs = ['library_ref', 'drive_file_id', 'url'].filter(k => x[k] !== undefined && x[k] !== null);
+  if (refs.length !== 1) return 'asset_source';
+  const r = x[refs[0]];
+  if (refs[0] === 'library_ref' && !(r && ASSET_LIBRARIES.includes(r.library) && typeof r.path === 'string' && r.path && /^[0-9a-f]{64}$/.test(r.sha256 ?? ''))) return 'asset_source';
+  if (refs[0] === 'drive_file_id' && !(typeof r === 'string' && /^[A-Za-z0-9_-]{10,200}$/.test(r))) return 'asset_source';
+  if (refs[0] === 'url' && !(typeof r === 'string' && /^https:\/\/[^\s]+$/.test(r))) return 'asset_source';
+  if (named !== 1 || any !== 1) return 'asset_named_not_once';
+  return null;
+}
+
 /** A report carries at most this many activity lines and holds (engine-report.schema.json). */
 export const ACTIVITY_MAX = 40, HOLDS_MAX = 40;
 // The lines a full report must still carry: the gap line, the AI answers and kits, the switch's lines and the crew's
@@ -921,8 +951,9 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       if (fits.length < plans.length) holds.push({ reason: 'payload_too_long', detail: `${plans.length - fits.length} campaign plan${plans.length - fits.length === 1 ? ' is' : 's are'} longer than the protocol allows and stay${plans.length - fits.length === 1 ? 's' : ''} unproposed.` });
       mapped.proposals = [...mapped.proposals, ...fits].slice(0, policy.limits.recommendations_per_run);
     }
-    // Every execution field gates the executor and can only narrow it: email only, no assets, zero cost, a receipt.
-    if (mode === 'live' && capabilities?.features?.exact_actions && policy.execution?.authority === 'exact_approval' && policy.execution.maximum_cost_usd === 0 && policy.execution.require_independent_receipt === true && policy.execution.assets === false && Array.isArray(policy.execution.channels) && policy.execution.channels.includes('email')) {
+    // Every execution field gates the executor and can only narrow it: email only, zero cost, a receipt, and no asset unless the
+    // policy allows one and Control Center can mint its link (features.exact_assets; integration I-07): then at most one.
+    if (mode === 'live' && capabilities?.features?.exact_actions && policy.execution?.authority === 'exact_approval' && policy.execution.maximum_cost_usd === 0 && policy.execution.require_independent_receipt === true && typeof policy.execution.assets === 'boolean' && Array.isArray(policy.execution.channels) && policy.execution.channels.includes('email')) {
       phase = 'prepare_action';
       const decisions = decisionsRead ?? await cc.decisions(new Date(Date.parse(started_at)-30*DAY).toISOString());
       // Only campaign plans reach prepare-action (N18). The pending 22 October route plans are campaign plans (gmc-), so none is stranded.
@@ -944,9 +975,9 @@ export async function runDispatch({ cc, source, context = null, policy, registry
             mapped.proposals.unshift(existing); continue;
           }
           const a = prepared?.prepared?.action;
-          if (prepared.ok !== true || prepared.prepared.parent_proposal_id !== decision.proposal_id || payloadDigest(a) !== prepared.prepared.payload_sha256 || a.cost_usd !== 0 || !Array.isArray(a.assets) || a.assets.length || a.channel !== 'email') throw new Error('Invalid prepared action');
+          if (prepared.ok !== true || prepared.prepared.parent_proposal_id !== decision.proposal_id || payloadDigest(a) !== prepared.prepared.payload_sha256 || a.cost_usd !== 0 || assetsHold(a, { allowed: policy.execution.assets === true && capabilities?.features?.exact_assets === true }) || a.channel !== 'email') throw new Error('Invalid prepared action');
           mapped.proposals = mapped.proposals.filter(p=>p.proposal_id !== decision.proposal_id);
-          mapped.proposals.unshift({ proposal_id: `gma-${payloadDigest(a).slice(0,32)}`, title: cut(`Review the exact email: ${a.subject}`,160), why: 'The campaign plan is approved. This approval binds this recipient, email, full wording, no assets, zero cost and the stated time window.', kind: 'prepared', wall: 'send', amount_usd: 0, channel: 'email', objective_key: 'qualified_conversations', exact_payload: JSON.stringify(a,null,2), payload_sha256: payloadDigest(a), evidence: [], expires_at: a.expires_at, stage: 'go_live', parent_proposal_id: decision.proposal_id, subject_ref: `contact:${a.recipient_contact_id}`, close_condition: { event: 'external_action_verified', reference: a.source_ref } });
+          mapped.proposals.unshift({ proposal_id: `gma-${payloadDigest(a).slice(0,32)}`, title: cut(`Review the exact email: ${a.subject}`,160), why: `The campaign plan is approved. This approval binds this recipient, email, full wording, ${a.assets.length ? 'the one asset it links' : 'no assets'}, zero cost and the stated time window.`, kind: 'prepared', wall: 'send', amount_usd: 0, channel: 'email', objective_key: 'qualified_conversations', exact_payload: JSON.stringify(a,null,2), payload_sha256: payloadDigest(a), evidence: [], expires_at: a.expires_at, stage: 'go_live', parent_proposal_id: decision.proposal_id, subject_ref: `contact:${a.recipient_contact_id}`, close_condition: { event: 'external_action_verified', reference: a.source_ref } });
         } catch { holds.push({ reason: 'approved_plan_preparation_blocked', detail: 'The approved plan changed, its proof or recipient is unavailable, or no supported execution route exists. No action is inferred.' }); }
       }
       phase = 'execute_action';
@@ -959,12 +990,17 @@ export async function runDispatch({ cc, source, context = null, policy, registry
           else if (receipt.receipt?.state === 'submitted') receipt = await cc.reconcileAction(decision.proposal_id);
           if (decision.amended === true && !amendedDigestOk(decision)) throw new Error('Amended digest does not verify');
           const expectedDigest = decision.amended === true ? decision.amended_sha256 : decision.payload_sha256;
+          if (receipt?.receipt?.reason === 'asset_link_unavailable' || receipt?.reason === 'asset_link_unavailable') throw Object.assign(new Error('Asset link unavailable'), { asset_link_unavailable: true });
           if (receipt?.receipt?.state !== 'verified' || !receipt.receipt.provider_id || receipt.receipt.payload_sha256 !== expectedDigest) throw new Error('Receipt not verified');
           activity.push(`Approved external action ${decision.proposal_id} has an independently verified provider receipt.`);
           events.push({ event: 'external_action_verified', proposal_id: decision.proposal_id, at, evidence_url: null });
           mapped.proposals = mapped.proposals.filter(p=>p.proposal_id !== decision.proposal_id);
           outcome.sends++;
-        } catch { holds.push({ reason: 'external_action_unverified', detail: 'The connector is blocked, the exact approval no longer matches, or delivery needs reconciliation. No resend or completion is assumed.' }); }
+        } catch (e) {
+          // I-07: a send held because its asset's link could not be minted is reported as such, never retried with a plain address or an attachment.
+          if (e?.asset_link_unavailable) holds.push({ reason: 'asset_link_unavailable', detail: 'An approved email names one asset whose link Control Center could not make, so it was not sent. It is never sent with a plain address or an attachment instead.' });
+          else holds.push({ reason: 'external_action_unverified', detail: 'The connector is blocked, the exact approval no longer matches, or delivery needs reconciliation. No resend or completion is assumed.' });
+        }
       }
       mapped.proposals = mapped.proposals.slice(0,10);
     }
