@@ -696,13 +696,13 @@ const NOT_ORG_NAME = /\b(?:size|website|site|url|link|web|description|describe|r
 const WEBSITE = /\b(?:website|web site|homepage|home page|personal site|url|web address|link)\b/;
 const POSTAL = /\b(?:address|street|post ?code|zip|postal|house|flat|apartment)\b/;
 const PLACE = /\b(?:location|city|town|country|region|state|province|county|based|where are you|time ?zone)\b/;
-const TALK_TITLE = /\b(?:(?:talk|session|presentation|proposal|keynote|workshop|panel|episode|submission) (?:title|name)|title of (?:your |the )?(?:talk|session|presentation|proposal|keynote|workshop|submission)|(?:proposed|working) title)\b/;
+export const TALK_TITLE = /\b(?:(?:talk|session|presentation|proposal|keynote|workshop|panel|episode|submission) (?:title|name)|title of (?:your |the )?(?:talk|session|presentation|proposal|keynote|workshop|submission)|(?:proposed|working) title)\b/;
 const FIRST = /\b(?:first|given|fore) ?name\b/;
 const LAST = /\b(?:last|family|sur) ?name\b/;
 const NOT_HIS_NAME = /\b(?:middle|event|talk|session|show|podcast|episode|file|user|nick|brand|product|team|school|university|venue|group|account|channel|project|book|course|publication|newsletter|conference)\b/;
 const JOB = /\b(?:job ?title|job|role|position|designation|occupation|(?:your|current|professional) title)\b/;
-const BIO = /\b(?:bio|biography|about (?:you|yourself|me|the speaker|the guest)|speaker profile|introduce yourself|who are you|background)\b/;
-const ABSTRACT = /\b(?:abstract|synopsis|summary|outline|description|describe|proposal|pitch|what (?:will|would|do) you (?:like to )?(?:talk|speak|cover|share|discuss)|talk about|speak about|about (?:your|the) (?:talk|session|idea|topic|presentation)|session details|why (?:should|would) (?:we|you)|why you|your idea|episode idea|topic idea)\b/;
+export const BIO = /\b(?:bio|biography|about (?:you|yourself|me|the speaker|the guest)|speaker profile|introduce yourself|who are you|background)\b/;
+export const ABSTRACT = /\b(?:abstract|synopsis|summary|outline|description|describe|proposal|pitch|what (?:will|would|do) you (?:like to )?(?:talk|speak|cover|share|discuss)|talk about|speak about|about (?:your|the) (?:talk|session|idea|topic|presentation)|session details|why (?:should|would) (?:we|you)|why you|your idea|episode idea|topic idea)\b/;
 const FORMAT = /\b(?:format|session type|talk type|presentation type|submission type|type of (?:session|talk|presentation|submission))\b/;
 const TOPIC_FIELD = /\b(?:topics?|track|theme|category|subject|stream|focus area|area of expertise|expertise)\b/;
 /** An option that is a prompt, a catch-all or a different ask: never chosen. */
@@ -1690,4 +1690,16 @@ export function briefsShadow({ context, canon = null, at }) {
   }
   const tail = canon?.publication ? ` Subjects: ${both} both would write, ${same} in the same words.` : ' Subjects: the canon was not read this run, so none were compared.';
   return { verdicts, line: shadowLine('Outreach briefs', ['stage or guest', 'stages and guests'], { read, agree, differ, apart }) + tail, source_revision: Array.isArray(canon?.files) ? canon.files : [] };
+}
+
+/**
+ * Whether a captured form is a speaker or guest form: at least one field asks
+ * for a talk title, an abstract or a bio (`fieldAsk`, by TALK_TITLE, ABSTRACT
+ * and BIO on the label as `formKey` normalises it). A site search, a login or
+ * a newsletter box asks for none of them. Exported for Control Center's
+ * stage-form capture (audit krish-raja-9), so the two read a form by one
+ * rule. Pure.
+ */
+export function isSpeakerForm(fields) {
+  return (Array.isArray(fields) ? fields : []).some(f => ['talk_title', 'abstract', 'bio'].includes(fieldAsk(f)));
 }
