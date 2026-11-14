@@ -9,6 +9,7 @@ Read this before touching Drive or Canva. The same map sits at the top of the Dr
 ## Where
 
 - Google Drive: **mind/make > 03_Growth**, numbered to fit the mind/make folder's own order.
+- Drive map (drive-map/1): `Ventures/Active Ventures/mind/make/03_Growth`. Control Center's daily read of Ventures resolves this path to its folder by id and serves the folders and file titles under it in the directive as `library` (protocol 1.35.0; fleet integration I-25; Ruling, Krish, 2026-11-14: Control Center reads folder names and file titles, never contents, under Ventures once a day). The id is never written here.
 - Canva: the folder **Mindmake Growth**, for every design this engine makes. Exports of approved designs are filed in Drive.
 
 ## What lives here, and what never does

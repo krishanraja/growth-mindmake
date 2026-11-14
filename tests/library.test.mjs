@@ -63,3 +63,34 @@ test('the Librarian\'s measured check is unknown until the listing is served, th
   assert.equal(served.find(m => m.check === 'library.loose').value, 1);
   assert.equal(served.find(m => m.check === 'library.listing').value, listing.drive.length);
 });
+
+// Fleet integration I-25 (protocol 1.35.0): the library Control Center serves, read into the Librarian's check.
+import { libraryListing } from '../src/crew/library.mjs';
+import { measure } from '../src/crew/checks/librarian.mjs';
+
+test('the declared root is in the taxonomy by path, never by id', () => {
+  assert.deepEqual(taxonomy.drive_map, { schema: 'drive-map/1', roots: [{ path: 'Ventures/Active Ventures/mind/make/03_Growth' }] });
+});
+
+test('the served library becomes the listing, and what titles cannot show stays unknown', () => {
+  const part = { available: true, complete: true, as_of: '2026-11-14T06:02:00Z', roots: [{ root: 'Ventures/Active Ventures/mind/make/03_Growth', id: 'x', folders: [], files: [
+    { folder: '03_Growth/Growth assets/Speaker and guest one-sheet/Current', title: '2026-11-03 One-sheet Speaker and guest v2.pdf', mime: 'application/pdf', modified: null, id: 'synthetic-id' },
+    { folder: '03_Growth', title: 'stray.txt', mime: 'text/plain', modified: null }
+  ] }] };
+  const listing = libraryListing(part);
+  assert.equal(listing.drive.length, 2);
+  assert.equal(listing.drive[0].id, 'synthetic-id');
+  const out = Object.fromEntries(measure({ context: { library: listing }, taxonomy }).map(m => [m.check, m.value]));
+  assert.equal(out['library.listing'], 2);
+  assert.equal(out['library.loose'], 1);
+  assert.equal(out['library.index_mismatch'], null);
+  assert.equal(out['library.canva_outside'], null);
+});
+
+test('a library Control Center cannot vouch for is unknown, never clean', () => {
+  assert.deepEqual(libraryListing({ available: false, complete: false, reason: 'latest_read_partial', as_of: null }), { unknown: 'latest_read_partial' });
+  assert.equal(libraryListing(undefined), null);
+  const [m] = measure({ context: { library: { unknown: 'read_stale' } }, taxonomy });
+  assert.equal(m.value, null);
+  assert.match(m.reason, /read_stale/);
+});

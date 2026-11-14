@@ -23,6 +23,7 @@ import { readWeb, trafficLines, bookedHosts } from './stages/traffic.mjs';
 import { readCredits, creditsLine, CREDITS_VERSION, CREDITS_SPENT_MAX } from './stages/credits.mjs';
 import { weekSpec, defaultSpec, parseSpec, compiledDrift, STAGE_CAPS, SPEC_PREFIX, FIRST_SPEC_WEEK, summary as capsSummary } from './crew/compile.mjs';
 import { crewShadow } from './crew/shadow.mjs';
+import { libraryListing } from './crew/library.mjs';
 import { guestsShadow } from './stages/guests.mjs';
 import { visibilityShadow } from './stages/visibility.mjs';
 import { roomsShadow } from './stages/rooms.mjs';
@@ -164,6 +165,8 @@ export function readDirective(value) {
     constraints: readConstraints(d),
     // 1.10.0: mindmake.co's Google Analytics readings, for the Measurement Specialist's traffic lines. Never an objective.
     web: readWeb(d.web_analytics),
+    // 1.35.0 (I-25): the folders and file titles under 03_Growth, from Control Center's daily Drive read, for the Librarian.
+    library: libraryListing(d.library),
     // 1.16.0: the prepaid credits block, kept raw: it is trusted only where the capabilities say features.credits (readCredits).
     credits_block: d.credits && typeof d.credits === 'object' ? d.credits : null,
     // 1.20.0: Krish's own next best action for this engine, his words kept in memory only (never printed, logged or
@@ -1199,7 +1202,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       ...(outcomes ? outcomeScorecard(outcomes, observed_at) : objectiveReadings({ at: observed_at, activatedOn }))
     ].slice(0, 20);
     // The crew, in shadow until the switch (plan section 3): each specialist's lint and measured check, counted and reported, nothing held or hidden.
-    const crew = crewShadow({ proposals: mapped.proposals, context: suppliedContext, canon: rowsRun?.canon ?? null, research: rowsRun?.research ?? null, at, caps, constraints: c, objectives, activity, origin_candidates, taps, lastWeek, londonDate });
+    const crew = crewShadow({ proposals: mapped.proposals, context: suppliedContext && directive.library ? { ...suppliedContext, library: directive.library } : suppliedContext, canon: rowsRun?.canon ?? null, research: rowsRun?.research ?? null, at, caps, constraints: c, objectives, activity, origin_candidates, taps, lastWeek, londonDate });
     activity.push(...crew.lines);
     // Plan section 12, M3 to M5: the guest standard, the visibility standard and room scoring, ported from Control
     // Center, in shadow beside its own verdicts: one counted line each, nothing held or changed. A fault here never fails the run.
