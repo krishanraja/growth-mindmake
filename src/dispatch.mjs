@@ -36,6 +36,7 @@ import { placesShadow } from './stages/places.mjs';
 import { aiAnswersReadable, answersStep, readAiAnswers } from './stages/answers.mjs';
 import { weeklyAnswerKits, weeklyKitsLine } from './weekly-review.mjs';
 import { gapOf, gapLine, intensify } from './stages/intensity.mjs';
+import { receiptCounts, receiptsLine } from './stages/receipts.mjs';
 import { wins as readWins, winsLine } from './stages/wins.mjs';
 import { poolOf, lanesLine, laneHistory, starvedLanes, poolFlat, starvedProposal, sourcingRequests, checkIn, stoppedPlans, STARVED_RUNS, CHECK_IN_DAYS, CHECK_IN_PREFIX, STARVED_PREFIX, CAPPED } from './stages/momentum.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
@@ -1038,6 +1039,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const credits = readCredits(directive.credits_block, capabilities?.features);
     const creditsNow = creditsLine(credits);
     if (creditsNow) activity.push(creditsNow);
+    // I-06: what became of the links the notes carried, one counts line, shadow only (src/stages/receipts.mjs).
+    if (suppliedContext && suppliedContext.asset_opens !== undefined) activity.push(receiptsLine(receiptCounts(suppliedContext, capabilities?.features)));
     // 1.6.0: the five rows on his home screen, after everything else, in the room a report has left.
     let schema_version = SCHEMA_VERSION, rowsRun = null;
     // Momentum and wins (C4): the lane lines of this engine's recent reports, read from Control Center, and what has worked lately.
