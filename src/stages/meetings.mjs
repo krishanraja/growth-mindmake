@@ -61,6 +61,8 @@ export function readNorthStar(directive) {
   const u = v => Number.isInteger(v) && v >= 1 && v <= 5 ? v : null;
   return {
     week_target: num(own?.week_target),
+    // The week Control Center's reading is for: its target and reading stand only for that week (audit gm-5).
+    week_of: typeof own?.week_of === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(own.week_of) ? own.week_of : null,
     // Control Center's own reading of the number, when it is a figure; "private" or absent is unknown, never 0.
     current: num(own?.current),
     urgency: u(ns?.intensity?.urgency) ?? u(own?.urgency) ?? u(directive?.urgency),
