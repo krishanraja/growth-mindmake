@@ -28,6 +28,7 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 Lifecycle: building. The detail is in `README.md`.
 
+- Held meetings get an origin where the engine can trace one: long-standing ties served outside the ranked hundred count as existing relationships, a path Control Center does not serve is never sent, and a full-funnel path raises the report to 1.24.0. Executor sends count as his own notes in wins. isSpeakerForm and its patterns are exported for Control Center's form capture. GET-GOING 3.1 now starts from krish-clone's free local evaluation. (2026-11-14)
 - docs/control-center/ is Control Center's protocol bundle 1.30.0 byte for byte (deals_detail), proved whole by scripts/check-drift.mjs. (2026-11-14)
 - Each run reads his Pipeline deals in detail where Control Center serves features.deals_detail (protocol 1.30.0, integration I-05): open deals and deals gone quiet (Parked, or Closed Lost for Timing or Went quiet), counted in one shadow line; null is said as not read, never none. No catch-up is proposed from them yet, and the morning lane still skips only open deals. (2026-11-14)
 - The protocol copy in docs/control-center/ is Control Center's protocol bundle byte for byte (1.28.0, integration I-11), with bundle.json; scripts/check-drift.mjs proves it whole, and each run's "Protocol copy" line says current, behind or unknown against capabilities' protocol_bundle. The engine still reports at 1.20.0, the newest version of a field it sends. (2026-11-14)
@@ -52,7 +53,7 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-14): refresh docs/control-center/ by copying Control Center's docs/app/growth/protocol-bundle/ whole when a run's line says behind.
+- Next (2026-11-14): read the next live report's "Where his meetings came from" line and confirm candidates are sent for the held meetings.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 - North Star check (2026-11-14): holds.
 
