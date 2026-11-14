@@ -1,0 +1,3 @@
+Status: Where Control Center serves AEO's cited pages (features.ai_answers_detail), a page AI assistants cite first for one of the engine's buyer questions, on the site of a company whose person is served with an address, becomes one REACH OUT email a run in Krish's own box, drafted by the morning lane for his send; every other page is counted by reason in a Cited pages line (item 5.14). No Mindmake cited pages exist yet; AEO's first research run is 22 November.
+Next: read the first Cited pages line after AEO's 22 November run, and if most pages are held as nobody held there, ask the research desk for each page's editor through found_routes.
+North Star check (2026-11-14): holds.

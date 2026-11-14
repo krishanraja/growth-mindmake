@@ -472,6 +472,7 @@
         "src/stages/voice.mjs",
         "src/stages/rows.mjs",
         "src/stages/openings.mjs",
+        "src/stages/cited.mjs",
         "src/stages/signals.mjs",
         "src/stages/pitches.mjs",
         "src/stages/routes.mjs",
