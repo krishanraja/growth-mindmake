@@ -419,7 +419,7 @@ const reachWords = r => r?.value ? `${r.value.toLocaleString('en-GB')}, ${r.basi
  * (who they are and why them, and how he knows them) and the brief a tap opens.
  * Written in code from what Control Center holds about them; nothing invented.
  */
-export function caseFor({ c, name, company: rawCompany, ask, kind, reach, fit, serves }) {
+export function caseFor({ c, name, company: rawCompany, ask, kind, reach, fit, serves, deal = null }) {
   const title = titleCase(cleanName(c?.current_title ?? c?.contacts?.title ?? c?.headline ?? ''));
   const company = titleCase(cleanName(rawCompany ?? ''));
   const role = title && company && !title.toLowerCase().includes(company.toLowerCase()) ? `${title} at ${company}` : title || company || '';
@@ -431,7 +431,8 @@ export function caseFor({ c, name, company: rawCompany, ask, kind, reach, fit, s
   let because;
   if (ask === 'relationship') {
     const last = monthYear(c?.email_last) ?? monthYear(c?.contacts?.last_touch_at);
-    const head = `A close tie gone quiet${last ? ` since ${last}` : ''}.`;
+    // 5.13: a Pipeline deal gone quiet says so, never "a close tie" of someone who is not one.
+    const head = deal ? `A deal gone quiet (${dealState(deal)})${last ? `, last in touch ${last}` : ''}.` : `A close tie gone quiet${last ? ` since ${last}` : ''}.`;
     const who = wholeRole(title, company, BECAUSE_MAX - head.length - 1);
     because = who ? `${head} ${who}` : head;
   } else {
@@ -464,6 +465,15 @@ export function caseFor({ c, name, company: rawCompany, ask, kind, reach, fit, s
 // with them, what benefit I would have, and what angles to take." A tap on a
 // card opens the whole case, every part whole sentences from the record, and a
 // suggestion whose card cannot say who they are and why them is held, not shown.
+
+/** A deal gone quiet in plain words: "parked", or "closed: went quiet" or "closed: timing". Pure. */
+export function dealState(d) {
+  if (/^parked$/i.test(String(d?.stage ?? ''))) return 'parked';
+  const why = String(d?.closed_reason ?? '').trim().toLowerCase();
+  return why ? `closed: ${why}` : 'closed';
+}
+/** A deal is quiet once nothing is on record for this long: shorter than a tie's 90 days, as a deal had a next step. */
+export const DEAL_QUIET_DAYS = 30;
 
 export const CARD_WHO_MAX = 320;
 export const CARD_LINE_MAX = 240;
@@ -1493,7 +1503,7 @@ const KIND_NOUN = { investor: 'portfolio', ai_capital: 'investments', connector:
  * and from close ties gone quiet (network). Also the reach questions worth
  * asking: the top few with no cited figure, once a month each.
  */
-export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR, wins = null, research: researchIn = null, openingsRequired = false, personRoutes = false, openingKind = 'question' }) {
+export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR, wins = null, research: researchIn = null, openingsRequired = false, personRoutes = false, openingKind = 'question', dealCatchups = false }) {
   const L = lessons(context.feedback, at, context.records?.drafts);
   // This run's research where the dispatch has it (the openings the desk wrote in this run), else the context's.
   const research = Array.isArray(researchIn) ? researchIn : Array.isArray(context.research) ? context.research : [];
@@ -1621,13 +1631,25 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
   }
   // Close ties gone quiet: Control Center's quiet_ties (1.7.0) first, then its network read.
   const ties = [...(Array.isArray(context.quiet_ties) ? context.quiet_ties : []), ...(Array.isArray(context.network) ? context.network : [])];
+  // 5.13 (Krish, 2026-11-14): a Pipeline deal gone quiet (records.stale_deals, features.deals_detail) makes its person a
+  // catch-up whatever their tier, once nothing is on record for DEAL_QUIET_DAYS. Only a person Control Center serves a row
+  // for can be written to; one it does not is held and counted. An open deal is never here: the SALES row and the deal's
+  // own next step carry those, and the morning lane skips anyone with one.
+  const staleOf = new Map();
+  if (dealCatchups && Array.isArray(context.records?.stale_deals)) for (const d of context.records.stale_deals) if (typeof d?.contact_id === 'string' && UUID.test(d.contact_id) && !staleOf.has(d.contact_id)) staleOf.set(d.contact_id, d);
+  const served = new Set(ties.map(n => n?.contact_id));
+  for (const id of staleOf.keys()) if (!served.has(id) && !seen.has(id)) held.push('deal_person_not_served');
+  let dealCount = 0;
   for (const n of ties) {
     const id = n.contact_id;
-    if (typeof id !== 'string' || !UUID.test(id) || seen.has(id) || !CLOSE.has(n.network_tier) || ['do_not_contact', 'closed'].includes(n.contacts?.status)) continue;
-    // The last time they spoke is the later of a touch Control Center recorded and their last email.
-    const last = lastContact(n);
-    // Gone quiet: a real relationship, nothing for 90 days. With no date at all, quiet is unknown.
-    if (last === null || Date.parse(at) - last < 90 * DAY) continue;
+    const deal = typeof id === 'string' ? staleOf.get(id) ?? null : null;
+    if (typeof id !== 'string' || !UUID.test(id) || seen.has(id) || (!deal && !CLOSE.has(n.network_tier)) || ['do_not_contact', 'closed'].includes(n.contacts?.status)) continue;
+    // The last time they spoke is the later of a touch Control Center recorded and their last email (and, for a deal, its last touch).
+    const touched = deal ? Date.parse(deal.last_touched ?? '') : NaN;
+    const known = lastContact(n);
+    const last = Number.isFinite(touched) ? Math.max(touched, known ?? -Infinity) : known;
+    // Gone quiet: a real relationship, nothing for 90 days (a deal, 30). With no date at all, quiet is unknown.
+    if (last === null || Date.parse(at) - last < (deal ? DEAL_QUIET_DAYS : 90) * DAY) continue;
     seen.add(id);
     const unfit = fitHold(n, fitFloor);
     if (unfit) { held.push(unfit); continue; }
@@ -1654,11 +1676,16 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     if (op.hold) { held.push(op.hold); continue; }
     const specific = op.sentence ?? specificOf(n, { why: card.why }), history = historyOf(n, { why: card.why });
     if (!specific) { held.push('nothing_specific'); continue; }
-    const told = caseFor({ c: n, name, company, ask: 'relationship', kind: null, reach, fit, serves, at });
+    const told = caseFor({ c: n, name, company, ask: 'relationship', kind: null, reach, fit, serves, at, deal });
+    if (deal) dealCount += 1;
     out.push({ score: (score({ band: 'unknown', value: null }, fit / 100, ch.weight, serves, true) + Math.min(2, (Date.parse(at) - last) / (365 * DAY))) * fit / 100, proposal: rowProposal({
       row: 'network', ask: 'relationship', contactId: id, name, at, files,
+      // A deal's catch-up is its own play, keyed by the month, so it never shares an id or a close with a tie's catch-up.
+      ...(deal ? { play: 'deal_catchup', month: at.slice(0, 7) } : {}),
       title: fitTitleWithin(titleMax, `Catch up with ${name}`, `Catch up with ${first(name)}`),
-      why: `${name} is a close tie with nothing on record for ${Math.round((Date.parse(at) - last) / DAY)} days. Mindmake fit ${fit} of 100.`,
+      why: deal
+        ? `${name}'s deal went quiet (${dealState(deal)}), with nothing on record for ${Math.round((Date.parse(at) - last) / DAY)} days. Mindmake fit ${fit} of 100.`
+        : `${name} is a close tie with nothing on record for ${Math.round((Date.parse(at) - last) / DAY)} days. Mindmake fit ${fit} of 100.`,
       because: told.because, brief: told.brief, card,
       action: actionFor(ch.channel, id, name, WORDS.relationship[variant]({ specific, history, company, note: op.sentence && openingsRequired ? op.sentence : null })), reach,
       // A relationship has no topic: "Not my topic" is never asked of a tie.
@@ -1685,7 +1712,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
   })).filter(r => !research.some(x => x.request_id === r.request_id));
   // Openings first, for the ties likeliest to be shown: at most OPENINGS_PER_RUN a run, each asked once (its id replays).
   const opening_requests = openingAsks.sort((a, b) => b.score - a.score).map(a => a.request).slice(0, openingKind === 'write' ? WRITES_PER_RUN : OPENINGS_PER_RUN);
-  return { rows: out, held, research: [...opening_requests, ...research_requests, ...profile_requests, ...channel_requests], lookups: personLooks, found };
+  return { rows: out, held, research: [...opening_requests, ...research_requests, ...profile_requests, ...channel_requests], lookups: personLooks, found, deal_catchups: dealCount };
 }
 
 /** The title on his phone. At 1.7.0 (max 56) the line under it says who they are, so the company is left off. */

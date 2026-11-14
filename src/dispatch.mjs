@@ -645,7 +645,9 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const openingKind = Array.isArray(capabilities?.research?.kinds) && capabilities.research.kinds.includes('write') ? 'write' : 'question';
   // Row people with no address are looked up where Control Center records a route for any contact (features.person_routes, krishanraja/control-center#656).
   const personRoutes = mode === 'live' && capabilities?.features?.person_routes === true && capabilities?.features?.research === true;
-  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins, openingsRequired, personRoutes, openingKind });
+  // 5.13: deals gone quiet become catch-ups only where Control Center serves them in detail (features.deals_detail, protocol 1.30.0).
+  const dealCatchups = capabilities?.features?.deals_detail === true;
+  const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins, openingsRequired, personRoutes, openingKind, dealCatchups });
   // Ruling (Krish, 2026-10-28): who is in his network is Control Center's routes[id].in_network, read only where it says it serves it.
   const networkRoutes = capabilities?.features?.network_routes === true;
   const record = pitches ? await recordReader() : null;
@@ -739,7 +741,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
     }
   }
   // Read again with this run's research, so an opening the desk wrote in this run is used in this run.
-  const amplifiers = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins, research: mergeResearch(research, ctx.research ?? []), openingsRequired, personRoutes, openingKind });
+  const amplifiers = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins, research: mergeResearch(research, ctx.research ?? []), openingsRequired, personRoutes, openingKind, dealCatchups });
   const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax });
   // 1.9.0: pitches for Jonny's box, after the rows he presses himself: guests
   // invited onto his own shows and podcasts on visibility, stages to speak on
@@ -777,6 +779,8 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   counts.speaking_pitches = pitched.proposals.filter(p => p.row === 'events' && !isForm(p)).length;
   counts.forms = pitched.proposals.filter(isForm).length;
   counts.prepared = proposals.length;
+  // 5.13: the deal catch-ups still in this run's proposals after every hold.
+  counts.deal_catchups = proposals.filter(p => p.close_condition?.reference === 'network:deal_catchup').length;
   // Each lane's output this run, which the Lanes line carries for the runs after it (C4).
   // A Jonny lane at 0 because its cap was full (his ten a day, the run's share, the week's invites) is capped, not starved (C4).
   const full = { invites: (pitched.inviteHeld ?? []).includes('invite_week_or_run_cap'), podcasts: (pitched.held ?? []).includes('pitch_per_run_cap'), stages: (pitched.stageHeld ?? []).includes('pitch_per_run_cap') };
@@ -1100,8 +1104,9 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const ahead = suppliedContext ? upcomingLine(readUpcoming(suppliedContext, capabilities?.features)) : null;
     if (ahead) activity.push(ahead);
     // I-05: his Pipeline deals in detail, open and gone quiet, counted in shadow where served (protocol 1.30.0).
-    const dealsNow = suppliedContext ? dealsLine(readDeals(suppliedContext, capabilities?.features)) : null;
-    if (dealsNow) activity.push(dealsNow);
+    const dealsRead = suppliedContext ? readDeals(suppliedContext, capabilities?.features) : null;
+    const dealsNow = dealsRead ? dealsLine(dealsRead) : null;
+    const dealsAt = dealsNow ? activity.push(dealsNow) - 1 : -1;
     // Traffic to mindmake.co: a supporting reading beside the number, never the number (Phase 1b).
     activity.push(...trafficLines({ web: directive.web, hosts: suppliedContext ? bookedHosts(suppliedContext) : new Set() }));
     // 1.16.0: Mindmake's share of the prepaid credits, read only where Control Center serves it; the daily credits session spends it (docs/CREDITS-SESSION.md).
@@ -1144,6 +1149,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       rows.shown = shown;
       outcome.rows = rows.counts;
       rowsRun = rows;
+      // 5.13: once the rows are built, the deals line counts the catch-ups they proposed.
+      if (dealsAt >= 0 && Number.isInteger(rows?.counts?.deal_catchups)) activity[dealsAt] = dealsLine(dealsRead, rows.counts.deal_catchups);
     }
     if (won) activity.push(winsLine(won));
     // A lane at 0 for three runs is one strategy ask a week; an open plan gets a check-in every other day (C4).
