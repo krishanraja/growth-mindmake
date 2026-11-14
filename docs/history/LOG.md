@@ -6,6 +6,13 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
 
+- 2026-11-13 Krish, 2026-11-13: "This should be as autonomous as possible."
+- The Control Center brief says Control Center serves 1.0.0 to 1.21.0 (this engine speaks up to 1.20.0) and that the directive's good_meetings target is this repository's north-star block's (20 by 30 November), read each morning, never the registry's copy (krishanraja/control-center#718). (2026-11-12)
+
+## 2026-11-14: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
+
 - The protocol copy is Control Center's at 212379e1 (1.21.0): its voice_check row lists exactly the 16 channels Control Center's voice check accepts, it says the number objective's target is this repository's own north-star block, and the circle lane files a stranger as cold_scraped. 1.21.0 itself adds only growth-makeyourmindup's inspiration instructions; this engine still speaks up to 1.20.0 (ENGINE_STATE_VERSION in src/stages/instruction.mjs). (2026-11-12)
 - The session pack leaves out the Krish canon block ai-harness renders at the end of AGENTS.md (one line in its place; it loads with AGENTS.md itself), and the rulings test reads AGENTS.md's own sections without it, so the canon block can land while the 36 KB budget and the standing rules word for word both hold. (2026-11-12)
 
