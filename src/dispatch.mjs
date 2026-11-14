@@ -422,6 +422,44 @@ export function deadPlans(context, proposing = new Set()) {
     .map(f => ({ proposal_id: f.proposal_id, reason: 'Its Advisory record is no longer held, so this plan can never run.' }));
 }
 
+/** A report carries at most this many activity lines and holds (engine-report.schema.json). */
+export const ACTIVITY_MAX = 40, HOLDS_MAX = 40;
+// The lines a full report must still carry: the gap line, the AI answers and kits, the switch's lines and the crew's
+// (later runs count proof runs from the crew's lines). Audit gm-2, 14 November 2026: the cap had cut the AI-answer lines.
+export const KEPT_LINE = /^(?:Gap: |AI answers|AI-answer kits|Switch (?:readiness|route): |Crew (?:lints|checks), )/;
+// The ported standards' one line each, in shadow beside Control Center's own verdicts (plan section 12).
+export const STANDARD_LINE = /^(?:Guest standard|Visibility standard|Room scoring|Pilot machine|Outreach briefs|Ingest gate|Focus playbooks|Suppression|Places and questions), in shadow: |^(?:guestsShadow|visibilityShadow|roomsShadow|pilotsShadow|briefsShadow|qualifyShadow|playsShadow|suppressionShadow|placesShadow): /;
+
+/**
+ * Fit the activity lines into `max`, in order. Under the cap nothing changes. Over it, the
+ * standards' shadow lines fold into one line naming them, then the latest lines that are not
+ * KEPT_LINE go, and the last line says how many went. Pure.
+ */
+export function fitActivity(lines, max = ACTIVITY_MAX) {
+  if (lines.length <= max) return lines;
+  let out = lines;
+  const standards = out.filter(l => STANDARD_LINE.test(l));
+  if (standards.length > 1) {
+    const at = out.findIndex(l => STANDARD_LINE.test(l));
+    const names = standards.map(l => l.split(/, in shadow: |: /)[0]);
+    out = out.filter(l => !STANDARD_LINE.test(l));
+    out.splice(at, 0, `In shadow, folded to fit the report: ${names.join(', ')} (${standards.length} lines, each beside Control Center's own verdicts; nothing held).`);
+  }
+  if (out.length <= max) return out;
+  const drop = new Set();
+  for (let i = out.length - 1; i >= 0 && out.length - drop.size > max - 1; i--) if (!KEPT_LINE.test(out[i])) drop.add(i);
+  const kept = out.filter((_, i) => !drop.has(i)).slice(0, max - 1);
+  return [...kept, `${out.length - kept.length} more activity line${out.length - kept.length === 1 ? '' : 's'} did not fit the report's ${max} and ${out.length - kept.length === 1 ? 'was' : 'were'} left out.`];
+}
+
+/** Fit the holds into `max`: over it, the last place names the reasons left out, with counts (audit gm-9). Pure. */
+export function fitHolds(holds, max = HOLDS_MAX) {
+  if (holds.length <= max) return holds;
+  const left = holds.slice(max - 1), counts = {};
+  for (const h of left) counts[h.reason] = (counts[h.reason] ?? 0) + 1;
+  return [...holds.slice(0, max - 1), { reason: 'holds_truncated', detail: `${left.length} more holds did not fit the report's ${max}: ${Object.entries(counts).map(([r, n]) => `${r} ${n}`).join(', ')}.` }];
+}
+
 /** Build the report envelope exactly as engine-report.schema.json, then check it against that schema. */
 export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null, suppression = null, taxonomy = null, credits_spent = null, found_routes = null, circle = null, mirror = null, engine_state = null }) {
   // 1.16.0: credits_spent goes out only when this run spent something, and raises the report to the version that carries it.
@@ -439,8 +477,8 @@ export function buildReport({ run_id, mode, observed_at, source, status, objecti
   if (Object.keys(state).length) version = laterVersion(version, ENGINE_STATE_VERSION);
   const body = {
     schema_version: version, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
-    objectives, activity: activity.slice(0, 40).map(line => ({ line: cut(line, 500), evidence_url: null })),
-    proposals, events, holds: holds.slice(0, 40).map(h => ({ reason: cut(h.reason, 200), detail: h.detail === null || h.detail === undefined ? null : cut(h.detail, 1000) })),
+    objectives, activity: fitActivity(activity).map(line => ({ line: cut(line, 500), evidence_url: null })),
+    proposals, events, holds: fitHolds(holds).map(h => ({ reason: cut(h.reason, 200), detail: h.detail === null || h.detail === undefined ? null : cut(h.detail, 1000) })),
     // 1.10.0: where each unanswered meeting came from, only when there is one to say.
     ...(origin_candidates?.length ? { origin_candidates } : {}),
     // 1.10.0: its own pending plans it takes back, only when there is one.
@@ -931,8 +969,10 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // serves each meeting he held (1.10.0); until then from the Monday ask.
     const thisWeek = londonWeek(at), lastWeek = { start: addDays(thisWeek.start, -7), end: thisWeek.start };
     const due = ladder.length > 0 && lastWeek.start >= ladder[0][0];
-    const thisTarget = directive.north_star.week_target ?? ladderTarget(ladder, thisWeek.start);
-    const targetSource = directive.north_star.week_target !== null ? "Control Center's refresh" : 'the ladder in docs/NORTH_STAR.md';
+    // Control Center's target stands only for the week it was read for; a stale one gives way to this week's rung (audit gm-5).
+    const ccTarget = directive.north_star.week_of === null || directive.north_star.week_of === thisWeek.start ? directive.north_star.week_target : null;
+    const thisTarget = ccTarget ?? ladderTarget(ladder, thisWeek.start);
+    const targetSource = ccTarget !== null ? "Control Center's refresh" : 'the ladder in docs/NORTH_STAR.md';
     const tapped = suppliedContext && meetingsServed(capabilities) ? readMeetings(suppliedContext) : null;
     const taps = tapped?.state === 'served' ? tapped : null;
     // The week spec (plan Phase 2), read from his decisions before compilation and rows. From the week of
