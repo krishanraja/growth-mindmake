@@ -118,11 +118,12 @@ The full spec is `docs/control-center/ENGINE-PROTOCOL.md`, with the report and d
 
 ## Still owed by Control Center, and what it has served since
 
-Still owed, as of 12 November 2026:
+Still owed, as of 14 November 2026:
 
 - The refusal flags its judges set but do not store or serve: a stage's `pay_to_play` and `generic_take`, and a guest's wrong-show judgment. The engine now judges stages and guests on their served axes alone (plan section 12, M3 to M5), so a stage or guest refused only on one of these flags is not refused by the engine; none was on record at the 27 October readback, and the shadow lines count such cases as `flag_not_served` and `show_fit_not_served`.
 - The Gmail draft readback close.
 - A read of Krish's open instruction, and its acks, through the connector for the daily credits session (below, "Krish's instruction and the engine's state").
+- Two connector tools for the daily credits session (asked 14 November 2026): a read of the subjects this engine's rows hold for want of a booking address (`pitch_no_booking_address`, `speak_no_booking_address`, `invite_no_contact`: ids and public names, never an address), and a write that files a route the session found on one of them, checked as `found_routes` are (`api/_foundRoutes.ts`). Until both are served, docs/CREDITS-SESSION.md has the session run no booking-contact or show-check work, since what it found could reach no row.
 
 Served since it was asked, each read by the dispatch only where its flag says so:
 
