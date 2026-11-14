@@ -443,7 +443,7 @@ export function guestsShadow({ context, canon = null, at }) {
   // Control Center's queue, and what the invite stage would do with it today.
   const ready = rows.map(r => r.g).filter(guestReady);
   const queue = rankGuests(ready).rows;
-  const L = lessons(context?.feedback, at), invited = invitedGuests(context), routes = context?.routes ?? {};
+  const L = lessons(context?.feedback, at, context?.records?.drafts), invited = invitedGuests(context), routes = context?.routes ?? {};
   const held = {};
   for (const g of ready) { const why = inviteHold(g, { L, invited, routes, at }); if (why) bump(held, why); }
   const byShow = Object.fromEntries(SHOW_ORDER.map(s => [s, ready.filter(g => g.invite_show === s).length]));

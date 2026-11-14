@@ -105,10 +105,13 @@ export function reachOf(c, research) {
  *   pitch_off                       the words for that row change; repeated, a doctrine review
  *   any No                          never this person on that row again
  *   carried out                     not this person for 30 days: he has just acted
+ *   opted out (a draft's opted_out_at)  never this person again, on any row
  */
-export function lessons(feedback, at) {
+export function lessons(feedback, at, drafts = []) {
   const now = Date.parse(at);
   const L = { never: new Set(), notOnRow: new Set(), until: new Map(), floor: new Map(), audiences: new Set(), topics: new Set(), pitchOff: new Map() };
+  // Anyone who asked not to be written to again is never proposed again, in any lane (ENGINE-PROTOCOL.md, the morning lane: "the suppression is yours as well").
+  for (const s of mailOutcomes(drafts).optedOut) L.never.add(s);
   const snooze = (s, days, from) => { const t = Date.parse(from ?? at) + days * DAY; if (t > now && t > (L.until.get(s) ?? 0)) L.until.set(s, t); };
   for (const f of Array.isArray(feedback) ? feedback : []) {
     const s = typeof f?.subject_ref === 'string' ? f.subject_ref : null;
@@ -127,6 +130,37 @@ export function lessons(feedback, at) {
     }
   }
   return L;
+}
+
+const lc = v => (typeof v === 'string' && v ? v.toLowerCase() : null);
+const when = d => Math.max(...['bounced_at', 'opted_out_at', 'replied_at', 'booked_at', 'sent_at'].map(k => Date.parse(d?.[k] ?? '')).filter(Number.isFinite), -Infinity);
+/**
+ * What became of the mail sent to each person, from the context's `drafts`
+ * (protocol 1.23.0, `features.mail_outcomes`; each row's `contact_id` since
+ * 1.25.0): `optedOut`, every `contact:<id>` with a draft that has
+ * `opted_out_at`, for good; `bounced`, every contact id whose newest draft
+ * bounced, whose address is then out of every route. A draft with no
+ * contact id is passed over. Pure.
+ */
+export function mailOutcomes(drafts) {
+  const optedOut = new Set(), newest = new Map();
+  for (const d of Array.isArray(drafts) ? drafts : []) {
+    const id = lc(d?.contact_id);
+    if (!id) continue;
+    if (Number.isFinite(Date.parse(d.opted_out_at ?? ''))) optedOut.add(`contact:${id}`);
+    const t = when(d);
+    if (t > (newest.get(id)?.t ?? -Infinity)) newest.set(id, { t, bounced: Number.isFinite(Date.parse(d.bounced_at ?? '')) });
+  }
+  return { optedOut, bounced: new Set([...newest].filter(([, v]) => v.bounced).map(([id]) => id)) };
+}
+/** The context with a bounced address out of its person's route (`routes[id].email` none), and nothing else changed. Pure. */
+export function withoutBounced(context) {
+  const { bounced } = mailOutcomes(context?.records?.drafts);
+  const routes = context?.routes;
+  if (!bounced.size || !routes || typeof routes !== 'object') return context;
+  const next = { ...routes };
+  for (const id of Object.keys(routes)) if (bounced.has(id.toLowerCase()) && routes[id] && typeof routes[id] === 'object') next[id] = { ...routes[id], email: 'none' };
+  return { ...context, routes: next };
 }
 
 /** A row's words are up for review once he calls them off this often inside the window (N06). */
@@ -1460,7 +1494,7 @@ const KIND_NOUN = { investor: 'portfolio', ai_capital: 'investments', connector:
  * asking: the top few with no cited figure, once a month each.
  */
 export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR, wins = null, research: researchIn = null, openingsRequired = false, personRoutes = false, openingKind = 'question' }) {
-  const L = lessons(context.feedback, at);
+  const L = lessons(context.feedback, at, context.records?.drafts);
   // This run's research where the dispatch has it (the openings the desk wrote in this run), else the context's.
   const research = Array.isArray(researchIn) ? researchIn : Array.isArray(context.research) ? context.research : [];
   const openingAsks = [];

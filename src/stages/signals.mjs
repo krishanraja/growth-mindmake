@@ -175,7 +175,7 @@ export function signalCase({ name, headline, author, quote, published, serves, k
 }
 
 export function signalRows({ context, research, weekGoals, canon, files, at, titleMax = TITLE_MAX }) {
-  const L = lessons(context.feedback, at);
+  const L = lessons(context.feedback, at, context.records?.drafts);
   const routes = context.routes ?? {};
   const authorOf = new Map(research.filter(r => r.kind === 'posts').flatMap(r => r.evidence ?? []).map(e => [e.url, clean(String(e.title ?? '').split(':')[0])]));
   const routed = new Map(research.filter(r => r.kind === 'person_route' && r.status === 'answered' && typeof r.subject_ref === 'string').map(r => [String(r.query).slice(3).toLowerCase(), r.subject_ref.slice(8)]));

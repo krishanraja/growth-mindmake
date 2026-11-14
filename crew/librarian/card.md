@@ -20,4 +20,4 @@ From DRIVE.md, Rules:
 
 ## Sources
 
-- docs/DRIVE.md, "Rules": sha256 39e606f3b9afe0f1
+- docs/DRIVE.md, "Rules": sha256 0e8143d4d4aad6cf

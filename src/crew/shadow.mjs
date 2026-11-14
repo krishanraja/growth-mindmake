@@ -57,7 +57,7 @@ export function crewContext({ context = null, canon = null, research = null, at,
     // The Reader Check's verdicts by proposal id, only where a session passes them (src/crew/reader.mjs); a dispatch has none.
     reader: reader instanceof Map ? reader : null,
     stages: byId(list(c.records?.visibility), 'id'), guests: byId(list(c.records?.guests), 'contact_id'),
-    L: lessons(c.feedback, at), pitched: pitchedStages(c), invited: invitedGuests(c), booked: bookedStages(c),
+    L: lessons(c.feedback, at, c.records?.drafts), pitched: pitchedStages(c), invited: invitedGuests(c), booked: bookedStages(c),
     // The other record prose a card may draw on: a profile Control Center answered, and the company's why_now.
     extraRecords: id => {
       if (!id) return [];
