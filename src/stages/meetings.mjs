@@ -357,3 +357,43 @@ export function originCandidates({ meetings, context }) {
   }
   return out;
 }
+
+// ── The meetings ahead (protocol 1.28.0, `features.upcoming_meetings`; integration I-05) ──
+// Read tolerantly and counted in shadow only: no stage acts on them yet. Call prep (GET-GOING 1.7)
+// and pre-filling a meeting's path from its organizer build on this read later.
+
+/** The protocol's version for the meetings ahead. */
+export const UPCOMING_VERSION = '1.28.0';
+const ORGANIZERS = ['him', 'them', 'other'];
+
+/**
+ * The meetings ahead in the context, where Control Center serves them: up
+ * to 40 over the next 14 days, each with at least one contact it holds.
+ * `served: false` without the flag; `read: false` with the coverage reason
+ * when the part is null (never read, stale or unread). A malformed row is
+ * dropped and counted. Pure.
+ */
+export function readUpcoming(context, features = {}) {
+  if (features?.upcoming_meetings !== true) return { served: false };
+  const part = context?.upcoming_meetings;
+  const cov = (Array.isArray(context?.coverage) ? context.coverage : []).find(c => c?.source === 'upcoming_meetings') ?? null;
+  if (!Array.isArray(part)) return { served: true, read: false, reason: typeof cov?.reason === 'string' ? cov.reason.slice(0, 60) : 'upcoming_unread' };
+  const ok = part.filter(m => m && typeof m === 'object' && typeof m.meeting_id === 'string' && Number.isFinite(Date.parse(m.starts_at ?? '')) && typeof m.contact_id === 'string');
+  const by = { him: 0, them: 0, other: 0, unknown: 0 };
+  for (const m of ok) by[ORGANIZERS.includes(m.organizer) ? m.organizer : 'unknown']++;
+  return {
+    served: true, read: true, complete: cov?.complete !== false,
+    meetings: ok.length, dropped: part.length - ok.length,
+    first: ok.filter(m => m.first_meeting === true).length, first_unknown: ok.filter(m => m.first_meeting !== true && m.first_meeting !== false).length,
+    by
+  };
+}
+
+/** One shadow line on the meetings ahead, counts only, or null when they are not served. Pure. */
+export function upcomingLine(u) {
+  if (!u?.served) return null;
+  if (!u.read) return `Meetings ahead: not read this run (${u.reason}), so none are assumed.`;
+  const part = u.complete ? '' : ' Control Center could not read every calendar, so this is a floor.';
+  const bad = u.dropped ? ` ${u.dropped} did not parse and ${u.dropped === 1 ? 'is' : 'are'} left out.` : '';
+  return `Meetings ahead, in shadow: ${u.meetings} in the next 14 days with someone Control Center holds, ${u.first} a first meeting${u.first_unknown ? ` (${u.first_unknown} unknown)` : ''}; organised by him ${u.by.him}, by them ${u.by.them}, by someone else ${u.by.other}${u.by.unknown ? `, unknown ${u.by.unknown}` : ''}. Nothing acts on them yet.${part}${bad}`;
+}

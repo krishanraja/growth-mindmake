@@ -18,7 +18,7 @@ import { circleRequests, circlePeople, circleFromNetwork, takesCircle, circleAns
 import { mirrorPlan, takesMirror, MIRROR_VERSION } from './stages/mirror.mjs';
 import { readCanon, readRecord, blobSha, CanonError } from './stages/canon.mjs';
 import { pitchRows, lookupRequests } from './stages/pitches.mjs';
-import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, readSpecCounts, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, visibilityTargets, STOPGAP_PREFIX, MEETINGS_VERSION, meetingsServed, readMeetings, countGood, tappedObjective, tappedLine, originCandidates } from './stages/meetings.mjs';
+import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, readSpecCounts, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, visibilityTargets, STOPGAP_PREFIX, MEETINGS_VERSION, meetingsServed, readMeetings, countGood, tappedObjective, tappedLine, originCandidates, readUpcoming, upcomingLine } from './stages/meetings.mjs';
 import { readWeb, trafficLines, bookedHosts } from './stages/traffic.mjs';
 import { readCredits, creditsLine, CREDITS_VERSION, CREDITS_SPENT_MAX } from './stages/credits.mjs';
 import { weekSpec, defaultSpec, parseSpec, compiledDrift, STAGE_CAPS, SPEC_PREFIX, FIRST_SPEC_WEEK, summary as capsSummary } from './crew/compile.mjs';
@@ -1033,6 +1033,9 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     outcome.intensity = { urgency: gap.urgency, raised: intense.raised.length };
     const booked = suppliedContext ? bookings({ context: suppliedContext, at, weekStart: thisWeek.start, londonDate, addDays }) : null;
     activity.push(bookingLine(booked, visibilityTargets(policy)));
+    // I-05: the meetings ahead, read tolerantly where served and counted in shadow (protocol 1.28.0).
+    const ahead = suppliedContext ? upcomingLine(readUpcoming(suppliedContext, capabilities?.features)) : null;
+    if (ahead) activity.push(ahead);
     // Traffic to mindmake.co: a supporting reading beside the number, never the number (Phase 1b).
     activity.push(...trafficLines({ web: directive.web, hosts: suppliedContext ? bookedHosts(suppliedContext) : new Set() }));
     // 1.16.0: Mindmake's share of the prepaid credits, read only where Control Center serves it; the daily credits session spends it (docs/CREDITS-SESSION.md).
