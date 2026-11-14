@@ -262,7 +262,10 @@ export function readMeetings(context) {
     // A path Control Center recorded that this engine does not know yet is still a held meeting: counted, its path unknown.
     const known = path === null || PATHS.includes(path) || NEXT_PATHS.includes(path);
     if (!known) unknownPaths++;
-    meetings.push({ meeting_id: m.meeting_id, contact_id: contact, held_at: m.held_at, good: m.good, origin_path: known ? path : 'unknown' });
+    // The meeting person's tie, where Control Center serves it (features.meeting_ties, protocol 1.33.0): read loosely, null when absent or unreadable.
+    const t = m.tie && typeof m.tie === 'object' ? m.tie : null;
+    const tie = t ? { network_tier: typeof t.network_tier === 'string' ? t.network_tier.slice(0, 40) : null, known_since: typeof t.known_since === 'string' && Number.isFinite(Date.parse(t.known_since)) ? t.known_since : null } : null;
+    meetings.push({ meeting_id: m.meeting_id, contact_id: contact, held_at: m.held_at, good: m.good, origin_path: known ? path : 'unknown', tie });
   }
   return { state: 'served', meetings, complete: cov.complete === true && dropped === 0, reason: dropped ? 'meetings_unreadable' : cov.complete === true ? null : (typeof cov.reason === 'string' ? cov.reason.slice(0, 80) : 'incomplete'), dropped, unknown_paths: unknownPaths };
 }
@@ -351,13 +354,17 @@ export function originCandidates({ meetings, context, paths = PATHS }) {
     // existing relationship; a contact filed from the meeting itself (tier 4,
     // known since then) is not.
     const held = heldAt.get(c);
-    if (people.some(n => lc(n?.contact_id) === c && (TIED.test(String(n?.network_tier ?? '')) || (Number.isFinite(Date.parse(n?.known_since ?? '')) && Date.parse(n.known_since) < held))))
+    const tied = n => TIED.test(String(n?.network_tier ?? '')) || (Number.isFinite(Date.parse(n?.known_since ?? '')) && Date.parse(n.known_since) < held);
+    // The meeting's own tie (features.meeting_ties) first, where Control Center serves it.
+    if (ties.get(c)?.some(tied)) return { path: 'existing-relationship', origin_ref: null };
+    if (people.some(n => lc(n?.contact_id) === c && tied(n)))
       return { path: 'existing-relationship', origin_ref: null };
     return null;
   };
   const people = [...list(context?.amplifier_candidates), ...list(context?.quiet_ties),
     ...list(records.advisory).filter(a => a?.person && typeof a.contact_id === 'string').map(a => ({ ...a.person, contact_id: a.contact_id }))];
-  const heldAt = new Map();
+  const heldAt = new Map(), ties = new Map();
+  for (const m of meetings) if (m?.contact_id && m.tie && typeof m.tie === 'object') ties.set(m.contact_id, [...(ties.get(m.contact_id) ?? []), m.tie]);
   for (const m of meetings) { const t = Date.parse(m?.held_at ?? ''); if (m?.contact_id && Number.isFinite(t) && !(heldAt.get(m.contact_id) <= t)) heldAt.set(m.contact_id, t); }
   const out = [], seen = new Set();
   // A meeting with nobody filed for it yet has no one to trace; it stays unknown at his tap.
