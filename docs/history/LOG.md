@@ -2,6 +2,16 @@
 
 The dated records of this engine's sessions, newest first. NOW.md names this file as its history log; scripts/check-drift.mjs fails when it is missing. The completion record stays docs/RELEASE.md.
 
+## 2026-11-14: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
+
+- Closeout notes now fold into NOW.md by themselves (ci.yml's fold job runs ai-harness's closeout hook on every push to main); the engine acks a state of Krish's instruction only when it changes, and leaves out of its next steps any whose own deadline has passed; the docs say what the engine does as of 12 November. (2026-11-12)
+- 2026-11-12 Krish, 2026-11-12: "make sure everything's a cohesive system and that the project documentation is 100% up to date with absolutely nothing old or misleading left in there".
+- 2026-11-12 docs/control-center/ENGINE-PROTOCOL.md, refreshed word for word.
+- 2026-11-12 scripts/pack.mjs (CANON_BLOCK, withoutCanon, packed), tests/support/rulings.mjs, tests/pack.test.mjs, AGENTS.md ("Every session: the pack"), docs/OWNERS.md. With ai-harness's canon block (pull request #51) the heaviest pack is under 36 KB and all 629 tests pass.
+- 2026-11-12 **The docs match the engine, and notes fold by themselves.** Krish, 2026-11-12: "Are the project documentations up to date, 100%, every single word, with what this engine now is and how it works?" README, the Control Center brief, operations, Get going, the release record and the protocol copy (from Control Center main) now say what the code and the live runs do; twelve closeout notes of 5 to 11 November were folded in by hand.
+
 ## 2026-11-13: older NOW.md changes
 
 Moved here verbatim from NOW.md's "What changed recently" on 2026-11-13, to keep the session pack under 36 KB as the full-funnel build's steps joined docs/GET-GOING.md; newest first, as NOW.md listed them.
