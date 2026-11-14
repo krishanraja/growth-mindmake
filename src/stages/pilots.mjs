@@ -699,3 +699,43 @@ export function pilotLine(counts) {
   if (!counts?.read) return null;
   return `Warm buyers (Advisory's listed buyer and intro asks, in Monday order): ${counts.read} read; ${counts.rows} written as REACH OUT notes for his own box, ${counts.waiting} waiting on the desk's note, ${counts.no_trigger} with no cited reason to write now (${counts.asked} asked for one this run).`;
 }
+
+/**
+ * His Pipeline deals in detail, where Control Center serves them
+ * (`features.deals_detail`, protocol 1.30.0; integration I-05): the open
+ * deals in `records.deals` and the deals gone quiet in `records.stale_deals`
+ * (Parked, or Closed Lost for Timing or Went quiet). Read tolerantly and
+ * counted only: no catch-up is proposed from them yet. Null `stale_deals`, or
+ * a `deals` part that is not a list, is unknown (coverage `deals`), never
+ * none. Never reads a value, a company, notes or words: none is served. Pure.
+ */
+export function readDeals(context, features = {}) {
+  if (features?.deals_detail !== true) return { served: false };
+  const cov = (Array.isArray(context?.coverage) ? context.coverage : []).find(c => c?.source === 'deals') ?? null;
+  const reason = typeof cov?.reason === 'string' ? cov.reason.slice(0, 60) : 'deals_unread';
+  const deals = context?.records?.deals, stale = context?.records?.stale_deals;
+  const valid = d => d && typeof d === 'object' && typeof d.contact_id === 'string' && d.contact_id;
+  const count = list => {
+    const ok = list.filter(valid);
+    const people = new Set(ok.map(d => key(d.contact_id)));
+    return { deals: ok.length, people: people.size, dropped: list.length - ok.length, dated: ok.filter(d => Number.isFinite(Date.parse(d.next_date ?? ''))).length };
+  };
+  const open = Array.isArray(deals) ? count(deals) : null;
+  let quiet = null;
+  if (Array.isArray(stale)) {
+    const ok = stale.filter(valid);
+    quiet = { ...count(stale), parked: ok.filter(d => /^parked$/i.test(String(d.stage ?? ''))).length };
+    quiet.lost = quiet.deals - quiet.parked;
+  }
+  return { served: true, open, quiet, reason, complete: cov?.complete !== false };
+}
+
+/** One shadow line on his Pipeline deals, counts only, or null when the detail is not served. Pure. */
+export function dealsLine(r) {
+  if (!r?.served) return null;
+  if (!r.open && !r.quiet) return `Deals: not read this run (${r.reason}), so none are assumed.`;
+  const bad = n => (n ? `, ${n} did not parse and ${n === 1 ? 'is' : 'are'} left out` : '');
+  const open = r.open ? `${r.open.deals} open with ${r.open.people} ${r.open.people === 1 ? 'person' : 'people'}, ${r.open.dated} with a next date${bad(r.open.dropped)}` : `open deals not read (${r.reason})`;
+  const quiet = r.quiet ? `${r.quiet.deals} gone quiet (${r.quiet.parked} parked, ${r.quiet.lost} closed for timing or gone quiet)${bad(r.quiet.dropped)}` : `deals gone quiet not read (${r.reason}), so none are assumed`;
+  return `Deals, in shadow: ${open}; ${quiet}. No catch-up is proposed from them yet.${r.complete ? '' : ' Control Center read only part of the Pipeline.'}`;
+}

@@ -26,7 +26,7 @@ import { crewShadow } from './crew/shadow.mjs';
 import { guestsShadow } from './stages/guests.mjs';
 import { visibilityShadow } from './stages/visibility.mjs';
 import { roomsShadow } from './stages/rooms.mjs';
-import { pilotsShadow, pilotRows, pilotHolds, pilotLine, isWarmProposal, othersThisRun } from './stages/pilots.mjs';
+import { pilotsShadow, pilotRows, pilotHolds, pilotLine, isWarmProposal, othersThisRun, readDeals, dealsLine } from './stages/pilots.mjs';
 import { warmFrame } from './stages/openings.mjs';
 import { briefsShadow } from './stages/pitches.mjs';
 import { qualifyShadow } from './stages/qualify.mjs';
@@ -1073,6 +1073,9 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // I-05: the meetings ahead, read tolerantly where served and counted in shadow (protocol 1.28.0).
     const ahead = suppliedContext ? upcomingLine(readUpcoming(suppliedContext, capabilities?.features)) : null;
     if (ahead) activity.push(ahead);
+    // I-05: his Pipeline deals in detail, open and gone quiet, counted in shadow where served (protocol 1.30.0).
+    const dealsNow = suppliedContext ? dealsLine(readDeals(suppliedContext, capabilities?.features)) : null;
+    if (dealsNow) activity.push(dealsNow);
     // Traffic to mindmake.co: a supporting reading beside the number, never the number (Phase 1b).
     activity.push(...trafficLines({ web: directive.web, hosts: suppliedContext ? bookedHosts(suppliedContext) : new Set() }));
     // 1.16.0: Mindmake's share of the prepaid credits, read only where Control Center serves it; the daily credits session spends it (docs/CREDITS-SESSION.md).
