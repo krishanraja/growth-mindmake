@@ -28,6 +28,7 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 Lifecycle: building. The detail is in `README.md`.
 
+- Morning drafts are live: ten in his Gmail at 05:00 New York on 14 November (GET-GOING 0.2 ticked). Warm buyers are read whole, but the desk's sentence failed the fixed rules on all three, so the ask now says the source's "I" and "we" are the source's, never Krish's, and to open on what he saw, read or noticed. (2026-11-14)
 - Each held meeting's own tie (network_tier, known_since; Control Center's features.meeting_ties, protocol 1.33.0, in draft there) is read tolerantly and traces a tie he had before as an existing relationship; absent or null stays unknown. (2026-11-14)
 - An approved note to one person with no deal (contact_notes, Control Center #825) reaches prepare-action only where features.contact_notes is served, and its exact action is filed as go_live only when it is that person's with no asset. The engine proposes no such plan itself yet. (2026-11-14)
 - Held meetings get an origin where the engine can trace one: long-standing ties served outside the ranked hundred count as existing relationships, a path Control Center does not serve is never sent, and a full-funnel path raises the report to 1.24.0. Executor sends count as his own notes in wins. isSpeakerForm and its patterns are exported for Control Center's form capture. GET-GOING 3.1 now starts from krish-clone's free local evaluation. (2026-11-14)
@@ -53,7 +54,7 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-14): once Control Center serves meeting_ties, confirm the live "Where his meetings came from" line names candidates for the held meetings.
+- Next (2026-11-14): read the first live report after this merge: warm notes written, or held for a reason other than claims about Krish.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 - North Star check (2026-11-14): holds.
 
