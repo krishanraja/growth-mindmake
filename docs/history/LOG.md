@@ -6,6 +6,12 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
 
+- Requests to AEO-Engine take up to 25 planned questions under their own cap (not the twelve of MAX_PROBES_PER_RUN), filtered as Control Center filters them. The run asks again only when the plan's valid questions outgrow the request on file, and only when the canon's offer was read; once Control Center serves a request digest, a differing digest re-asks once per list. A standing Control Center could not read is never taken as no request on file. Once Control Center serves features.ai_answers_detail, AEO's kits for Mindmake and CTRL, Circle and Pulse are read into memory and reported as counts (Ruling, Krish, 2026-11-13: AEO's win kits reach him through each venture's own growth engine); no stage writes words from them yet. Control Center holds one request from this engine (one question, filed 13 November) for AEO's 22 November run. (2026-11-13)
+
+## 2026-11-14: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
+
 - Wave 0 is live in Control Center: every untapped held meeting is asked about at once (#736), morning drafts of this engine's email rows land in his Gmail each morning with no press and a reply comes to his list to book the call (#742, protocol 1.23.0), and a first meeting with someone new is kept and counted, with four more meeting paths (#743, protocol 1.24.0). Warm buyers (0.6) are built and held until the desk's words are safe and Control Center serves the Advisory buyers. (2026-11-13)
 
 ## 2026-11-14: older NOW.md lines
