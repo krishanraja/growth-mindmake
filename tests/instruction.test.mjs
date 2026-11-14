@@ -167,6 +167,11 @@ test('the state is read from this repository and this run, never invented, and e
   assert.deepEqual(deadlines('Sign on Monday 9 November, then by 5 Nov and before 2026-12-01; a talk from 9 November.', '2026'), ['2026-11-09', '2026-11-05', '2026-12-01']);
   assert.deepEqual(deadlines('by 9 November', null), [], 'a day and month with no year and no today names no date');
   assert.equal(nextSteps({ now: '## What is next and what is waiting on Krish\n\n- Next (2026-11-12): sign gms-2026-11-09.\n' })[0].when, null, 'a date inside an id is not when it is due');
+  // A channel this engine owns and has not built is said as not built while its step is open (audit seams-6).
+  const linkedIn = nextSteps({ getGoing: "- [x] **0.1 Done.** x.\n- [ ] **0.2 Next.** Do it.\n- [ ] **1.4 LinkedIn.** y.\n" });
+  assert.deepEqual(linkedIn.map(s => s.waits_on), ["engine", "engine"]);
+  assert.match(linkedIn[1].line, /^His personal LinkedIn: not built\./);
+  assert.equal(nextSteps({ getGoing: "- [x] **1.4 LinkedIn.** y.\n" }).length, 0, "once built, it is not said");
   // The real files parse to valid lines whatever they say today; nothing is required of their wording.
   const real = { getGoing: await readFile(new URL('../docs/GET-GOING.md', import.meta.url), 'utf8'), now: await readFile(new URL('../NOW.md', import.meta.url), 'utf8') };
   const state = engineState({ priorities: p, obsessions: o, next_steps: nextSteps(real), acks: [] });

@@ -247,7 +247,8 @@ const NOT_SIGNED = {
   stopped: 'He stopped it with a Purge on its check-in.',
   unread: 'His decisions could not be read this run.'
 };
-const summary = caps => {
+/** The caps in words, as the week spec's lines and holds say them. Pure. */
+export const summary = caps => {
   const on = SPEC_LANES.filter(l => caps.rows[l].on);
   const maxes = [...new Set(on.map(l => caps.rows[l].max))];
   const rows = on.length === SPEC_LANES.length && maxes.length === 1 ? `every row on, ${maxes[0]} a row` : `${on.length ? on.map(l => `${l.replace('_', ' ')} ${caps.rows[l].max}`).join(', ') : 'no row'} on`;

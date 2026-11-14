@@ -152,6 +152,10 @@ test('approve round trip on the stand-in: one Monday ask carries the spec and la
   assert.equal(payload.compiled.north_star_sha, NORTH_STAR_SHA);
   assert.equal(payload.compiled.week_target, 8, 'the rung for the week, from the ladder');
   assert.ok(first.report.holds.some(h => h.reason === 'spec_unsigned'), 'until he signs, today\'s settings apply and say so');
+  // The hold names the caps the run uses: raised by urgency, it says so (audit gm-10).
+  const unsigned = first.report.holds.find(h => h.reason === 'spec_unsigned').detail;
+  if (lines(first.report).some(l => /^Intensity: U\d, so volume rises/.test(l))) assert.match(unsigned, /so today's settings apply, raised at U\d to config\/policy\.json's bounds: every row on, 8 a row/);
+  else assert.match(unsigned, /so today's settings apply: /);
   assert.match(lines(first.report).find(l => l.startsWith('Week spec')), /not signed, so today's settings apply\. It is on his list to sign\./);
   // The digest never changes on its own: a later run that week asks the same thing.
   const thursday = await onStandIn(decisions, '2026-11-12T06:00:00Z');
@@ -381,4 +385,16 @@ test('an approved plan he stopped with a Purge on its check-in is never prepared
   assert.deepEqual(stopped.prepared, []);
   assert.ok(stopped.report.holds.some(h => h.reason === 'plan_stopped'));
   assert.ok(!stopped.report.proposals.some(p => p.parent_proposal_id === 'gmc-plain'), 'no check-in for a stopped plan either');
+});
+
+test('at U5 with no spec signed, the spec_unsigned hold names the raised caps the run uses, never the lower settings (audit gm-10)', async () => {
+  const service = await startProtocolService({ decisions: [], recorded: false, directive: directiveFixture({ north_star: { own: { urgency: 5 }, intensity: { urgency: 5 } } }) });
+  try {
+    const result = await runDispatch({ cc: engineClient(service.origin, service.token, { fetcher: service.fetcher }), source: hold, policy, registry: {}, mode: 'synthetic', kind: `spec-${++runs}`, attemptId: `gma-spec-run-${String(runs).padStart(4, '0')}`, clock: () => NOW, specReader: noFiles });
+    const report = service.reports.get(result.run_id).report;
+    assert.ok(lines(report).some(l => /^Intensity: U5, so volume rises/.test(l)));
+    const detail = report.holds.find(h => h.reason === 'spec_unsigned').detail;
+    assert.match(detail, /so today's settings apply, raised at U5 to config\/policy\.json's bounds: every row on, 8 a row; /);
+    assert.doesNotMatch(detail, /6 a row/);
+  } finally { await service.close(); }
 });
