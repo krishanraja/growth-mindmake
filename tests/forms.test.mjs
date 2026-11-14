@@ -159,7 +159,7 @@ test('a form is a 1.9.0 row action Control Center\'s own parser takes: no recipi
 });
 
 test('the email is always his public business address, and no other address and no number is ever written', () => {
-  assert.equal(FORM_EMAIL, 'hello@krishraja.com');
+  assert.equal(FORM_EMAIL, 'krish@mindmake.co', 'the address every part of the OS uses (Ruling, Krish, 2026-11-14)');
   assert.equal(FORM_SITE, 'https://mindmake.co', 'mindmake.co for every Mindmake venture thing');
   assert.equal(SPEAKER_SITE, 'https://krishraja.com');
   const r = run([summit(1), summit(2, { form_fields: [field('Your name', { required: true }), field('Contact email', { type: 'email', required: true }), field('Mobile', { type: 'tel' }), field('Street address'), field('Speaking fee'), field('Date of birth', { type: 'date' }), field('Speaker bio', { type: 'textarea' })] }), show(3)]);

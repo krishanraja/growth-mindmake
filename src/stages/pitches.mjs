@@ -654,8 +654,13 @@ export function reachOf(t, basis, unknown) {
 // A form the engine cannot answer for certain is never written, and the
 // stage falls to its Jonny pitch.
 
-/** His public business address: the one email a form is ever given for him (Krish, 2026-10-26). Never any other. */
-export const FORM_EMAIL = 'hello@krishraja.com';
+/**
+ * His public business address: the one email a form is ever given for him
+ * (Krish, 2026-10-26). Never any other. krish@mindmake.co since the Ruling
+ * (Krish, 2026-11-14): "everything uses krish@mindmake.co as that is what is
+ * auto connected to every part of the OS".
+ */
+export const FORM_EMAIL = 'krish@mindmake.co';
 /** Mindmake's site, which a website field is given: mindmake.co for every Mindmake venture thing (Krish, 2026-10-27). */
 export const FORM_SITE = 'https://mindmake.co';
 /** His personal speaker site, given only where a field's own label asks for that. */

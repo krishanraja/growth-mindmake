@@ -240,3 +240,10 @@ As recorded (13 November, in AEO-Engine's brief to Control Center, docs/briefs/2
 - Where the request on file carries its `digest`, the run asks AEO again, replacing the request (`mode: 'replace'`), when the plan's own digest differs (`questionsDigest`, Control Center's definition, tested on a fixed vector), and only once for an exact list: the line that asks carries the list's short digest mark, never its words (`questionsMark`), and a run that reads that mark back from its recent reports (`askedMarks`) while the request on file still differs says so and waits for the plan to change. With no digest on file, the count rule above stands.
 - This engine sends no `shipped` or `targets`: it has no record of either.
 - No wall moves: a kit is read, never published, and asking AEO is not spending.
+
+## One address (Ruling, Krish, 2026-11-14)
+
+In his words (14 November): "everything uses krish@mindmake.co as that is what is auto connected to every part of the OS"
+
+- A stage's form is given krish@mindmake.co as his email (`FORM_EMAIL`, src/stages/pitches.mjs; playbook 11), replacing hello@krishraja.com, which the 26 October ruling named. It is still the one address a form is ever given, and no other.
+- No wall moves: a form is still submitted only on his tap.
