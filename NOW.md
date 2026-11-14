@@ -28,6 +28,7 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 Lifecycle: building. The detail is in `README.md`.
 
+- our own pull requests (Krish or the Actions bot, branch in this repository, ready, at the commit that passed) now merge themselves when every "Verify growth engine" run on that commit is green (.github/workflows/auto-merge.yml, rule .github/scripts/auto-merge-pick.jq, tested). Forks, drafts and strangers wait for a person. (2026-11-14)
 - NOW.md names one protocol copy, 1.33.0; the three lines that named earlier copies (1.27.0, 1.28.0, 1.30.0) and the old "still reports at 1.20.0" moved word for word to docs/history/LOG.md, after a fresh session read them as current. (2026-11-14)
 - docs/control-center/ is Control Center's protocol bundle 1.33.0 byte for byte (meeting_ties and today's other additions), proved whole by scripts/check-drift.mjs. (2026-11-14)
 - Morning drafts are live: ten in his Gmail at 05:00 New York on 14 November (GET-GOING 0.2 ticked). Warm buyers are read whole, but the desk's sentence failed the fixed rules on all three, so the ask now says the source's "I" and "we" are the source's, never Krish's, and to open on what he saw, read or noticed. (2026-11-14)
@@ -52,7 +53,7 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-14): read the next live run's report for GET-GOING 0.6: tick it when the report carries warm notes or holds them by name, with no pilot_person_not_served line.
+- Next (2026-11-14): watch the first pull request after this one merge itself on green.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 - North Star check (2026-11-14): holds.
 
