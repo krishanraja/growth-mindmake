@@ -27,6 +27,7 @@ import { libraryListing } from './crew/library.mjs';
 import { guestsShadow } from './stages/guests.mjs';
 import { visibilityShadow } from './stages/visibility.mjs';
 import { roomsShadow } from './stages/rooms.mjs';
+import { citedRows, citedLine } from './stages/cited.mjs';
 import { pilotsShadow, pilotRows, pilotHolds, pilotLine, isWarmProposal, othersThisRun, readDeals, dealsLine } from './stages/pilots.mjs';
 import { warmFrame } from './stages/openings.mjs';
 import { briefsShadow } from './stages/pitches.mjs';
@@ -755,7 +756,15 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // A warm buyer is never someone another row proposes this run, asks the desk to write to, or Jonny writes to this run.
   const others = othersThisRun({ rows: [...amplifiers.rows, ...signals.rows, ...krishRows], openings: [...amplifiers.research, ...(pitched.openings ?? [])].filter(isOpening), proposals: pitched.proposals });
   const pilots = pilotRows(pilotArgs(mergeResearch(research, ctx.research ?? []), others));
-  const { kept, dropped, off } = rankRows([...amplifiers.rows, ...signals.rows, ...krishRows, ...pilots.rows], caps.rows, shown);
+  // 5.14: a page AI assistants cite first for a Mindmake buyer question, at a company whose person is served with an address,
+  // is one REACH OUT note in his own box; only where Control Center serves AEO's cited pages (features.ai_answers_detail, 1.26.0).
+  const citedServed = capabilities?.features?.ai_answers_detail === true;
+  const cited = citedServed ? citedRows({ standing: directive.ai_answers, context: ctx, canon, files, at, weekGoals: directive.week_goals, titleMax, fitFloor: caps.fit_floor,
+    taken: new Set([...amplifiers.rows, ...signals.rows, ...krishRows, ...pilots.rows].map(e => e.proposal.target)) }) : null;
+  const citedNow = citedLine(cited, citedServed);
+  if (citedNow) activity.push(citedNow);
+  counts.cited = cited ? cited.counts.proposed : null;
+  const { kept, dropped, off } = rankRows([...amplifiers.rows, ...signals.rows, ...krishRows, ...pilots.rows, ...(cited?.rows ?? [])], caps.rows, shown);
   // A stage that asked leads its row, one tap from done: the people ranked on that row come after its forms (at most two a row).
   const lead = {};
   for (const p of pitched.proposals.filter(isForm)) lead[p.row] = (lead[p.row] ?? 0) + 1;

@@ -410,6 +410,8 @@ const ASK_WORDS = {
   relationship: () => 'a catch-up call, nothing more',
   signal: () => 'a reply to their comment, with the one Mindmake link',
   buyer: () => 'the one ask on Mindmake\'s site, for a leader who can decide',
+  // 5.14: the writer of a page AI assistants cite first for a Mindmake buyer question (src/stages/cited.mjs).
+  cited: () => 'a short call with the person behind a page AI assistants cite first',
 };
 const BAND_WORDS = { under_1k: 'under 1,000', '1k_10k': '1,000 to 10,000', '10k_100k': '10,000 to 100,000', '100k_1m': '100,000 to 1 million', over_1m: 'over 1 million', unknown: 'not yet known' };
 const reachWords = r => r?.value ? `${r.value.toLocaleString('en-GB')}, ${r.basis}` : `${BAND_WORDS[r?.band] ?? 'not yet known'}${r?.band && r.band !== 'unknown' ? `, ${r.basis}` : ''}`;
@@ -846,6 +848,7 @@ export function gainLines({ ask, kind, name, reach, fit, serves, company = '', s
       : room(`A working session for the leaders ${company ? `${company} backs or gathers` : 'they back or gather'}`, GATHERED),
     signal: () => ['A reply to someone who has said in public they have the problem Mindmake works on.'],
     buyer: () => [`One reply could be a first meeting with ${f}, a leader who can move the decision.`],
+    cited: () => [`A conversation with the person behind a page AI assistants cite first when buyers ask what Mindmake works on; it can lead to a mention there.`],
   }[ask]?.() ?? [];
   const goal = serves ? within(`It serves this week's goal: ${serves.replace(/[.!?]+$/, '')}.`) : '';
   return [...lead.map(l => within(l)).filter(Boolean).slice(0, CARD_LINES - (goal ? 1 : 0)), ...(goal ? [goal] : [])];
@@ -892,6 +895,7 @@ export function angleLines({ ask, kind, name, c, company, canon }) {
     teach: [intern, publication, brain],
     signal: [reply, start],
     buyer: [start, brain],
+    cited: [brain, start],
   }[ask] ?? [brain];
   const out = [];
   for (const a of order) {
@@ -1727,6 +1731,7 @@ export function titleFor(ask, kind, rawName, company, max = TITLE_MAX, show = ''
     : fit(`Offer ${name}${at ? ` at ${at}` : ''} a session for their leaders`, `Offer ${name} a session for their leaders`, `Offer ${f} a session for their leaders`, `Offer ${f} a session`);
   if (ask === 'introduce') return fit(`Ask ${name} for one introduction`, `Ask ${f} for one introduction`);
   if (ask === 'buyer') return fit(`Write to ${name} about Mindmake`, `Write to ${f} about Mindmake`, `Write to ${f}`);
+  if (ask === 'cited') return fit(`Write to ${name} about their cited page`, `Write to ${f} about their cited page`, `Write to ${f}`);
   if (ask === 'appear') return show ? fit(`Ask ${name} to have you on ${show}`, `Ask ${f} to have you on ${show}`, `Ask to go on ${show}`, `Ask ${f} for a guest spot`) : fit(`Ask to go on ${name}'s channel`, `Ask to go on ${f}'s channel`);
   if (ask === 'teach') return fit(`Offer ${name} a session for their ${kind === 'student_educator' ? 'students' : 'leaders'}`, `Offer ${f} a session for their ${kind === 'student_educator' ? 'students' : 'leaders'}`, `Offer ${f} a session`);
   return fit(`Reach out to ${name}`, `Reach out to ${f}`);
