@@ -2,6 +2,13 @@
 
 The dated records of this engine's sessions, newest first. NOW.md names this file as its history log; scripts/check-drift.mjs fails when it is missing. The completion record stays docs/RELEASE.md.
 
+## 2026-11-14: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
+
+- The fleet audit's growth-mindmake findings repaired. The session pack fits 36 KB again, and the fold job now moves NOW.md's oldest dated lines to docs/history/LOG.md until it does (#90). A full report keeps its AI-answer, kits, switch and crew lines, holds past 40 are named in `holds_truncated`, and Control Center's week target stands only for the week its `week_of` names (#91). A desk sentence that fails the fixed rules gets one retry naming the rule it broke, then holds (#92). The credits brief and GET-GOING 0.8 say what the credits session can do today: booking addresses are the research desk's, and the session waits on two Control Center connector tools before it does any booking-contact work (#93). (2026-11-14)
+- Advisory's listed buyers and intro asks leave shadow as REACH OUT rows for his own box, at most five a run, each note one desk sentence (the reason to write now, from a cited trigger) inside fixed text, read by fixed rules that refuse anything said of him, any invented number and any claim past the trigger. Control Center serves their person rows at protocol 1.25.0. The selling-partner proposal is prepared in his Gmail for his send. (2026-11-13)
+
 ## 2026-11-14: superseded protocol copy lines
 
 Moved here word for word from NOW.md on 2026-11-14: each named an earlier protocol copy (1.27.0, 1.28.0, 1.30.0), and the copy is Control Center's bundle 1.33.0 since #110, as NOW.md says. A fresh session read them as current.
