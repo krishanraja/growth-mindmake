@@ -271,7 +271,7 @@ export function nextSteps({ getGoing = '', now = '', today = null } = {}) {
     step(opening ? `${label}: ${opening}` : label, 'engine');
   }
   // A channel this engine owns but has not built is said as not built while its step is open, so the state is true (audit seams-6).
-  if (/^- \[ \] \*\*1\.4 LinkedIn\.\*\*/m.test(String(getGoing))) step('His personal LinkedIn: not built. This engine owns it since growth-makeyourmindup handed it over on 13 November (GET-GOING 1.4).', 'engine');
+  if (/^- \[ \] \*\*1\.4 LinkedIn\.\*\*/m.test(String(getGoing))) step('His personal LinkedIn: not built. This engine owns it since growth-makeyourmindup handed it over (GET-GOING 1.4).', 'engine');
   const section = /^## What is next and what is waiting on Krish\s*$([\s\S]*?)(?=^#{2,3} )/m.exec(`${String(now)}\n## `)?.[1] ?? '';
   const next = (/^- Next(?: \(\d{4}-\d{2}-\d{2}\))?:\s*(.+)$/m.exec(section) ?? /^- \*\*Next:\*\*\s*(.+)$/m.exec(section))?.[1] ?? '';
   const waitingItems = text => splitOutside(text.replace(/\.$/, ''), ', and ').flatMap(x => splitOutside(x, '; '));
