@@ -6,6 +6,12 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
 
+- The engine now reads the full-funnel meeting paths (webinar, post-engager, cold-outbound, video-note) before Control Center records them, so the good-meetings count stays whole when it does. A meeting with a path the engine does not know is counted with the path unknown instead of blanking the number, and a meeting with nobody filed yet still counts. The new paths go in a report only once Control Center serves 1.24.0 with `features.meeting_paths`. (2026-11-13)
+
+## 2026-11-14: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
+
 - The full-funnel build is set (docs/GET-GOING.md, "The full-funnel build", Waves 0 to 3) on Krish's four rulings of 13 November (docs/RULINGS.md, "The full-funnel engine"): cold outbound on email, LinkedIn and calls within the law, Maven Lightning Lessons every two weeks, up to 10 morning drafts a day in his Gmail with no press, and his personal LinkedIn. The good count now reads as a floor while any meeting he held that week is untapped, and the gap line names held and not tapped. Video notes are held as clone_realism_unproven (N21), since his clone was cleared for Mindmake outbound on 22 October and realism is what holds it now. (2026-11-13)
 
 ## 2026-11-14: older NOW.md lines
