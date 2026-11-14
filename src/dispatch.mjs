@@ -37,6 +37,7 @@ import { aiAnswersReadable, answersStep, readAiAnswers } from './stages/answers.
 import { weeklyAnswerKits, weeklyKitsLine } from './weekly-review.mjs';
 import { gapOf, gapLine, intensify } from './stages/intensity.mjs';
 import { receiptCounts, receiptsLine } from './stages/receipts.mjs';
+import { verifyBundle, bundleLine } from './protocol-bundle.mjs';
 import { wins as readWins, winsLine } from './stages/wins.mjs';
 import { poolOf, lanesLine, laneHistory, starvedLanes, poolFlat, starvedProposal, sourcingRequests, checkIn, stoppedPlans, STARVED_RUNS, CHECK_IN_DAYS, CHECK_IN_PREFIX, STARVED_PREFIX, CAPPED } from './stages/momentum.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
@@ -1042,6 +1043,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const credits = readCredits(directive.credits_block, capabilities?.features);
     const creditsNow = creditsLine(credits);
     if (creditsNow) activity.push(creditsNow);
+    // I-11: whether this repository's protocol copy is the bundle Control Center serves; a counted line, never a hold.
+    activity.push(bundleLine(verifyBundle(), capabilities?.protocol_bundle));
     // I-06: what became of the links the notes carried, one counts line, shadow only (src/stages/receipts.mjs).
     if (suppliedContext && suppliedContext.asset_opens !== undefined) activity.push(receiptsLine(receiptCounts(suppliedContext, capabilities?.features)));
     // 1.6.0: the five rows on his home screen, after everything else, in the room a report has left.

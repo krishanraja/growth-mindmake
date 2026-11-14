@@ -5,13 +5,17 @@
  *   - every path NOW.md's front matter names exists;
  *   - NOW.md's head is a commit on this branch and not far behind it (only
  *     where git holds the history; a shallow checkout says NOT CHECKED);
- *   - the copied protocol's header names the newest version it documents.
+ *   - the protocol copy in docs/control-center/ is Control Center's bundle
+ *     byte for byte (each file's sha256 and the bundle_sha256 in bundle.json;
+ *     src/protocol-bundle.mjs). Whether it is the bundle Control Center
+ *     serves is said by each run's "Protocol copy" line.
  *
  * The crew's cards and the library's taxonomy have their own drift checks
  * (scripts/check-crew.mjs, scripts/check-library.mjs).
  *
  *   node scripts/check-drift.mjs
  */
+import { verifyBundle } from '../src/protocol-bundle.mjs';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -37,14 +41,6 @@ export function namedPaths(fm) {
   }
   return out;
 }
-/** The protocol header's version against the newest version the document names. Pure. */
-export function protocolDrift(markdown) {
-  const header = /^# .*?version (\d+\.\d+\.\d+)/m.exec(String(markdown))?.[1] ?? null;
-  const versions = [...String(markdown).matchAll(/\b1\.(\d+)\.(\d+)\b/g)].map(m => [Number(m[1]), Number(m[2])]);
-  const top = versions.sort((a, b) => b[0] - a[0] || b[1] - a[1])[0];
-  const newest = top ? `1.${top[0]}.${top[1]}` : null;
-  return header === newest ? null : `the header says ${header ?? 'no version'} but the document reaches ${newest}`;
-}
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const root = fileURLToPath(new URL('../', import.meta.url));
@@ -61,9 +57,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     if (git('merge-base', '--is-ancestor', head, 'HEAD').status !== 0) failures.push(`NOW.md head ${head} is not a commit on this branch`);
     else { const lag = Number(git('rev-list', '--count', `${head}..HEAD`).stdout.trim()); if (lag > HEAD_LAG_MAX) failures.push(`NOW.md head ${head} is ${lag} commits behind; at most ${HEAD_LAG_MAX}`); }
   }
-  const protocol = protocolDrift(await readFile(resolve(root, 'docs/control-center/ENGINE-PROTOCOL.md'), 'utf8'));
-  if (protocol) failures.push(`docs/control-center/ENGINE-PROTOCOL.md: ${protocol}`);
+  // The protocol copy is Control Center's bundle byte for byte (integration I-11); whether it is the one Control Center serves is each run's line.
+  const bundle = verifyBundle(resolve(root, 'docs/control-center') + '/');
+  for (const f of bundle.failures) failures.push(`docs/control-center/: ${f}`);
   for (const n of notes) console.log(n);
   if (failures.length) { console.error(failures.join('\n')); process.exitCode = 1; }
-  else console.log('PASS: NOW.md names only files that exist, its head is on this branch, and the protocol header names its newest version');
+  else console.log('PASS: NOW.md names only files that exist, its head is on this branch, and the protocol copy is Control Center\'s bundle byte for byte');
 }
