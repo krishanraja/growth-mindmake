@@ -731,11 +731,13 @@ export function readDeals(context, features = {}) {
 }
 
 /** One shadow line on his Pipeline deals, counts only, or null when the detail is not served. Pure. */
-export function dealsLine(r) {
+export function dealsLine(r, catchups = null) {
   if (!r?.served) return null;
   if (!r.open && !r.quiet) return `Deals: not read this run (${r.reason}), so none are assumed.`;
   const bad = n => (n ? `, ${n} did not parse and ${n === 1 ? 'is' : 'are'} left out` : '');
   const open = r.open ? `${r.open.deals} open with ${r.open.people} ${r.open.people === 1 ? 'person' : 'people'}, ${r.open.dated} with a next date${bad(r.open.dropped)}` : `open deals not read (${r.reason})`;
   const quiet = r.quiet ? `${r.quiet.deals} gone quiet (${r.quiet.parked} parked, ${r.quiet.lost} closed for timing or gone quiet)${bad(r.quiet.dropped)}` : `deals gone quiet not read (${r.reason}), so none are assumed`;
-  return `Deals, in shadow: ${open}; ${quiet}. No catch-up is proposed from them yet.${r.complete ? '' : ' Control Center read only part of the Pipeline.'}`;
+  // 5.13: the catch-ups this run proposed from the deals gone quiet, counted; a run that built no rows says so as before.
+  const told = Number.isInteger(catchups) ? ` ${catchups} catch-up${catchups === 1 ? '' : 's'} proposed from them, each a morning draft for his send.` : ' No catch-up is proposed from them yet.';
+  return `Deals, in shadow: ${open}; ${quiet}.${told}${r.complete ? '' : ' Control Center read only part of the Pipeline.'}`;
 }
