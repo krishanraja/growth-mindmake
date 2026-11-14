@@ -44,3 +44,16 @@ test('the workflow waits on this repository\'s own checks and refuses a run from
   assert.match(wf, /-f \.github\/scripts\/auto-merge-pick\.jq/)
   assert.match(wf, /isCrossRepository,author,headRepositoryOwner/)
 })
+
+// A merge made with the Actions token starts no push workflow, so ci.yml's fold job never ran after one and closeout
+// notes waited on main (found 2026-11-14). The merge now starts ci.yml on main by workflow_dispatch, and the fold runs on it.
+test('a merge starts CI on main, and its fold job runs on that start', () => {
+  const wf = readFileSync('.github/workflows/auto-merge.yml', 'utf8')
+  assert.match(wf, /\n  actions: write\n/)
+  assert.match(wf, /gh pr merge "\$pr"[^\n]*\n[^\n]*\n\s*#[^\n]*\n\s*gh workflow run ci\.yml -R "\$REPO" --ref main/)
+  const ci = readFileSync('.github/workflows/ci.yml', 'utf8')
+  assert.match(ci, /\non:\n(?:  [^\n]*\n|    [^\n]*\n)*  workflow_dispatch:\n/)
+  const fold = ci.slice(ci.indexOf('\n  fold:\n'))
+  assert.match(fold, /\n    if: \(github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'\) && github\.ref == 'refs\/heads\/main'\n/)
+  assert.match(fold, /node "\$hook" --fold/)
+})

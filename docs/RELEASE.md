@@ -1,5 +1,10 @@
 # Release state
 
+## Closeout notes fold after every merge, 14 November 2026
+
+- **Built and tested.** A merge made by .github/workflows/auto-merge.yml with the Actions token starts no push workflow, so the `fold` job in .github/workflows/ci.yml, gated on a push to main, never ran after a merge and four closeout notes waited on main. auto-merge.yml now starts ci.yml on main by `workflow_dispatch` after each merge, as control-center's auto-merge.yml starts its now-cap.yml, and the fold job runs on that start as on a push. `tests/auto-merge-guard.test.mjs` holds both. The one-address note lost its heading line, which the fold cannot place; its words are otherwise unchanged.
+- **Live:** the merge of this change runs the old auto-merge.yml, so CI on main is started by hand once to fold the waiting notes; every merge after it starts the fold itself.
+
 ## AEO's win kits and the request's digest (proposed protocol 1.23.0), 13 November 2026 (Ruling, Krish, 2026-11-13)
 
 - **Built and tested.** Where the directive serves `features.ai_answers_detail`, the run reads AEO's win kits for Mindmake and its portfolio (CTRL, Circle and Pulse) loosely, best priority first (`kitsFor` in src/stages/answers.mjs; a missing or misshapen field means no kits, never an error), and keeps the best five in the run's memory, shaped as decision aids for the Trust-Asset Steward and as angles for pitches (`weeklyAnswerKits` in src/weekly-review.mjs). The report carries one line of counts that says no stage uses them yet; a kit's words never leave the run's memory. Where the request on file carries `digest`, the run asks AEO again when its plan's digest differs (`questionsDigest`, Control Center's definition, tested on a fixed vector Python gives byte for byte), and says `mode: 'replace'`, once for an exact list: the line that asks carries the list's short digest mark (`questionsMark`), and a run that reads it back from its recent reports (`askedMarks`) while the request on file still differs says so and waits for the plan to change; with no digest the count rule stands. Each page to beat keeps AEO's `features` object (`readFeatures`).

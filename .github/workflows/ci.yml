@@ -34,8 +34,10 @@ jobs:
     # behind its notes. The fold is ai-harness's own closeout hook (`--fold`), read from its main at run
     # time: this repository is not one the harness publisher administers, so it keeps no copy of it.
     # Every attempt folds afresh from the newest main, so a north-star line or another fold landing first
-    # never leaves a conflicted NOW.md. A push by this job starts no other workflow.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # never leaves a conflicted NOW.md. A push by this job starts no other workflow, and neither does
+    # auto-merge.yml's merge, so that workflow starts this one on main by workflow_dispatch after each
+    # merge, and the fold runs then too.
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
