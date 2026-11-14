@@ -2,6 +2,14 @@
 
 The dated records of this engine's sessions, newest first. NOW.md names this file as its history log; scripts/check-drift.mjs fails when it is missing. The completion record stays docs/RELEASE.md.
 
+## 2026-11-14: superseded protocol copy lines
+
+Moved here word for word from NOW.md on 2026-11-14: each named an earlier protocol copy (1.27.0, 1.28.0, 1.30.0), and the copy is Control Center's bundle 1.33.0 since #110, as NOW.md says. A fresh session read them as current.
+
+- docs/control-center/ is Control Center's protocol bundle 1.30.0 byte for byte (deals_detail), proved whole by scripts/check-drift.mjs. (2026-11-14)
+- The protocol copy in docs/control-center/ is Control Center's protocol bundle byte for byte (1.28.0, integration I-11), with bundle.json; scripts/check-drift.mjs proves it whole, and each run's "Protocol copy" line says current, behind or unknown against capabilities' protocol_bundle. The engine still reports at 1.20.0, the newest version of a field it sends. (2026-11-14)
+- The protocol copy in docs/control-center/ (ENGINE-PROTOCOL.md and both schemas) is Control Center's at 38e6c7ba (protocol 1.27.0). The engine still reports at 1.20.0, the newest version of a field it sends, as the protocol's "raise yours only for a field you use" asks; it reads the four 1.24.0 meeting paths tolerantly, and no lane names them in origin_candidates yet. The spec_unsigned hold names the caps a run uses, raised by urgency when they are. His personal LinkedIn is this engine's since growth-makeyourmindup handed it over on 13 November, not built, and next_steps says so while GET-GOING 1.4 is open. (2026-11-14)
+
 ## 2026-11-14: older NOW.md lines
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
