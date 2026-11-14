@@ -1113,7 +1113,7 @@ function formProposal(f, rank, { t, canon, record, files, weekGoals, at, titleMa
  * the form's own holds; and the stages whose pitch waits behind a form
  * (`routed`: form_route while a form is the route, form_sent once one went).
  */
-export function formRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, L = lessons(context?.feedback, at), pitched = pitchedStages(context), formsPerRow = FORMS_PER_ROW, lanes = LANES_ON, wins = null, shown = null }) {
+export function formRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, L = lessons(context?.feedback, at, context?.records?.drafts), pitched = pitchedStages(context), formsPerRow = FORMS_PER_ROW, lanes = LANES_ON, wins = null, shown = null }) {
   const tries = Array.isArray(context?.records?.forms) ? context.records.forms : [];
   const held = [], routed = new Map(), open = { visibility: [], events: [] }, seen = new Set();
   const one = uniqueStages(context?.records?.visibility);
@@ -1294,7 +1294,7 @@ function afterLookup(state, held) {
 const foundRoute = (subject_ref, lane, state) => ({ subject_ref, lane, kind: state.route.kind, ...(state.route.kind === 'email' ? { address: state.route.address, basis: state.route.basis } : { url: state.route.url }), source_url: state.route.source_url, request_id: state.request_id });
 
 export function pitchRows({ context, weekGoals, canon, record = null, files, at, titleMax = TITLE_MAX, caps = PITCH_CAPS, showNotes = false, networkRoutes = false, wins = null, research = context?.research, shown = null, openingsRequired = false, openingKind = 'question' }) {
-  const L = lessons(context?.feedback, at);
+  const L = lessons(context?.feedback, at, context?.records?.drafts);
   const pitched = pitchedStages(context);
   const lanes = { ...LANES_ON, ...(caps.lanes ?? {}) };
   const forms = formRows({ context, weekGoals, canon, record, files, at, titleMax, L, pitched, formsPerRow: caps.forms_per_row, lanes, wins, shown });

@@ -12,7 +12,7 @@ import { plan } from './orchestrator.mjs';
 import { enginePlan } from './engine.mjs';
 import { validateStrategicRead, strategicPlan, outcomeScorecard } from './strategy.mjs';
 import { readVoice } from './stages/draft.mjs';
-import { amplifierRows, rankRows, pitchOffReviews, sharedBodies, brokenEmails, shownLine, shownHistory, ROWS, PER_ROW, TITLE_MAX, TITLE_MAX_BRIEF } from './stages/rows.mjs';
+import { amplifierRows, rankRows, pitchOffReviews, sharedBodies, brokenEmails, shownLine, shownHistory, ROWS, PER_ROW, TITLE_MAX, TITLE_MAX_BRIEF, withoutBounced } from './stages/rows.mjs';
 import { signalRequests, signalRows } from './stages/signals.mjs';
 import { circleRequests, circlePeople, circleFromNetwork, takesCircle, circleAnswer, CIRCLE_VERSION } from './stages/circle.mjs';
 import { mirrorPlan, takesMirror, MIRROR_VERSION } from './stages/mirror.mjs';
@@ -869,7 +869,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     if (capabilities?.features?.context) {
       try {
         const supplied = validateStrategicRead(await cc.context(), 'context', clock());
-        suppliedContext = supplied;
+        // A bounced address is out of every route before any stage reads it (ENGINE-PROTOCOL.md, the morning lane).
+        suppliedContext = withoutBounced(supplied);
         strategicSource = { revision: supplied.source_revision ?? payloadDigest(supplied.records), captured_at: supplied.observed_at };
         liveWorkContext = supplied.work_context ?? null;
         strategic = strategicPlan(supplied, { at: clock(), capacity: policy.limits.recommendations_per_run, allocation: policy.acquisition });

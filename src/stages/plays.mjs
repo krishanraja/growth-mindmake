@@ -258,7 +258,7 @@ export function playsShadow({ context, canon = null, at, homeCity = typeof conte
   const guests = Array.isArray(records.guests) ? records.guests.filter(g => typeof g?.id === 'string') : [];
   const paths = pathsOf(context), taken = takenOf(context);
   const byTarget = new Map(targets.map(r => [r.id, r])), byGuest = new Map(guests.map(g => [g.id, g]));
-  const ctx = { byTarget, byGuest, L: lessons(context?.feedback, at), invited: invitedGuests(context), pitched: pitchedStages(context), routes: context?.routes ?? {}, at, canon };
+  const ctx = { byTarget, byGuest, L: lessons(context?.feedback, at, context?.records?.drafts), invited: invitedGuests(context), pitched: pitchedStages(context), routes: context?.routes ?? {}, at, canon };
   const picks = [];
   for (const play of playsToFill('visibility', { founder: 'yes' })) picks.push(...approachQueue(play, { guests, targets, paths, taken }));
   for (const s of selectStages(targets, at)) picks.push({ play: 'stage_submit', contact_id: null, path: 'invited', guest_id: null, visibility_target_id: s.id, existing_draft: false });

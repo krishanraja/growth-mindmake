@@ -183,12 +183,12 @@ test('a reply, a booking or a good meeting lifts what is like it, capped, never 
   };
   const meetings = [{ contact_id: id(9), good: true, held_at: '2026-10-23T10:00:00Z' }, { contact_id: id(10), good: true, held_at: '2026-10-23T10:00:00Z' }];
   const w = wins({ context, meetings, at: AT });
-  assert.deepEqual(w.counts, { replies: 1, bookings: 1, good_meetings: 1 }, 'one show once; a meeting counts only after a row he carried out');
+  assert.deepEqual(w.counts, { replies: 1, bookings: 1, note_replies: 0, note_bookings: 0, good_meetings: 1 }, 'one show once; a meeting counts only after a row he carried out');
   assert.equal(w.lift({ kind: 'podcast' }), 1.3);
   assert.equal(w.lift({ kind: 'connector', sector: 'media' }), LIFT_MAX, 'a kind and its sector together, capped');
   assert.equal(w.lift({ kind: 'connector', sector: 'finance' }), 1.3);
   assert.equal(w.lift({ kind: 'investor' }), 1, 'a meeting with no row he carried out lifts nothing');
-  assert.match(winsLine(w), /1 pitch answered, 1 booked, 1 good meeting/);
+  assert.match(winsLine(w), /1 pitch answered, 1 booked, 0 notes from his box answered, 0 booked, 1 good meeting/);
   // Outside the window, or after now, counts nothing.
   assert.equal(wins({ context, meetings: [{ contact_id: id(9), good: true, held_at: '2026-01-01T00:00:00Z' }], at: AT }).counts.good_meetings, 0);
   // The lift reaches the rank: a show of a kind that answered scores higher than the same show without it.
@@ -240,4 +240,26 @@ test('a wake after Jonny\'s ten are drafted reads his lanes as capped, so the we
   assert.match(lanes, /stages capped/);
   const ask = rep.proposals.find(p => p.proposal_id.startsWith(STARVED_PREFIX));
   assert.ok(!ask || !JSON.parse(ask.exact_payload).starved.some(s => ['invites', 'podcasts', 'stages'].includes(s.lane)), 'a capped lane is not starved');
+});
+
+test("an answer or a booked call on one of his own notes (morning, row_press) lifts what the row action was, joined by proposal_id (I-03)", () => {
+  const feedback = [
+    { proposal_id: 'gmr-a', subject_ref: `contact:${id(21)}`, amplifier_kind: 'operator', features: { sector: 'finance', topic: 'ai_ops' } },
+    { proposal_id: 'gmr-b', subject_ref: `contact:${id(22)}`, amplifier_kind: 'investor', features: {} },
+    { proposal_id: 'gmr-c', subject_ref: `contact:${id(23)}`, amplifier_kind: 'connector', features: {} }
+  ];
+  const drafts = [
+    { job: 'morning', proposal_id: 'gmr-a', replied_at: '2026-10-20T00:00:00Z' },
+    { job: 'row_press', proposal_id: 'gmr-b', replied_at: '2026-10-19T00:00:00Z', booked_at: '2026-10-21T00:00:00Z' },
+    { job: 'guests', proposal_id: 'gmr-c', replied_at: '2026-10-20T00:00:00Z' },
+    { job: 'morning', proposal_id: 'gmr-unknown', replied_at: '2026-10-20T00:00:00Z' },
+    { job: 'morning', proposal_id: 'gmr-a', booked_at: '2026-01-01T00:00:00Z' }
+  ];
+  const w = wins({ context: { records: { visibility: [], drafts }, feedback }, at: AT });
+  assert.equal(w.counts.note_replies, 1);
+  assert.equal(w.counts.note_bookings, 1);
+  assert.equal(w.lift({ kind: 'operator', sector: 'finance' }), 1.2, 'a reply lifts the kind and its sector by 1 each');
+  assert.equal(w.lift({ kind: 'investor' }), 1.2, 'a booked call lifts by 2');
+  assert.equal(w.lift({ kind: 'connector' }), 1, "another job's draft, a proposal it cannot join and a draft outside the window lift nothing");
+  assert.match(winsLine(w), /1 note from his box answered, 1 booked/);
 });

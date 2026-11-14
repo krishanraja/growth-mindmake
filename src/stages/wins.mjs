@@ -5,6 +5,10 @@
  *
  * - A pitch Control Center shows answered (`drafts[].replied_at`) lifts its
  *   show's topic and kind by 1; one booked (`booked_at`) by 2.
+ * - A note of this engine's from his own box (a `morning` draft, or his
+ *   Draft press's `row_press`) that was answered lifts the row action's
+ *   amplifier kind, kind in its sector, and topic by 1; one that became a
+ *   booked call by 2, joined to `feedback[]` by `proposal_id`.
  * - A meeting he marked good (his tap, protocol 1.10.0) with someone a row
  *   action of this engine reached and he carried out (`feedback[]` with
  *   `carried_out`, naming the same contact) lifts that action's amplifier
@@ -24,6 +28,8 @@ export const LIFT_STEP = 0.1;
 export const LIFT_MAX = 1.5;
 export const POINTS = Object.freeze({ reply: 1, booking: 2, good_meeting: 3 });
 const DAY = 86400000;
+/** The drafts that are this engine's notes from his own box: the morning lane's and his Draft press's (protocol 1.23.0). */
+export const PERSON_JOBS = Object.freeze(['morning', 'row_press']);
 
 /** The wins in the context and his held meetings, and the lift they give a candidate. Pure. */
 export function wins({ context, meetings = null, at }) {
@@ -31,7 +37,7 @@ export function wins({ context, meetings = null, at }) {
   const inWindow = v => { const t = Date.parse(v ?? ''); return Number.isFinite(t) && t >= from && t <= now; };
   const points = new Map();
   const add = (key, n) => points.set(key, (points.get(key) ?? 0) + n);
-  const counts = { replies: 0, bookings: 0, good_meetings: 0 };
+  const counts = { replies: 0, bookings: 0, note_replies: 0, note_bookings: 0, good_meetings: 0 };
   const targets = new Map((Array.isArray(context?.records?.visibility) ? context.records.visibility : []).filter(t => typeof t?.id === 'string').map(t => [t.id.toLowerCase(), t]));
   const seen = new Set();
   for (const d of Array.isArray(context?.records?.drafts) ? context.records.drafts : []) {
@@ -45,6 +51,22 @@ export function wins({ context, meetings = null, at }) {
     booked ? counts.bookings++ : counts.replies++;
     const kind = stageKind(t), topic = showTopic(t);
     if (kind) add(`kind:${kind}`, n);
+    if (topic) add(`topic:${topic}`, n);
+  }
+  // His own notes (the morning lane, his Draft press): an answer or a booked call lifts what the row action was.
+  const byProposal = new Map((Array.isArray(context?.feedback) ? context.feedback : []).filter(f => typeof f?.proposal_id === 'string').map(f => [f.proposal_id, f]));
+  const noted = new Set();
+  for (const d of Array.isArray(context?.records?.drafts) ? context.records.drafts : []) {
+    if (!PERSON_JOBS.includes(d?.job) || typeof d?.proposal_id !== 'string' || noted.has(d.proposal_id)) continue;
+    const f = byProposal.get(d.proposal_id);
+    if (!f) continue;
+    const booked = inWindow(d.booked_at), replied = inWindow(d.replied_at);
+    if (!booked && !replied) continue;
+    noted.add(d.proposal_id);
+    const n = booked ? POINTS.booking : POINTS.reply;
+    booked ? counts.note_bookings++ : counts.note_replies++;
+    const kind = f.amplifier_kind ?? null, sector = f.features?.sector ?? null, topic = f.features?.topic ?? null;
+    if (kind) { add(`kind:${kind}`, n); if (sector) add(`sector:${kind}|${sector}`, n); }
     if (topic) add(`topic:${topic}`, n);
   }
   const good = new Set((Array.isArray(meetings) ? meetings : []).filter(m => m?.good === true && inWindow(m.held_at) && typeof m.contact_id === 'string').map(m => `contact:${m.contact_id.toLowerCase()}`));
@@ -67,7 +89,7 @@ export function wins({ context, meetings = null, at }) {
 
 /** One activity line on what is lifting the rank, counts only, never a name. Pure. */
 export function winsLine(w) {
-  const { replies, bookings, good_meetings } = w.counts;
+  const { replies, bookings, note_replies, note_bookings, good_meetings } = w.counts;
   if (!w.any) return `Wins: no reply, booking or good meeting from this engine's work in the last ${WIN_DAYS} days, so nothing is lifted yet; the rank stands on reach, fit and the standards.`;
-  return `Wins in the last ${WIN_DAYS} days lift what is like them: ${replies} pitch${replies === 1 ? '' : 'es'} answered, ${bookings} booked, ${good_meetings} good meeting${good_meetings === 1 ? '' : 's'} from a row he carried out. Each lifts its kind, sector and topic, at most ${LIFT_MAX} times; nothing that has not won sinks.`;
+  return `Wins in the last ${WIN_DAYS} days lift what is like them: ${replies} pitch${replies === 1 ? '' : 'es'} answered, ${bookings} booked, ${note_replies} note${note_replies === 1 ? '' : 's'} from his box answered, ${note_bookings} booked, ${good_meetings} good meeting${good_meetings === 1 ? '' : 's'} from a row he carried out. Each lifts its kind, sector and topic, at most ${LIFT_MAX} times; nothing that has not won sinks.`;
 }

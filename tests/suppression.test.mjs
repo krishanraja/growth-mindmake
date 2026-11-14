@@ -153,3 +153,31 @@ test('suppressionShadow: counts and codes, the context unchanged', () => {
   assert.doesNotMatch(line, /[0-9a-f]{8}-[0-9a-f]{4}-|@|https?:\/\//);
   assert.match(suppressionShadow({ context: {}, canon, at: AT }).line, /^Suppression, in shadow: 0 checks read from 0 answers;/);
 });
+
+test('an opt-out puts the person in never, in every lane, and a bounced address leaves its route (I-03)', async () => {
+  const { lessons, refusedBy, mailOutcomes, withoutBounced } = await import('../src/stages/rows.mjs');
+  const a = id(31), b = id(32), c = id(33);
+  const drafts = [
+    { job: 'morning', contact_id: a, sent_at: daysAgo(10), opted_out_at: daysAgo(9), replied_at: daysAgo(9) },
+    { job: 'morning', contact_id: a, sent_at: daysAgo(1) },
+    { job: 'row_press', contact_id: b, sent_at: daysAgo(5), bounced_at: daysAgo(5) },
+    { job: 'morning', contact_id: c, sent_at: daysAgo(8), bounced_at: daysAgo(8) },
+    { job: 'morning', contact_id: c, sent_at: daysAgo(2), replied_at: daysAgo(1) },
+    { job: 'morning', sent_at: daysAgo(3), opted_out_at: daysAgo(3) }
+  ];
+  const out = mailOutcomes(drafts);
+  assert.deepEqual([...out.optedOut], [`contact:${a}`], 'an opt-out holds for good, even with a newer draft; a draft with no contact id is passed over');
+  assert.deepEqual([...out.bounced], [b], 'only a person whose newest draft bounced; a later answered note brings the address back');
+  const L = lessons([], AT, drafts);
+  for (const row of ROWS) assert.equal(refusedBy(L, { row, subject: `contact:${a}` }, AT), 'declined_person');
+  assert.equal(refusedBy(L, { row: 'network', subject: `contact:${b}` }, AT), null, 'a bounce is about the address, not the person');
+  assert.ok(suppressionList([], AT, drafts).never.includes(`contact:${a}`), 'the list Control Center applies carries it too');
+  assert.ok(!suppressionList([], AT).never.includes(`contact:${a}`));
+  const routes = { [b]: { email: 'verified', linkedin: true }, [c]: { email: 'verified' } };
+  const ctx = withoutBounced({ routes, records: { drafts } });
+  assert.deepEqual(ctx.routes[b], { email: 'none', linkedin: true }, 'the address is out; the other routes stay');
+  assert.deepEqual(ctx.routes[c], { email: 'verified' });
+  assert.equal(routes[b].email, 'verified', 'the context read is not changed in place');
+  const none = { routes, records: { drafts: [] } };
+  assert.equal(withoutBounced(none), none);
+});
