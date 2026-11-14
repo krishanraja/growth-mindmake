@@ -375,6 +375,24 @@ export function campaignProposal(campaign) {
   }), subject_ref: nativeSubject };
 }
 
+/**
+ * A one-person note plan (integration I-03, contact_notes; ENGINE-PROTOCOL.md
+ * "Exact approved actions"): an approved plan whose ref is `contact:<id>`.
+ * Returns the id, or null for any other plan. A plan that cannot be read is
+ * not a note. Pure.
+ */
+export function noteContact(decision) {
+  let v;
+  try { v = JSON.parse(decision?.exact_payload ?? 'null'); } catch { return null; }
+  const m = /^contact:([0-9a-f-]{36})$/i.exec(String(v?.ref ?? ''));
+  return m ? m[1].toLowerCase() : null;
+}
+
+/** Whether a prepared action is exactly the note to that person: their id, the plan's own ref, and no asset. Pure. */
+export function noteActionOk(action, id) {
+  return String(action?.recipient_contact_id ?? '').toLowerCase() === id && action?.source_ref === `contact:${id}` && Array.isArray(action?.assets) && action.assets.length === 0;
+}
+
 function tally(values) { return [...values.reduce((m, v) => m.set(v, (m.get(v) ?? 0) + 1), new Map())].sort(([a], [b]) => a.localeCompare(b)); }
 const holdCode = (prefix, reason) => cut(`${prefix}_${CODE.test(reason) ? reason : 'held'}`, 200);
 
@@ -966,6 +984,9 @@ export async function runDispatch({ cc, source, context = null, policy, registry
         try {
           // His amended version is acted on only after its digest is recomputed (N15).
           if (decision.amended === true && !amendedDigestOk(decision)) { holds.push({ reason: 'amended_digest_mismatch', detail: "An approved plan's amended version does not match its digest, so it was not acted on." }); continue; }
+          // A note to one person with no deal reaches prepare-action only where Control Center serves it (features.contact_notes, I-03).
+          const note = noteContact(decision);
+          if (note && capabilities?.features?.contact_notes !== true) { holds.push({ reason: 'contact_notes_not_served', detail: 'An approved note to one person waits: Control Center does not serve contact notes on this run, so it was not prepared.' }); continue; }
           const prepared = await cc.prepareAction(decision.proposal_id);
           if (prepared?.ok === true && prepared.prepared?.parent_proposal_id === decision.proposal_id && prepared.prepared.completed === true) {
             mapped.proposals = mapped.proposals.filter(p=>p.proposal_id !== decision.proposal_id); continue;
@@ -977,7 +998,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
             mapped.proposals.unshift(existing); continue;
           }
           const a = prepared?.prepared?.action;
-          if (prepared.ok !== true || prepared.prepared.parent_proposal_id !== decision.proposal_id || payloadDigest(a) !== prepared.prepared.payload_sha256 || a.cost_usd !== 0 || assetsHold(a, { allowed: policy.execution.assets === true && capabilities?.features?.exact_assets === true }) || a.channel !== 'email') throw new Error('Invalid prepared action');
+          if (prepared.ok !== true || prepared.prepared.parent_proposal_id !== decision.proposal_id || payloadDigest(a) !== prepared.prepared.payload_sha256 || a.cost_usd !== 0 || assetsHold(a, { allowed: policy.execution.assets === true && capabilities?.features?.exact_assets === true }) || a.channel !== 'email' || ((note || /^contact:/.test(String(a?.source_ref ?? ''))) && !noteActionOk(a, note ?? String(a.recipient_contact_id ?? '').toLowerCase()))) throw new Error('Invalid prepared action');
           mapped.proposals = mapped.proposals.filter(p=>p.proposal_id !== decision.proposal_id);
           mapped.proposals.unshift({ proposal_id: `gma-${payloadDigest(a).slice(0,32)}`, title: cut(`Review the exact email: ${a.subject}`,160), why: `The campaign plan is approved. This approval binds this recipient, email, full wording, ${a.assets.length ? 'the one asset it links' : 'no assets'}, zero cost and the stated time window.`, kind: 'prepared', wall: 'send', amount_usd: 0, channel: 'email', objective_key: 'qualified_conversations', exact_payload: JSON.stringify(a,null,2), payload_sha256: payloadDigest(a), evidence: [], expires_at: a.expires_at, stage: 'go_live', parent_proposal_id: decision.proposal_id, subject_ref: `contact:${a.recipient_contact_id}`, close_condition: { event: 'external_action_verified', reference: a.source_ref } });
         } catch { holds.push({ reason: 'approved_plan_preparation_blocked', detail: 'The approved plan changed, its proof or recipient is unavailable, or no supported execution route exists. No action is inferred.' }); }
