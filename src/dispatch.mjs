@@ -30,7 +30,7 @@ import { roomsShadow } from './stages/rooms.mjs';
 import { citedRows, citedLine } from './stages/cited.mjs';
 import { pilotsShadow, pilotRows, pilotHolds, pilotLine, isWarmProposal, othersThisRun, readDeals, dealsLine } from './stages/pilots.mjs';
 import { warmFrame } from './stages/openings.mjs';
-import { morningQa, morningHolds, engineVocabulary } from './stages/morning.mjs';
+import { morningQa, morningHolds, morningLengthLine, engineVocabulary } from './stages/morning.mjs';
 import { callPreps, callPrepLine, takesCallPrep } from './stages/callprep.mjs';
 import { takesCompanyRead, companyReadRequests, companyReadLine } from './stages/company.mjs';
 import { briefsShadow } from './stages/pitches.mjs';
@@ -794,15 +794,18 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // Every sentence built from a card fact is read before it is proposed: an email with a broken one is held (Control Center's reads of 6 November).
   const broken = brokenEmails(drafted.filter(p => !same.has(p.proposal_id)));
   const brokenIds = new Set(broken.map(b => b.proposal_id));
-  // The morning drafts' QA (15 November 2026): an email for his own box is held when its message runs over 80 words, or a claim in it
-  // is on neither the person's nor the company's record (src/stages/morning.mjs). The research answered this run is part of the record.
+  // The morning drafts' QA (15 November 2026): an email for his own box is held when a claim in it is on neither the person's nor the
+  // company's record; a message over 80 words is only counted until MORNING_LENGTH_HOLDS turns on (Ruling, Krish, 2026-11-15)
+  // (src/stages/morning.mjs). The research answered this run is part of the record.
   const morning = morningCheck(drafted.filter(p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id)), { context: { ...ctx, research: mergeResearch(research, ctx.research ?? []) }, vocabulary: engineVocabulary(MORNING_WORD_TEXT, canon) });
-  const morningIds = new Set(morning.map(m => m.proposal_id));
+  const morningIds = new Set(morning.filter(m => m.held !== false).map(m => m.proposal_id));
   const passed = p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id) && !morningIds.has(p.proposal_id);
   // Every email in his name, or in Jonny's box in his style, passes Control Center's voice check first (Ruling, Krish, 2026-11-07).
   const voice = await voiceHolds({ cc, capabilities, proposals: drafted.filter(passed) });
   const proposals = drafted.filter(p => passed(p) && !voice.held.has(p.proposal_id));
   holds.push(...morningHolds(morning));
+  const morningLength = morningLengthLine(morning);
+  if (morningLength) activity.push(morningLength);
   if (voice.held.size) holds.push(voiceHoldLine(voice.held));
   if (voice.unread) holds.push({ reason: 'voice_check_unread', detail: `${voice.unread} email${voice.unread === 1 ? '' : 's'} went unchecked here; Control Center checks again before anything lands.` });
   if (same.size) holds.push({ reason: 'row_same_words', detail: `${same.size} proposal${same.size === 1 ? '' : 's'} held: ${same.size === 1 ? 'its' : 'their'} words matched another email in this run once the names were taken out.` });

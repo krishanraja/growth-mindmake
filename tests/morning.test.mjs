@@ -2,13 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
-  morningQa, morningHolds, forHisBox, messageOf, wordsIn, claimsIn, recordText, engineVocabulary, traced, MORNING_WORDS_MAX
+  morningQa, morningHolds, morningLengthLine, forHisBox, messageOf, wordsIn, claimsIn, recordText, engineVocabulary, traced, MORNING_WORDS_MAX,
+  MORNING_LENGTH_HOLDS
 } from '../src/stages/morning.mjs';
 import { MORNING_WORD_FILES } from '../src/dispatch.mjs';
 
-// The morning drafts' QA: an email for his own box is held when its message
-// runs over 80 words, or when a claim in it is on neither the person's nor
-// the company's record. Synthetic only: invented people, companies and ids.
+// The morning drafts' QA: an email for his own box is held when a claim in it
+// is on neither the person's nor the company's record; a message over 80 words
+// is counted, and holds only once MORNING_LENGTH_HOLDS is on (Ruling, Krish,
+// 2026-11-15). Synthetic only: invented people, companies and ids.
 
 const id = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const ROW = {
@@ -36,7 +38,7 @@ test('only an email for his own box is read: Jonny\'s box and other channels pas
   assert.deepEqual(morningQa([email(wrap(['Invented Name.'.repeat(1)]), { mailbox: 'jonny' })], { context: CTX, vocabulary: VOCAB }), []);
 });
 
-test(`the message is counted between the greeting and the sign-off, and over ${MORNING_WORDS_MAX} words is held`, () => {
+test(`the message is counted between the greeting and the sign-off, and over ${MORNING_WORDS_MAX} words is found`, () => {
   assert.equal(messageOf(wrap(['One two three.'])), 'One two three.');
   assert.equal(messageOf('Dear Robin Sample,\n\nOne two.\n\nBest,\nKrish'), 'One two.');
   assert.equal(wordsIn('One two  three\nfour'), 4);
@@ -44,6 +46,24 @@ test(`the message is counted between the greeting and the sign-off, and over ${M
   assert.deepEqual(morningQa([email(wrap([`${words(MORNING_WORDS_MAX - 1)}.`]))], { context: CTX, vocabulary: VOCAB }), [], 'eighty is the cap, not over it');
   const over = morningQa([email(wrap([`${words(MORNING_WORDS_MAX + 1)}.`]))], { context: CTX, vocabulary: VOCAB });
   assert.deepEqual(over.map(o => [o.reason, o.words]), [['morning_over_80_words', MORNING_WORDS_MAX + 1]]);
+});
+
+test('length only counts until it is turned on; an untraced claim always holds', () => {
+  const words = n => Array.from({ length: n }, () => 'word').join(' ');
+  assert.equal(MORNING_LENGTH_HOLDS, false, 'length reports for a week before it holds (Ruling, Krish, 2026-11-15)');
+  const long = email(wrap([`${words(MORNING_WORDS_MAX + 5)}.`]));
+  const counted = morningQa([long], { context: CTX, vocabulary: VOCAB });
+  assert.deepEqual(counted.map(o => [o.reason, o.held]), [['morning_over_80_words', false]]);
+  assert.deepEqual(morningHolds(counted), [], 'a count is not a hold');
+  assert.match(morningLengthLine(counted), /^Morning drafts, length counted only: 1 email for his box ran over 80 words and was not held/);
+  assert.equal(morningLengthLine([]), null);
+  assert.deepEqual(morningQa([long], { context: CTX, vocabulary: VOCAB, lengthHolds: true }).map(o => [o.reason, o.held]), [['morning_over_80_words', true]]);
+  assert.equal(morningHolds(morningQa([long], { context: CTX, vocabulary: VOCAB, lengthHolds: true }))[0]?.reason, 'morning_over_80_words');
+  // A long email is still read for claims while length only counts, and the claim holds it.
+  const longAndUntraced = email(wrap([`${words(MORNING_WORDS_MAX + 5)} at Zenithcorp.`]));
+  const both = morningQa([longAndUntraced], { context: CTX, vocabulary: VOCAB });
+  assert.deepEqual(both.map(o => [o.reason, o.held]), [['morning_over_80_words', false], ['morning_claim_untraced', true]]);
+  assert.deepEqual(morningHolds(both).map(h => h.reason), ['morning_claim_untraced']);
 });
 
 test('every claim traces to the person\'s or the company\'s record', () => {

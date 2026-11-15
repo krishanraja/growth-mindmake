@@ -2,14 +2,16 @@
  * The morning drafts' QA (session of 15 November 2026). Mindmake's email
  * row actions for Krish's own box are drafted into his Gmail each morning
  * with no press (protocol 1.23.0, the morning lane), so each is read by two
- * fixed rules before it is proposed, and held with its reason when it fails
- * either:
+ * fixed rules before it is proposed:
  *
  *   morning_over_80_words   the message, the lines between the greeting and
  *                           the sign-off, runs over MORNING_WORDS_MAX words.
+ *                           Counted only, never held, while
+ *                           MORNING_LENGTH_HOLDS is false.
  *   morning_claim_untraced  a claim in it is on neither the person's record
  *                           nor their company's, and is not one of this
- *                           engine's own fixed words.
+ *                           engine's own fixed words. Always held: it goes
+ *                           out in his name.
  *
  * A claim is what a reader would take as a fact about them: a name or other
  * capitalised word that does not start a sentence, a number, or a quotation.
@@ -25,6 +27,14 @@
 
 /** At most this many words between the greeting and the sign-off. */
 export const MORNING_WORDS_MAX = 80;
+
+/**
+ * Whether running over MORNING_WORDS_MAX holds an email. Ruling (Krish,
+ * 2026-11-15): an untraced claim holds from the start, and length only
+ * reports for a week; it holds once he has read that week's counts and says
+ * so. Until then an email over the cap is counted and still proposed.
+ */
+export const MORNING_LENGTH_HOLDS = false;
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const lc = v => String(v ?? '').toLowerCase();
@@ -144,28 +154,32 @@ export function traced(claim, record, vocabulary) {
 }
 
 /**
- * The morning drafts that fail, each with its reason: over the word cap
- * first, then a claim the record does not hold. Only an email for his own
- * box is read; the rest pass untouched. Pure.
+ * The morning drafts that fail, each with its reason and whether it holds:
+ * over the word cap first, then a claim the record does not hold. While
+ * length only counts, an email over the cap is still read for claims. Only an
+ * email for his own box is read; the rest pass untouched. Pure.
  */
-export function morningQa(proposals, { context, vocabulary }) {
+export function morningQa(proposals, { context, vocabulary, lengthHolds = MORNING_LENGTH_HOLDS }) {
   const out = [];
   for (const p of proposals) {
     const a = forHisBox(p);
     if (!a) continue;
     const message = messageOf(a.body);
     const words = wordsIn(message);
-    if (words > MORNING_WORDS_MAX) { out.push({ proposal_id: p.proposal_id, reason: 'morning_over_80_words', words }); continue; }
+    if (words > MORNING_WORDS_MAX) {
+      out.push({ proposal_id: p.proposal_id, reason: 'morning_over_80_words', words, held: lengthHolds });
+      if (lengthHolds) continue;
+    }
     const record = recordText(context, a.recipient_contact_id, p.subject_ref);
     const untraced = claimsIn(`${a.subject ?? ''}\n${message}`).filter(c => !traced(c, record, vocabulary));
-    if (untraced.length) out.push({ proposal_id: p.proposal_id, reason: 'morning_claim_untraced', claims: untraced.length, kinds: [...new Set(untraced.map(c => c.kind))], untraced });
+    if (untraced.length) out.push({ proposal_id: p.proposal_id, reason: 'morning_claim_untraced', claims: untraced.length, kinds: [...new Set(untraced.map(c => c.kind))], untraced, held: true });
   }
   return out;
 }
 
 /** The holds for the report: counts and reasons only, never a word of an email or a name. Pure. */
 export function morningHolds(failed) {
-  const over = failed.filter(f => f.reason === 'morning_over_80_words');
+  const over = failed.filter(f => f.reason === 'morning_over_80_words' && f.held !== false);
   const untraced = failed.filter(f => f.reason === 'morning_claim_untraced');
   const holds = [];
   if (over.length) holds.push({ reason: 'morning_over_80_words', detail: `${over.length} email${over.length === 1 ? '' : 's'} for his box held: over ${MORNING_WORDS_MAX} words between the greeting and the sign-off.` });
@@ -174,4 +188,14 @@ export function morningHolds(failed) {
     holds.push({ reason: 'morning_claim_untraced', detail: `${untraced.length} email${untraced.length === 1 ? '' : 's'} for his box held: a claim (${kinds.join(', ')}) is on neither the person's nor the company's record.` });
   }
   return holds;
+}
+
+/**
+ * The activity line for emails over the cap that were counted and not held,
+ * or null when there were none. A count only, never a word of an email. Pure.
+ */
+export function morningLengthLine(failed) {
+  const n = new Set(failed.filter(f => f.reason === 'morning_over_80_words' && f.held === false).map(f => f.proposal_id)).size;
+  if (!n) return null;
+  return `Morning drafts, length counted only: ${n} email${n === 1 ? '' : 's'} for his box ran over ${MORNING_WORDS_MAX} words and ${n === 1 ? 'was' : 'were'} not held (Ruling, Krish, 2026-11-15: length reports for a week before it holds).`;
 }

@@ -912,6 +912,26 @@
       ]
     },
     {
+      "id": "morning-length-holds-early",
+      "what": "the morning QA holds on length before Krish has read a week of counts",
+      "file": "src/stages/morning.mjs",
+      "find": "export const MORNING_LENGTH_HOLDS = false;",
+      "replace": "export const MORNING_LENGTH_HOLDS = true;",
+      "tests": [
+        "tests/morning.test.mjs"
+      ]
+    },
+    {
+      "id": "morning-long-skips-claims",
+      "what": "a long email that only counts is no longer read for claims",
+      "file": "src/stages/morning.mjs",
+      "find": "      if (lengthHolds) continue;",
+      "replace": "      continue;",
+      "tests": [
+        "tests/morning.test.mjs"
+      ]
+    },
+    {
       "id": "morning-greeting-counted",
       "what": "the morning QA counts the greeting and the sign-off",
       "file": "src/stages/morning.mjs",
