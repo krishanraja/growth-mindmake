@@ -28,6 +28,7 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 Lifecycle: building. The detail is in `README.md`.
 
+- the branch sweep takes an approved list (branch@sha) on a hand run and deletes each named branch only at that exact commit, skipping and logging anything else; the weekly run is unchanged. Copied from ai-harness's canonical script and workflow. (2026-11-15)
 - A weekly branch sweep (`.github/workflows/branch-sweep.yml`, Sunday 03:17 UTC, and by hand) deletes every remote branch whose work is already on main and lists each branch it keeps with why: unmerged work, an open pull request, protected (Ruling, Krish, 2026-11-15). The script is `.github/scripts/branch_sweep.py`, copied unchanged from ai-harness, which holds the canonical copy. (2026-11-15)
 - company reads (plan item A2, the engine's side) are built and tested, not yet live: src/stages/company.mjs asks the research desk's free `company_read` for the company site Control Center serves on a person row, only once `capabilities.research.kinds` lists it, only for a close tie held opening_no_fact or a warm buyer held no_trigger, never with a fresh read from the last 30 days on file, at most 5 a run, the site alone in the query; an answered read gives an opening one fact labelled as read from the company's own site, used only where the person's own facts give none (a warm buyer's only once the month's trigger question found nothing), with its page on the card. email_check is not used. (2026-11-15)
 - docs/GET-GOING.md describes the full-funnel build's four shaping mechanisms (reply triage, lead score, meeting-prep fact labels, attendance segmentation) and the call-note extraction in this repository's own words, with no outside project named. (2026-11-15)
@@ -53,7 +54,7 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-15): once Control Center adds `company_domain` to the quiet ties', network and Advisory person rows (today only the amplifier candidates carry it; `company_read` itself is served since Control Center's pull request 908 merged), read the first live report's `Company sites read` line and the opening holds beside it.
+- Next (2026-11-15): run the sweep by hand with dry_run false and this repository's approved list, and read its log.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 - North Star check (2026-11-15): holds.
 
