@@ -6,6 +6,13 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-15, to keep the session pack under 36 KB; newest first.
 
+- Where Control Center serves AEO's cited pages (features.ai_answers_detail), a page AI assistants cite first for one of the engine's buyer questions, on the site of a company whose person is served with an address, becomes one REACH OUT email a run in Krish's own box, drafted by the morning lane for his send; every other page is counted by reason in a Cited pages line (item 5.14). No Mindmake cited pages exist yet; AEO's first research run is 22 November. (2026-11-14)
+- our own pull requests (Krish or the Actions bot, branch in this repository, ready, at the commit that passed) now merge themselves when every "Verify growth engine" run on that commit is green (.github/workflows/auto-merge.yml, rule .github/scripts/auto-merge-pick.jq, tested). Forks, drafts and strangers wait for a person. (2026-11-14)
+
+## 2026-11-15: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-15, to keep the session pack under 36 KB; newest first.
+
 - NOW.md names one protocol copy, 1.33.0; the three lines that named earlier copies (1.27.0, 1.28.0, 1.30.0) and the old "still reports at 1.20.0" moved word for word to docs/history/LOG.md, after a fresh session read them as current. (2026-11-14)
 - docs/control-center/ is Control Center's protocol bundle 1.33.0 byte for byte (meeting_ties and today's other additions), proved whole by scripts/check-drift.mjs. (2026-11-14)
 
