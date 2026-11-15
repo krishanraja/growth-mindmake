@@ -6,6 +6,13 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-15, to keep the session pack under 36 KB; newest first.
 
+- NOW.md names one protocol copy, 1.33.0; the three lines that named earlier copies (1.27.0, 1.28.0, 1.30.0) and the old "still reports at 1.20.0" moved word for word to docs/history/LOG.md, after a fresh session read them as current. (2026-11-14)
+- docs/control-center/ is Control Center's protocol bundle 1.33.0 byte for byte (meeting_ties and today's other additions), proved whole by scripts/check-drift.mjs. (2026-11-14)
+
+## 2026-11-15: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-15, to keep the session pack under 36 KB; newest first.
+
 - Morning drafts are live: ten in his Gmail at 05:00 New York on 14 November (GET-GOING 0.2 ticked). Warm buyers are read whole, but the desk's sentence failed the fixed rules on all three, so the ask now says the source's "I" and "we" are the source's, never Krish's, and to open on what he saw, read or noticed. (2026-11-14)
 - Each held meeting's own tie (network_tier, known_since; Control Center's features.meeting_ties, protocol 1.33.0, in draft there) is read tolerantly and traces a tie he had before as an existing relationship; absent or null stays unknown. (2026-11-14)
 - An approved note to one person with no deal (contact_notes, Control Center #825) reaches prepare-action only where features.contact_notes is served, and its exact action is filed as go_live only when it is that person's with no asset. The engine proposes no such plan itself yet. (2026-11-14)

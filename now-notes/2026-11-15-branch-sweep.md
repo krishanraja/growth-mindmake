@@ -1,3 +1,0 @@
-Status: A weekly branch sweep (`.github/workflows/branch-sweep.yml`, Sunday 03:17 UTC, and by hand) deletes every remote branch whose work is already on main and lists each branch it keeps with why: unmerged work, an open pull request, protected (Ruling, Krish, 2026-11-15). The script is `.github/scripts/branch_sweep.py`, copied unchanged from ai-harness, which holds the canonical copy.
-Next: once Control Center adds `company_domain` to the quiet ties', network and Advisory person rows (today only the amplifier candidates carry it; `company_read` itself is served since Control Center's pull request 908 merged), read the first live report's `Company sites read` line and the opening holds beside it.
-North Star check (2026-11-15): holds.
