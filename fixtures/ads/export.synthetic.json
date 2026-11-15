@@ -1,0 +1,45 @@
+{
+  "format": "ads-export/1",
+  "note": "Synthetic only: no real account, campaign, person or figure. Built so every expected finding can be worked out by hand (tests/ads.test.mjs).",
+  "accounts": [
+    {
+      "platform": "google",
+      "account_ref": "synthetic-google",
+      "currency": "GBP",
+      "window": { "start": "2026-10-01", "end": "2026-10-28" },
+      "attribution": { "click_days": 30, "view_days": 1 },
+      "auto_tagging": false,
+      "campaigns": [
+        { "id": "g1", "name": "Search brand", "status": "enabled", "spend": 200, "impressions": 2000, "clicks": 100, "conversions": 8, "conversion_value": 0, "final_urls": ["https://mindmake.co/?start=1&utm_source=google&utm_medium=cpc"] },
+        { "id": "g2", "name": "Search generic", "status": "enabled", "spend": 600, "impressions": 8000, "clicks": 150, "conversions": 2, "conversion_value": 0, "final_urls": ["https://mindmake.co/?start=1"] },
+        { "id": "g3", "name": "Display awareness", "status": "enabled", "spend": 150, "impressions": 50000, "clicks": 0, "conversions": 0, "conversion_value": 0, "final_urls": ["https://mindmake.co/"] },
+        { "id": "g4", "name": "Search competitors", "status": "paused", "spend": 250, "impressions": 3000, "clicks": 40, "conversions": 0, "conversion_value": 0, "final_urls": ["https://landing.example/offer"] }
+      ],
+      "search_terms": [
+        { "campaign_id": "g2", "term": "synthetic term one", "spend": 130, "clicks": 20, "conversions": 0 },
+        { "campaign_id": "g2", "term": "synthetic term two", "spend": 50, "clicks": 10, "conversions": 0 },
+        { "campaign_id": "g1", "term": "synthetic term three", "spend": 180, "clicks": 90, "conversions": 8 },
+        { "campaign_id": "g4", "term": "synthetic term four", "spend": 125, "clicks": 20, "conversions": 0 }
+      ],
+      "conversion_actions": [
+        { "name": "Brief finished", "primary": true, "enabled": true, "counting": "one", "source": "website", "has_value": false },
+        { "name": "Brief finished", "primary": true, "enabled": true, "counting": "every", "source": "website", "has_value": false },
+        { "name": "Page scroll", "primary": false, "enabled": true, "counting": "every", "source": "website", "has_value": false }
+      ]
+    },
+    {
+      "platform": "linkedin",
+      "account_ref": "synthetic-linkedin",
+      "currency": "GBP",
+      "window": { "start": "2026-10-01", "end": "2026-10-28" },
+      "attribution": { "click_days": 30, "view_days": 7 },
+      "campaigns": [
+        { "id": "l1", "name": "Leaders sponsored content", "status": "enabled", "spend": 900, "impressions": 30000, "clicks": 120, "conversions": 3, "conversion_value": null, "final_urls": ["https://mindmake.co/?start=1&utm_source=linkedin&utm_medium=paid"] },
+        { "id": "l2", "name": "Lead gen form", "status": "enabled", "spend": 300, "impressions": 10000, "clicks": 20, "conversions": 25, "conversion_value": null }
+      ],
+      "conversion_actions": [
+        { "name": "Lead form submit", "primary": true, "enabled": true, "counting": "every", "source": "lead_form", "has_value": false }
+      ]
+    }
+  ]
+}

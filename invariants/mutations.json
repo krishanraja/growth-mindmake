@@ -1140,6 +1140,106 @@
       "tests": [
         "tests/network.test.mjs"
       ]
+    },
+    {
+      "id": "tracking-unread-health-passes",
+      "what": "the tracking check reads an unserved site health check as a pass",
+      "file": "src/stages/tracking.mjs",
+      "find": "  if (!h) out.push(finding('tracking.health', 'unknown',",
+      "replace": "  if (!h) out.push(finding('tracking.health', 'pass',",
+      "tests": [
+        "tests/tracking.test.mjs"
+      ]
+    },
+    {
+      "id": "tracking-keeps-measurement-id",
+      "what": "the tracking check keeps a measurement id from Control Center's own line",
+      "file": "src/stages/tracking.mjs",
+      "find": "String(s ?? '').replace(/\\bG-[A-Z0-9]+\\b/g, '[id]')",
+      "replace": "String(s ?? '')",
+      "tests": [
+        "tests/tracking.test.mjs"
+      ]
+    },
+    {
+      "id": "tracking-no-key-events-passes",
+      "what": "no key events across real sessions reads as a pass",
+      "file": "src/stages/tracking.mjs",
+      "find": "  else if (read.keys === 0) out.push(",
+      "replace": "  else if (read.keys < 0) out.push(",
+      "tests": [
+        "tests/tracking.test.mjs"
+      ]
+    },
+    {
+      "id": "tracking-line-not-reported",
+      "what": "the dispatch drops the tracking line from the report",
+      "file": "src/dispatch.mjs",
+      "find": "    activity.push(trackingLine(trackingAudit({ tracking: directive.tracking, today, hosts: placedHosts })));\n",
+      "replace": "",
+      "tests": [
+        "tests/tracking.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-unknown-conversions-read-as-zero",
+      "what": "the ads audit reads a conversion figure not given as zero",
+      "file": "src/ads/audit.mjs",
+      "find": "  const conversions = known(c, 'conversions') ? sum(c, 'conversions') : null;",
+      "replace": "  const conversions = c.reduce((n, x) => n + (x.conversions ?? 0), 0);",
+      "tests": [
+        "tests/ads.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-waste-not-own-line",
+      "what": "any zero-conversion spend is called waste, not spend past the account's own cost per conversion",
+      "file": "src/ads/audit.mjs",
+      "find": "const idle = a.campaigns.filter(c => c.conversions === 0 && c.spend !== null && c.spend >= cpa)",
+      "replace": "const idle = a.campaigns.filter(c => c.conversions === 0 && c.spend !== null && c.spend > 0)",
+      "tests": [
+        "tests/ads.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-waste-double-counted",
+      "what": "waste at stake adds a search term inside a campaign already counted",
+      "file": "src/ads/audit.mjs",
+      "find": "      else if (!flagged.has(x.campaign_id)) spend += x.spend;",
+      "replace": "      else spend += x.spend;",
+      "tests": [
+        "tests/ads.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-conversions-added-across-windows",
+      "what": "conversions are added across accounts whose attribution windows differ",
+      "file": "src/ads/audit.mjs",
+      "find": "  const comparable = !keys.has(null) && keys.size === 1 && !periods.has(null) && periods.size === 1;",
+      "replace": "  const comparable = !periods.has(null) && periods.size === 1;",
+      "tests": [
+        "tests/ads.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-writes-outside-runtime",
+      "what": "the ads audit command writes a report outside runtime/",
+      "file": "scripts/ads-audit.mjs",
+      "find": "  return d === RUNTIME || d.startsWith(RUNTIME + sep);",
+      "replace": "  return true;",
+      "tests": [
+        "tests/ads.test.mjs"
+      ]
+    },
+    {
+      "id": "ads-unknown-column-read",
+      "what": "a CSV column off the list is read silently, so a misspelt header reads as a missing figure",
+      "file": "src/ads/ingest.mjs",
+      "find": "  if (unknown.length) fail(",
+      "replace": "  if (false) fail(",
+      "tests": [
+        "tests/ads.test.mjs"
+      ]
     }
   ]
 }

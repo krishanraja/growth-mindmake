@@ -1,0 +1,4 @@
+platform,account_ref,currency,window_start,window_end,click_days,view_days,campaign_id,campaign_name,status,spend,impressions,clicks,conversions,conversion_value,final_url
+google,synthetic-google,GBP,2026-10-01,2026-10-28,30,1,g1,Search brand,enabled,200,2000,100,8,0,https://mindmake.co/?start=1&utm_source=google&utm_medium=cpc
+google,synthetic-google,GBP,2026-10-01,2026-10-28,30,1,g2,"Search generic, broad",enabled,600,8000,150,2,0,https://mindmake.co/?start=1
+microsoft,synthetic-microsoft,USD,2026-10-01,2026-10-28,,,m1,Search all,enabled,100,1000,10,,,https://mindmake.co/?start=1&utm_source=bing&utm_medium=cpc

@@ -20,6 +20,7 @@ import { readCanon, readRecord, blobSha, CanonError } from './stages/canon.mjs';
 import { pitchRows, lookupRequests } from './stages/pitches.mjs';
 import { readLadder, ladderTarget, readNorthStar, readConstraints, stopgapProposal, readStopgap, readSpecCounts, goodMeetingsObjective, goodMeetingsLine, bookings, bookingObjectives, bookingLine, visibilityTargets, STOPGAP_PREFIX, MEETINGS_VERSION, meetingsServed, readMeetings, countGood, tappedObjective, tappedLine, originCandidates, readUpcoming, upcomingLine, pathsFor, NEXT_PATHS, PATHS_VERSION } from './stages/meetings.mjs';
 import { readWeb, trafficLines, bookedHosts } from './stages/traffic.mjs';
+import { readTracking, trackingAudit, trackingLine } from './stages/tracking.mjs';
 import { readCredits, creditsLine, CREDITS_VERSION, CREDITS_SPENT_MAX } from './stages/credits.mjs';
 import { weekSpec, defaultSpec, parseSpec, compiledDrift, STAGE_CAPS, SPEC_PREFIX, FIRST_SPEC_WEEK, summary as capsSummary } from './crew/compile.mjs';
 import { crewShadow } from './crew/shadow.mjs';
@@ -173,6 +174,8 @@ export function readDirective(value) {
     constraints: readConstraints(d),
     // 1.10.0: mindmake.co's Google Analytics readings, for the Measurement Specialist's traffic lines. Never an objective.
     web: readWeb(d.web_analytics),
+    // 1.10.0 and 1.13.0: the same block read whole (health, daily, coverage) for the tracking check, never the measurement id.
+    tracking: readTracking(d.web_analytics),
     // 1.35.0 (I-25): the folders and file titles under 03_Growth, from Control Center's daily Drive read, for the Librarian.
     library: libraryListing(d.library),
     // 1.16.0: the prepaid credits block, kept raw: it is trusted only where the capabilities say features.credits (readCredits).
@@ -1161,7 +1164,10 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const dealsNow = dealsRead ? dealsLine(dealsRead) : null;
     const dealsAt = dealsNow ? activity.push(dealsNow) - 1 : -1;
     // Traffic to mindmake.co: a supporting reading beside the number, never the number (Phase 1b).
-    activity.push(...trafficLines({ web: directive.web, hosts: suppliedContext ? bookedHosts(suppliedContext) : new Set() }));
+    const placedHosts = suppliedContext ? bookedHosts(suppliedContext) : null;
+    activity.push(...trafficLines({ web: directive.web, hosts: placedHosts ?? new Set() }));
+    // Where mindmake.co's measurement hides a visit's path: one line, each check fail, watch, unknown or pass (src/stages/tracking.mjs).
+    activity.push(trackingLine(trackingAudit({ tracking: directive.tracking, today, hosts: placedHosts })));
     // 1.16.0: Mindmake's share of the prepaid credits, read only where Control Center serves it; the daily credits session spends it (docs/CREDITS-SESSION.md).
     const credits = readCredits(directive.credits_block, capabilities?.features);
     const creditsNow = creditsLine(credits);
