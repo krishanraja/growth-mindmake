@@ -6,6 +6,12 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-15, to keep the session pack under 36 KB; newest first.
 
+- Call prep (GET-GOING 1.7) is built and runs in shadow: `src/stages/callprep.mjs` makes, for every meeting in `upcoming_meetings` that starts tomorrow, London time, the person, the company, the mirror, the prior touches and the Pipeline record, each fact said, inferred or missing, up to five discovery questions, and for a first call the test-kit interview (the cost, what they do today, what a yes would need, each drawn from the buyer's own record); the dispatch counts it in one line and nothing reaches Krish, because Control Center takes no call prep yet. The morning drafts' QA (`src/stages/morning.mjs`) holds an email for his own box with a claim on neither the person's nor the company's record (`morning_claim_untraced`), and only counts one over 80 words in an activity line (`morning_over_80_words`, `MORNING_LENGTH_HOLDS` false) until Krish has read a week of counts (Ruling, Krish, 2026-11-15). Call prep reaches him on the meeting in Pipeline (Ruling, Krish, 2026-11-15). 19 new mutations, all killed (100 of 100). (2026-11-15)
+
+## 2026-11-15: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-15, to keep the session pack under 36 KB; newest first.
+
 - a Codex card now starts only through scripts/codex_thread.mjs (open, send, read), a byte-for-byte copy of ai-harness's canonical tool, so the thread shows in Krish's Codex Desktop; scripts/dispatch-card.mjs prints the open and read lines in place of the plugin's background task, with the allowance guard, his yes on the digest and verify-card unchanged (docs/RULINGS.md, docs/codex/TASK-CARD.md). (2026-11-15)
 - the branch sweep takes an approved list (branch@sha) on a hand run and deletes each named branch only at that exact commit, skipping and logging anything else; the weekly run is unchanged. Copied from ai-harness's canonical script and workflow. (2026-11-15)
 - A weekly branch sweep (`.github/workflows/branch-sweep.yml`, Sunday 03:17 UTC, and by hand) deletes every remote branch whose work is already on main and lists each branch it keeps with why: unmerged work, an open pull request, protected (Ruling, Krish, 2026-11-15). The script is `.github/scripts/branch_sweep.py`, copied unchanged from ai-harness, which holds the canonical copy. (2026-11-15)
