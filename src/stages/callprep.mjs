@@ -18,13 +18,19 @@
  *   missing   asked for and not on the record. Never filled with a guess:
  *             a missing fact becomes a question for the call.
  *
- * Where it reaches him: nowhere yet. Control Center takes no call prep
- * (no `features.call_prep`), so the dispatch prepares each one in memory and
- * reports one counts line, never a name, a company or a word of the record
- * (the runner's logs are public). Pure: no clock, no network, no file.
+ * Where it reaches him: on that meeting's card in Pipeline (Ruling, Krish,
+ * 2026-11-15: call prep reaches him on the meeting in Pipeline). Where
+ * Control Center serves `features.call_prep` at protocol 1.40.0, the dispatch
+ * sends each prep in the report's `call_prep` (callPrepField), named by the
+ * meeting and person ids Control Center gave, and counts its answer; without
+ * it, each is made in memory and counted in shadow. Either way the activity
+ * line and the run's outcome carry counts only, never a name, a company or a
+ * word of the record (the runner's logs are public). Pure: no clock, no
+ * network, no file.
  */
 
 import { canonBuyerGroup } from './canon.mjs';
+import { schemaErrors } from '../guards.mjs';
 
 /** The labels a fact carries. */
 export const BASES = Object.freeze(['said', 'inferred', 'missing']);
@@ -32,11 +38,17 @@ export const BASES = Object.freeze(['said', 'inferred', 'missing']);
 export const QUESTIONS_MAX = 5;
 /** The test kit's three moves, in the order he asks them. */
 export const TEST_KIT = Object.freeze(['cost', 'today', 'yes']);
+/** 1.40.0: the protocol version whose report carries call_prep (features.call_prep). */
+export const CALL_PREP_VERSION = '1.40.0';
+/** At most this many preps in one report, the protocol's cap. */
+export const CALL_PREP_MAX = 40;
+/** The refusals ENGINE-PROTOCOL.md names for a prep at 1.40.0. Any other key is counted as `unlisted`, never repeated. */
+export const CALL_PREP_REFUSALS = new Set(['meetings_unread', 'unknown_meeting', 'contact_not_in_meeting', 'kit_not_first_meeting', 'deals_unread', 'deal_not_theirs']);
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const key = v => String(v ?? '').toLowerCase();
 const text = v => (typeof v === 'string' && v.trim() ? v.trim().replace(/\s+/g, ' ') : null);
-const cut = (v, n) => (v.length <= n ? v : `${v.slice(0, n - 1).replace(/\s+\S*$/, '')}...`);
+const cut = (v, n) => (v.length <= n ? v : `${v.slice(0, n - 3).replace(/\s+\S*$/, '')}...`);
 const day = v => (Number.isFinite(Date.parse(v ?? '')) ? new Date(Date.parse(v)).toISOString().slice(0, 10) : null);
 
 function fact(about, label, value, basis, source) {
@@ -105,7 +117,7 @@ export function companyFacts(row, context) {
 
 /** The AI mirror: Control Center runs it on his press and keeps it there, so it is never on this engine's record. Pure. */
 export function mirrorFact() {
-  return fact('mirror', 'The mirror', null, 'missing', 'Make the mirror on their card in Control Center before the call');
+  return fact('mirror', 'The mirror', null, 'missing', 'the AI mirror on their card in Control Center, made on his press before the call');
 }
 
 /** Every touch on record: how he knows them, the email each way, the drafts and what became of them, meetings held, his answers. Pure. */
@@ -229,27 +241,104 @@ export function callPreps({ context, features = {}, buyer = null, at, londonDate
   return { served: true, read: true, preps: meetingsTomorrow(context, at, { londonDate, addDays }).map(m => prepFor(m, { context, buyer })) };
 }
 
-/** Whether Control Center takes call prep: never yet, so delivery waits on its flag. Pure. */
-export function takesCallPrep(capabilities) {
-  return capabilities?.features?.call_prep === true;
+/**
+ * Whether this run sends call prep: Control Center takes it
+ * (features.call_prep), serves the version that carries it (1.40.0), and the
+ * report schema copied here has the field. Pure.
+ */
+export function takesCallPrep(capabilities, schema) {
+  return capabilities?.features?.call_prep === true && Array.isArray(capabilities?.schema_versions) && capabilities.schema_versions.includes(CALL_PREP_VERSION) && !!schema?.properties?.call_prep;
+}
+
+/** The deal a prep names: the person's one open deal in his Pipeline, by its deal_ref; null with none or several, and Control Center then shows it on each of their rows. Pure. */
+export function dealRefFor(context, contactId) {
+  const theirs = (Array.isArray(context?.records?.deals) ? context.records.deals : []).filter(d => key(d?.contact_id) === key(contactId));
+  return theirs.length === 1 && typeof theirs[0].deal_ref === 'string' && theirs[0].deal_ref ? theirs[0].deal_ref : null;
+}
+
+/** One prep as the report carries it (ENGINE-PROTOCOL.md, "Call prep on the meeting in Pipeline"): the ids, each fact with its mark and source, the questions and the test questions, nothing else. Pure. */
+export function prepEntry(p, context) {
+  return {
+    meeting_id: p.meeting_id, contact_id: p.contact_id, deal_ref: dealRefFor(context, p.contact_id),
+    facts: p.facts.map(f => ({ about: f.about, label: f.label, text: f.text, basis: f.basis, source: f.source })),
+    questions: p.questions.map(q => ({ text: q.text, from: q.from })),
+    test_kit: p.test_kit.map(q => ({ kit: q.kit, text: q.text, from: q.from }))
+  };
+}
+
+/**
+ * The report's call_prep: each prep that meets the protocol's own rules,
+ * checked against the report schema copied here (its caps, the three marks,
+ * a missing fact with no words, plain words with no address or number) and
+ * the test questions' order, one per meeting, at most CALL_PREP_MAX. One that
+ * does not is held and counted, never sent and never trimmed into something
+ * it did not say. { entries, held }. Pure.
+ */
+export function callPrepField(r, context, schema) {
+  const item = schema?.properties?.call_prep?.items;
+  const entries = [], seen = new Set();
+  let held = 0;
+  for (const p of Array.isArray(r?.preps) ? r.preps : []) {
+    const e = prepEntry(p, context);
+    const inOrder = e.test_kit.length === 0 || e.test_kit.map(q => q.kit).join() === TEST_KIT.join();
+    if (item && !seen.has(e.meeting_id) && entries.length < CALL_PREP_MAX && inOrder && !schemaErrors(item, e, '$', schema).length) { entries.push(e); seen.add(e.meeting_id); }
+    else held++;
+  }
+  return { entries, held };
 }
 
 /**
  * One counts line for the report: never a name, a company or a word of
- * anyone's record. `takes` is whether Control Center says it takes call prep;
- * nothing here sends one either way, and the line says which. Pure.
+ * anyone's record. `sending` is this run's callPrepField, or null when it
+ * sends none; `offered` is whether Control Center says it takes call prep.
+ * Pure.
  */
-export function callPrepLine(r, takes = false) {
+export function callPrepLine(r, sending = null, offered = false) {
   if (!r?.served) return null;
   if (!r.read) return `Call prep: the meetings ahead were not read this run (${r.reason}), so no prep was made.`;
   if (!r.preps.length) return 'Call prep: no booked meeting tomorrow with someone Control Center holds.';
   const n = b => r.preps.reduce((s, p) => s + p.facts.filter(f => f.basis === b).length, 0);
   const first = r.preps.filter(p => p.first_meeting === true).length;
   const q = r.preps.reduce((s, p) => s + p.questions.length, 0), kit = r.preps.reduce((s, p) => s + p.test_kit.length, 0);
-  const where = takes
-    ? 'Control Center says it takes call prep, and this engine sends none yet; it is made and counted in shadow.'
-    : 'Control Center takes no call prep yet, so none reaches him; it is made and counted in shadow.';
+  const sent = sending?.entries?.length ?? 0, held = sending?.held ?? 0;
+  const where = sending
+    ? `Sent to Control Center for each meeting's card in Pipeline: ${sent}${held ? `; ${held} held, outside the protocol's rules (a cap, a mark or an address or number in its words), never sent` : ''}.`
+    : offered
+      ? 'Control Center takes call prep, but this run cannot send it (the version it serves or the protocol copy here does not carry call_prep), so it is made and counted in shadow.'
+      : 'Control Center takes no call prep yet, so none reaches him; it is made and counted in shadow.';
   return `Call prep: ${r.preps.length} booked meeting${r.preps.length === 1 ? '' : 's'} tomorrow (${first} a first meeting); ${n('said')} facts said, ${n('inferred')} inferred and ${n('missing')} missing, ${q} discovery question${q === 1 ? '' : 's'} and ${kit} test-kit question${kit === 1 ? '' : 's'}. ${where}`;
+}
+
+const tallyOf = v => (Number.isInteger(v) && v >= 0 ? v : null);
+/**
+ * Control Center's answer to the call prep a report carried (1.40.0, the
+ * acceptance's call_prep), as counts only: kept for the meeting's card and
+ * refused by reason. A reason the protocol does not name is counted under
+ * `unlisted`, so the total stays true and no foreign string is repeated; a
+ * meeting id is never repeated either. An answer it cannot read is said to
+ * be unread, never counted as none. Null when none was sent. Pure.
+ */
+export function callPrepAnswer(sent, answer) {
+  if (!sent) return null;
+  const unread = { state: 'unread', line: `Call prep: ${sent} sent; Control Center's answer could not be read, so none is counted as shown or refused.` };
+  if (!answer || typeof answer !== 'object' || Array.isArray(answer)) return unread;
+  if (answer.error === 'call_prep_unchecked') return { state: 'unchecked', line: `Call prep: ${sent} sent; Control Center's checker failed this run (call_prep_unchecked), so none is counted as shown, and the report still stands.` };
+  const kept = tallyOf(answer.kept);
+  if (kept === null || !answer.refused || typeof answer.refused !== 'object' || Array.isArray(answer.refused)) return unread;
+  const refused = {};
+  for (const [reason, n] of Object.entries(answer.refused)) {
+    if (!tallyOf(n)) continue;
+    const k = CALL_PREP_REFUSALS.has(reason) ? reason : 'unlisted';
+    refused[k] = (refused[k] ?? 0) + n;
+  }
+  const sorted = Object.fromEntries(Object.entries(refused).sort(([a], [b]) => a.localeCompare(b)));
+  const total = Object.values(sorted).reduce((a, n) => a + n, 0);
+  const why = total ? ` (${Object.entries(sorted).map(([r, n]) => `${r} ${n}`).join(', ')})` : '';
+  const dry = answer.dry_run === true;
+  return {
+    state: dry ? 'dry_run' : 'answered', sent, kept, refused: sorted,
+    line: `Call prep: ${sent} sent; ${dry ? `a dry run, none shown: ${kept} would be kept` : `${kept} kept for the meeting's card in Pipeline`}, ${total} refused${why}.`
+  };
 }
 
 /** One prep as plain text, for the person who reads it (and the tests). Pure. */

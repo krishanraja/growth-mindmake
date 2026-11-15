@@ -31,7 +31,7 @@ import { citedRows, citedLine } from './stages/cited.mjs';
 import { pilotsShadow, pilotRows, pilotHolds, pilotLine, isWarmProposal, othersThisRun, readDeals, dealsLine } from './stages/pilots.mjs';
 import { warmFrame } from './stages/openings.mjs';
 import { morningQa, morningHolds, morningLengthLine, engineVocabulary } from './stages/morning.mjs';
-import { callPreps, callPrepLine, takesCallPrep } from './stages/callprep.mjs';
+import { callPreps, callPrepLine, takesCallPrep, callPrepField, callPrepAnswer, CALL_PREP_VERSION, CALL_PREP_MAX } from './stages/callprep.mjs';
 import { takesCompanyRead, companyReadRequests, companyReadLine } from './stages/company.mjs';
 import { briefsShadow } from './stages/pitches.mjs';
 import { qualifyShadow } from './stages/qualify.mjs';
@@ -522,7 +522,7 @@ export function fitHolds(holds, max = HOLDS_MAX) {
 }
 
 /** Build the report envelope exactly as engine-report.schema.json, then check it against that schema. */
-export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null, suppression = null, taxonomy = null, credits_spent = null, found_routes = null, circle = null, mirror = null, engine_state = null }) {
+export function buildReport({ run_id, mode, observed_at, source, status, objectives, activity, proposals, events = [], holds, schema_version = SCHEMA_VERSION, origin_candidates = null, withdrawn = null, suppression = null, taxonomy = null, credits_spent = null, found_routes = null, circle = null, mirror = null, engine_state = null, call_prep = null }) {
   // 1.16.0: credits_spent goes out only when this run spent something, and raises the report to the version that carries it.
   const spent = Array.isArray(credits_spent) && credits_spent.length ? credits_spent.slice(0, CREDITS_SPENT_MAX) : null;
   // 1.18.0: found_routes goes out only when there is one, and raises the report to the version that carries it.
@@ -538,6 +538,9 @@ export function buildReport({ run_id, mode, observed_at, source, status, objecti
   if (Object.keys(state).length) version = laterVersion(version, ENGINE_STATE_VERSION);
   // 1.24.0: a candidate on one of the four full-funnel paths raises the report to the version that carries them (originCandidates sends one only where pathsFor allows it).
   if (origin_candidates?.some(c => NEXT_PATHS.includes(c?.path))) version = laterVersion(version, PATHS_VERSION);
+  // 1.40.0: call prep goes out only when there is one (callPrepField sends one only where takesCallPrep allows it), and raises the report to the version that carries it.
+  const preps = Array.isArray(call_prep) && call_prep.length ? call_prep.slice(0, CALL_PREP_MAX) : null;
+  if (preps) version = laterVersion(version, CALL_PREP_VERSION);
   const body = {
     schema_version: version, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
     objectives, activity: fitActivity(activity).map(line => ({ line: cut(line, 500), evidence_url: null })),
@@ -555,7 +558,9 @@ export function buildReport({ run_id, mode, observed_at, source, status, objecti
     ...(people ? { circle: people } : {}),
     ...(mirror ? { mirror } : {}),
     // Krish's instruction and the engine's state (1.20.0), only where the directive says features.engine_state.
-    ...state
+    ...state,
+    // Call prep for each meeting tomorrow, shown on its card in Pipeline (1.40.0), only where Control Center takes it.
+    ...(preps ? { call_prep: preps } : {})
   };
   const report = { ...body, payload_sha256: reportDigest(body) };
   const errors = schemaErrors(REPORT_SCHEMA, report);
@@ -1201,10 +1206,12 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       if (dealsAt >= 0 && Number.isInteger(rows?.counts?.deal_catchups)) activity[dealsAt] = dealsLine(dealsRead, rows.counts.deal_catchups);
     }
     if (won) activity.push(winsLine(won));
-    // GET-GOING 1.7: call prep for every meeting booked for tomorrow, made in memory and counted in shadow; the buyer groups come
-    // from the canon the rows read this run, else they are said missing. Control Center takes none yet (src/stages/callprep.mjs).
+    // GET-GOING 1.7: call prep for every meeting booked for tomorrow; the buyer groups come from the canon the rows read this run, else
+    // they are said missing. Where Control Center takes it (features.call_prep, 1.40.0) each prep that meets the protocol's rules goes in
+    // the report, for the meeting's card in Pipeline (Ruling, Krish, 2026-11-15); otherwise it is counted in shadow (src/stages/callprep.mjs).
     const prepped = suppliedContext ? callPreps({ context: suppliedContext, features: capabilities?.features, buyer: rowsRun?.canon?.buyer ?? null, at, londonDate, addDays }) : null;
-    const prepNow = callPrepLine(prepped, takesCallPrep(capabilities));
+    const prepSend = prepped?.read && takesCallPrep(capabilities, REPORT_SCHEMA) ? callPrepField(prepped, suppliedContext, REPORT_SCHEMA) : null;
+    const prepNow = callPrepLine(prepped, prepSend, capabilities?.features?.call_prep === true);
     if (prepNow) activity.push(prepNow);
     // A lane at 0 for three runs is one strategy ask a week; an open plan gets a check-in every other day (C4).
     const laneOn = { ...Object.fromEntries(ROWS.map(r => [r, caps.rows[r]?.on !== false])), podcasts: caps.rows.visibility?.on !== false, invites: caps.rows.visibility?.on !== false, stages: caps.rows.events?.on !== false };
@@ -1324,7 +1331,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.some(h => !STANDING_HOLDS.has(h.reason)) ? 'held' : 'ready',
       source: strategicSource ?? { revision: snapshot && snapshot.source_revision.length <= 128 ? snapshot.source_revision : revision, captured_at: snapshot?.generated_at ?? observed_at },
       objectives, activity, proposals: mapped.proposals, events: events.slice(0, 40), holds, schema_version, origin_candidates, withdrawn, found_routes: rowsRun?.found_routes ?? null, circle: rowsRun?.circle ?? null, mirror: rowsRun?.mirror ?? null,
-      engine_state: stateNow,
+      engine_state: stateNow, call_prep: prepSend?.entries ?? null,
       ...(suppressed.fields ?? {})
     });
     if (stateNow) outcome.engine_state = Object.fromEntries(ENGINE_STATE_KEYS.map(k => [k, report[k]?.length ?? 0]));
@@ -1350,6 +1357,9 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // 1.19.0: what Control Center did with the circle, counted, never a name.
     const circleSaid = circleAnswer(report.circle?.length ?? 0, ack?.circle);
     if (circleSaid) outcome.circle = circleSaid;
+    // 1.40.0: what Control Center did with the call prep, counted, never a meeting id, a name or a word of it.
+    const prepSaid = callPrepAnswer(report.call_prep?.length ?? 0, ack?.call_prep);
+    if (prepSaid) outcome.call_prep = prepSaid;
     // 1.20.0: what Control Center did with the acks, counted.
     if (outcome.instruction && report.instruction_acks?.length) outcome.instruction.answer = acksAnswer(ack?.instruction_acks);
     phase = 'readback';
