@@ -28,6 +28,7 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 Lifecycle: building. The detail is in `README.md`.
 
+- Krish's idea to turn the engine's own checks into giveaway and low-priced tools with a landing page is in the plan as GET-GOING item 1.10 (free tool first, a paid pack, then Mindmake; his yes on the first tool, page and price before anything is public). (2026-11-15)
 - Krish's second LinkedIn example is in the plan as GET-GOING item 1.4c, the named system post: one premium diagram of a working system, the system itself free on a mindmake.co page, no comment-to-unlock. His words ("a bit clickbaity and not as premium as I would like to aim for but it's a good idea nonetheless") are on his taste ledger. (2026-11-15)
 - Krish asked for a LinkedIn post format with a visual people stop for, lead magnets and immediate value; it is in the plan as GET-GOING item 1.4b (a news-hook post with his take, three or four mindmake.co resources and one strong visual), built after 1.4's first format. (2026-11-15)
 - call prep is sent for the meeting's card in Pipeline (Ruling, Krish, 2026-11-15: call prep reaches him on the meeting in Pipeline). Where Control Center serves `features.call_prep` at protocol 1.40.0, the dispatch sends each prep that meets the protocol's rules in the report's `call_prep` (the meeting and person ids Control Center gave, the person's one open deal, each fact said, inferred or missing with its source, up to five questions and, for a first call, the three test questions), raises the report to 1.40.0 and counts Control Center's answer; one outside the rules is held and counted, never sent, and without the flag it stays in shadow. The protocol copy in docs/control-center/ is Control Center's 1.40.0 bundle byte for byte, which carries cold email's 1.39.0 too. GET-GOING 1.7 is ticked: both halves are built and tested, and it goes live when Control Center's change and this one both merge. 11 new mutations, all killed (111 of 111). (2026-11-15)
@@ -47,7 +48,7 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-15): Build 1.4's first LinkedIn format, then 1.4b and 1.4c.
+- Next (2026-11-15): Krish picks the first tool for 1.10; until then, build 1.4.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 - North Star check (2026-11-15): holds.
 
