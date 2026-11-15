@@ -224,3 +224,38 @@ test('a dispatch run puts an in-network guest on his own row, holds the unknown 
   assert.ok(mixed.holds.some(h => h.reason === 'invite_network_is_krish'));
   assert.equal(mixed.holds.some(h => h.reason === 'invite_jonny_network_unknown'), false);
 });
+
+test('the morning QA runs in the dispatch: an email for his box it fails is held by reason, and call prep is counted', async () => {
+  const policy = JSON.parse(await readFile(new URL('../config/policy.json', import.meta.url)));
+  const schema = JSON.parse(await readFile(new URL('../docs/control-center/engine-report.schema.json', import.meta.url), 'utf8'));
+  const served = ['1.6.0', '1.7.0', '1.8.0', '1.9.0'];
+  const routes = { ...routesFor([301], true), ...routesFor([302], false) };
+  const ahead = [{ meeting_id: 'm-1', starts_at: '2026-10-28T15:00:00Z', contact_id: id(301), contact_ids: [id(301)], organizer: 'them', first_meeting: true }];
+  const once = async morningCheck => {
+    const reports = [];
+    const seen = [];
+    const cc = { recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: '1.9.0', week_goals: GOALS }),
+      capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true, network_routes: true, upcoming_meetings: true } }),
+      context: async () => ({ ok: true, context: { schema_version: '1.9.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }, { source: 'upcoming_meetings', available: true, complete: true }], records: { advisory: [], visibility: [show(1)], drafts: [], guests: [guest(1), guest(2)] }, amplifier_candidates: [], routes, feedback: [], research: [], upcoming_meetings: ahead } }),
+      decisions: async () => [], postReport: async rep => { reports.push(rep); return { replayed: false }; }, readReport: async () => reports.at(-1) };
+    const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-morning-1234', clock: () => NOW,
+      canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/pitches.mjs', sha: 'b'.repeat(40) }], recordReader: async () => null,
+      ...(morningCheck ? { morningCheck: (ps, opts) => { seen.push(opts); return morningCheck(ps, opts); } } : {}) });
+    assert.equal(result.status, 'succeeded');
+    assert.deepEqual(violations(schema, reports[0]), []);
+    return { report: reports[0], seen };
+  };
+  const his = rep => rep.proposals.filter(p => p.exact_payload && !action(p).mailbox && action(p).channel === 'email');
+  // The real QA: the guest invite in his own box is written from the guest's own record, so it passes.
+  const clean = await once(null);
+  assert.equal(his(clean.report).length, 1);
+  assert.equal(clean.report.holds.some(h => /^morning_/.test(h.reason)), false);
+  assert.ok(clean.report.activity.some(a => /^Call prep: 1 booked meeting tomorrow \(1 a first meeting\);.*Control Center takes no call prep yet/.test(a.line)), 'counted in shadow');
+  assert.equal(clean.report.activity.some(a => /Avery|Sam Sample/.test(a.line) && /^Call prep/.test(a.line)), false, 'never a name');
+  // A QA that fails it: the email is held by reason, Jonny's lane untouched, and the QA read the run's own context.
+  const held = await once(ps => ps.filter(p => !action(p).mailbox && action(p).channel === 'email').map(p => ({ proposal_id: p.proposal_id, reason: 'morning_claim_untraced', kinds: ['name'] })));
+  assert.equal(his(held.report).length, 0);
+  assert.ok(held.report.proposals.some(p => p.exact_payload && action(p).mailbox === 'jonny'), "Jonny's box is not the morning lane");
+  assert.equal(held.report.holds.find(h => h.reason === 'morning_claim_untraced')?.detail, "1 email for his box held: a claim (a name) is on neither the person's nor the company's record.");
+  assert.ok(held.seen[0].context.records.guests.length === 2 && typeof held.seen[0].vocabulary === 'string');
+});

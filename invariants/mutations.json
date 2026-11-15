@@ -820,6 +820,176 @@
       "tests": [
         "tests/compliance.test.mjs"
       ]
+    },
+    {
+      "id": "callprep-undated-title-said",
+      "what": "call prep calls an undated title said",
+      "file": "src/stages/callprep.mjs",
+      "find": "  else if (title) out.push(fact('person', 'Role', title, 'inferred', 'current_title, not dated'));",
+      "replace": "  else if (title) out.push(fact('person', 'Role', title, 'said', 'current_title, not dated'));",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-model-prose-said",
+      "what": "call prep calls prose a model wrote said",
+      "file": "src/stages/callprep.mjs",
+      "find": "  if (who) out.push(fact('person', 'Who, as written', who, 'inferred', 'who (a model wrote it)'));",
+      "replace": "  if (who) out.push(fact('person', 'Who, as written', who, 'said', 'who (a model wrote it)'));",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-mirror-assumed",
+      "what": "call prep claims a mirror it never sees",
+      "file": "src/stages/callprep.mjs",
+      "find": "  return fact('mirror', 'The mirror', null, 'missing',",
+      "replace": "  return fact('mirror', 'The mirror', null, 'said',",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-not-the-day-before",
+      "what": "call prep is made on the day, not the day before",
+      "file": "src/stages/callprep.mjs",
+      "find": "  const tomorrow = addDays(londonDate(at), 1);",
+      "replace": "  const tomorrow = addDays(londonDate(at), 0);",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-kit-not-from-record",
+      "what": "the test kit's cost question stops drawing on their own words",
+      "file": "src/stages/callprep.mjs",
+      "find": "  const words = facts.find(f => f.label === 'Their words' && f.basis === 'said') ?? null;\n  const role = has('Role')",
+      "replace": "  const words = null;\n  const role = has('Role')",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-kit-every-meeting",
+      "what": "the test kit is asked of someone he has already met",
+      "file": "src/stages/callprep.mjs",
+      "find": "    test_kit: meeting.first_meeting === false ? [] : testKit(facts),",
+      "replace": "    test_kit: testKit(facts),",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-questions-uncapped",
+      "what": "the discovery questions run past five",
+      "file": "src/stages/callprep.mjs",
+      "find": "  return out.slice(0, QUESTIONS_MAX);",
+      "replace": "  return out;",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-not-in-report",
+      "what": "the dispatch leaves the call prep line out",
+      "file": "src/dispatch.mjs",
+      "find": "    if (prepNow) activity.push(prepNow);",
+      "replace": "",
+      "tests": [
+        "tests/network.test.mjs"
+      ]
+    },
+    {
+      "id": "morning-word-cap",
+      "what": "the morning QA lets 81 words through",
+      "file": "src/stages/morning.mjs",
+      "find": "    if (words > MORNING_WORDS_MAX) {",
+      "replace": "    if (words > MORNING_WORDS_MAX + 1) {",
+      "tests": [
+        "tests/morning.test.mjs"
+      ]
+    },
+    {
+      "id": "morning-greeting-counted",
+      "what": "the morning QA counts the greeting and the sign-off",
+      "file": "src/stages/morning.mjs",
+      "find": "  if (parts.length && /^(?:hi|hello|hey|dear)\\b[^\\n]{0,60},$/i.test(parts[0])) parts.shift();",
+      "replace": "",
+      "tests": [
+        "tests/morning.test.mjs"
+      ]
+    },
+    {
+      "id": "morning-number-inside-id",
+      "what": "the morning QA finds a number inside a longer one or an id",
+      "file": "src/stages/morning.mjs",
+      "find": "return n.test(digits(record)) || n.test(digits(vocabulary)); }",
+      "replace": "return digits(record).includes(digits(t)) || digits(vocabulary).includes(digits(t)); }",
+      "tests": [
+        "tests/morning.test.mjs"
+      ]
+    },
+    {
+      "id": "morning-name-unchecked",
+      "what": "the morning QA lets an untraced name through",
+      "file": "src/stages/morning.mjs",
+      "find": "  return wordIn(t, record) || wordIn(t, vocabulary);",
+      "replace": "  return true;",
+      "tests": [
+        "tests/morning.test.mjs"
+      ]
+    },
+    {
+      "id": "morning-quote-unattributed",
+      "what": "the morning QA treats every quotation as their words",
+      "file": "src/stages/morning.mjs",
+      "find": "  for (const m of text.matchAll(QUOTE)) if (THEIR_WORDS.test(text.slice(0, m.index))) out.push(",
+      "replace": "  for (const m of text.matchAll(QUOTE)) if (true) out.push(",
+      "tests": [
+        "tests/morning.test.mjs"
+      ]
+    },
+    {
+      "id": "morning-reads-jonny",
+      "what": "the morning QA reads Jonny's box",
+      "file": "src/stages/morning.mjs",
+      "find": "a.channel !== 'email' || a.mailbox === 'jonny' ||",
+      "replace": "a.channel !== 'email' ||",
+      "tests": [
+        "tests/morning.test.mjs"
+      ]
+    },
+    {
+      "id": "morning-no-show-record",
+      "what": "the morning QA forgets the show an email is about",
+      "file": "src/stages/morning.mjs",
+      "find": "deals, shows, guests]);",
+      "replace": "deals, guests]);",
+      "tests": [
+        "tests/morning.test.mjs"
+      ]
+    },
+    {
+      "id": "morning-hold-unreported",
+      "what": "the dispatch drops a held morning email without saying so",
+      "file": "src/dispatch.mjs",
+      "find": "  holds.push(...morningHolds(morning));\n",
+      "replace": "",
+      "tests": [
+        "tests/network.test.mjs"
+      ]
+    },
+    {
+      "id": "morning-hold-not-applied",
+      "what": "the dispatch keeps an email the morning QA failed",
+      "file": "src/dispatch.mjs",
+      "find": "  const passed = p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id) && !morningIds.has(p.proposal_id);",
+      "replace": "  const passed = p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id);",
+      "tests": [
+        "tests/network.test.mjs"
+      ]
     }
   ]
 }

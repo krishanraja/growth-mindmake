@@ -30,6 +30,8 @@ import { roomsShadow } from './stages/rooms.mjs';
 import { citedRows, citedLine } from './stages/cited.mjs';
 import { pilotsShadow, pilotRows, pilotHolds, pilotLine, isWarmProposal, othersThisRun, readDeals, dealsLine } from './stages/pilots.mjs';
 import { warmFrame } from './stages/openings.mjs';
+import { morningQa, morningHolds, engineVocabulary } from './stages/morning.mjs';
+import { callPreps, callPrepLine, takesCallPrep } from './stages/callprep.mjs';
 import { takesCompanyRead, companyReadRequests, companyReadLine } from './stages/company.mjs';
 import { briefsShadow } from './stages/pitches.mjs';
 import { qualifyShadow } from './stages/qualify.mjs';
@@ -144,6 +146,9 @@ const repoRoot = new URL('../', import.meta.url);
 export async function engineFiles() {
   return Promise.all(WORD_FILES.map(async path => ({ repo: ENGINE_REPO, path, sha: blobSha(await readFile(new URL(path, repoRoot), 'utf8')) })));
 }
+/** Every file an email's fixed words come from: the row word files and the warm, cited and opening notes. Its string literals are the morning QA's own words (src/stages/morning.mjs). */
+export const MORNING_WORD_FILES = [...WORD_FILES, 'src/stages/pilots.mjs', 'src/stages/cited.mjs', 'src/stages/openings.mjs'];
+const MORNING_WORD_TEXT = await Promise.all(MORNING_WORD_FILES.map(path => readFile(new URL(path, repoRoot), 'utf8')));
 /** Control Center only ever adds within 1.x, so any 1.x directive is read (ENGINE-PROTOCOL.md, "Versions"). Requiring 1.0.0 exactly stopped every run from 2026-10-19 on directive_invalid. */
 const SERVED = /^1\.\d+\.\d+$/;
 
@@ -629,7 +634,7 @@ const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.s
  * desk's daily cap by searchesLeft and withinSearches); a synthetic run
  * asks for nothing. Counts only leave this function for the printed outcome.
  */
-export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS, wins = null, sourcing = [], shown = null }) {
+export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS, wins = null, sourcing = [], shown = null, morningCheck = morningQa }) {
   // 1.7.0: the title shares the card with the line under it, so it is shorter.
   const titleMax = briefs ? TITLE_MAX_BRIEF : TITLE_MAX;
   const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0, lookups_asked: 0, sourcing_asked: 0 };
@@ -789,9 +794,15 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // Every sentence built from a card fact is read before it is proposed: an email with a broken one is held (Control Center's reads of 6 November).
   const broken = brokenEmails(drafted.filter(p => !same.has(p.proposal_id)));
   const brokenIds = new Set(broken.map(b => b.proposal_id));
+  // The morning drafts' QA (15 November 2026): an email for his own box is held when its message runs over 80 words, or a claim in it
+  // is on neither the person's nor the company's record (src/stages/morning.mjs). The research answered this run is part of the record.
+  const morning = morningCheck(drafted.filter(p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id)), { context: { ...ctx, research: mergeResearch(research, ctx.research ?? []) }, vocabulary: engineVocabulary(MORNING_WORD_TEXT, canon) });
+  const morningIds = new Set(morning.map(m => m.proposal_id));
+  const passed = p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id) && !morningIds.has(p.proposal_id);
   // Every email in his name, or in Jonny's box in his style, passes Control Center's voice check first (Ruling, Krish, 2026-11-07).
-  const voice = await voiceHolds({ cc, capabilities, proposals: drafted.filter(p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id)) });
-  const proposals = drafted.filter(p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id) && !voice.held.has(p.proposal_id));
+  const voice = await voiceHolds({ cc, capabilities, proposals: drafted.filter(passed) });
+  const proposals = drafted.filter(p => passed(p) && !voice.held.has(p.proposal_id));
+  holds.push(...morningHolds(morning));
   if (voice.held.size) holds.push(voiceHoldLine(voice.held));
   if (voice.unread) holds.push({ reason: 'voice_check_unread', detail: `${voice.unread} email${voice.unread === 1 ? '' : 's'} went unchecked here; Control Center checks again before anything lands.` });
   if (same.size) holds.push({ reason: 'row_same_words', detail: `${same.size} proposal${same.size === 1 ? '' : 's'} held: ${same.size === 1 ? 'its' : 'their'} words matched another email in this run once the names were taken out.` });
@@ -900,7 +911,7 @@ export async function readSpecFile(week) {
   catch (e) { if (e?.code === 'ENOENT') return null; throw e; }
 }
 
-export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA, proofReader = readProofRuns, historyReader = readHistory, northStarText = NORTH_STAR_TEXT, stateReader = readStateFiles, complianceReader = readGate, coldGateOf = coldGateFor }) {
+export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA, proofReader = readProofRuns, historyReader = readHistory, northStarText = NORTH_STAR_TEXT, stateReader = readStateFiles, complianceReader = readGate, coldGateOf = coldGateFor, morningCheck = morningQa }) {
   if (!['live','synthetic'].includes(mode) || !/^[a-z][a-z0-9-]{0,40}$/.test(kind) || !/^gma-[A-Za-z0-9-]{8,80}$/.test(attemptId)) throw new Error('Invalid dispatch options');
   const started_at = clock();
   const run_id = `${SLUG}:${londonDate(started_at)}:${kind}`;
@@ -1165,7 +1176,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       const cards = briefs && capabilities.schema_versions.includes(CARD_VERSION);
       const pitches = cards && capabilities.schema_versions.includes(PITCH_VERSION);
       schema_version = pitches ? PITCH_VERSION : cards ? CARD_VERSION : briefs ? BRIEF_VERSION : ROWS_VERSION;
-      const rows = await fiveRows({ cc, context: suppliedContext, directive: { ...directive, week_goals: goalsForRows }, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps, wins: won, sourcing, shown: seenBefore });
+      const rows = await fiveRows({ cc, context: suppliedContext, directive: { ...directive, week_goals: goalsForRows }, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps, wins: won, sourcing, shown: seenBefore, morningCheck });
       if (week.spec) activity.push(...compiledDrift(week.spec, { canon: rows.canonFiles }));
       if (!pitches) holds.push({ reason: 'pitch_needs_1_9_0', detail: "Control Center does not yet take pitches for Jonny's Gmail (protocol 1.9.0), so none were written." });
       const shown = cards ? rows.proposals : briefs ? rows.proposals.map(({ card, ...p }) => p) : rows.proposals.map(({ because, brief, card, ...p }) => p);
@@ -1185,6 +1196,11 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       if (dealsAt >= 0 && Number.isInteger(rows?.counts?.deal_catchups)) activity[dealsAt] = dealsLine(dealsRead, rows.counts.deal_catchups);
     }
     if (won) activity.push(winsLine(won));
+    // GET-GOING 1.7: call prep for every meeting booked for tomorrow, made in memory and counted in shadow; the buyer groups come
+    // from the canon the rows read this run, else they are said missing. Control Center takes none yet (src/stages/callprep.mjs).
+    const prepped = suppliedContext ? callPreps({ context: suppliedContext, features: capabilities?.features, buyer: rowsRun?.canon?.buyer ?? null, at, londonDate, addDays }) : null;
+    const prepNow = callPrepLine(prepped, takesCallPrep(capabilities));
+    if (prepNow) activity.push(prepNow);
     // A lane at 0 for three runs is one strategy ask a week; an open plan gets a check-in every other day (C4).
     const laneOn = { ...Object.fromEntries(ROWS.map(r => [r, caps.rows[r]?.on !== false])), podcasts: caps.rows.visibility?.on !== false, invites: caps.rows.visibility?.on !== false, stages: caps.rows.events?.on !== false };
     const starved = rowsRun ? starvedLanes({ lanes: rowsRun.counts.lanes, history, holds, on: laneOn }) : [];
