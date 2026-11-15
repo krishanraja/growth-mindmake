@@ -27,7 +27,8 @@ export async function readiness(remote) {
 export class RunFailure extends Error {
   constructor(attempt) { super('Growth operation did not complete'); this.attempt = attempt; }
 }
-export async function execute(remote, policy, { command = 'daily', cursor, launchDate, clock = () => new Date().toISOString(), observe = () => {} } = {}) {
+// `coldGate` is the cold compliance gate the caller read back (src/stages/compliance.mjs coldGateFor); with none, every cold note is held.
+export async function execute(remote, policy, { command = 'daily', cursor, launchDate, clock = () => new Date().toISOString(), observe = () => {}, coldGate } = {}) {
   if (!['daily','engine','weekly-review'].includes(command)) throw new Error('Unknown live command');
   const ready = await readiness(remote);
   if (!ready.ready) throw new Error('Control Center reporting integration is not ready');
@@ -42,13 +43,13 @@ export async function execute(remote, policy, { command = 'daily', cursor, launc
     let artifact, receipt;
     if (command === 'engine') {
       const context = await remote.engineContext();
-      attempt.phase = 'plan'; artifact = enginePlan(context, policy, registry, { at: clock(), launchDate: configuredLaunch });
+      attempt.phase = 'plan'; artifact = enginePlan(context, policy, registry, { at: clock(), launchDate: configuredLaunch, coldGate });
       attempt.run_id = artifact.run_id; attempt.phase = 'handoff'; writeStarted = true;
       observe({ run_id: artifact.run_id, attempt_id: attempt.attempt_id, state: 'handoff_pending' });
       receipt = await remote.commitWork(artifact);
     } else if (command === 'daily') {
       const snapshot = await remote.snapshot(cursor);
-      attempt.phase = 'plan'; artifact = plan(snapshot, policy, { at: clock(), launchDate: configuredLaunch });
+      attempt.phase = 'plan'; artifact = plan(snapshot, policy, { at: clock(), launchDate: configuredLaunch, coldGate });
       attempt.run_id = artifact.run_id; attempt.phase = 'handoff'; writeStarted = true;
       observe({ run_id: artifact.run_id, attempt_id: attempt.attempt_id, state: 'handoff_pending' });
       receipt = await handoff(artifact, remote);

@@ -4,6 +4,13 @@ import { APPROVED_CANON } from '../contracts/growth.ts';
 export const AT = '2026-10-16T13:00:00Z';
 export const POLICY = JSON.parse(await readFile(new URL('../config/policy.json', import.meta.url), 'utf8'));
 export const copy = value => structuredClone(value);
+/**
+ * The cold compliance gate set aside, for the legacy routes' own tests only:
+ * they judge drafting, receipts and contracts on synthetic cold contacts, and
+ * tests/compliance.test.mjs proves the gate itself, closed by default on every
+ * route. No code outside tests can hold a gate that lets everything through.
+ */
+export const OPEN_COLD = () => null;
 export function evidence(kind, { id = `${kind}-a`, observed_at = '2026-10-15T12:00:00Z', fact = `Synthetic ${kind} evidence`, visibility = 'public' } = {}) {
   return { id, kind, visibility, observed_at, fact, url: `https://example.com/evidence/${id}` };
 }

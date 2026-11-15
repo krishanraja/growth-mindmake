@@ -9,7 +9,7 @@ import { runDispatch, readDirective, reportDigest, canonicalJson, buildReport, o
 import { plan } from '../src/orchestrator.mjs';
 import { enginePlan } from '../src/engine.mjs';
 import { startProtocolService, STAND_IN_TOKEN, violations, digest, directiveFixture } from './support/engine-protocol-service.mjs';
-import { AT, POLICY, snapshot, contact } from './helpers.mjs';
+import { AT, POLICY, snapshot, contact, OPEN_COLD } from './helpers.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const schema = JSON.parse(await readFile(new URL('../docs/control-center/engine-report.schema.json', import.meta.url), 'utf8'));
@@ -20,7 +20,7 @@ let attempts = 0;
 const attemptId = () => `gma-synthetic-${String(++attempts).padStart(8, '0')}`;
 const bridge = (service, token = service.token) => engineClient(service.origin, token, { fetcher: service.fetcher });
 const fromSnapshot = value => async () => ({ snapshot: structuredClone(value) });
-const dispatch = (service, options = {}) => runDispatch({ cc: bridge(service), source: fromSnapshot(snapshot()), policy: POLICY, registry, mode: 'synthetic', kind: 'synthetic', attemptId: attemptId(), clock: () => AT, ...options });
+const dispatch = (service, options = {}) => runDispatch({ cc: bridge(service), source: fromSnapshot(snapshot()), policy: POLICY, registry, mode: 'synthetic', kind: 'synthetic', attemptId: attemptId(), clock: () => AT, coldGateOf: () => OPEN_COLD, ...options });
 const posts = (service, route) => service.requests.filter(r => r.method === 'POST' && r.route === route);
 
 test('the report digest reproduces the worked example exactly', async () => {
@@ -66,7 +66,7 @@ test('objectives without complete outcome coverage are missing with a reason, ne
 test('the report builder produces a schema-valid envelope, refuses unknown fields and names no private person', () => {
   const source = snapshot();
   source.contacts[0].full_name = 'PRIVATE_SYNTHETIC_PERSON';
-  const batch = plan(source, POLICY, { at: AT });
+  const batch = plan(source, POLICY, { coldGate: OPEN_COLD, at: AT });
   const mapped = proposalsFrom({ batch, snapshot: source, policy: POLICY });
   const fields = { run_id: 'mindmake:2026-10-16:synthetic', mode: 'synthetic', observed_at: AT, source: { revision: 'synthetic-revision-1', captured_at: AT }, status: 'ready', objectives: objectiveReadings({ at: AT }), activity: ['Read one synthetic page.', ...mapped.activity], proposals: mapped.proposals, holds: mapped.holds };
   const report = buildReport(fields);
@@ -81,7 +81,7 @@ test('the report builder produces a schema-valid envelope, refuses unknown field
 });
 
 test('a prepared note becomes a send proposal bound to its exact words, channel and target, with a stable id', () => {
-  const batch = plan(snapshot(), POLICY, { at: AT });
+  const batch = plan(snapshot(), POLICY, { coldGate: OPEN_COLD, at: AT });
   const { proposals } = proposalsFrom({ batch, snapshot: snapshot(), policy: POLICY });
   const send = proposals.find(p => p.wall === 'send');
   assert.equal(send.channel, 'email');
@@ -94,13 +94,13 @@ test('a prepared note becomes a send proposal bound to its exact words, channel 
   const improvement = proposals.find(p => p.proposal_id.startsWith('gmi-'));
   assert.ok(['strategy', 'none'].includes(improvement.wall));
   const changed = snapshot(); changed.contacts[0].buying_moment.fact = 'A different pricing decision is being tested this month.';
-  const again = proposalsFrom({ batch: plan(changed, POLICY, { at: AT }), snapshot: changed, policy: POLICY }).proposals.find(p => p.wall === 'send');
+  const again = proposalsFrom({ batch: plan(changed, POLICY, { coldGate: OPEN_COLD, at: AT }), snapshot: changed, policy: POLICY }).proposals.find(p => p.wall === 'send');
   assert.equal(again.proposal_id, send.proposal_id);
   assert.notEqual(again.payload_sha256, send.payload_sha256);
 });
 
 test('no note is proposed to someone Advisory already holds', () => {
-  const batch = plan(snapshot(), POLICY, { at: AT });
+  const batch = plan(snapshot(), POLICY, { coldGate: OPEN_COLD, at: AT });
   const held = snapshot({ deals: [{ id: 'advisory-deal-a', contact_id: 'buyer-a', state: 'drafted', drafted_at: '2026-10-15T10:00:00Z' }] });
   const mapped = proposalsFrom({ batch, snapshot: held, policy: POLICY });
   assert.equal(mapped.proposals.filter(p => p.wall === 'send').length, 0);
@@ -108,7 +108,7 @@ test('no note is proposed to someone Advisory already holds', () => {
 });
 
 test('full-cycle work items map to send, post, strategy or internal prep within the proposal cap', () => {
-  const work = enginePlan(engineContext, POLICY, registry, { at: FIXTURE_AT });
+  const work = enginePlan(engineContext, POLICY, registry, { at: FIXTURE_AT, coldGate: OPEN_COLD });
   const { proposals } = proposalsFrom({ work, workSnapshot: { deals: [] }, policy: POLICY });
   assert.equal(proposals.length, work.items.length);
   for (const item of work.items) {
@@ -182,7 +182,7 @@ test('a 401 surfaces as a failed attempt with a lower_snake code', async () => {
     const terminal = posts(service, 'attempts').at(-1).body;
     assert.equal(terminal.status, 'failed'); assert.equal(terminal.error_code, 'unauthorized'); assert.equal(terminal.phase, 'directive');
     assert.equal(posts(service, 'reports').length, 0);
-    const wrong = await runDispatch({ cc: bridge(service, `gen1_${'W'.repeat(48)}`), source: fromSnapshot(snapshot()), policy: POLICY, registry, mode: 'synthetic', attemptId: attemptId(), clock: () => AT });
+    const wrong = await runDispatch({ cc: bridge(service, `gen1_${'W'.repeat(48)}`), source: fromSnapshot(snapshot()), policy: POLICY, registry, coldGateOf: () => OPEN_COLD, mode: 'synthetic', attemptId: attemptId(), clock: () => AT });
     assert.equal(wrong.status, 'failed'); assert.equal(wrong.error_code, 'unauthorized'); assert.equal(wrong.journaled, false);
   } finally { await service.close(); }
 });
@@ -271,7 +271,7 @@ test('any 1.x directive is read, since Control Center only adds within 1.x; anyt
 });
 
 test('a report is sent as 1.2.0 and a note\'s subject passes the schema; an unwalled item names no subject', () => {
-  const batch = plan(snapshot(), POLICY, { at: AT });
+  const batch = plan(snapshot(), POLICY, { coldGate: OPEN_COLD, at: AT });
   const { proposals } = proposalsFrom({ batch, snapshot: snapshot(), policy: POLICY });
   const report = buildReport({ run_id: 'gmr-run-1', mode: 'synthetic', observed_at: AT, source: { revision: 'r1', captured_at: AT }, status: 'ready', objectives: [], activity: [], proposals, holds: [] });
   assert.equal(report.schema_version, '1.2.0');

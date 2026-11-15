@@ -23,6 +23,7 @@
     "demo:engine": "node src/cli.mjs engine --context fixtures/engine-context.json --at 2026-10-16T18:00:00Z --summary",
     "check:crew": "node scripts/check-crew.mjs",
     "reader": "node scripts/reader.mjs",
+    "compliance": "node scripts/compliance.mjs",
     "check:bespoke": "node scripts/check-bespoke.mjs",
     "check:links": "node scripts/check-links.mjs",
     "check:drift": "node scripts/check-drift.mjs",

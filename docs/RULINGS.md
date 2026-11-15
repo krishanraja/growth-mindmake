@@ -247,3 +247,11 @@ In his words (14 November): "everything uses krish@mindmake.co as that is what i
 
 - A stage's form is given krish@mindmake.co as his email (`FORM_EMAIL`, src/stages/pitches.mjs; playbook 11), replacing hello@krishraja.com, which the 26 October ruling named. It is still the one address a form is ever given, and no other.
 - No wall moves: a form is still submitted only on his tap.
+
+## Nothing from outside is named (Ruling, Krish, 2026-11-15)
+
+In his words (15 November): "from this point forward, there is zero mention of any outside influence on my OS".
+
+- The engine's code, rules, lists, tests and words are written in this repository's own words and style, and no file, comment, test, commit or document added from 15 November names an outside source for any of them.
+- What the engine does stays: the cold compliance gate (src/stages/compliance.mjs) and the prospect score (src/stages/qualify.mjs) stand on the full-funnel rulings of 13 November and on playbook 09.
+- No wall moves.

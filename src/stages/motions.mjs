@@ -23,7 +23,8 @@ function sourceConflict(sources, snapshot) { const canonical = snapshot.contacts
 function eligibleContact(c) { return c && !c.suppressed && !c.closed && c.consent_status === 'allowed'; }
 
 /** Produces review artifacts; it never sends, publishes or records an outcome. */
-export function prepareMotion(value, input, policy, at) {
+// `coldGate` is the cold compliance gate the caller read back (compliance.mjs coldGateFor); with none, a named cold note is held.
+export function prepareMotion(value, input, policy, at, { coldGate } = {}) {
   const job = parseMotionJob(value), snapshot = validateContext(input, policy, at), d = job.details;
   if (!permittedSources(d, at, policy)) return hold('motion_source_stale_or_future');
   if (sourceConflict(d.sources, snapshot)) return hold('motion_source_identity_conflict');
@@ -38,7 +39,7 @@ export function prepareMotion(value, input, policy, at) {
       if (c.relationship !== 'warm' || !context?.permitted_to_reference || source?.kind !== 'relationship' || source.fact !== context.summary || source.observed_at !== context.observed_at || !current(context.observed_at, at, policy.limits.trigger_max_age_days)) return hold('warm_relationship_context_not_cleared');
       contexts.set(c.id, { ...source, permitted_to_reference: true });
     } else if (d.relationship_context !== null) return hold('relationship_context_wrong_scope');
-    const analysis = analyse({ ...snapshot, contacts: [c, ...snapshot.contacts.filter(x => x.id !== c.id && x.id === c.connector?.contact_id)] }, policy, at, { warm_contexts: contexts });
+    const analysis = analyse({ ...snapshot, contacts: [c, ...snapshot.contacts.filter(x => x.id !== c.id && x.id === c.connector?.contact_id)] }, policy, at, { warm_contexts: contexts, ...(coldGate ? { cold_gate: coldGate } : {}) });
     const candidate = analysis.eligible.find(x => x.contact.id === c.id);
     if (!candidate) return hold(analysis.held.find(x => x.contact_id === c.id)?.reason ?? 'outreach_not_eligible');
     const expected = d.mode === 'named_cold' ? 'cold' : d.mode;

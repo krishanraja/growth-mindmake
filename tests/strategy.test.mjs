@@ -6,6 +6,7 @@ import { directiveFixture } from './support/engine-protocol-service.mjs';
 import { readFile } from 'node:fs/promises';
 import { golden } from './support/golden.mjs';
 import { STAGE } from './support/standard.mjs';
+import { OPEN_COLD } from './helpers.mjs';
 
 const NOW = '2026-10-25T12:00:00Z';
 const campaign = (id, motion='multiplier', extra={}) => ({ id, contact_id:id, growth_context:{ campaign:{ title:'A useful founder decision', motion, reviewed_at:NOW, state:'prepared', access:4,authority:4,distribution:5,proof_strength:3,timing:3,effort:2,argument:'AI that can apply a leader\'s judgement to a live commercial decision.',commitment:'A 30-minute demonstration',preparation:'An anonymised worked example.',follow_through:'Agree a two-week pilot on one workflow, only if useful.',success_measure:'A held intro and an agreed decision.',sources:[{url:'https://example.org/research',observed_at:NOW}],proof:[{id:'cleared',permission:'approved',source_url:'https://example.org/proof',allowed_use:'Anonymised private example'}],route:{kind:'rich',evidence:'A sourced founder programme, no assumed relationship.'},first_action:{recipient_contact_id:id,channel:'email',subject:'A founder decision',body:'Would a short demonstration be useful?'},...extra } } });
@@ -63,7 +64,8 @@ test('the shared context runs the existing complete selected-job producer before
   const policy=JSON.parse(await readFile(new URL('../config/policy.json',import.meta.url)));
   const reports=[];
   const cc={recordAttempt:async()=>{},directive:async()=>directiveFixture(),capabilities:async()=>({activation:{activated_on:'2026-10-18'},features:{context:true}}),context:async()=>({ok:true,context:{...context({advisory:[]}),work_context:full}}),decisions:async()=>[],postReport:async r=>{reports.push(golden(r));return{replayed:false}},readReport:async()=>reports.at(-1)};
-  const result=await runDispatch({cc,source:async()=>{throw Error('Retired source must not run')},policy,registry,attemptId:'gma-full-cycle-12345678',clock:()=>NOW});
+  // The engine cycle's own coverage, with the cold compliance gate set aside (tests/compliance.test.mjs proves the gate on this route).
+  const result=await runDispatch({cc,source:async()=>{throw Error('Retired source must not run')},policy,registry,attemptId:'gma-full-cycle-12345678',clock:()=>NOW,coldGateOf:()=>OPEN_COLD});
   assert.equal(result.status,'succeeded');
   assert.ok(reports[0].activity.some(a=>a.line.includes(`full engine cycle dry on ${full.jobs.length} supplied jobs`)));
   assert.ok(reports[0].proposals.length>0);

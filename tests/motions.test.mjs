@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseMotionJob } from '../contracts/motions.ts';
 import { prepareMotion } from '../src/stages/motions.mjs';
-import { AT, POLICY, snapshot, contact, evidence, copy } from './helpers.mjs';
+import { AT, POLICY, snapshot, contact, evidence, copy, OPEN_COLD } from './helpers.mjs';
 
 function decisionAid(ids = ['trigger-buyer-a']) {
   return { question: 'Should this leader retain current pricing or test one buyer assumption?', options: [{ label: 'Retain current pricing', benefit: 'Keeps a stable comparison', cost: 'May miss changed buyer expectations' }, { label: 'Test one buyer assumption', benefit: 'Gets evidence before a wider change', cost: 'A small sample can mislead' }], tradeoff: 'Retain current pricing unless a bounded buyer test shows a clear difference.', test: 'Compare five buyer reactions to one changed assumption; stop after five and review the evidence.', disconfirming: 'Inconsistent reactions or a lower-quality buyer sample means retain current pricing.', evidence_ids: ids };
@@ -28,7 +28,9 @@ function speaking() {
 }
 
 test('an explicitly selected named cold job produces a bounded hypothesis and fair concrete decision aid', () => {
-  const result = prepareMotion(outreach(), snapshot(), POLICY, AT);
+  // The cold compliance gate holds it unless the caller read the gate back (GET-GOING 1.2); with it set aside, the motion's own rules.
+  assert.equal(prepareMotion(outreach(), snapshot(), POLICY, AT).hold, 'cold_compliance_closed');
+  const result = prepareMotion(outreach(), snapshot(), POLICY, AT, { coldGate: OPEN_COLD });
   assert.equal(result.artifact.kind, 'outreach_draft'); assert.equal(result.artifact.recipient_contact_id, 'buyer-a');
   assert.match(result.artifact.body, /Outside-in hypothesis/); assert.match(result.artifact.body, /An alternative explanation/);
   assert.match(result.artifact.body, /Retain current pricing/); assert.match(result.artifact.body, /stop after five/); assert.match(result.artifact.body, /Inconsistent reactions/);
@@ -68,9 +70,11 @@ test('follow-up requires actual prior send, elapsed cooldown and genuinely new s
   j.details.sources.push(newValue); j.details.decision_aid.evidence_ids = [newValue.id];
   const c = contact('buyer-a', { evidence: [...contact().evidence, newValue] });
   const s = snapshot({ contacts: [c], deals: [{ id: 'sent', contact_id: c.id, state: 'sent', sent_at: '2026-09-29T12:00:00Z', follow_up_count: 0 }] });
-  const result = prepareMotion(j, s, POLICY, AT); assert.ok(result.artifact); assert.match(result.artifact.body, /new public comparison/);
-  s.deals[0].follow_up_count = 1; assert.equal(prepareMotion(j, s, POLICY, AT).hold, 'existing_deal_or_no_new_follow_up_value');
-  s.deals = []; assert.equal(prepareMotion(j, s, POLICY, AT).hold, 'outreach_route_changed');
+  // A follow-up to a cold recipient passes the cold compliance gate too.
+  assert.equal(prepareMotion(j, s, POLICY, AT).hold, 'cold_compliance_closed');
+  const result = prepareMotion(j, s, POLICY, AT, { coldGate: OPEN_COLD }); assert.ok(result.artifact); assert.match(result.artifact.body, /new public comparison/);
+  s.deals[0].follow_up_count = 1; assert.equal(prepareMotion(j, s, POLICY, AT, { coldGate: OPEN_COLD }).hold, 'existing_deal_or_no_new_follow_up_value');
+  s.deals = []; assert.equal(prepareMotion(j, s, POLICY, AT, { coldGate: OPEN_COLD }).hold, 'outreach_route_changed');
 });
 
 test('motion evidence cannot rebind canonical identities or turn private evidence into a public aid', () => {

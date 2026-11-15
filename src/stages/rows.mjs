@@ -2,6 +2,7 @@ import { seal, clean, DAY } from '../guards.mjs';
 import policy from '../../config/policy.json' with { type: 'json' };
 import { opening } from './openings.mjs';
 import { lookupState } from './pitches.mjs';
+import { briefTakers } from './compliance.mjs';
 
 /**
  * The five rows on Krish's home screen (protocol 1.6.0, playbook 11).
@@ -106,12 +107,20 @@ export function reachOf(c, research) {
  *   any No                          never this person on that row again
  *   carried out                     not this person for 30 days: he has just acted
  *   opted out (a draft's opted_out_at)  never this person again, on any row
+ *   took the free brief                 never, while the brief record exists
+ *
+ * `takers` is compliance.mjs briefTakers(context): the `contact:<id>` of
+ * everyone who took the free brief, or null while Control Center does not
+ * serve them. Applied here, on the way in, it reaches every lane that reads
+ * its lessons and the suppression list sent to Control Center (Rulings, Krish,
+ * 2026-11-13: suppressed from every lane while their brief record exists).
  */
-export function lessons(feedback, at, drafts = []) {
+export function lessons(feedback, at, drafts = [], takers = null) {
   const now = Date.parse(at);
   const L = { never: new Set(), notOnRow: new Set(), until: new Map(), floor: new Map(), audiences: new Set(), topics: new Set(), pitchOff: new Map() };
   // Anyone who asked not to be written to again is never proposed again, in any lane (ENGINE-PROTOCOL.md, the morning lane: "the suppression is yours as well").
   for (const s of mailOutcomes(drafts).optedOut) L.never.add(s);
+  for (const s of takers ?? []) if (typeof s === 'string') L.never.add(s);
   const snooze = (s, days, from) => { const t = Date.parse(from ?? at) + days * DAY; if (t > now && t > (L.until.get(s) ?? 0)) L.until.set(s, t); };
   for (const f of Array.isArray(feedback) ? feedback : []) {
     const s = typeof f?.subject_ref === 'string' ? f.subject_ref : null;
@@ -1508,7 +1517,7 @@ const KIND_NOUN = { investor: 'portfolio', ai_capital: 'investments', connector:
  * asking: the top few with no cited figure, once a month each.
  */
 export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR, wins = null, research: researchIn = null, openingsRequired = false, personRoutes = false, openingKind = 'question', dealCatchups = false }) {
-  const L = lessons(context.feedback, at, context.records?.drafts);
+  const L = lessons(context.feedback, at, context.records?.drafts, briefTakers(context));
   // This run's research where the dispatch has it (the openings the desk wrote in this run), else the context's.
   const research = Array.isArray(researchIn) ? researchIn : Array.isArray(context.research) ? context.research : [];
   const openingAsks = [];

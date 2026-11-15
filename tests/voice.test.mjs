@@ -5,7 +5,7 @@ import { engineClient } from '../src/control-center.mjs';
 import { readDirective, runDispatch } from '../src/dispatch.mjs';
 import { readVoice, voiceBlock, draftingPrompt, judgingPrompt, withoutGate, GATE_MARKERS, DRAFTING_PROMPTS, JUDGING_PROMPTS } from '../src/stages/draft.mjs';
 import { startProtocolService, directiveFixture, violations } from './support/engine-protocol-service.mjs';
-import { AT, POLICY, snapshot } from './helpers.mjs';
+import { AT, POLICY, snapshot, OPEN_COLD } from './helpers.mjs';
 
 // Synthetic voice rules only. Nothing here is Krish's.
 const RULE = 'Synthetic rule: open with the reader\'s decision, not with us.';
@@ -66,7 +66,7 @@ test('no judge, scorer or qualification path ever receives the voice rules', asy
 test('a dispatch run reads taste, reports only a count, and keeps it out of every proposal', async () => {
   const service = await startProtocolService({ directive: directiveFixture({ schema_version: '1.5.0', taste: one }) });
   try {
-    const result = await runDispatch({ cc: engineClient(service.origin, service.token, { fetcher: service.fetcher }), source: async () => ({ snapshot: snapshot() }), policy: POLICY, registry, mode: 'synthetic', kind: 'synthetic', attemptId: 'gma-synthetic-voice-0001', clock: () => AT });
+    const result = await runDispatch({ cc: engineClient(service.origin, service.token, { fetcher: service.fetcher }), source: async () => ({ snapshot: snapshot() }), policy: POLICY, registry, mode: 'synthetic', kind: 'synthetic', attemptId: 'gma-synthetic-voice-0001', clock: () => AT, coldGateOf: () => OPEN_COLD });
     assert.equal(result.status, 'succeeded');
     assert.deepEqual(result.voice, { state: 'approved', approved: 1 });
     const report = service.requests.find(r => r.method === 'POST' && r.route === 'reports').body;

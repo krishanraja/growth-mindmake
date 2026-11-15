@@ -5,10 +5,10 @@ import { parseImprovement, parseReport } from '../contracts/reporting.ts';
 import { analyse } from '../src/stages/qualify.mjs';
 import { prepare } from '../src/stages/draft.mjs';
 import { scorecard } from '../src/stages/scorecard.mjs';
-import { AT, POLICY, contact, copy, deal, snapshot } from './helpers.mjs';
+import { AT, POLICY, contact, copy, deal, snapshot, OPEN_COLD } from './helpers.mjs';
 
 function report(input, launchDate) {
-  const analysis = analyse(input, POLICY, AT);
+  const analysis = analyse(input, POLICY, AT, { cold_gate: OPEN_COLD });
   return buildReport(input, analysis, analysis.eligible.map(c => prepare(c, input.canon)), scorecard(input, POLICY, AT, launchDate), POLICY, AT);
 }
 function facts(changes = {}) {

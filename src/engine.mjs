@@ -49,7 +49,8 @@ function semanticContext(context) {
 }
 function priority(job) { return PRIORITY[job.kind] + (job.kind === 'outreach' ? job.details.mode === 'warm' ? 0 : job.details.mode === 'follow_up' ? 0.2 : 0.4 : 0); }
 
-export function enginePlan(input, policy, registry, { at = new Date().toISOString(), launchDate } = {}) {
+// `coldGate` is the cold compliance gate the caller read back (src/stages/compliance.mjs coldGateFor); with none, a named cold note is held.
+export function enginePlan(input, policy, registry, { at = new Date().toISOString(), launchDate, coldGate } = {}) {
   const context = canonicalContext(parseEngineContext(input));
   const snapshot = validateContext(context.snapshot,policy,at);
   const age = ageDays(context.generated_at,at) * 24;
@@ -69,7 +70,7 @@ export function enginePlan(input, policy, registry, { at = new Date().toISOStrin
     };
     if (job.due_at !== null && Date.parse(job.due_at) > Date.parse(at)) { hold('job_not_due'); continue; }
     if (job.contact_id !== null && !snapshot.contacts.some(c => c.id === job.contact_id)) { hold('source_contact_missing'); continue; }
-    const result = ['outreach','trust','speaking','practice'].includes(job.kind) ? prepareMotion(job,snapshot,policy,at) : job.kind === 'research' ? prepareResearch(job,snapshot,policy,at) : prepareLifecycle(job,snapshot,policy,at);
+    const result = ['outreach','trust','speaking','practice'].includes(job.kind) ? prepareMotion(job,snapshot,policy,at,{coldGate}) : job.kind === 'research' ? prepareResearch(job,snapshot,policy,at) : prepareLifecycle(job,snapshot,policy,at);
     if (!result || typeof result !== 'object' || Array.isArray(result) || Object.keys(result).some(k => !['artifact','hold'].includes(k)) || Boolean(result.artifact) === Boolean(result.hold)) throw new Error('Stage returned an invalid disposition');
     if (result.hold) { hold(result.hold); continue; }
     const artifact = parseWorkArtifact(result.artifact);

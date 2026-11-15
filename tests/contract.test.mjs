@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseBatch, parseSnapshot } from '../contracts/growth.ts';
 import { plan } from '../src/orchestrator.mjs';
-import { AT, POLICY, copy, snapshot } from './helpers.mjs';
+import { AT, POLICY, copy, snapshot, OPEN_COLD } from './helpers.mjs';
 
 test('wire contract rejects normalized invalid dates and ambiguous timestamp formats', () => {
   for (const value of ['2026-02-30T12:00:00Z', '2026-10-16T13:00:00', '2026-10-16T25:00:00Z', 'not-a-time']) {
@@ -12,7 +12,7 @@ test('wire contract rejects normalized invalid dates and ambiguous timestamp for
 });
 
 test('wire contract rejects permission/admin fields in prepared drafts and source records', () => {
-  const batch = plan(snapshot(), POLICY, { at: AT });
+  const batch = plan(snapshot(), POLICY, { coldGate: OPEN_COLD, at: AT });
   for (const mutate of [
     b => { b.recommendations[0].approved = true; },
     b => { b.recommendations[0].draft.sender_authority = 'automatic'; },
@@ -36,7 +36,7 @@ test('negative and noninteger follow-up counts cannot restore an exhausted conta
 test('conflicting evidence identities cannot erase the person proof from a prepared recommendation', () => {
   const input = snapshot();
   input.contacts[0].buying_moment.id = input.contacts[0].evidence[0].id;
-  assert.throws(() => plan(input, POLICY, { at: AT }));
+  assert.throws(() => plan(input, POLICY, { coldGate: OPEN_COLD, at: AT }));
   const duplicate = snapshot();
   duplicate.contacts[0].evidence[1].id = duplicate.contacts[0].evidence[0].id;
   assert.throws(() => parseSnapshot(duplicate));

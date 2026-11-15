@@ -1,10 +1,20 @@
 import { fresh, ageDays, DAY } from '../guards.mjs';
-import { canonBuyerTitle } from './canon.mjs';
+import { canonBuyerTitle, canonBuyerGroup } from './canon.mjs';
 import { pinnedCanonDrift, templateAskCurrent } from './draft.mjs';
 import { shadowLine } from './visibility.mjs';
+import { closedGate } from './compliance.mjs';
+
+/**
+ * Whether a prepared note goes to a cold recipient: a cold first touch, or a
+ * follow-up to anyone not warm. Every such note passes the cold compliance
+ * gate first (GET-GOING 1.2; Rulings, Krish, 2026-11-13). Pure.
+ */
+export const coldNote = (mode, contact) => mode === 'cold' || (mode === 'follow_up' && contact?.relationship !== 'warm');
 
 // Evidence makes a prospect relevant. Only a human can qualify a held conversation.
-export function analyse(snapshot, policy, at, { warm_contexts = new Map() } = {}) {
+// `cold_gate` is the cold compliance gate read back for this run (compliance.mjs coldGateFor): a hold code or null for a
+// contact. With none given, every cold note is held as cold_compliance_closed: no stage drafts cold on a gate it did not read.
+export function analyse(snapshot, policy, at, { warm_contexts = new Map(), cold_gate = closedGate } = {}) {
   const eligible = [], held = [], research = [];
   const contacts = [...snapshot.contacts].sort((a, b) => a.id.localeCompare(b.id));
   for (const contact of contacts) {
@@ -54,6 +64,7 @@ export function analyse(snapshot, policy, at, { warm_contexts = new Map() } = {}
       mode = 'follow_up';
     } else if (contact.last_touch_at && ageDays(contact.last_touch_at, at) < policy.limits.cooldown_days) { hold('contact_cooldown'); continue; }
     if (!policy.motions.includes(mode)) { hold('motion_disabled'); continue; }
+    if (coldNote(mode, contact)) { const why = cold_gate(contact, mode); if (why) { hold(why); continue; } }
     const required = [trigger.visibility === 'public' ? trigger : null, live.find(e => e.kind === 'person'), live.find(e => e.kind === 'company'), newValue].filter(Boolean);
     const evidence = [...new Map([...required, ...live].map(e => [e.id, e])).values()].slice(0, 20);
     eligible.push({ contact, trigger, evidence, newValue, offer, why_fit: fit, mode, permission_review_required: contact.consent_status !== 'allowed' });
@@ -185,4 +196,97 @@ export function qualifyShadow({ context, canon = null, at }) {
     + (drift === null ? ' Pinned offer copy: not compared this run.' : ` Pinned offer copy: ${4 - drift.length} of 4 fields match the canon read live${drift.length ? ` (${drift.join(', ')})` : ''}${ask === false ? "; the outreach template's ask is not the canon's" : ''}.`);
   const line = shadowLine('Ingest gate', ['contact', 'contacts'], { read: contacts.length, agree, differ, apart }) + tail;
   return { verdicts, line, source_revision: Array.isArray(canon?.files) ? canon.files : [] };
+}
+
+// ── The prospect score (GET-GOING 1.3, prepared) ────────────────────────────
+// A cold prospect gets one number, and every point in it says why it was
+// given, so a ranking can always be read back. Rule-outs are kept apart from
+// the points: a prospect with any rule-out never qualifies, whatever it
+// totals. Who the buyer is comes only from Mindmake's canon (canon.mjs
+// parseBuyer: its buyer groups, its gate, its best-fit moments and its
+// sectors), so this file holds no title or keyword list of its own.
+//
+// SCORERS is the ordered list of scorers, each `{ name, score(prospect, ctx) }`
+// returning `{ points: [[n, why]], rule_out: [why] }`. The SDR score GET-GOING
+// 1.3 names joins as one more entry, after the cold compliance gate, with its
+// points weighed against these in that change and SCORE_VERSION raised. Until
+// then nothing but its tests calls this score, and it holds nothing.
+
+export const SCORE_VERSION = 1;
+/** The total a prospect with no rule-out needs to qualify: a buyer who can move the decision and can be reached clears it; a title alone does not. */
+export const SCORE_FLOOR = 60;
+export const POINTS = Object.freeze({ buyer_group: 30, moves_decision: 20, buying_moment: 20, sector: 10, evidence: 10, route: 15, route_verified: 10, no_route: -20 });
+
+const lower = v => (typeof v === 'string' && v.trim() ? v.trim().toLowerCase() : null);
+const daysOld = (iso, at) => Math.max(0, Math.floor((Date.parse(at) - Date.parse(iso)) / DAY));
+
+/**
+ * The scorers, in order. A prospect is what the cold lane knows of one person:
+ * `title`, `sector` (one word), `decision_authority` ('confirmed', 'unknown' or
+ * 'none'), `moment` ({ stance, url, posted } or null), `evidence` ({ person,
+ * company } booleans for current sourced evidence), `email_route` (Control
+ * Center's route state: verified, unchecked or none), `suppressed`,
+ * `sells_competing_services` and `status`.
+ */
+export const SCORERS = Object.freeze([
+  Object.freeze({
+    name: 'canon_buyer',
+    score(p, { buyer, at }) {
+      const points = [], rule_out = [];
+      const group = canonBuyerGroup(p.title, buyer);
+      if (group) points.push([POINTS.buyer_group, `title in the canon's buyer group "${group}"`]);
+      if (p.decision_authority === 'confirmed') points.push([POINTS.moves_decision, "can move the decision (the canon's gate)"]);
+      else if (p.decision_authority === 'none') rule_out.push("cannot move the decision (the canon's gate)");
+      if (p.moment && buyingMoment(p.moment, { at, buyer })) points.push([POINTS.buying_moment, `a buying moment the canon's best-fit moments support (${p.moment.stance}, ${daysOld(p.moment.posted, at)} days ago)`]);
+      const sector = lower(p.sector);
+      if (sector && buyer.sectors?.public?.includes(sector)) points.push([POINTS.sector, `sector "${sector}" is in the canon's horizon`]);
+      else if (sector && buyer.sectors?.internal?.includes(sector)) points.push([POINTS.sector, `sector "${sector}" is in the canon's sales wedge (internal only, never written)`]);
+      return { points, rule_out };
+    },
+  }),
+  Object.freeze({
+    name: 'evidence',
+    score(p) { return { points: p.evidence?.person === true && p.evidence?.company === true ? [[POINTS.evidence, 'current sourced evidence of the person and the company']] : [], rule_out: [] }; },
+  }),
+  Object.freeze({
+    name: 'route',
+    score(p) {
+      if (p.email_route === 'verified') return { points: [[POINTS.route, 'an email route'], [POINTS.route_verified, 'the route is verified']], rule_out: [] };
+      if (p.email_route === 'unchecked') return { points: [[POINTS.route, 'an email route, not yet verified']], rule_out: [] };
+      return { points: [[POINTS.no_route, 'no usable email route']], rule_out: [] };
+    },
+  }),
+  Object.freeze({
+    name: 'standing',
+    score(p) {
+      const rule_out = [];
+      if (p.suppressed === true) rule_out.push('suppressed');
+      if (['do_not_contact', 'closed'].includes(p.status)) rule_out.push('marked do not contact or closed');
+      if (p.sells_competing_services === true) rule_out.push('sells what Mindmake sells');
+      return { points: [], rule_out };
+    },
+  }),
+]);
+
+/**
+ * One prospect's score: `{ version, floor, scorers, score, reasons, ruled_out,
+ * qualified }`. `reasons` holds one line a point, its sign and size first
+ * (`+30 title in the canon's buyer group "CEO"`, `-20 no usable email route`),
+ * in the order the scorers ran; `ruled_out` every rule-out, and any rule-out
+ * means not qualified. When the canon's buyer is not read this run nothing is
+ * scored: `hold: 'buyer_not_in_canon'`. Pure.
+ */
+export function scoreProspect(prospect, { buyer, at, scorers = SCORERS, floor = SCORE_FLOOR } = {}) {
+  const base = { version: SCORE_VERSION, floor, scorers: scorers.map(s => s.name) };
+  if (!buyer?.groups?.length) return { ...base, score: null, reasons: [], ruled_out: [], qualified: false, hold: 'buyer_not_in_canon' };
+  const p = prospect && typeof prospect === 'object' ? prospect : {};
+  let score = 0;
+  const reasons = [], ruledOut = [];
+  for (const s of scorers) {
+    const out = s.score(p, { buyer, at }) ?? {};
+    for (const [n, why] of out.points ?? []) { score += n; reasons.push(`${n > 0 ? '+' : ''}${n} ${why}`); }
+    ruledOut.push(...(out.rule_out ?? []));
+  }
+  if (ruledOut.length) return { ...base, score, reasons, ruled_out: ruledOut, qualified: false };
+  return { ...base, score, reasons, ruled_out: [], qualified: score >= floor };
 }

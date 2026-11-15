@@ -11,6 +11,7 @@ import { readiness, execute, RunFailure } from './runtime.mjs';
 import { weeklyReview } from './weekly-review.mjs';
 import { enginePlan } from './engine.mjs';
 import { runDispatch } from './dispatch.mjs';
+import { readGate, coldGateFor } from './stages/compliance.mjs';
 import { randomUUID } from 'node:crypto';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -42,8 +43,10 @@ async function main() {
   }
   if (command === 'engine') {
     const registry=JSON.parse(await readFile(resolve(root,'config/campaigns.json'),'utf8'));
-    const result=options.commit?await execute(remote(),policy,{command,launchDate,observe:v=>console.error(JSON.stringify(v))}):null;
-    const batch=result?.artifact??enginePlan(options.context?JSON.parse(await readFile(resolve(options.context),'utf8')):await remote().engineContext(),policy,registry,{at});
+    // The cold compliance gate, read back before any cold note (GET-GOING 1.2).
+    const coldGate=coldGateFor(await readGate({at}));
+    const result=options.commit?await execute(remote(),policy,{command,launchDate,coldGate,observe:v=>console.error(JSON.stringify(v))}):null;
+    const batch=result?.artifact??enginePlan(options.context?JSON.parse(await readFile(resolve(options.context),'utf8')):await remote().engineContext(),policy,registry,{at,coldGate});
     if(options.output) await savePrivate(batch,options.output);
     console.log(JSON.stringify(options.summary||!options.context?{run_id:batch.run_id,dry_run:!options.commit,durable:Boolean(result),examined:batch.jobs_examined,prepared:batch.items.length,held:batch.held.length,campaigns:batch.report.campaign_counts,scope:'selected_context',global_progress:'consumer_required'}:batch,null,options.summary?0:2));return;
   }
@@ -69,12 +72,13 @@ async function main() {
   if (!['plan','daily','doctor','scorecard'].includes(command)) throw new Error('Unknown command');
   if (command === 'plan' && !options.snapshot) throw new Error('plan requires --snapshot');
   if (options.commit) {
-    const result = await execute(remote(), policy, { cursor: options.cursor, launchDate, observe: v => console.error(JSON.stringify(v)) }); const b = result.artifact;
+    const result = await execute(remote(), policy, { cursor: options.cursor, launchDate, coldGate: coldGateFor(await readGate({ at })), observe: v => console.error(JSON.stringify(v)) }); const b = result.artifact;
     console.log(JSON.stringify({ run_id: b.run_id, attempt_id: result.attempt_id, dry_run: false, durable: true, examined: b.report.examined, prepared: b.recommendations.length, created: result.receipt.created.length, held_at_destination: result.receipt.held.length, measurement_scope: 'selected_page', global_progress: 'consumer_required' })); return;
   }
   const snapshot = await capture({ file: options.snapshot, remote: options.snapshot ? null : remote(), cursor: options.cursor });
   if (command === 'scorecard') { validateContext(snapshot, policy, at); console.log(JSON.stringify(scorecard(snapshot, policy, at, launchDate), null, 2)); return; }
-  const batch = plan(snapshot, policy, { at, launchDate });
+  // The cold compliance gate, read back before any cold note (GET-GOING 1.2).
+  const batch = plan(snapshot, policy, { at, launchDate, coldGate: coldGateFor(await readGate({ at })) });
   if (command === 'doctor') { const check = options.snapshot ? null : await readiness(remote()); console.log(JSON.stringify({ connected: true, contract: 1, snapshot_complete: snapshot.complete, canon_current: true, buyer_definition: snapshot.icp.defined, source_rows: snapshot.contacts.length, integration_ready: check?.ready ?? false, activation: check?.activation ?? null, writes: 0 })); if (check && !check.ready) process.exitCode = 2; return; }
   const receipt = null;
   if (options.output) {

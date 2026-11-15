@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { clean } from '../guards.mjs';
 import { lessons, refusedBy, channelOf, servesOf, seniorityOf, actionFor, rowProposal, fitTitleWithin, clause, wholeRole, titleCase, cleanName, cutClean, monthYear, firstName, hasFullName, leadSentences, gainLines, angleLines, sourceLinks, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX, CARD_WHO_MAX, CARD_LINE_MAX } from './rows.mjs';
+import { briefTakers } from './compliance.mjs';
 
 /**
  * Signals from his buyers (playbook 11, "Signals").
@@ -175,7 +176,7 @@ export function signalCase({ name, headline, author, quote, published, serves, k
 }
 
 export function signalRows({ context, research, weekGoals, canon, files, at, titleMax = TITLE_MAX }) {
-  const L = lessons(context.feedback, at, context.records?.drafts);
+  const L = lessons(context.feedback, at, context.records?.drafts, briefTakers(context));
   const routes = context.routes ?? {};
   const authorOf = new Map(research.filter(r => r.kind === 'posts').flatMap(r => r.evidence ?? []).map(e => [e.url, clean(String(e.title ?? '').split(':')[0])]));
   const routed = new Map(research.filter(r => r.kind === 'person_route' && r.status === 'answered' && typeof r.subject_ref === 'string').map(r => [String(r.query).slice(3).toLowerCase(), r.subject_ref.slice(8)]));

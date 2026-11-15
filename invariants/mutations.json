@@ -367,8 +367,8 @@
       "id": "canon-buyer-any-word",
       "what": "a title is a buyer when it shares any one word with a group, so a portfolio analyst reads as a portfolio owner",
       "file": "src/stages/canon.mjs",
-      "find": "return buyer.groups.some(g => g.alternatives.some(words => words.every(has)));",
-      "replace": "return buyer.groups.some(g => g.alternatives.some(words => words.some(has)));",
+      "find": "return buyer.groups.find(g => g.alternatives.some(words => words.every(has)))?.label ?? null;",
+      "replace": "return buyer.groups.find(g => g.alternatives.some(words => words.some(has)))?.label ?? null;",
       "tests": [
         "tests/pilots.test.mjs"
       ]
@@ -739,6 +739,86 @@
       "replace": "  return ENGINE_STATE_KEYS.every(",
       "tests": [
         "tests/instruction.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-gate-default-open",
+      "what": "a stage that read no cold compliance gate drafts cold notes anyway",
+      "file": "src/stages/qualify.mjs",
+      "find": "export function analyse(snapshot, policy, at, { warm_contexts = new Map(), cold_gate = closedGate } = {}) {",
+      "replace": "export function analyse(snapshot, policy, at, { warm_contexts = new Map(), cold_gate = () => null } = {}) {",
+      "tests": [
+        "tests/compliance.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-follow-up-ungated",
+      "what": "a follow-up to a cold recipient skips the cold compliance gate",
+      "file": "src/stages/qualify.mjs",
+      "find": "export const coldNote = (mode, contact) => mode === 'cold' || (mode === 'follow_up' && contact?.relationship !== 'warm');",
+      "replace": "export const coldNote = (mode, contact) => mode === 'cold';",
+      "tests": [
+        "tests/motions.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-gate-krish-items-ignored",
+      "what": "the gate opens without Krish's footer words, privacy section, assessment and reviewer",
+      "file": "src/stages/compliance.mjs",
+      "find": "  for (const { key, hold } of KRISH_ITEMS) { krish[key] = cfgOk ? approvalOf(config.krish[key], at) : null; if (!krish[key]) holds.push(hold); }",
+      "replace": "  for (const { key, hold } of KRISH_ITEMS) { krish[key] = cfgOk ? approvalOf(config.krish[key], at) : null; }",
+      "tests": [
+        "tests/compliance.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-gate-unknown-country",
+      "what": "a recipient whose country is unknown is let through",
+      "file": "src/stages/compliance.mjs",
+      "find": "  if (!country) add('country_unknown');",
+      "replace": "  if (!country) {}",
+      "tests": [
+        "tests/compliance.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-gate-uk-individual",
+      "what": "a UK sole trader or personal subscriber is treated as corporate",
+      "file": "src/stages/compliance.mjs",
+      "find": "if (country === 'GB') { if (subscriber === null) add('subscriber_unknown'); else if (subscriber !== 'corporate') add('individual_subscriber'); }",
+      "replace": "if (country === 'GB') { if (subscriber === null) add('subscriber_unknown'); }",
+      "tests": [
+        "tests/compliance.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-gate-opt-outs-unread",
+      "what": "the gate opens with the old opt-outs never imported",
+      "file": "src/stages/compliance.mjs",
+      "find": "  if (optOuts === null || optOuts === undefined) holds.push('opt_outs_not_imported');",
+      "replace": "  if (optOuts === null || optOuts === undefined) {}",
+      "tests": [
+        "tests/compliance.test.mjs"
+      ]
+    },
+    {
+      "id": "brief-takers-in-a-lane",
+      "what": "someone who took the free brief is still offered on a row",
+      "file": "src/stages/rows.mjs",
+      "find": "  for (const s of takers ?? []) if (typeof s === 'string') L.never.add(s);",
+      "replace": "",
+      "tests": [
+        "tests/compliance.test.mjs"
+      ]
+    },
+    {
+      "id": "score-rule-out-qualifies",
+      "what": "a ruled-out prospect still qualifies on its points",
+      "file": "src/stages/qualify.mjs",
+      "find": "  if (ruledOut.length) return { ...base, score, reasons, ruled_out: ruledOut, qualified: false };",
+      "replace": "  if (ruledOut.length) return { ...base, score, reasons, ruled_out: ruledOut, qualified: score >= floor };",
+      "tests": [
+        "tests/compliance.test.mjs"
       ]
     }
   ]

@@ -44,6 +44,7 @@ import { wins as readWins, winsLine } from './stages/wins.mjs';
 import { poolOf, lanesLine, laneHistory, starvedLanes, poolFlat, starvedProposal, sourcingRequests, checkIn, stoppedPlans, STARVED_RUNS, CHECK_IN_DAYS, CHECK_IN_PREFIX, STARVED_PREFIX, CAPPED } from './stages/momentum.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
 import { voiceHolds, voiceHoldLine } from './stages/voice.mjs';
+import { readGate, coldGateFor, gateLine, isColdHold } from './stages/compliance.mjs';
 import { readInstruction, takesEngineState, rowGoals, instructionSeen, lastAck, instructionWork, priorities, obsessions, nextSteps, engineState, ENGINE_STATE_VERSION, ENGINE_STATE_KEYS } from './stages/instruction.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
@@ -885,7 +886,7 @@ export async function readSpecFile(week) {
   catch (e) { if (e?.code === 'ENOENT') return null; throw e; }
 }
 
-export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA, proofReader = readProofRuns, historyReader = readHistory, northStarText = NORTH_STAR_TEXT, stateReader = readStateFiles }) {
+export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA, proofReader = readProofRuns, historyReader = readHistory, northStarText = NORTH_STAR_TEXT, stateReader = readStateFiles, complianceReader = readGate, coldGateOf = coldGateFor }) {
   if (!['live','synthetic'].includes(mode) || !/^[a-z][a-z0-9-]{0,40}$/.test(kind) || !/^gma-[A-Za-z0-9-]{8,80}$/.test(attemptId)) throw new Error('Invalid dispatch options');
   const started_at = clock();
   const run_id = `${SLUG}:${londonDate(started_at)}:${kind}`;
@@ -966,19 +967,27 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const today = londonDate(at);
     const launchDate = activatedOn && /^\d{4}-\d{2}-\d{2}$/.test(activatedOn) && activatedOn <= today ? activatedOn : undefined;
     let batch = null, work = null;
+    // The cold compliance gate (GET-GOING 1.2), read back from its own files once a run, before any cold note: the snapshot
+    // route's cold mode and the named_cold motion both pass it. A gate that cannot be read holds every cold note.
+    let gate = null;
+    try { gate = await complianceReader({ at }); } catch { gate = null; }
+    const coldGate = coldGateOf(gate);
     if (snapshot) {
       try {
-        batch = plan(snapshot, policy, { at, launchDate });
+        batch = plan(snapshot, policy, { at, launchDate, coldGate });
         activity.push(`Read one snapshot page in dry mode: ${batch.report.examined} prospects examined, ${batch.recommendations.length} notes prepared, ${batch.report.held.length} held before drafting.${snapshot.next_cursor ? ' More prospects exist beyond this page.' : ''}`);
       } catch (error) { holds.push({ reason: 'plan_held', detail: cut(error?.message ?? 'The bounded plan held.', 1000) }); }
     } else if (!strategic) holds.push(read?.hold ?? { reason: 'source_unavailable', detail: 'No snapshot was read.' });
     const producerContext = context ?? liveWorkContext;
     if (producerContext) {
       try {
-        work = enginePlan(producerContext, policy, registry, { at, launchDate });
+        work = enginePlan(producerContext, policy, registry, { at, launchDate, coldGate });
         activity.push(`Ran the full engine cycle dry on ${work.jobs_examined} supplied jobs: ${work.items.length} prepared, ${work.held.length} held.`);
       } catch (error) { holds.push({ reason: 'engine_cycle_held', detail: cut(error?.message ?? 'The full engine cycle held.', 1000) }); }
     } else if (mode === 'live') holds.push({ reason: 'engine_context_unavailable', detail: 'The shared protocol does not provide a usable complete selected-job context. No full producer coverage is claimed.' });
+    // What the gate held this run, and what of it is still open, by name; said only when it held a cold note.
+    const coldHeld = [...(batch?.report?.held ?? []), ...(work?.held ?? [])].filter(h => isColdHold(h.reason)).length;
+    if (coldHeld) activity.push(gateLine(gate, coldHeld));
     const mapped = proposalsFrom({ batch, snapshot, work, workSnapshot: producerContext?.snapshot ?? null, policy });
     if (strategic) {
       // A plan longer than the protocol allows is held, never thrown, so one long plan cannot fail the whole report (N16).

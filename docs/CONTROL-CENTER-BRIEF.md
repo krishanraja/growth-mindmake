@@ -123,6 +123,11 @@ Still owed, as of 14 November 2026:
 - The refusal flags its judges set but do not store or serve: a stage's `pay_to_play` and `generic_take`, and a guest's wrong-show judgment. The engine now judges stages and guests on their served axes alone (plan section 12, M3 to M5), so a stage or guest refused only on one of these flags is not refused by the engine; none was on record at the 27 October readback, and the shadow lines count such cases as `flag_not_served` and `show_fit_not_served`.
 - The Gmail draft readback close.
 - A read of Krish's open instruction, and its acks, through the connector for the daily credits session (below, "Krish's instruction and the engine's state").
+- For the cold compliance gate (docs/GET-GOING.md 1.2; asked 15 November 2026), each behind its own feature flag at a protocol minor, and read by the engine only where served:
+  - who took the free brief, `records.brief_takers` as `[{ contact_id }]` with its coverage line (Rulings, Krish, 2026-11-13: suppressed from every lane while their brief record exists). The engine reads it already (src/stages/compliance.mjs `briefTakers`) and puts each person in every lane's `never` and in the suppression list it sends; until it is served, every cold note is held as `brief_takers_unread`;
+  - the old Instantly and Apollo opt-outs filed as do-not-contact, so every lane honours them by `contacts.status`; the engine's own import (`npm run compliance -- import`) keeps digests only and checks cold recipients against them;
+  - for a cold recipient, the domain of the address on file (never the address), so the gate can tell a company domain from webmail;
+  - the compliance footer added at draft time (entity, registered address from private config, opt-out, source), in Krish's approved words, whose digest the gate reads from config/compliance.json.
 
 Served since it was asked, each read by the dispatch only where its flag says so:
 

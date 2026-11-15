@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { client } from '../src/control-center.mjs';
 import { plan } from '../src/orchestrator.mjs';
-import { AT, POLICY, copy, snapshot, contact } from './helpers.mjs';
+import { AT, POLICY, copy, snapshot, contact, OPEN_COLD } from './helpers.mjs';
 import { startContractService } from './support/contract-service.mjs';
 
 function source() { return snapshot({ contacts: [contact('10000000-0000-4000-8000-000000000001')] }); }
@@ -12,14 +12,14 @@ test('actual producer crosses a real HTTP contract boundary and independently re
   try {
     const remote = client(service.origin, service.token, { fetcher: service.fetcher });
     const captured = await remote.snapshot();
-    const batch = plan(captured, POLICY, { at: AT });
+    const batch = plan(captured, POLICY, { coldGate: OPEN_COLD, at: AT });
     const written = await remote.commit(batch);
     assert.equal(written.created.length, 1);
     assert.equal(written.replayed, false);
     assert.equal(service.mutations, 1);
     assert.deepEqual(service.recommendations.get(batch.recommendations[0].recommendation_id).recommendation, batch.recommendations[0]);
     assert.deepEqual((await remote.receipt(batch.run_id)).report, batch.report);
-    const refreshed = plan(captured, POLICY, { at: '2026-10-16T14:00:00Z' });
+    const refreshed = plan(captured, POLICY, { coldGate: OPEN_COLD, at: '2026-10-16T14:00:00Z' });
     assert.equal(refreshed.run_id, batch.run_id);
     assert.equal((await remote.commit(refreshed)).replayed, true);
     assert.equal(service.mutations, 1);
@@ -32,7 +32,7 @@ test('a lost real HTTP POST response is not retried and read-only resume discove
   const service = await startContractService({ sourceSnapshot: source() });
   try {
     const remote = client(service.origin, service.token, { fetcher: service.fetcher });
-    const batch = plan(await remote.snapshot(), POLICY, { at: AT });
+    const batch = plan(await remote.snapshot(), POLICY, { coldGate: OPEN_COLD, at: AT });
     service.fault('drop_after_commit', 'POST');
     await assert.rejects(remote.commit(batch));
     assert.equal(service.requests.filter(r => r.method === 'POST').length, 1);
