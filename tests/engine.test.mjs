@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { enginePlan } from '../src/engine.mjs';
 import { JOB_KINDS, parseEngineContext, parseWorkBatch, semanticWorkBatch } from '../contracts/engine.ts';
-import { copy, POLICY } from './helpers.mjs';
+import { copy, POLICY, OPEN_COLD } from './helpers.mjs';
 
 const FIXTURE = JSON.parse(await readFile(new URL('../fixtures/engine-context.json',import.meta.url),'utf8'));
 const REGISTRY = JSON.parse(await readFile(new URL('../config/campaigns.json',import.meta.url),'utf8'));
@@ -11,7 +11,7 @@ const AT = '2026-10-16T18:00:00Z';
 function plan(context = copy(FIXTURE), capacity = 5, at = AT, registry = copy(REGISTRY)) {
   const policy = copy(POLICY); policy.limits.recommendations_per_run = capacity;
   if (capacity === 10 && registry.defaults.newRecommendationsPerDailyRun === 5) registry.defaults.newRecommendationsPerDailyRun = 10;
-  return enginePlan(context,policy,registry,{at});
+  return enginePlan(context,policy,registry,{at,coldGate:OPEN_COLD});
 }
 function only(kind) { const context = copy(FIXTURE); context.jobs = context.jobs.filter(j => j.kind === kind); return context; }
 

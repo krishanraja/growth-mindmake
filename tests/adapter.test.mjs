@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { client, validateReceipt } from '../src/control-center.mjs';
 import { plan } from '../src/orchestrator.mjs';
-import { AT, POLICY, copy, snapshot, response } from './helpers.mjs';
+import { AT, POLICY, copy, snapshot, response, OPEN_COLD } from './helpers.mjs';
 
 const ORIGIN = 'https://example.com';
 const CREDENTIAL = 'synthetic-test-credential';
@@ -44,7 +44,7 @@ test('false-200 HTML, malformed JSON, error envelopes and oversized responses ca
 });
 
 test('a persisted batch requires a durable receipt, authoritative readback and full item accounting', async () => {
-  const batch = plan(snapshot(), POLICY, { at: AT });
+  const batch = plan(snapshot(), POLICY, { coldGate: OPEN_COLD, at: AT });
   const expected = receipt(batch);
   const calls = [];
   const remote = client(ORIGIN, CREDENTIAL, { fetcher: async (url, options) => { calls.push({ url, options }); return response(expected); } });
@@ -65,7 +65,7 @@ test('a persisted batch requires a durable receipt, authoritative readback and f
 });
 
 test('destination holds are accounted for, and changed write/readback receipts fail', async () => {
-  const batch = plan(snapshot(), POLICY, { at: AT });
+  const batch = plan(snapshot(), POLICY, { coldGate: OPEN_COLD, at: AT });
   const held = receipt(batch, { created: [], held: [{ recommendation_id: batch.recommendations[0].recommendation_id, reason: 'suppressed_since_snapshot' }] });
   assert.deepEqual(await client(ORIGIN, CREDENTIAL, { fetcher: async () => response(held) }).commit(batch), held);
   let count = 0;
@@ -75,7 +75,7 @@ test('destination holds are accounted for, and changed write/readback receipts f
 });
 
 test('an uncertain POST result is never automatically retried, and resume only reads a receipt', async () => {
-  const batch = plan(snapshot(), POLICY, { at: AT });
+  const batch = plan(snapshot(), POLICY, { coldGate: OPEN_COLD, at: AT });
   let posts = 0;
   const remote = client(ORIGIN, CREDENTIAL, { fetcher: async () => { posts++; throw new Error('Synthetic lost response'); } });
   await assert.rejects(remote.commit(batch), /Synthetic lost response/);
@@ -87,7 +87,7 @@ test('an uncertain POST result is never automatically retried, and resume only r
 });
 
 test('blank recommendation and deal identities are not durable receipt evidence', () => {
-  const batch = plan(snapshot(), POLICY, { at: AT });
+  const batch = plan(snapshot(), POLICY, { coldGate: OPEN_COLD, at: AT });
   for (const item of [{ recommendation_id: '', deal_id: 'deal-a' }, { recommendation_id: batch.recommendations[0].recommendation_id, deal_id: '' }]) {
     assert.throws(() => validateReceipt(receipt(batch, { created: [item] }), batch.run_id));
   }
@@ -96,7 +96,7 @@ test('blank recommendation and deal identities are not durable receipt evidence'
 });
 
 test('read-only resume rejects an incomplete receipt instead of claiming an unaccounted run is durable', async () => {
-  const batch = plan(snapshot(), POLICY, { at: AT });
+  const batch = plan(snapshot(), POLICY, { coldGate: OPEN_COLD, at: AT });
   for (const invalid of [
     receipt(batch, { report: undefined }),
     receipt(batch, { report: {} }),
@@ -109,7 +109,7 @@ test('read-only resume rejects an incomplete receipt instead of claiming an unac
 });
 
 test('success requires the consumed run report to survive authoritative readback without semantic changes', async () => {
-  const batch = plan(snapshot(), POLICY, { at: AT });
+  const batch = plan(snapshot(), POLICY, { coldGate: OPEN_COLD, at: AT });
   for (const change of [
     r => { delete r.report; },
     r => { r.report = []; },
@@ -128,7 +128,7 @@ test('success requires the consumed run report to survive authoritative readback
 });
 
 test('readback confirms persistence while the POST receipt determines whether this handoff was replayed', async () => {
-  const batch = plan(snapshot(), POLICY, { at: AT });
+  const batch = plan(snapshot(), POLICY, { coldGate: OPEN_COLD, at: AT });
   for (const replayed of [false, true]) {
     let count = 0;
     const remote = client(ORIGIN, CREDENTIAL, { fetcher: async () => response(receipt(batch, { replayed: ++count === 1 ? replayed : true })) });

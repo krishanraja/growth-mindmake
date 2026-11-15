@@ -137,10 +137,16 @@ export function parseBuyer({ northStar = '', canon = '' }) {
 
 /** Whether a title is one of the canon's buyer groups: every word of one of a group's alternatives, each as a whole word or, for a short title, its long form. Null when either is missing. Pure. */
 export function canonBuyerTitle(title, buyer) {
-  if (!buyer?.groups?.length || typeof title !== 'string' || !title.trim()) return null;
+  const group = canonBuyerGroup(title, buyer);
+  return group === undefined ? null : group !== null;
+}
+
+/** The first of the canon's buyer groups a title is in, by the canon's own label; null when it is in none, undefined when either is missing. Pure. */
+export function canonBuyerGroup(title, buyer) {
+  if (!buyer?.groups?.length || typeof title !== 'string' || !title.trim()) return undefined;
   const t = ` ${title.toLowerCase().replace(/[^a-z]+/g, ' ')} `;
   const has = w => t.includes(` ${w} `) || Boolean(TITLE_LONG_FORMS[w] && t.includes(` ${TITLE_LONG_FORMS[w]} `));
-  return buyer.groups.some(g => g.alternatives.some(words => words.every(has)));
+  return buyer.groups.find(g => g.alternatives.some(words => words.every(has)))?.label ?? null;
 }
 
 /**

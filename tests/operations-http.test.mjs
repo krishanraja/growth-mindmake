@@ -4,7 +4,7 @@ import { client } from '../src/control-center.mjs';
 import { execute, readiness } from '../src/runtime.mjs';
 import { weeklyReview } from '../src/weekly-review.mjs';
 import { parseAttempt, parseWeeklyReview } from '../contracts/operations.ts';
-import { AT, POLICY, contact, copy, snapshot } from './helpers.mjs';
+import { AT, POLICY, contact, copy, snapshot, OPEN_COLD } from './helpers.mjs';
 import { startContractService } from './support/contract-service.mjs';
 import { capabilities, reviewContext } from './support/operations-fixtures.mjs';
 
@@ -23,7 +23,7 @@ test('live execution requires matching full consumer contracts, every feature, a
     const c = await active(); change(c);
     const service = await startContractService({ sourceSnapshot: source(), capabilities: c });
     try {
-      await assert.rejects(execute(bridge(service), POLICY, { clock: () => AT }));
+      await assert.rejects(execute(bridge(service), POLICY, { clock: () => AT, coldGate: OPEN_COLD }));
       assert.equal(service.requests.filter(r => r.method === 'POST').length, 0);
       assert.equal(service.mutations, 0);
     } finally { await service.close(); }
@@ -54,7 +54,7 @@ test('a missing consumer is pending, while rejected authentication, server error
 test('actual daily execution journals start and success only after report and recommendation readback', async () => {
   const service = await startContractService({ sourceSnapshot: source(), capabilities: await active() });
   try {
-    const result = await execute(bridge(service), POLICY, { clock: () => AT });
+    const result = await execute(bridge(service), POLICY, { clock: () => AT, coldGate: OPEN_COLD });
     assert.equal(result.receipt.created.length, 1);
     assert.deepEqual(result.receipt.report, result.artifact.report);
     const terminal = await bridge(service).attempt(result.attempt_id);
@@ -72,7 +72,7 @@ test('capture failure is a durable failed attempt with bounded reason and no pri
   const service = await startContractService({ sourceSnapshot: source(), capabilities: await active(), extension: ({ method, url }) => method === 'GET' && url.pathname === PATH ? { status: 503, body: { ok: false, error: 'PRIVATE_SYNTHETIC_UPSTREAM_PAYLOAD' } } : null });
   try {
     let failure;
-    try { await execute(bridge(service), POLICY, { clock: () => AT }); } catch (error) { failure = error; }
+    try { await execute(bridge(service), POLICY, { clock: () => AT, coldGate: OPEN_COLD }); } catch (error) { failure = error; }
     assert.equal(failure.attempt.status, 'failed');
     assert.equal(failure.attempt.error_code, 'source_unavailable');
     assert.deepEqual(await bridge(service).attempt(failure.attempt.attempt_id), failure.attempt);
@@ -91,12 +91,12 @@ test('invalid captured context fails before drafting while an all-held page comp
     try {
       if (incomplete) {
         let failure;
-        try { await execute(bridge(service), POLICY, { clock: () => AT }); } catch (error) { failure = error; }
+        try { await execute(bridge(service), POLICY, { clock: () => AT, coldGate: OPEN_COLD }); } catch (error) { failure = error; }
         assert.equal(failure.attempt.status, 'failed');
         assert.equal(failure.attempt.error_code, 'context_invalid');
         assert.equal(service.requests.filter(r => r.method === 'POST' && r.path === PATH).length, 0);
       } else {
-        const result = await execute(bridge(service), POLICY, { clock: () => AT });
+        const result = await execute(bridge(service), POLICY, { clock: () => AT, coldGate: OPEN_COLD });
         assert.equal(result.artifact.report.dashboard.pipeline.held, 1);
         assert.equal(result.receipt.created.length, 0);
         assert.deepEqual(result.artifact.report.dashboard.recommendations, []);
@@ -111,7 +111,7 @@ test('uncertain initial attempt acknowledgment still yields a valid redacted unk
   const service = await startContractService({ sourceSnapshot: source(), capabilities: await active(), extension: ({ method, url }) => method === 'GET' && url.searchParams.has('attempt_id') ? { status: 503, body: { ok: false } } : null });
   try {
     let failure;
-    try { await execute(bridge(service), POLICY, { clock: () => AT }); } catch (error) { failure = error; }
+    try { await execute(bridge(service), POLICY, { clock: () => AT, coldGate: OPEN_COLD }); } catch (error) { failure = error; }
     assert.equal(failure.attempt.status, 'unknown');
     assert.deepEqual(parseAttempt(failure.attempt), failure.attempt);
     assert.equal(service.requests.filter(r => r.method === 'POST').length, 1);
@@ -124,7 +124,7 @@ test('lost batch acknowledgment records unknown once and recovery reads the pers
   try {
     service.fault('drop_after_commit', 'POST', PATH);
     let failure;
-    try { await execute(bridge(service), POLICY, { clock: () => AT }); } catch (error) { failure = error; }
+    try { await execute(bridge(service), POLICY, { clock: () => AT, coldGate: OPEN_COLD }); } catch (error) { failure = error; }
     assert.equal(failure.attempt.status, 'unknown');
     assert.equal(failure.attempt.error_code, 'handoff_unconfirmed');
     assert.equal(service.requests.filter(r => r.method === 'POST' && r.path === PATH).length, 1);
@@ -143,7 +143,7 @@ test('lost terminal-attempt readback never overwrites a committed success with u
   } });
   try {
     let failure;
-    try { await execute(bridge(service), POLICY, { clock: () => AT }); } catch (error) { failure = error; }
+    try { await execute(bridge(service), POLICY, { clock: () => AT, coldGate: OPEN_COLD }); } catch (error) { failure = error; }
     assert.equal(failure.attempt.status, 'unknown');
     assert.equal(failure.attempt.phase, 'readback');
     assert.equal(failure.attempt.error_code, 'readback_unconfirmed');
@@ -165,15 +165,15 @@ test('consumer-recorded human decisions feed the persisted weekly review while v
   const service = await startContractService({ sourceSnapshot: source(), capabilities: await active(), reviewContext: context });
   try {
     const remote = bridge(service);
-    const daily = await execute(remote, POLICY, { clock: () => AT });
+    const daily = await execute(remote, POLICY, { clock: () => AT, coldGate: OPEN_COLD });
     const recommendation = daily.artifact.report.dashboard.recommendations[0];
     assert.ok(recommendation.id);
     service.recordHumanFeedback({ recommendation_id: recommendation.id, decision: 'accepted', recorded_at: AT, outcome: 'not_verified' });
-    const accepted = await execute(remote, POLICY, { command: 'weekly-review', clock: () => AT });
+    const accepted = await execute(remote, POLICY, { command: 'weekly-review', clock: () => AT, coldGate: OPEN_COLD });
     assert.equal(accepted.artifact.feedback_summary.accepted, 1);
     assert.equal(accepted.artifact.feedback_summary.verified, 0, 'acceptance never fabricates completion evidence');
     service.recordHumanFeedback({ recommendation_id: recommendation.id, decision: 'completed', recorded_at: AT, outcome: 'verified' });
-    const reviewed = await execute(remote, POLICY, { command: 'weekly-review', clock: () => AT });
+    const reviewed = await execute(remote, POLICY, { command: 'weekly-review', clock: () => AT, coldGate: OPEN_COLD });
     assert.equal(reviewed.artifact.coverage, 'global_review');
     assert.equal(reviewed.artifact.metrics.qualified_conversations, 2);
     assert.equal(reviewed.artifact.feedback_summary.accepted, 0, 'the consumer supplies the current decision state once per recommendation');

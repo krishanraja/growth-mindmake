@@ -5,9 +5,10 @@ import { prepare } from './stages/draft.mjs';
 import { scorecard } from './stages/scorecard.mjs';
 import { buildReport } from './stages/report.mjs';
 
-export function plan(input, policy, { at = new Date().toISOString(), launchDate } = {}) {
+// `coldGate` is the cold compliance gate the caller read back (src/stages/compliance.mjs coldGateFor); with none, every cold note is held.
+export function plan(input, policy, { at = new Date().toISOString(), launchDate, coldGate } = {}) {
   const snapshot = validateContext(input, policy, at);
-  const analysis = analyse(snapshot, policy, at);
+  const analysis = analyse(snapshot, policy, at, coldGate ? { cold_gate: coldGate } : {});
   const recommendations = analysis.eligible.map(c => prepare(c, snapshot.canon));
   const snapshot_revision = snapshot.source_revision;
   const source_seal = seal(semanticSnapshot(snapshot));

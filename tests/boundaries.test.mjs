@@ -2,18 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseBatch, parseSnapshot, semanticBatch } from '../contracts/growth.ts';
 import { plan } from '../src/orchestrator.mjs';
-import { AT, POLICY, contact, copy, evidence, snapshot } from './helpers.mjs';
+import { AT, POLICY, contact, copy, evidence, snapshot, OPEN_COLD } from './helpers.mjs';
 
 test('a private buying moment is held and confidential source evidence never enters the approval draft', () => {
   const privateTrigger = snapshot();
   privateTrigger.contacts[0].buying_moment.visibility = 'private';
   privateTrigger.contacts[0].buying_moment.fact = 'CONFIDENTIAL_TRIGGER';
-  const held = plan(privateTrigger, POLICY, { at: AT });
+  const held = plan(privateTrigger, POLICY, { coldGate: OPEN_COLD, at: AT });
   assert.equal(held.recommendations.length, 0);
   assert.doesNotMatch(JSON.stringify(held), /CONFIDENTIAL_TRIGGER/);
   const mixed = snapshot();
   mixed.contacts[0].evidence.push(evidence('relationship', { id: 'private-context', visibility: 'private', fact: 'CONFIDENTIAL_RELATIONSHIP_NOTE' }));
-  const prepared = plan(mixed, POLICY, { at: AT });
+  const prepared = plan(mixed, POLICY, { coldGate: OPEN_COLD, at: AT });
   assert.equal(prepared.recommendations.length, 1);
   assert.doesNotMatch(JSON.stringify(prepared), /CONFIDENTIAL_RELATIONSHIP_NOTE/);
   assert.ok(prepared.recommendations[0].evidence.every(e => e.visibility === 'public'));
@@ -24,7 +24,7 @@ test('a private buying moment is held and confidential source evidence never ent
 test('public proof cannot be replaced by a private person or company record', () => {
   for (const kind of ['person', 'company']) {
     const input = snapshot(); input.contacts[0].evidence.find(e => e.kind === kind).visibility = 'private';
-    assert.equal(plan(input, POLICY, { at: AT }).recommendations.length, 0);
+    assert.equal(plan(input, POLICY, { coldGate: OPEN_COLD, at: AT }).recommendations.length, 0);
   }
   const input = snapshot(); delete input.contacts[0].buying_moment.visibility;
   assert.throws(() => parseSnapshot(input));
@@ -41,23 +41,23 @@ test('evidence links reject embedded credentials and token-bearing queries befor
   ];
   for (const url of urls) {
     const input = snapshot(); input.contacts[0].buying_moment.url = url;
-    assert.throws(() => plan(input, POLICY, { at: AT }));
+    assert.throws(() => plan(input, POLICY, { coldGate: OPEN_COLD, at: AT }));
   }
   const ordinaryLink = snapshot(); ordinaryLink.contacts[0].buying_moment.url = 'https://example.com/source?utm_source=synthetic';
-  assert.equal(plan(ordinaryLink, POLICY, { at: AT }).recommendations.length, 1);
+  assert.equal(plan(ordinaryLink, POLICY, { coldGate: OPEN_COLD, at: AT }).recommendations.length, 1);
 });
 
 test('an introduction uses the canonical connector recipient and holds mismatched connector names', () => {
   const connector = contact('connector', { full_name: 'Canonical Connector', relationship: 'warm' });
   const buyer = contact('buyer-a', { connector: { contact_id: connector.id, full_name: connector.full_name, both_opted_in: false } });
   const input = snapshot({ contacts: [buyer, connector] });
-  const prepared = plan(input, POLICY, { at: AT });
+  const prepared = plan(input, POLICY, { coldGate: OPEN_COLD, at: AT });
   const intro = prepared.recommendations.find(r => r.contact_id === buyer.id);
   assert.equal(intro.mode, 'intro');
   assert.equal(intro.recipient_contact_id, connector.id);
   assert.match(intro.draft.body, /^Canonical,/);
   const mismatch = copy(input); mismatch.contacts[0].connector.full_name = 'Mismatched Connector';
-  const held = plan(mismatch, POLICY, { at: AT });
+  const held = plan(mismatch, POLICY, { coldGate: OPEN_COLD, at: AT });
   assert.ok(!held.recommendations.some(r => r.contact_id === buyer.id));
   assert.ok(held.report.held.some(r => r.contact_id === buyer.id && r.reason === 'connector_identity_conflict'));
 });
@@ -66,7 +66,7 @@ test('one recipient receives at most one prepared item across intro requests and
   const connector = contact('connector', { full_name: 'Canonical Connector', relationship: 'warm' });
   const connectorReference = { contact_id: connector.id, full_name: connector.full_name, both_opted_in: false };
   const buyers = ['buyer-a', 'buyer-b'].map(id => contact(id, { connector: copy(connectorReference) }));
-  const prepared = plan(snapshot({ contacts: [...buyers, connector] }), POLICY, { at: AT });
+  const prepared = plan(snapshot({ contacts: [...buyers, connector] }), POLICY, { coldGate: OPEN_COLD, at: AT });
   assert.equal(prepared.recommendations.length, 1);
   assert.equal(prepared.recommendations[0].recipient_contact_id, connector.id);
   assert.equal(prepared.recommendations[0].mode, 'intro');
@@ -78,30 +78,30 @@ test('one recipient receives at most one prepared item across intro requests and
 test('missing freshness policy and empty buyer criteria fail closed rather than disabling protection', () => {
   for (const field of ['snapshot_max_age_hours', 'canon_max_age_days', 'trigger_max_age_days', 'evidence_max_age_days']) {
     const policy = copy(POLICY); delete policy.limits[field];
-    assert.throws(() => plan(snapshot(), policy, { at: AT }), /Unsafe engine policy/);
+    assert.throws(() => plan(snapshot(), policy, { coldGate: OPEN_COLD, at: AT }), /Unsafe engine policy/);
   }
   const input = snapshot(); input.icp.buyer_titles = [];
-  assert.throws(() => plan(input, POLICY, { at: AT }), /buyer criteria/);
+  assert.throws(() => plan(input, POLICY, { coldGate: OPEN_COLD, at: AT }), /buyer criteria/);
 });
 
 test('the wire replay payload preserves authoritative revision and ignores delivery-only clock refreshes', () => {
   const input = snapshot();
-  const first = plan(input, POLICY, { at: '2026-10-16T13:05:00Z' });
+  const first = plan(input, POLICY, { coldGate: OPEN_COLD, at: '2026-10-16T13:05:00Z' });
   input.generated_at = '2026-10-16T13:50:00Z';
-  const refresh = plan(input, POLICY, { at: '2026-10-16T13:55:00Z' });
+  const refresh = plan(input, POLICY, { coldGate: OPEN_COLD, at: '2026-10-16T13:55:00Z' });
   assert.equal(first.snapshot_revision, input.source_revision);
   assert.equal(refresh.snapshot_revision, input.source_revision);
   assert.equal(refresh.run_id, first.run_id);
   assert.notEqual(refresh.generated_at, first.generated_at);
   assert.deepEqual(semanticBatch(refresh), semanticBatch(first));
   input.contacts[0].buying_moment.fact = 'A changed public pricing decision with the same source revision.';
-  assert.notEqual(plan(input, POLICY, { at: '2026-10-16T13:55:00Z' }).run_id, first.run_id);
+  assert.notEqual(plan(input, POLICY, { coldGate: OPEN_COLD, at: '2026-10-16T13:55:00Z' }).run_id, first.run_id);
 });
 
 test('a London week change creates a new run even while the UTC date is unchanged', () => {
   const input = snapshot({ generated_at: '2026-10-18T22:00:00Z' });
-  const sunday = plan(input, POLICY, { at: '2026-10-18T22:59:59Z' });
-  const monday = plan(input, POLICY, { at: '2026-10-18T23:00:00Z' });
+  const sunday = plan(input, POLICY, { coldGate: OPEN_COLD, at: '2026-10-18T22:59:59Z' });
+  const monday = plan(input, POLICY, { coldGate: OPEN_COLD, at: '2026-10-18T23:00:00Z' });
   assert.equal(sunday.report.scorecard.week_starts, '2026-10-12');
   assert.equal(monday.report.scorecard.week_starts, '2026-10-19');
   assert.notEqual(sunday.run_id, monday.run_id);

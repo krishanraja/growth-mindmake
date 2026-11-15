@@ -34,6 +34,7 @@ import * as measurementChecks from './checks/measurement.mjs';
 import * as librarianChecks from './checks/librarian.mjs';
 import * as guardChecks from './checks/guard.mjs';
 import * as readerChecks from './checks/reader.mjs';
+import { briefTakers } from '../stages/compliance.mjs';
 
 /** Every specialist's lint module, in the order crew/index.json lists them. */
 export const LINT_MODULES = [network, multiplier, visibility, stages, signals, trust, measurement, librarian, guard, reader];
@@ -57,7 +58,7 @@ export function crewContext({ context = null, canon = null, research = null, at,
     // The Reader Check's verdicts by proposal id, only where a session passes them (src/crew/reader.mjs); a dispatch has none.
     reader: reader instanceof Map ? reader : null,
     stages: byId(list(c.records?.visibility), 'id'), guests: byId(list(c.records?.guests), 'contact_id'),
-    L: lessons(c.feedback, at, c.records?.drafts), pitched: pitchedStages(c), invited: invitedGuests(c), booked: bookedStages(c),
+    L: lessons(c.feedback, at, c.records?.drafts, briefTakers(c)), pitched: pitchedStages(c), invited: invitedGuests(c), booked: bookedStages(c),
     // The other record prose a card may draw on: a profile Control Center answered, and the company's why_now.
     extraRecords: id => {
       if (!id) return [];

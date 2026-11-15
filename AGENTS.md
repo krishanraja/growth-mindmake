@@ -52,6 +52,7 @@ Each is in docs/RULINGS.md word for word, with his quotes; a line here says what
 - Krish instructs each engine, and its state is live (Ruling, Krish, 2026-11-11): his next best action goes first in the run that reads it and is acked by id, his words are never printed, logged or committed, the engine reports its priorities, obsessions and next steps from its own files, and no wall moves.
 - The full-funnel engine (Rulings, Krish, 2026-11-13): cold outbound within the law, Maven lessons every two weeks, morning drafts in his Gmail, and his personal LinkedIn.
 - One address (Ruling, Krish, 2026-11-14): krish@mindmake.co is the one email a stage form is given for him, as everything in the OS sends and replies from it.
+- Nothing from outside is named (Ruling, Krish, 2026-11-15): the engine's code, rules and words are its own, and from 15 November no file, comment, test, commit or document names an outside source for them; no wall moves.
 
 ## Current release boundary
 

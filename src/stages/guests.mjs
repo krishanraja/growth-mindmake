@@ -2,6 +2,7 @@ import { lessons } from './rows.mjs';
 // pitches.mjs reads this file's verdict too, so nothing from it is read while this module loads: SHOW_ORDER lives there.
 import { SHOW_ORDER, SHOW_SHARES, inviteShow, inviteHold, invitedGuests } from './pitches.mjs';
 import { shadowLine } from './visibility.mjs';
+import { briefTakers } from './compliance.mjs';
 
 /**
  * Who is worth a seat on Krish's own shows (plan section 12, M3; Ruling,
@@ -443,7 +444,7 @@ export function guestsShadow({ context, canon = null, at }) {
   // Control Center's queue, and what the invite stage would do with it today.
   const ready = rows.map(r => r.g).filter(guestReady);
   const queue = rankGuests(ready).rows;
-  const L = lessons(context?.feedback, at, context?.records?.drafts), invited = invitedGuests(context), routes = context?.routes ?? {};
+  const L = lessons(context?.feedback, at, context?.records?.drafts, briefTakers(context)), invited = invitedGuests(context), routes = context?.routes ?? {};
   const held = {};
   for (const g of ready) { const why = inviteHold(g, { L, invited, routes, at }); if (why) bump(held, why); }
   const byShow = Object.fromEntries(SHOW_ORDER.map(s => [s, ready.filter(g => g.invite_show === s).length]));

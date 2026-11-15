@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "note": "The cold compliance gate's record of Krish's four approvals (docs/GET-GOING.md 1.2; src/stages/compliance.mjs). Each stays null until he approves it; then it is { \"approved_on\": \"YYYY-MM-DD\", \"sha256\": \"<64 hex>\" }, the day of his yes and the SHA-256 of exactly what he approved, recorded in the change that carries his ruling line. The words, the assessment and the reviewer's name stay private; this public file holds digests only. Nothing cold is drafted while any is null.",
+  "krish": {
+    "footer_words": null,
+    "privacy_section": null,
+    "legitimate_interests": null,
+    "reviewer": null
+  }
+}

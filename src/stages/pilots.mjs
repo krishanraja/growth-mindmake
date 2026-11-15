@@ -4,6 +4,7 @@ import { shadowLine } from './visibility.mjs';
 import { rowProposal, actionFor, cardFor, caseFor, cardClash, titleFor, lessons, refusedBy, fitHold, fitOf, cleanName, hasFullName,
   companyAsWritten, titleCase, servesOf, seniorityOf, leadFacts, hostOf, lastContact, NOT_A_SOURCE, CARD_LINE_MAX, TITLE_MAX, PER_ROW } from './rows.mjs';
 import { buyerNote, tidySignal } from './openings.mjs';
+import { briefTakers } from './compliance.mjs';
 
 /**
  * The pilot machine, moved out of Control Center (plan section 12, M6;
@@ -574,7 +575,7 @@ export function pilotRows({ context, canon, research: researchIn = null, at, fil
   const max = Math.min(MONDAY_BATCH, lane?.on === false ? 0 : Number.isInteger(lane?.max) ? lane.max : PER_ROW);
   if (!listed.length || !max || !canon?.ask?.label || !canon?.ask?.url) return { rows, held, research: requests, counts };
   const people = peopleOf(context), titles = titlesOf(context), routes = context?.routes ?? {};
-  const L = lessons(context?.feedback, at, context?.records?.drafts), jonny = jonnyOpen(context), takenIds = new Set([...taken].map(key)), written = writtenTo(context, at);
+  const L = lessons(context?.feedback, at, context?.records?.drafts, briefTakers(context)), jonny = jonnyOpen(context), takenIds = new Set([...taken].map(key)), written = writtenTo(context, at);
   // A profile question is keyed by the month as the amplifier rows key theirs (UTC), so the two never send one question twice.
   const month = String(at).slice(0, 7), seen = new Set();
   const askRoom = Math.max(0, Math.min(TRIGGER_ASKS_PER_RUN, TRIGGER_ASKS_PER_DAY - triggerAsksToday(research, at)));

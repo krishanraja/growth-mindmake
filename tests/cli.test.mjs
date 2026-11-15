@@ -16,8 +16,12 @@ const input = snapshot();
 input.contacts[0].full_name = 'PRIVATE_SYNTHETIC_PERSON';
 input.contacts[0].company = 'PRIVATE_SYNTHETIC_COMPANY';
 input.contacts[0].buying_moment.fact = 'PRIVATE_SYNTHETIC_DECISION';
+// Warm, so these privacy checks see a prepared note: the CLI reads the cold compliance gate back, and it is closed.
+input.contacts[0].relationship = 'warm';
 const inputPath = join(privateDirectory, 'snapshot.json');
 await writeFile(inputPath, JSON.stringify(input));
+const coldPath = join(privateDirectory, 'cold-snapshot.json');
+await writeFile(coldPath, JSON.stringify(snapshot()));
 const preloadPath = join(privateDirectory, 'mock-fetch.mjs');
 await writeFile(preloadPath, `globalThis.fetch = async (_url, options) => {
   if (options.method !== 'GET') throw new Error('Unexpected live mutation in a dry run');
@@ -41,6 +45,14 @@ test('live daily defaults to a redacted dry run with no external mutation', () =
   assert.equal(summary.created, 0);
   assert.equal(summary.prepared, 1);
   assertPrivate(result);
+});
+
+test('the CLI reads the cold compliance gate back before any cold note, and holds a cold one while it is closed', () => {
+  const result = run(['plan', '--snapshot', coldPath, '--at', AT, '--summary']);
+  assert.equal(result.status, 0, result.stderr);
+  const summary = JSON.parse(result.stdout);
+  assert.equal(summary.prepared, 0);
+  assert.equal(summary.held_before_drafting, 1);
 });
 
 test('private plans can be saved only inside ignored runtime and have a safe summary', async () => {

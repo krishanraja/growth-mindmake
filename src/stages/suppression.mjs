@@ -1,6 +1,7 @@
 import { DAY } from '../guards.mjs';
 import { ROWS, KINDS, BANDS, ASK_FOR, ROW_FOR, TITLE_MAX, BECAUSE_MAX, TITLE_MAX_BRIEF, CARD_LINES, CARD_SOURCES, CARD_ANGLE_TITLE_MAX, lessons, refusedBy } from './rows.mjs';
 import { shadowLine } from './visibility.mjs';
+import { briefTakers } from './compliance.mjs';
 
 /**
  * The amplifier taxonomy, the row doctrine and the suppression of what Krish
@@ -162,10 +163,12 @@ const SUBJECT = /^[a-z_]{2,20}:[A-Za-z0-9._:-]{1,120}$/;
  * is paused and until when, the reach floor of each kind, the audiences and
  * the topics ruled out. Subjects are references, never names or addresses;
  * each part is sorted and at most SUPPRESSION_MAX. `drafts` (the context's
- * `records.drafts`) puts everyone who opted out in `never`. Pure.
+ * `records.drafts`) puts everyone who opted out in `never`, and `takers`
+ * (compliance.mjs briefTakers) everyone who took the free brief, so Control
+ * Center hides them between runs too. Pure.
  */
-export function suppressionList(feedback, at, drafts = []) {
-  const L = lessons(feedback, at, drafts), cap = list => list.slice(0, SUPPRESSION_MAX);
+export function suppressionList(feedback, at, drafts = [], takers = null) {
+  const L = lessons(feedback, at, drafts, takers), cap = list => list.slice(0, SUPPRESSION_MAX);
   const subj = s => typeof s === 'string' && SUBJECT.test(s);
   return {
     version: 1,
@@ -195,7 +198,7 @@ export const TAXONOMY_BYTES = 2048;
 export function suppressionFields(context, at) {
   const feedback = Array.isArray(context?.feedback) ? context.feedback.filter(f => f && typeof f === 'object') : null;
   if (!feedback) return { fields: null, hold: null };
-  const list = suppressionList(feedback, at, context?.records?.drafts), tx = taxonomy();
+  const list = suppressionList(feedback, at, context?.records?.drafts, briefTakers(context)), tx = taxonomy();
   const bytes = v => Buffer.byteLength(JSON.stringify(v), 'utf8');
   if (bytes(list) > SUPPRESSION_BYTES || bytes(tx) > TAXONOMY_BYTES) return { fields: null, hold: { reason: 'suppression_too_large', detail: 'The suppression list or the taxonomy is over the size Control Center accepts, so neither was sent and Control Center keeps the last list it had.' } };
   return { fields: { suppression: list, taxonomy: tx }, hold: null };
