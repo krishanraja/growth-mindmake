@@ -123,6 +123,30 @@ Four mechanisms shape these plays, as structure and never as a second gate, each
 - [x] **1.7 Call prep.** For every booked meeting, the day before: company, person, mirror, prior touches, the Pipeline record and discovery questions, each fact said, inferred or missing. *Built 15 November 2026:* src/stages/callprep.mjs makes it for every meeting in `upcoming_meetings` that starts tomorrow, London time, with the test-kit interview for a first call (the cost, what they do today, what a yes would need, each drawn from the buyer's own record). *Sent the same day* (Ruling, Krish, 2026-11-15: call prep reaches him on the meeting in Pipeline): where Control Center serves `features.call_prep` at protocol 1.40.0, the dispatch sends each prep that meets the protocol's rules in the report's `call_prep` (callPrepField: the meeting and person ids Control Center gave, the person's one open deal by its `deal_ref`, each fact with its mark and source, the questions and the test kit; one outside the rules is held and counted, never sent), raises the report to 1.40.0, and counts Control Center's answer (callPrepAnswer); without the flag it stays in shadow. Control Center shows each kept prep on that meeting's card in Pipeline the day before and on the day (its `api/_callPrep.ts`). Ticked when both halves were built and tested; it goes live when Control Center's change and this one both merge, and the first live report whose answer counts a prep kept is the proof. The same session added the morning drafts' QA (src/stages/morning.mjs): an email for his own box over 80 words, or with a claim on neither the person's nor the company's record, is held with its reason.
 - [ ] **1.8 Brief inbound.** Within the promise, only takers who asked for a person or replied become an item on his list.
 - [ ] **1.9 Reply to book.** His answer to a lane reply drafted with 2 or 3 free times from his calendar.
+- [ ] **1.10 Tools from the engine** (Krish, 2026-11-15: "We have so much potential lead magnet stuff that we can extract out of the engine, create a landing page for it, and create tools to give away for cheap to get people aware of the brand"). This engine already runs checks a buyer would pay to have on their own work. Each check becomes a small tool the buyer runs in their own AI or on a mindmake.co page, so they meet Mindmake by using it.
+
+  **The ladder:**
+  1. **A free tool** that shows its first result on screen before it asks for an email.
+  2. **A low-priced pack** of the same skills, installable in the buyer's own AI, paid once.
+  3. **Mindmake itself,** for the buyer who wants the whole system run for them.
+
+  **First candidates,** each already built here and proven on his own work:
+  - The voice check: catches a line that sounds machine-written, with the fix.
+  - The untraced-claim check: holds any name, number or quotation the draft cannot trace.
+  - The catch-up opener: one fact, why now, why you, a quick chat.
+  - Call prep: company, person, prior touches and the questions to ask, each marked said, inferred or missing.
+  - The cold-email compliance check.
+  - The weekly what-worked read.
+
+  **Shape:**
+  - **Extraction.** Each tool is drawn out of the engine's own rules and generalised for any business. Nothing private goes out: no person, no draft, no figure, and no rule that names him.
+  - **The landing page.** One page on mindmake.co for the set, built in the mindmake repository as a proposal from here. It shows real before-and-after examples on made-up briefs, plainly labelled as examples, and buyers' words only once they have given them.
+  - **Premium, never pushy:** no countdown, no price that rises by the hour, no inflated claim. A refund promise is his to set.
+  - **Measured:** tool runs, emails given, packs bought and meetings that follow, read through Control Center.
+
+  **His yes before anything is public:** he picks the first tool and its price, and nothing is listed, priced or sold without his yes on that exact page and price. Pricing lives on mindmake.co only.
+
+  **Tick it** when the first free tool is live on mindmake.co and a live report counts its runs.
 
 ### Wave 2, December: convert, onboard, demo of value, calls
 
