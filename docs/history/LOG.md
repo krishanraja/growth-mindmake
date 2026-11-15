@@ -6,6 +6,12 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-15, to keep the session pack under 36 KB; newest first.
 
+- Krish's part of the cold compliance gate (GET-GOING 1.2, not ticked) is recorded in config/compliance.json: the footer words, the privacy section and the legitimate-interests assessment by digest, the reviewer waived by him, and his word that nobody in the old Instantly and Apollo lists had opted out (Rulings, Krish, 2026-11-15). The gate now also reads Control Center's footer back from its capabilities each live run, and lets a cold note through only where Control Center serves exactly the approved footer with the one-click link and the STOP reply; a United Kingdom sole trader or partnership, or one the record cannot tell, is held. What is still open is Control Center's: serving cold email with the footer (cold_footer_not_served until its change is merged, its migration applied and its variables set) and records.brief_takers. Nothing is left for Krish to import: opt_outs_not_imported is closed on his word. (2026-11-15)
+
+## 2026-11-15: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-15, to keep the session pack under 36 KB; newest first.
+
 - Call prep (GET-GOING 1.7) is built and runs in shadow: `src/stages/callprep.mjs` makes, for every meeting in `upcoming_meetings` that starts tomorrow, London time, the person, the company, the mirror, the prior touches and the Pipeline record, each fact said, inferred or missing, up to five discovery questions, and for a first call the test-kit interview (the cost, what they do today, what a yes would need, each drawn from the buyer's own record); the dispatch counts it in one line and nothing reaches Krish, because Control Center takes no call prep yet. The morning drafts' QA (`src/stages/morning.mjs`) holds an email for his own box with a claim on neither the person's nor the company's record (`morning_claim_untraced`), and only counts one over 80 words in an activity line (`morning_over_80_words`, `MORNING_LENGTH_HOLDS` false) until Krish has read a week of counts (Ruling, Krish, 2026-11-15). Call prep reaches him on the meeting in Pipeline (Ruling, Krish, 2026-11-15). 19 new mutations, all killed (100 of 100). (2026-11-15)
 
 ## 2026-11-15: older NOW.md lines
