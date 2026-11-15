@@ -20,7 +20,7 @@ Check the authoritative suppression state when preparing a named action and agai
 
 If suppression cannot be checked, hold the action. Do not clear a suppression to satisfy a target. Retain the minimum information needed to honour the preference under the approved policy. Any erasure request follows the system owner's governed process; this engine neither deletes evidence nor invents a retention rule.
 
-Cold email (Rulings, Krish, 2026-11-15): every cold email carries a one-click opt-out and a STOP reply, and either purges the address from his database permanently, keeping only a one-way fingerprint so it is never added again; a cold contact with no reply 90 days after the first email is purged the same way. Control Center holds the address and does the purge, so this engine never keeps an address to honour it; it proposes a cold email only where Control Center serves the approved footer (src/stages/compliance.mjs).
+Cold email (Rulings, Krish, 2026-11-15): every cold email carries a one-click opt-out and a STOP reply, and either purges the address from his database permanently, keeping only a one-way fingerprint so it is never added again, except in the billing records a paying customer's invoices must keep. The link lives on a mindmake.co path and deletes the address in the reader's browser as the page loads, never on a bare open. A cold contact with no reply 90 days after the first email is purged the same way, and so is one drafted and never sent, 90 days after the first cold draft. Control Center holds the address and does the purge, so this engine never keeps an address to honour it; it proposes a cold email only where Control Center serves the approved footer (src/stages/compliance.mjs).
 
 ## Permissions are specific
 
