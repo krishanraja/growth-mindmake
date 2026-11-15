@@ -28,6 +28,7 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 Lifecycle: building. The detail is in `README.md`.
 
+- docs/GET-GOING.md describes the full-funnel build's four shaping mechanisms (reply triage, lead score, meeting-prep fact labels, attendance segmentation) and the call-note extraction in this repository's own words, with no outside project named. (2026-11-15)
 - the code half of the cold compliance gate (GET-GOING 1.2, not ticked) is built: src/stages/compliance.mjs, the guard cold_compliance, read back from config/compliance.json and the ignored opt-out record before any cold note on every route, so every cold note is held as cold_compliance_closed until Krish's four (footer words, privacy section, legitimate-interests assessment, named reviewer) are recorded by digest and the old Instantly and Apollo opt-outs are imported (npm run compliance -- import, digests only); anyone who took the free brief is in no lane once Control Center serves records.brief_takers. The prospect score (GET-GOING 1.3, prepared) gives a reason beside every point, keeps rule-outs apart and reads the buyer from the canon alone, with a seam for the SDR score. (2026-11-15)
 - a stage's form is given krish@mindmake.co as his email (FORM_EMAIL in src/stages/pitches.mjs, playbook 11), recorded in docs/RULINGS.md with its pointer in AGENTS.md (Ruling, Krish, 2026-11-14). The forms and golden report digests were re-recorded after a run with the old constant proved every other report byte for byte unchanged. (2026-11-14)
 - closeout notes now fold into NOW.md after every merge: auto-merge.yml starts ci.yml on main by workflow_dispatch, and its fold job runs on that start, because the merge's own push, made with the Actions token, starts no workflow (docs/RELEASE.md, 14 November). (2026-11-14)
@@ -55,7 +56,7 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-15): Krish gives his four (the footer words, the privacy section, the legitimate-interests assessment and the reviewer he names) and runs the opt-out import on the old exports from outside this repository, then npm run compliance -- status reads the gate back open.
+- Next (2026-11-15): GET-GOING 1.2, Krish's four approvals (footer words, privacy section, legitimate-interests assessment, named reviewer), then the opt-out import.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 - North Star check (2026-11-15): holds.
 
