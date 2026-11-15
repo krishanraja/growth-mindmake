@@ -259,3 +259,43 @@ test('the morning QA runs in the dispatch: an email for his box it fails is held
   assert.equal(held.report.holds.find(h => h.reason === 'morning_claim_untraced')?.detail, "1 email for his box held: a claim (a name) is on neither the person's nor the company's record.");
   assert.ok(held.seen[0].context.records.guests.length === 2 && typeof held.seen[0].vocabulary === 'string');
 });
+
+// Ruling (Krish, 2026-11-15): call prep reaches him on the meeting in Pipeline. Where Control Center serves
+// features.call_prep at 1.40.0, the run sends each prep in the report and counts the answer; the run's lines never
+// carry a name or a word of the prep.
+test('where Control Center takes call prep, the run sends it at 1.40.0 for the meeting\'s card and counts the answer', async () => {
+  const policy = JSON.parse(await readFile(new URL('../config/policy.json', import.meta.url)));
+  const schema = JSON.parse(await readFile(new URL('../docs/control-center/engine-report.schema.json', import.meta.url), 'utf8'));
+  const MTG = `mtg_${'b'.repeat(32)}`;
+  const ahead = [{ meeting_id: MTG, starts_at: '2026-10-28T15:00:00Z', contact_id: id(301), contact_ids: [id(301)], organizer: 'them', first_meeting: true }];
+  const run = async (served, features, ack = {}) => {
+    const reports = [];
+    const cc = { recordAttempt: async () => {}, directive: async () => directiveFixture({ schema_version: '1.9.0', week_goals: GOALS }),
+      capabilities: async () => ({ activation: { activated_on: '2026-10-18' }, schema_versions: served, features: { context: true, rows: true, network_routes: true, upcoming_meetings: true, ...features } }),
+      context: async () => ({ ok: true, context: { schema_version: '1.9.0', engine_id: 'growth-mindmake', product_slug: 'mindmake', observed_at: NOW, coverage: [{ source: 'advisory', available: true, complete: true }, { source: 'upcoming_meetings', available: true, complete: true }], records: { advisory: [], visibility: [show(1)], drafts: [], guests: [guest(1), guest(2)] }, amplifier_candidates: [], routes: { ...routesFor([301], true), ...routesFor([302], false) }, feedback: [], research: [], upcoming_meetings: ahead } }),
+      decisions: async () => [], postReport: async rep => { reports.push(rep); return { replayed: false, ...ack }; }, readReport: async () => reports.at(-1) };
+    const result = await runDispatch({ cc, source: async () => { throw Error('Retired source must not run'); }, policy, registry: {}, attemptId: 'gma-callprep-12', clock: () => NOW,
+      canonReader: async () => canon, wordFiles: async () => [{ repo: 'krishanraja/growth-mindmake', path: 'src/stages/pitches.mjs', sha: 'b'.repeat(40) }], recordReader: async () => null });
+    assert.equal(result.status, 'succeeded');
+    assert.deepEqual(violations(schema, reports[0]), []);
+    return { result, report: reports[0] };
+  };
+  const base = ['1.6.0', '1.7.0', '1.8.0', '1.9.0'];
+  // Not served: in shadow, nothing sent.
+  const shadow = await run(base, { call_prep: true });
+  assert.equal('call_prep' in shadow.report, false);
+  assert.ok(shadow.report.activity.some(a => /^Call prep: 1 booked meeting tomorrow.*Control Center takes call prep, but this run cannot send it/.test(a.line)));
+  assert.equal(shadow.result.call_prep, undefined, 'no answer is read for preps never sent');
+  // Served: sent, the report raised to 1.40.0, and the answer counted.
+  const ANSWER = { dry_run: false, checked: 1, kept: 1, refused: {}, preps: [{ meeting_id: MTG, outcome: 'kept' }] };
+  const sent = await run([...base, '1.40.0'], { call_prep: true }, { call_prep: ANSWER });
+  assert.equal(sent.report.schema_version, '1.40.0');
+  assert.equal(sent.report.call_prep.length, 1);
+  assert.deepEqual([sent.report.call_prep[0].meeting_id, sent.report.call_prep[0].contact_id], [MTG, id(301)]);
+  assert.deepEqual(sent.report.call_prep[0].test_kit.map(q => q.kit), ['cost', 'today', 'yes']);
+  assert.ok(sent.report.activity.some(a => /^Call prep: 1 booked meeting tomorrow.*Sent to Control Center for each meeting's card in Pipeline: 1\./.test(a.line)));
+  assert.equal(sent.result.call_prep.line, "Call prep: 1 sent; 1 kept for the meeting's card in Pipeline, 0 refused.");
+  // The lines and the outcome are public: counts only, never a name, a company or the meeting's id.
+  const said = [...sent.report.activity.map(a => a.line).filter(l => /^Call prep/.test(l)), JSON.stringify(sent.result.call_prep)].join(' ');
+  assert.equal(/Avery|Sam Sample|mtg_/.test(said), false);
+});

@@ -922,6 +922,116 @@
       ]
     },
     {
+      "id": "callprep-sent-without-flag",
+      "what": "call prep is sent where Control Center never said it takes it",
+      "file": "src/stages/callprep.mjs",
+      "find": "  return capabilities?.features?.call_prep === true && Array.isArray(capabilities?.schema_versions)",
+      "replace": "  return Array.isArray(capabilities?.schema_versions)",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-sent-without-version",
+      "what": "call prep is sent where Control Center does not serve 1.40.0",
+      "file": "src/stages/callprep.mjs",
+      "find": "capabilities.schema_versions.includes(CALL_PREP_VERSION) && !!schema?.properties?.call_prep;",
+      "replace": "!!schema?.properties?.call_prep;",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-unsendable-sent",
+      "what": "a prep with an address or a phone number in its words is sent",
+      "file": "src/stages/callprep.mjs",
+      "find": " && inOrder && !schemaErrors(item, e, '$', schema).length) {",
+      "replace": " && inOrder) {",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-kit-order-unchecked",
+      "what": "the test questions go out in any order",
+      "file": "src/stages/callprep.mjs",
+      "find": "    const inOrder = e.test_kit.length === 0 || e.test_kit.map(q => q.kit).join() === TEST_KIT.join();",
+      "replace": "    const inOrder = true;",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-meeting-twice",
+      "what": "two preps for one meeting go out",
+      "file": "src/stages/callprep.mjs",
+      "find": "    if (item && !seen.has(e.meeting_id) && entries.length",
+      "replace": "    if (item && entries.length",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-deal-guessed",
+      "what": "a prep names the first of several open deals, a guess",
+      "file": "src/stages/callprep.mjs",
+      "find": "  return theirs.length === 1 && typeof theirs[0].deal_ref",
+      "replace": "  return theirs.length >= 1 && typeof theirs[0].deal_ref",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-cut-past-cap",
+      "what": "a long word is cut past its cap, so the protocol refuses the prep",
+      "file": "src/stages/callprep.mjs",
+      "find": "const cut = (v, n) => (v.length <= n ? v : `${v.slice(0, n - 3)",
+      "replace": "const cut = (v, n) => (v.length <= n ? v : `${v.slice(0, n - 1)",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-answer-repeats-reason",
+      "what": "an unknown refusal reason from Control Center is repeated in the public line",
+      "file": "src/stages/callprep.mjs",
+      "find": "    const k = CALL_PREP_REFUSALS.has(reason) ? reason : 'unlisted';",
+      "replace": "    const k = reason;",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-version-not-raised",
+      "what": "a report carrying call prep keeps an older version, which Control Center refuses",
+      "file": "src/dispatch.mjs",
+      "find": "  if (preps) version = laterVersion(version, CALL_PREP_VERSION);",
+      "replace": "",
+      "tests": [
+        "tests/callprep.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-never-sent",
+      "what": "the dispatch makes call prep and never sends it where Control Center takes it",
+      "file": "src/dispatch.mjs",
+      "find": "      engine_state: stateNow, call_prep: prepSend?.entries ?? null,",
+      "replace": "      engine_state: stateNow, call_prep: null,",
+      "tests": [
+        "tests/network.test.mjs"
+      ]
+    },
+    {
+      "id": "callprep-answer-not-counted",
+      "what": "the dispatch drops Control Center's answer to the call prep it sent",
+      "file": "src/dispatch.mjs",
+      "find": "    if (prepSaid) outcome.call_prep = prepSaid;",
+      "replace": "",
+      "tests": [
+        "tests/network.test.mjs"
+      ]
+    },
+    {
       "id": "morning-word-cap",
       "what": "the morning QA lets 81 words through",
       "file": "src/stages/morning.mjs",
