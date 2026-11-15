@@ -32,11 +32,21 @@ import { readFile } from 'node:fs/promises';
  *   opt-out lists by address or by whole domain (an opted-out domain holds
  *   everyone at that company), and anyone who took the free brief.
  *
- * What stays Krish's, each a hold the gate reports by name until his yes is
- * recorded in config/compliance.json by digest: the footer words Control
- * Center adds at draft time, the privacy page section on mindmake.co, the
- * private legitimate-interests assessment, and the qualified review by a
- * reviewer he names.
+ * What is Krish's, each a hold the gate reports by name until his word is
+ * recorded in config/compliance.json: the footer words Control Center adds at
+ * draft time, the privacy page section on mindmake.co and the private
+ * legitimate-interests assessment, each by the digest of what he approved;
+ * the reviewer, by his waiver (Ruling, Krish, 2026-11-15: cold email needs no
+ * outside reviewer; every cold email carries a one-click opt-out and a STOP
+ * reply, either of which purges the address from his database permanently);
+ * and the old opt-out lists, by his statement that nobody in them had opted
+ * out (Ruling, Krish, 2026-11-15), or an import.
+ *
+ * What is Control Center's, read back from its capabilities each live run:
+ * the footer itself. A cold note is drafted only where Control Center serves
+ * cold email (features.cold_email, protocol 1.39.0) with exactly the footer
+ * Krish approved, by digest, carrying the one-click link and the STOP reply.
+ * Until that read, the gate holds as `cold_footer_unread`.
  *
  * Pure but for readGate, which reads two files. No model, no network, and
  * nothing it returns or prints carries an address.
@@ -71,8 +81,12 @@ export const KRISH_ITEMS = Object.freeze([
   Object.freeze({ key: 'legitimate_interests', hold: 'legitimate_interests_unassessed' }),
   Object.freeze({ key: 'reviewer', hold: 'reviewer_unnamed' }),
 ]);
+/** Every key config/compliance.json records under `krish`: his four, and his word on the old opt-out lists. */
+export const KRISH_KEYS = Object.freeze([...KRISH_ITEMS.map(i => i.key), 'old_opt_outs']);
+/** The holds that wait on Control Center's footer, read back from its capabilities each live run. */
+export const FOOTER_HOLDS = Object.freeze(['cold_footer_unread', 'cold_footer_not_served', 'cold_opt_out_missing', 'cold_footer_not_approved']);
 /** The holds a cold draft can meet, every one named. */
-export const GATE_HOLDS = Object.freeze([...KRISH_ITEMS.map(i => i.hold), 'compliance_config_unreadable', 'opt_outs_not_imported', 'opt_outs_unreadable']);
+export const GATE_HOLDS = Object.freeze([...KRISH_ITEMS.map(i => i.hold), 'compliance_config_unreadable', 'opt_outs_not_imported', 'opt_outs_unreadable', ...FOOTER_HOLDS]);
 export const CANDIDATE_HOLDS = Object.freeze([
   'source_missing', 'country_unknown', 'country_not_allowed', 'address_unread', 'address_not_plausible', 'throwaway_address',
   'guessed_address', 'other_organisation_address', 'company_domain_unknown', 'not_a_business_address', 'subscriber_unknown', 'individual_subscriber',
@@ -207,7 +221,9 @@ export function countryOf(raw) {
 export function subscriberOf(raw) {
   const k = typeof raw === 'string' ? raw.trim().toLowerCase().replace(/[\s-]+/g, '_') : '';
   if (['corporate', 'company', 'limited_company', 'llp', 'public_body'].includes(k)) return 'corporate';
-  if (['individual', 'person', 'consumer', 'sole_trader', 'partnership'].includes(k)) return 'individual';
+  // A sole trader and a partnership are individuals in the United Kingdom, however the record spells them
+  // (the approved assessment: "never a sole trader or a partnership").
+  if (['individual', 'person', 'consumer', 'sole_trader', 'sole_proprietor', 'sole_proprietorship', 'self_employed', 'freelancer', 'partnership', 'general_partnership', 'unincorporated'].includes(k)) return 'individual';
   return null;
 }
 
@@ -251,6 +267,53 @@ export function approvalOf(v, at) {
   return { approved_on: v.approved_on, sha256: v.sha256 };
 }
 
+/** An object with exactly these keys. Pure. */
+const exactly = (v, keys) => !!v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).sort().join() === [...keys].sort().join();
+/** A day recorded for Krish that is real and not after `at`. Pure. */
+const dayBy = (d, at) => realDay(d) && Number.isFinite(Date.parse(at)) && Date.parse(`${d}T00:00:00Z`) <= Date.parse(at);
+
+/**
+ * The reviewer as recorded: a named reviewer's review by digest (approvalOf), or Krish's own waiver,
+ * `{ waived_on, by: "krish" }` and nothing else (Ruling, Krish, 2026-11-15: cold email needs no outside
+ * reviewer). Only his waiver closes it: anyone else's, or one with no real day, stays open. Pure.
+ */
+export function reviewerOf(v, at) {
+  const approved = approvalOf(v, at);
+  if (approved) return approved;
+  if (exactly(v, ['waived_on', 'by']) && v.by === 'krish' && dayBy(v.waived_on, at)) return { waived_on: v.waived_on, by: 'krish' };
+  return null;
+}
+
+/**
+ * Krish's word that the old Instantly and Apollo lists hold nobody who opted out, `{ none_on, by: "krish" }`
+ * and nothing else (Ruling, Krish, 2026-11-15: nobody in the old Instantly and Apollo lists had opted out, so
+ * there is nothing to import). Only his own statement counts. Pure.
+ */
+export function noOldOptOutsOf(v, at) {
+  return exactly(v, ['none_on', 'by']) && v.by === 'krish' && dayBy(v.none_on, at) ? { none_on: v.none_on, by: 'krish' } : null;
+}
+
+/**
+ * What Control Center serves of the cold footer, from its capabilities: null when no capabilities were read,
+ * `{ served: false }` when it does not serve cold email (features.cold_email, 1.39.0), else the footer's digest and
+ * whether it carries the one-click link and the STOP reply. Pure.
+ */
+export function footerOf(capabilities) {
+  if (!capabilities || typeof capabilities !== 'object') return null;
+  const block = capabilities.cold_email;
+  if (capabilities.features?.cold_email !== true || !block || typeof block !== 'object') return { served: false };
+  return { served: true, sha256: typeof block.footer_sha256 === 'string' ? block.footer_sha256 : null, one_click: block.one_click === true, stop_reply: block.stop_reply === true };
+}
+
+/** Why Control Center's footer does not yet carry what Krish approved, or null when it does. Pure. */
+export function footerHold(footer, approvedFooter) {
+  if (!footer) return 'cold_footer_unread';
+  if (!footer.served) return 'cold_footer_not_served';
+  if (!footer.one_click || !footer.stop_reply) return 'cold_opt_out_missing';
+  if (!approvedFooter || !HEX64.test(footer.sha256 ?? '') || footer.sha256 !== approvedFooter.sha256) return 'cold_footer_not_approved';
+  return null;
+}
+
 /** The most entries an opt-out record may hold in each list. */
 export const OPT_OUTS_MAX = 200000;
 /** An opt-out record as the importer writes it, or null when it is not one. Pure. */
@@ -263,22 +326,40 @@ export function parseOptOutRecord(v) {
 }
 
 /**
- * The gate's state from its two files as read this run: Krish's four
- * approvals from config/compliance.json and the old opt-outs from the
- * ignored record. `config` and `optOuts` are the parsed files, `null` when
- * absent, or `{ unreadable: true }`. `holds` names every part not done, in
- * order; the gate is open only when it is empty. Pure.
+ * The gate's state as read this run: Krish's words from config/compliance.json, the old opt-outs from the ignored
+ * record or his statement that there are none, and Control Center's footer from its capabilities (`footer`, from
+ * footerOf; null or absent when unread). `config` and `optOuts` are the parsed files, `null` when absent, or
+ * `{ unreadable: true }`. `holds` names every part not done, in order; the gate is open only when it is empty. Pure.
  */
-export function gateState({ config, optOuts, at }) {
+export function gateState({ config, optOuts, at, footer = null }) {
   const holds = [];
   const cfgOk = config && typeof config === 'object' && !config.unreadable && config.version === COMPLIANCE_VERSION && config.krish && typeof config.krish === 'object';
   if (!cfgOk) holds.push('compliance_config_unreadable');
   const krish = {};
-  for (const { key, hold } of KRISH_ITEMS) { krish[key] = cfgOk ? approvalOf(config.krish[key], at) : null; if (!krish[key]) holds.push(hold); }
+  for (const { key, hold } of KRISH_ITEMS) {
+    krish[key] = !cfgOk ? null : key === 'reviewer' ? reviewerOf(config.krish[key], at) : approvalOf(config.krish[key], at);
+    if (!krish[key]) holds.push(hold);
+  }
+  const none = cfgOk ? noOldOptOutsOf(config.krish.old_opt_outs, at) : null;
+  krish.old_opt_outs = none;
   let opt = null;
-  if (optOuts === null || optOuts === undefined) holds.push('opt_outs_not_imported');
-  else { opt = optOuts.unreadable ? null : parseOptOutRecord(optOuts); if (!opt) holds.push('opt_outs_unreadable'); }
-  return { version: COMPLIANCE_VERSION, krish, opt_outs: opt, holds, open: holds.length === 0 };
+  // An import, when there is one, is read; otherwise his recorded word that the old lists held nobody who opted out.
+  if (optOuts === null || optOuts === undefined) {
+    if (none) opt = { imported_at: null, none_on: none.none_on, files: 0, emails: new Set(), domains: new Set() };
+    else holds.push('opt_outs_not_imported');
+  } else { opt = optOuts.unreadable ? null : parseOptOutRecord(optOuts); if (!opt) holds.push('opt_outs_unreadable'); }
+  const fh = footerHold(footer, krish.footer_words);
+  if (fh) holds.push(fh);
+  return { version: COMPLIANCE_VERSION, krish, opt_outs: opt, footer: footer ?? null, holds, open: holds.length === 0 };
+}
+
+/** Which of the gate's open holds wait on Krish and which on Control Center. Pure. */
+export function whoseHolds(holds) {
+  const list = Array.isArray(holds) ? holds : [];
+  return {
+    krish: list.filter(h => KRISH_ITEMS.some(i => i.hold === h) || h === 'opt_outs_not_imported'),
+    control_center: list.filter(h => FOOTER_HOLDS.includes(h)),
+  };
 }
 
 /**
@@ -287,14 +368,14 @@ export function gateState({ config, optOuts, at }) {
  * absent file is absent, a file that does not parse is unreadable; neither
  * is ever taken as done.
  */
-export async function readGate({ root = new URL('../../', import.meta.url), at = new Date().toISOString(), read = p => readFile(new URL(p, root), 'utf8') } = {}) {
+export async function readGate({ root = new URL('../../', import.meta.url), at = new Date().toISOString(), read = p => readFile(new URL(p, root), 'utf8'), footer = null } = {}) {
   const load = async p => {
     let text;
     try { text = await read(p); } catch (e) { return e?.code === 'ENOENT' ? null : { unreadable: true }; }
     try { return JSON.parse(text); } catch { return { unreadable: true }; }
   };
   const [config, optOuts] = await Promise.all([load(CONFIG_PATH), load(OPT_OUTS_PATH)]);
-  return gateState({ config, optOuts, at });
+  return gateState({ config, optOuts, at, footer });
 }
 
 // ── The verdict on one cold recipient ───────────────────────────────────────
@@ -399,10 +480,56 @@ export function coldGateFor(gate) {
 export function gateLine(gate, held) {
   const open = gate && Array.isArray(gate.holds) ? gate.holds : [CLOSED];
   const n = `${held} cold draft${held === 1 ? '' : 's'}`;
-  return open.length
-    ? `Cold compliance gate: closed, so ${n} held. Still open: ${open.join(', ')}. The footer words, the privacy section, the legitimate-interests assessment and the named reviewer are Krish's; nothing cold is drafted until every part reads back done.`
-    : `Cold compliance gate: open, and ${n} held by the recipient checks (country, recipient type, source or suppression).`;
+  if (!open.length) return `Cold compliance gate: open, and ${n} held by the recipient checks (country, recipient type, source or suppression).`;
+  const whose = whoseHolds(open);
+  const parts = [
+    whose.krish.length ? `waiting on Krish: ${whose.krish.join(', ')}` : '',
+    whose.control_center.length ? `waiting on Control Center's footer: ${whose.control_center.join(', ')}` : '',
+  ].filter(Boolean);
+  return `Cold compliance gate: closed, so ${n} held. Still open: ${open.join(', ')}${parts.length ? ` (${parts.join('; ')})` : ''}. Nothing cold is drafted until every part reads back done.`;
 }
+
+// ── A cold action, as the engine writes it ──────────────────────────────────
+
+/** The longest source line the footer takes: one plain sentence. */
+export const SOURCE_LINE_MAX = 200;
+/**
+ * Why a cold email action may not be proposed, or null. Control Center adds the approved footer at draft time
+ * (protocol 1.39.0), and the footer's first line says where the person's details came from, so a cold action is
+ * an email in Krish's own box carrying `cold.source_line`: one plain line, no link and no address, that completes
+ * "You're getting this because ...". A cold action without it has no footer to carry and is refused. Pure.
+ */
+export function coldActionHold(action) {
+  const a = action && typeof action === 'object' ? action : {};
+  if (a.channel !== 'email') return 'cold_not_email';
+  if (a.mailbox !== null && a.mailbox !== undefined && a.mailbox !== 'krish') return 'cold_not_his_box';
+  const line = a.cold && typeof a.cold === 'object' ? a.cold.source_line : null;
+  if (typeof line !== 'string' || !line.trim() || line.length > SOURCE_LINE_MAX || /[\r\n]/.test(line)) return 'cold_source_line_missing';
+  if (/https?:\/\/|www\.|@/i.test(line)) return 'cold_source_line_missing';
+  return null;
+}
+
+// ── Krish's approved texts, read for their digest ───────────────────────────
+
+/**
+ * Exactly what Krish approved in one of his private texts, for its digest (scripts/compliance.mjs digest):
+ * `between_rules`, the lines between the first two lines that are exactly `---`, without the blank lines at either
+ * end, joined by a newline, with none after; `whole`, the file as it is. Null when the rules are not there. Pure.
+ */
+export function approvedText(text, part) {
+  const t = String(text ?? '');
+  if (part === 'whole') return t;
+  if (part !== 'between_rules') return null;
+  const lines = t.split(/\r?\n/);
+  const a = lines.indexOf('---'), b = a < 0 ? -1 : lines.indexOf('---', a + 1);
+  if (a < 0 || b < 0) return null;
+  const inner = lines.slice(a + 1, b);
+  while (inner.length && !inner[0].trim()) inner.shift();
+  while (inner.length && !inner[inner.length - 1].trim()) inner.pop();
+  return inner.length ? inner.join('\n') : null;
+}
+/** The SHA-256 of exactly what was approved, or null. Pure. */
+export const approvedDigest = (text, part) => { const t = approvedText(text, part); return t === null ? null : sha256(t); };
 
 // ── Who took the free brief (suppressed from every lane) ────────────────────
 

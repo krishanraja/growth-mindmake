@@ -20,9 +20,10 @@ From 01-network-and-introductions.md, Follow the relationship:
 From 09-privacy-and-suppression.md, Suppression wins:
 - Check the authoritative suppression state when preparing a named action and again immediately before Krish manually sends.
 - If suppression cannot be checked, hold the action.
+- Cold email (Rulings, Krish, 2026-11-15): every cold email carries a one-click opt-out and a STOP reply, and either purges the address from his database permanently, keeping only a one-way fingerprint so it is never added again, except in the billing records a paying customer's invoices must keep.
 
 ## Sources
 
 - docs/playbooks/01-network-and-introductions.md, "Prepare a warm thought": sha256 805a597c1806beda
 - docs/playbooks/01-network-and-introductions.md, "Follow the relationship": sha256 805a597c1806beda
-- docs/playbooks/09-privacy-and-suppression.md, "Suppression wins": sha256 c010051a9b12dfa9
+- docs/playbooks/09-privacy-and-suppression.md, "Suppression wins": sha256 ac03abcf01d131d3

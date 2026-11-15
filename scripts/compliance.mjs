@@ -3,8 +3,15 @@
  * src/stages/compliance.mjs).
  *
  *   npm run compliance -- status
- *     Reads the gate back and prints whether it is open, and every part still
- *     open by name. Counts and codes only.
+ *     Reads the gate back from its files and prints whether it is open, every
+ *     part still open by name, and whose each is: Krish's, or Control
+ *     Center's footer, which only a live run can read back from Control
+ *     Center (cold_footer_unread here). Counts and codes only.
+ *
+ *   npm run compliance -- digest --part between_rules|whole --file <path outside this repository>
+ *     Prints the SHA-256 of exactly what Krish approved in one of his private
+ *     texts (src/stages/compliance.mjs approvedText), for config/compliance.json.
+ *     The digest only: never a word of the text or its path.
  *
  *   npm run compliance -- import --file <export outside this repository>
  *   MINDMAKE_OPT_OUTS_FILE=<path> npm run compliance -- import
@@ -26,7 +33,7 @@ import { readFile, writeFile, mkdir, realpath } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve, dirname, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readGate, addOptOuts, OPT_OUTS_PATH } from '../src/stages/compliance.mjs';
+import { readGate, addOptOuts, approvedDigest, whoseHolds, OPT_OUTS_PATH } from '../src/stages/compliance.mjs';
 
 const root = process.env.COMPLIANCE_ROOT ? resolve(process.env.COMPLIANCE_ROOT) : fileURLToPath(new URL('../', import.meta.url));
 const repo = fileURLToPath(new URL('../', import.meta.url));
@@ -46,10 +53,27 @@ async function main() {
   const [command, ...rest] = process.argv.slice(2);
   if (command === 'status') {
     const gate = await readGate({ at, read: p => readFile(resolve(root, p), 'utf8') });
-    say({ gate: gate.open ? 'open' : 'closed', holds: gate.holds, opt_outs: gate.opt_outs ? { files: gate.opt_outs.files, emails: gate.opt_outs.emails.size, domains: gate.opt_outs.domains.size } : null });
+    say({
+      gate: gate.open ? 'open' : 'closed', holds: gate.holds, waits_on: whoseHolds(gate.holds),
+      opt_outs: gate.opt_outs ? { files: gate.opt_outs.files, emails: gate.opt_outs.emails.size, domains: gate.opt_outs.domains.size, ...(gate.opt_outs.none_on ? { none_on: gate.opt_outs.none_on } : {}) } : null,
+    });
     return;
   }
-  if (command !== 'import') { console.error('Usage: npm run compliance -- status | import --file <export outside this repository>'); process.exitCode = 1; return; }
+  if (command === 'digest') {
+    let part = null, file = null;
+    for (let i = 0; i < rest.length; i++) {
+      if (rest[i] === '--part' && rest[i + 1]) part = rest[++i];
+      else if (rest[i] === '--file' && rest[i + 1]) file = rest[++i];
+      else { console.error('Usage: npm run compliance -- digest --part between_rules|whole --file <path outside this repository>'); process.exitCode = 1; return; }
+    }
+    if (!file || !existsSync(resolve(file))) { say({ hold: 'approved_text_absent' }); process.exitCode = 2; return; }
+    if (await insideRepository(resolve(file))) { say({ hold: 'approved_text_inside_repository', detail: 'The approved text is private; keep it outside this public repository.' }); process.exitCode = 1; return; }
+    const digest = approvedDigest(await readFile(resolve(file), 'utf8'), part);
+    if (!digest) { say({ hold: 'approved_text_unread', detail: 'Nothing was read: name the part as between_rules or whole, and a between_rules text needs its two --- lines.' }); process.exitCode = 1; return; }
+    say({ part, sha256: digest });
+    return;
+  }
+  if (command !== 'import') { console.error('Usage: npm run compliance -- status | digest --part between_rules|whole --file <path> | import --file <export outside this repository>'); process.exitCode = 1; return; }
   let file = process.env.MINDMAKE_OPT_OUTS_FILE || null;
   for (let i = 0; i < rest.length; i++) {
     if (rest[i] === '--file' && rest[i + 1]) file = rest[++i];
