@@ -3,6 +3,7 @@ import policy from '../../config/policy.json' with { type: 'json' };
 import { opening } from './openings.mjs';
 import { lookupState } from './pitches.mjs';
 import { briefTakers } from './compliance.mjs';
+import { companySites, companyFactsFor } from './company.mjs';
 
 /**
  * The five rows on Krish's home screen (protocol 1.6.0, playbook 11).
@@ -1516,7 +1517,7 @@ const KIND_NOUN = { investor: 'portfolio', ai_capital: 'investments', connector:
  * and from close ties gone quiet (network). Also the reach questions worth
  * asking: the top few with no cited figure, once a month each.
  */
-export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR, wins = null, research: researchIn = null, openingsRequired = false, personRoutes = false, openingKind = 'question', dealCatchups = false }) {
+export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR, wins = null, research: researchIn = null, openingsRequired = false, personRoutes = false, openingKind = 'question', dealCatchups = false, companyReads = false }) {
   const L = lessons(context.feedback, at, context.records?.drafts, briefTakers(context));
   // This run's research where the dispatch has it (the openings the desk wrote in this run), else the context's.
   const research = Array.isArray(researchIn) ? researchIn : Array.isArray(context.research) ? context.research : [];
@@ -1652,6 +1653,8 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
   if (dealCatchups && Array.isArray(context.records?.stale_deals)) for (const d of context.records.stale_deals) if (typeof d?.contact_id === 'string' && UUID.test(d.contact_id) && !staleOf.has(d.contact_id)) staleOf.set(d.contact_id, d);
   const served = new Set(ties.map(n => n?.contact_id));
   for (const id of staleOf.keys()) if (!served.has(id) && !seen.has(id)) held.push('deal_person_not_served');
+  // Plan item A2: the company site Control Center serves for a person, read by the desk only where their opening has nothing of their own to cite (src/stages/company.mjs).
+  const sites = companySites(context), companyWants = [];
   let dealCount = 0;
   for (const n of ties) {
     const id = n.contact_id;
@@ -1677,15 +1680,22 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     const reach = { value: null, band: 'unknown', basis: 'a relationship, not an audience', source_url: null, as_of: null };
     const company = companyAsWritten(n.current_company ?? n.contacts?.company ?? '', [n.who, n.hook, n.why_them]);
     const role = titleCase(cleanName(n.current_title ?? n.contacts?.title ?? ''));
-    const card = cardFor({ c: n, id, name, title: role, company, ask: 'relationship', kind: null, reach, fit, serves, canon, research, companyRow: companyOf.get(n.contacts?.company_domain) ?? null, quietSince: monthYear(new Date(last).toISOString()), at });
+    const cardArgs = { c: n, id, name, title: role, company, ask: 'relationship', kind: null, reach, fit, serves, canon, research, companyRow: companyOf.get(n.contacts?.company_domain) ?? null, quietSince: monthYear(new Date(last).toISOString()), at };
+    let card = cardFor(cardArgs);
     if (!card) { held.push('thin_card'); continue; }
     if (cardClash(card, company)) { held.push('facts_disagree'); if (profiles.length < 2) profiles.push({ c: n, name, company }); continue; }
     // One thing about them and the history between you: a catch-up with neither is a template, and is not written.
     // The catch-up is about one fact on the card, never their employer alone (Control Center's read of 6 November: six of eight were).
     // The opening is written by the desk from one fact on the card and read by fixed rules (src/stages/openings.mjs);
     // where the desk is open, one not written or not passing holds the catch-up, never a frame in its place.
-    const op = opening({ id, name, card: n, why: card.why, research, required: openingsRequired, at, kind: openingKind, last: monthYear(n.email_last) ?? monthYear(n.contacts?.last_touch_at) });
-    if (op.request) openingAsks.push({ score: fit * (1 + Math.min(2, (Date.parse(at) - last) / (365 * DAY))), request: op.request });
+    // Only where their own facts give none does one thing their company's own website says stand in, with its page on the card.
+    const site = sites.get(id.toLowerCase()) ?? null;
+    const siteFacts = site ? companyFactsFor({ site, research, at }) : [];
+    const op = opening({ id, name, card: n, why: card.why, research, required: openingsRequired, at, kind: openingKind, last: monthYear(n.email_last) ?? monthYear(n.contacts?.last_touch_at), company: siteFacts });
+    const askScore = fit * (1 + Math.min(2, (Date.parse(at) - last) / (365 * DAY)));
+    if (op.request) openingAsks.push({ score: askScore, request: op.request });
+    if (op.source) card = cardFor({ ...cardArgs, extraSources: [op.source] }) ?? card;
+    if (op.hold === 'opening_no_fact' && companyReads && site && !siteFacts.length) companyWants.push({ site, score: askScore });
     if (op.hold) { held.push(op.hold); continue; }
     const specific = op.sentence ?? specificOf(n, { why: card.why }), history = historyOf(n, { why: card.why });
     if (!specific) { held.push('nothing_specific'); continue; }
@@ -1725,7 +1735,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
   })).filter(r => !research.some(x => x.request_id === r.request_id));
   // Openings first, for the ties likeliest to be shown: at most OPENINGS_PER_RUN a run, each asked once (its id replays).
   const opening_requests = openingAsks.sort((a, b) => b.score - a.score).map(a => a.request).slice(0, openingKind === 'write' ? WRITES_PER_RUN : OPENINGS_PER_RUN);
-  return { rows: out, held, research: [...opening_requests, ...research_requests, ...profile_requests, ...channel_requests], lookups: personLooks, found, deal_catchups: dealCount };
+  return { rows: out, held, research: [...opening_requests, ...research_requests, ...profile_requests, ...channel_requests], lookups: personLooks, found, deal_catchups: dealCount, ...(companyReads ? { company_reads: companyWants } : {}) };
 }
 
 /** The title on his phone. At 1.7.0 (max 56) the line under it says who they are, so the company is left off. */

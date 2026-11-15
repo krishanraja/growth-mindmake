@@ -33,6 +33,26 @@ function cut(text, max) {
  * the card holds none. Pure.
  */
 export function openingFact(c, why = []) {
+  return openingFactWithSource(c, why).fact;
+}
+
+/**
+ * The one fact and where it came from. The person's own facts come first
+ * (openingFact's order); only where they give none is a fact their company's
+ * own website says about itself used (src/stages/company.mjs companyFacts,
+ * each already labelled as read from that site): of those that say nothing
+ * about the research, Krish or praise, the first that `fits` the ask whole,
+ * else the first, with its page as `source`. Pure.
+ */
+export function openingFactWithSource(c, why = [], company = [], fits = () => true) {
+  const own = personFact(c, why);
+  if (own) return { fact: own, source: null };
+  const usable = (Array.isArray(company) ? company : []).filter(f => typeof f?.text === 'string' && f.text.trim() && typeof f.url === 'string' && !NOT_THEIRS.test(f.text) && !PRAISE.test(f.text));
+  const f = usable.find(x => fits(cut(x.text, 200))) ?? usable[0];
+  return f ? { fact: cut(f.text, 200), source: { label: f.label ?? 'Their own site', url: f.url } } : { fact: '', source: null };
+}
+
+function personFact(c, why = []) {
   const facts = Array.isArray(c?.facts) ? c.facts : [];
   const post = facts.map(f => (f?.kind === 'post' ? String(f?.text ?? f?.value ?? '') : '')).map(t => /^Posted: "(.+)"$/.exec(t)?.[1] ?? '')
     .map(q => q.replace(/[\p{Extended_Pictographic}\u2100-\u214f\ufe0f\u200d]/gu, '').replace(/\s+/g, ' ').trim())
@@ -256,15 +276,19 @@ export function validOpening(text, { name = '', fact = '', show = '' } = {}) {
  * in, or one that fails the rules, holds the email. Elsewhere (a dry run, a
  * test, a desk that is closed) the caller's own sentence stands. Pure.
  */
-export function opening({ id, name, card, why = [], research, required = false, purpose = 'catchup', show = '', at = null, kind = 'question', last = null }) {
-  const fact = openingFact(card, why);
+export function opening({ id, name, card, why = [], research, required = false, purpose = 'catchup', show = '', at = null, kind = 'question', last = null, company = [] }) {
+  // A fact their company's own website says comes only where the person's own give none (`company`, src/stages/company.mjs).
+  // A company fact is taken whole where one fits the desk's 400 characters, as a person's is cut to fit.
+  const whole = text => { const q = openingQuery({ name, fact: text, purpose, show, last }); return !!q && q.includes(String(text).replace(/[.!?\s]+$/, '')); };
+  const { fact, source } = openingFactWithSource(card, why, company, whole);
   if (!fact) return { request: null, sentence: null, hold: required ? 'opening_no_fact' : null };
+  const from = source ? { source } : {};
   const request = openingRequest({ id, name, fact, purpose, show, research, at, kind, last });
   const validate = text => purpose === 'catchup' ? validCatchUp(text, { name, fact, last: last ?? '' }) : validOpening(text, { name, fact, show });
   const got = deskSentence({ request, research, at, validate, retryQuery: note => openingQuery({ name, fact, purpose, show, last, note }) });
-  if (got.state === 'ok') return { request: null, sentence: got.sentence, hold: null };
-  if (got.state === 'waiting') return { request: required ? got.request : null, sentence: null, hold: required ? 'opening_waiting' : null, ...(got.retry ? { reason: got.retry } : {}) };
-  return { request: null, sentence: null, hold: required ? 'opening_failed' : null, reason: got.reason };
+  if (got.state === 'ok') return { request: null, sentence: got.sentence, hold: null, ...from };
+  if (got.state === 'waiting') return { request: required ? got.request : null, sentence: null, hold: required ? 'opening_waiting' : null, ...(got.retry ? { reason: got.retry } : {}), ...from };
+  return { request: null, sentence: null, hold: required ? 'opening_failed' : null, reason: got.reason, ...from };
 }
 
 // ── A warm buyer's note (Ruling, Krish, 2026-11-13: the full-funnel engine) ──

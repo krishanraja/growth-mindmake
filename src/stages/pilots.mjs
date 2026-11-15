@@ -5,6 +5,7 @@ import { rowProposal, actionFor, cardFor, caseFor, cardClash, titleFor, lessons,
   companyAsWritten, titleCase, servesOf, seniorityOf, leadFacts, hostOf, lastContact, NOT_A_SOURCE, CARD_LINE_MAX, TITLE_MAX, PER_ROW } from './rows.mjs';
 import { buyerNote, tidySignal } from './openings.mjs';
 import { briefTakers } from './compliance.mjs';
+import { companySites, companyFactsFor, companyReadOnFile } from './company.mjs';
 
 /**
  * The pilot machine, moved out of Control Center (plan section 12, M6;
@@ -384,15 +385,34 @@ export function triggerAsksToday(research, at) {
   return (Array.isArray(research) ? research : []).filter(r => /^trigger:/.test(String(r?.request_id ?? '')) && r.status !== 'over_cap' && askedOn(r) === today).length;
 }
 
+/** The longest company fact a warm note's ask carries whole, with a first name of average length (buyerQuery's room). */
+const SITE_FACT_MAX = 110;
+
+/**
+ * Whether this London month's trigger question for one person has been run
+ * by the desk (`answered`, a nothing found included, or `empty`): only then
+ * is their company's own site a reason to write, the cited news having come
+ * first. Pure.
+ */
+export function triggerSettled(id, research, at) {
+  const base = `trigger:${key(id)}:${monthOf(at)}`;
+  return (Array.isArray(research) ? research : []).some(r => typeof r?.request_id === 'string' && (r.request_id.toLowerCase() === base || r.request_id.toLowerCase().startsWith(`${base}:`)) && ['answered', 'empty'].includes(r.status));
+}
+
 /**
  * The freshest cited trigger for one warm buyer, or null: the Advisory row's
  * stored quote or its growth_context's, the person's stored intent or one of
  * their dated posts (triggerFromIntent), or an answer to this engine's own
  * trigger question (triggerFromResearch, dated by when it was answered).
  * Only a source the card can show counts, and only inside INTENT_LIVE_DAYS of
- * the run. Pure.
+ * the run. Lowest of all (plan item A2), and only once the month's trigger
+ * question has been run with no reason found (triggerSettled): one thing
+ * their company's own website says about itself, read by the desk from the
+ * company site Control Center serves for them (`site`, src/stages/company.mjs),
+ * labelled as read from that site, with its page as the source and
+ * `kind: 'company_site'`. Pure.
  */
-export function pilotTrigger({ row, person, research = [], at }) {
+export function pilotTrigger({ row, person, research = [], at, site = null }) {
   const found = [];
   const add = t => { if (t && showable(t)) found.push(t); };
   add(triggerFromIntent(row, at));
@@ -410,7 +430,14 @@ export function pilotTrigger({ row, person, research = [], at }) {
     const age = Date.parse(at) - Date.parse(when);
     if (trigger && age >= 0 && age <= INTENT_LIVE_DAYS * DAY) add(trigger);
   }
-  return found.sort((a, b) => Date.parse(b.found_at) - Date.parse(a.found_at) || a.url.localeCompare(b.url))[0] ?? null;
+  const best = found.sort((a, b) => Date.parse(b.found_at) - Date.parse(a.found_at) || a.url.localeCompare(b.url))[0] ?? null;
+  if (best || !site || !triggerSettled(id, research, at)) return best;
+  const read = companyReadOnFile(research, site, at);
+  // The page's fullest words that the note's ask can carry whole, else the first, cut to fit as any trigger is (buyerQuery).
+  const facts = companyFactsFor({ site, research, at }).filter(f => showable({ url: f.url }));
+  const fact = facts.find(f => f.text.length <= SITE_FACT_MAX) ?? facts[0];
+  if (!read || !fact) return null;
+  return { signal: tidySignal(fact.text).slice(0, 300), url: fact.url, found_at: read.answered_at ?? read.requested_at ?? at, kind: 'company_site' };
 }
 
 /**
@@ -562,7 +589,7 @@ function peopleOf(context) {
  * Returns { rows: [{ score, proposal }], held: [reason], research: [request],
  * counts }. Pure.
  */
-export function pilotRows({ context, canon, research: researchIn = null, at, files = [], titleMax = TITLE_MAX, lane = { on: true, max: PER_ROW }, taken = new Set(), required = false, kind = 'question', weekGoals = [], fitFloor } = {}) {
+export function pilotRows({ context, canon, research: researchIn = null, at, files = [], titleMax = TITLE_MAX, lane = { on: true, max: PER_ROW }, taken = new Set(), required = false, kind = 'question', weekGoals = [], fitFloor, companyReads = false } = {}) {
   const rows = [], held = [], requests = [], profiles = [];
   // This run's research where the dispatch has it, else the context's.
   const research = Array.isArray(researchIn) ? researchIn : Array.isArray(context?.research) ? context.research : [];
@@ -581,6 +608,8 @@ export function pilotRows({ context, canon, research: researchIn = null, at, fil
   const askRoom = Math.max(0, Math.min(TRIGGER_ASKS_PER_RUN, TRIGGER_ASKS_PER_DAY - triggerAsksToday(research, at)));
   let inHand = 0, asks = 0;
   const hold = reason => held.push(reason);
+  // Plan item A2: the company site Control Center serves for a person, read by the desk for a buyer with no reason to write (src/stages/company.mjs).
+  const sites = companySites(context), companyWants = [];
   for (const row of listed) {
     const id = row.contact_id;
     if (typeof id !== 'string' || !UUID.test(id) || seen.has(key(id))) continue;
@@ -617,22 +646,27 @@ export function pilotRows({ context, canon, research: researchIn = null, at, fil
     if (!['verified', 'unchecked'].includes(routes[id]?.email)) { hold('no_email'); continue; }
     if (inHand >= max) { hold('batch_full'); continue; }
     const company = companyAsWritten(person.current_company ?? person.contacts?.company ?? '', [person.who, person.hook, person.why_them]);
-    const trigger = pilotTrigger({ row, person, research, at });
+    const site = sites.get(key(id)) ?? null;
+    const trigger = pilotTrigger({ row, person, research, at, site });
     if (!trigger) {
       hold('no_trigger'); counts.no_trigger++;
       const q = triggerRequest({ id, name, company, title: title ?? '', at, research });
       if (q && asks < askRoom && !requests.some(r => r.request_id === q.request_id)) { requests.push(q); asks++; counts.asked++; }
+      // Their company's own site is read alongside, so a month's question that finds nothing still leaves one thing to write from.
+      if (companyReads && site && !companyFactsFor({ site, research, at }).length) companyWants.push({ site, score: PILOT_SCORE - companyWants.length });
       continue;
     }
     const signal = tidySignal(trigger.signal);
+    // A reason read from their company's own site says so in its own words, never as news.
+    const fromSite = trigger.kind === 'company_site', nowWord = fromSite ? '' : 'Why now: ';
     const role = titleCase(cleanName(title ?? person.current_title ?? person.contacts?.title ?? ''));
     // Why now, said with its page, and why this person, in the stored judgment's own words (whyFace).
-    const nowLine = [`Why now: ${signal}`, signal].find(l => l.length <= CARD_LINE_MAX) ?? '';
+    const nowLine = [`${nowWord}${signal}`, signal].find(l => l.length <= CARD_LINE_MAX) ?? '';
     const face = whyFace({ title: role, company, who: row.who ?? person.who, why_them: row.why_them ?? person.why_them });
     const themLine = face === 'In your network, no stored judgment yet.' ? '' : leadFacts(face, CARD_LINE_MAX);
     const reach = { value: null, band: 'unknown', basis: ask === 'buyer' ? 'a buyer, not an audience' : 'a connector, not an audience', source_url: null, as_of: null };
     const fit = fitOf(person), serves = servesOf('reach_out', weekGoals);
-    const card = cardFor({ c: person, id, name, title: role, company, ask, kind: null, reach, fit, serves, canon, research, at, lead: [nowLine, themLine], extraSources: [{ label: `Why now: ${hostOf(trigger.url) || 'source'}`, url: trigger.url }] });
+    const card = cardFor({ c: person, id, name, title: role, company, ask, kind: null, reach, fit, serves, canon, research, at, lead: [nowLine, themLine], extraSources: [{ label: `${fromSite ? 'Their own site' : 'Why now'}: ${hostOf(trigger.url) || 'source'}`, url: trigger.url }] });
     if (!card) {
       hold('thin_card');
       if (profiles.length < PILOT_PROFILES_PER_RUN) profiles.push({ request_id: `profile:${id}:${month}`, kind: 'question', subject_ref: `contact:${id}`, query: clean(`Who is ${name}${company ? ` of ${company}` : ''}? In two or three sentences: their role, what their organisation does, and one recent public fact about their work, each with its source and date.`).slice(0, 400), why: clean(`Fills the card Krish reads before deciding whether to contact ${name}.`).slice(0, 300) });
@@ -656,15 +690,15 @@ export function pilotRows({ context, canon, research: researchIn = null, at, fil
       // Its own id and close: the play, the person and the month of the reason to write, never an amplifier's ask to the same person.
       play: ask === 'buyer' ? 'warm_ask' : 'intro_ask', month: monthOf(trigger.found_at),
       title: titleFor(ask, null, name, company, titleMax),
-      why: `${name}${company ? ` (${company})` : ''} is listed in Advisory as ${ask === 'buyer' ? 'a buyer' : 'someone to ask for one introduction'}, on his two closest tiers. Why now: ${signal} Source: ${trigger.url}. The one ask: ${canon.ask.label}.`,
+      why: `${name}${company ? ` (${company})` : ''} is listed in Advisory as ${ask === 'buyer' ? 'a buyer' : 'someone to ask for one introduction'}, on his two closest tiers. ${nowWord}${signal} Source: ${trigger.url}. The one ask: ${canon.ask.label}.`,
       because: told.because, brief: told.brief, card,
       // The desk's one sentence in its fixed frame, then the canon's one link as the canon gives it: never tagged in a one-to-one note.
       action: actionFor('email', id, name, { subject, lines: [note.note, canon.ask.url] }),
       reach, kind: null, features: { sector: null, topic: null, seniority: seniorityOf(role) }, serves,
-      evidence: [{ label: clean(`Why now: ${signal}`).slice(0, 500), url: trigger.url }],
+      evidence: [{ label: clean(`${nowWord}${signal}`).slice(0, 500), url: trigger.url }],
     }) });
   }
-  return { rows, held, research: [...requests, ...profiles.filter(p => !research.some(r => r?.request_id === p.request_id))], counts };
+  return { rows, held, research: [...requests, ...profiles.filter(p => !research.some(r => r?.request_id === p.request_id))], counts, ...(companyReads ? { company_reads: companyWants } : {}) };
 }
 
 /** Why a warm buyer is held, in words, for the codes that each get a line of their own. */
