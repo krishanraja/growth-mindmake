@@ -30,17 +30,16 @@ One JSON file of 6 KB (6,144 bytes) or less. A real card lives at `specs/cards/<
 1. **Write the card** in a build session and check it: `node scripts/dispatch-card.mjs --card specs/cards/<id>.json --check`. It prints the card's digest, the SHA-256 of its canonical JSON.
 2. **Ask his yes** on his Control Center list, on that digest. A changed card has a new digest and needs a new yes. The question goes into the Monday ask unless the guard needs it sooner; never a mid-turn question.
 3. **Read usage** in his local session and write it to a file: `{ "read_at": "<ISO time>", "source": "<where it was read>", "used_percent": <0 to 100> }`.
-4. **Run the guard** on his PC: `node scripts/dispatch-card.mjs --card specs/cards/<id>.json --usage <file> --approval <decision-id>:<digest> --plugin <codex plugin dir>`. It refuses, by name, an invalid or oversized card (`card_invalid`, `card_too_large`), an unknown reading (`usage_unknown`), a reading not newer than the last dispatched card or over a day old (`usage_stale`), usage above 80% (`usage_above_80`), and a missing, mismatched or reused yes (`no_approval`, `approval_mismatch`, `approval_used`). On a pass it records the dispatch in `runtime/codex/ledger.json` and prints the lines to run, in order:
+4. **Run the guard** on his PC: `node scripts/dispatch-card.mjs --card specs/cards/<id>.json --usage <file> --approval <decision-id>:<digest>`. It refuses, by name, an invalid or oversized card (`card_invalid`, `card_too_large`), an unknown reading (`usage_unknown`), a reading not newer than the last dispatched card or over a day old (`usage_stale`), usage above 80% (`usage_above_80`), and a missing, mismatched or reused yes (`no_approval`, `approval_mismatch`, `approval_used`). On a pass it records the dispatch in `runtime/codex/ledger.json` and prints the lines to run, in order:
 
 ```
 git worktree add -b codex/<id> ../growth-mindmake-codex-<id> main
-node <plugin>/scripts/codex-companion.mjs task --background --fresh --write --model <pinned> --effort <pinned> --cwd ../growth-mindmake-codex-<id> --prompt-file specs/cards/<id>.json
-node <plugin>/scripts/codex-companion.mjs status --wait
-node <plugin>/scripts/codex-companion.mjs result
+node scripts/codex_thread.mjs open --cwd ../growth-mindmake-codex-<id> --sandbox workspace-write --model <pinned> --effort <pinned> "Codex card <id>: do exactly what the task card at <absolute card path> says, in this worktree only, then reply with the JSON its returns block describes."
+node scripts/codex_thread.mjs read <thread id that open printed>
 node scripts/verify-card.mjs --card specs/cards/<id>.json --worktree ../growth-mindmake-codex-<id>
 ```
 
-   Never the codex-rescue subagent. This repository never runs Codex itself.
+   Codex starts only through `scripts/codex_thread.mjs`, a byte-for-byte copy of ai-harness's canonical one (Ruling, Krish, 2026-11-15): `open` makes a permanent thread in his Codex Desktop recents, runs the card as its first turn, prints the thread id and releases the thread, so he can watch it and type in it; `send <thread> "<message>"` adds a turn; `read` prints every turn, his included. Never the Codex plugin's long-running server and never the codex-rescue subagent. Run it from a session on his PC: a cloud container makes no thread he can see. If Codex cannot start, say so in one line and stop; never edit MCP or Claude settings to work around it. This repository never runs Codex itself.
 
 5. **Verify outside the sandbox.** `scripts/verify-card.mjs` checks the card again and the branch, lists every changed file against main (committed, unstaged, untracked and both sides of a move), fails on any outside `write_allow` or on no change at all, then re-runs the card's acceptance commands and the seven repository checks in the worktree. It exits 0 only when every step passes. It takes no report: Codex's own account is never read as evidence.
 6. **Deliver** as any change here: one pull request from `codex/<id>`, its checks green, merged by the session just after a morning run.

@@ -19,7 +19,7 @@
  *     made on, which must be this card's digest (`approval_mismatch`) and
  *     must not have dispatched a card before (`approval_used`).
  *
- *   node scripts/dispatch-card.mjs --card <file> --usage <file> --approval <decision-id>:<sha256> [--plugin <dir>]
+ *   node scripts/dispatch-card.mjs --card <file> --usage <file> --approval <decision-id>:<sha256>
  *   node scripts/dispatch-card.mjs --card <file> --check      (validate and print the digest to ask his yes on)
  *
  * The usage file is `{ "read_at": "<ISO time>", "source": "<where it was read>", "used_percent": <0 to 100> }`.
@@ -78,14 +78,20 @@ export function parseApproval(text) {
   return m && DECISION.test(m[1]) ? { decision_id: m[1], payload_sha256: m[2] } : null;
 }
 
-/** The command lines for his local Claude Code session. Pure. */
-export function commandLines(card, { cardPath, plugin = '<plugin>' }) {
-  const companion = `node ${plugin}/scripts/codex-companion.mjs`;
+/**
+ * The command lines for his local Claude Code session. Pure. Codex starts only
+ * through scripts/codex_thread.mjs (Ruling, Krish, 2026-11-15): `open` makes a
+ * permanent thread in his Codex Desktop recents, titled by the message's first
+ * line, runs the card as its first turn, prints the thread id and releases the
+ * thread, so he can watch it and type in it; `read` prints every turn, his
+ * included. Never the Codex plugin's long-running server.
+ */
+export function commandLines(card, { cardPath, cardFile = cardPath }) {
+  const message = `Codex card ${card.id}: do exactly what the task card at ${cardFile} says, in this worktree only, then reply with the JSON its returns block describes.`;
   return [
     `git worktree add -b ${card.worktree.branch} ${card.worktree.dir} ${card.worktree.from}`,
-    `${companion} task --background --fresh --write --model ${card.model.name} --effort ${card.model.effort} --cwd ${card.worktree.dir} --prompt-file ${cardPath}`,
-    `${companion} status --wait`,
-    `${companion} result`,
+    `node scripts/codex_thread.mjs open --cwd ${card.worktree.dir} --sandbox workspace-write --model ${card.model.name} --effort ${card.model.effort} "${message}"`,
+    'node scripts/codex_thread.mjs read <thread id that open printed>',
     `node scripts/verify-card.mjs --card ${cardPath} --worktree ${card.worktree.dir}`
   ];
 }
@@ -95,7 +101,7 @@ export function commandLines(card, { cardPath, plugin = '<plugin>' }) {
  * files and keeps the ledger. Returns the refusal, or the digest, the
  * command lines and the ledger entry to record.
  */
-export function guard({ card, text, usage, approval, ledger = [], now, cardPath, plugin }) {
+export function guard({ card, text, usage, approval, ledger = [], now, cardPath, cardFile }) {
   if (typeof text !== 'string' || Buffer.byteLength(text, 'utf8') > CARD_MAX) return refuse('card_too_large', `The card is ${typeof text === 'string' ? Buffer.byteLength(text, 'utf8') : 'an unknown number of'} bytes; a card is ${CARD_MAX} or fewer.`);
   const errors = card && typeof card === 'object' ? cardErrors(card, text) : ['the card is not a JSON object'];
   if (errors.length) return refuse('card_invalid', errors.slice(0, 5).join('; '));
@@ -108,7 +114,7 @@ export function guard({ card, text, usage, approval, ledger = [], now, cardPath,
   if (approval.payload_sha256 !== digest) return refuse('approval_mismatch', `His yes was made on ${approval.payload_sha256}, not on this card's digest ${digest}; the card changed or the yes is for another card.`);
   if (list.some(e => e.decision_id === approval.decision_id)) return refuse('approval_used', `Decision ${approval.decision_id} already dispatched a card; each card needs its own yes.`);
   const entry = { card_id: card.id, card_sha256: digest, decision_id: approval.decision_id, usage: { read_at: usage.read_at, source: usage.source, used_percent: usage.used_percent }, dispatched_at: new Date(now).toISOString() };
-  return { ok: true, digest, bytes: Buffer.byteLength(text, 'utf8'), lines: commandLines(card, { cardPath, plugin }), entry };
+  return { ok: true, digest, bytes: Buffer.byteLength(text, 'utf8'), lines: commandLines(card, { cardPath, cardFile }), entry };
 }
 
 function args(argv) {
@@ -116,7 +122,7 @@ function args(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--check') { out.check = true; continue; }
-    if (!['--card', '--usage', '--approval', '--plugin', '--at', '--ledger'].includes(a)) throw new Error(`Unknown argument ${a}`);
+    if (!['--card', '--usage', '--approval', '--at', '--ledger'].includes(a)) throw new Error(`Unknown argument ${a}`);
     out[a.slice(2)] = argv[++i];
   }
   return out;
@@ -141,13 +147,13 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       const ledgerFile = resolve(root, a.ledger ?? LEDGER);
       let ledger = [];
       try { ledger = JSON.parse(await readFile(ledgerFile, 'utf8')); } catch (e) { if (e.code !== 'ENOENT') throw new Error('The dispatch ledger cannot be read; nothing is dispatched until it can.'); }
-      const r = guard({ card, text, usage, approval: parseApproval(a.approval), ledger, now: a.at ?? new Date().toISOString(), cardPath: a.card, plugin: a.plugin });
+      const r = guard({ card, text, usage, approval: parseApproval(a.approval), ledger, now: a.at ?? new Date().toISOString(), cardPath: a.card, cardFile: resolve(a.card) });
       if (!r.ok) fail(r.reason, r.detail);
       else {
         await mkdir(dirname(ledgerFile), { recursive: true });
         await writeFile(ledgerFile, JSON.stringify([...ledger, r.entry], null, 2) + '\n');
         console.log(`PASS: card ${card.id} (${r.bytes} bytes, digest ${r.digest}) may go to Codex. Usage ${usage.used_percent}% at ${usage.read_at} from ${usage.source}; his yes is decision ${r.entry.decision_id}. Recorded in ${a.ledger ?? LEDGER}.`);
-        console.log(`Run these in a Claude Code session on Krish's PC, from the main checkout. Check first that ${card.model.name} is on Codex's own model list; never the codex-rescue subagent.`);
+        console.log(`Run these in a Claude Code session on Krish's PC, from the main checkout. Check first that ${card.model.name} is on Codex's own model list; never the codex-rescue subagent. Codex starts only through scripts/codex_thread.mjs; if it cannot start, say so in one line and stop, never editing MCP or Claude settings to work around it.`);
         for (const l of r.lines) console.log(`  ${l}`);
       }
     }

@@ -52,6 +52,7 @@ Each is in docs/RULINGS.md word for word, with his quotes; a line here says what
 - Krish instructs each engine, and its state is live (Ruling, Krish, 2026-11-11): his next best action goes first in the run that reads it and is acked by id, his words are never printed, logged or committed, the engine reports its priorities, obsessions and next steps from its own files, and no wall moves.
 - The full-funnel engine (Rulings, Krish, 2026-11-13): cold outbound within the law, Maven lessons every two weeks, morning drafts in his Gmail, and his personal LinkedIn.
 - One address (Ruling, Krish, 2026-11-14): krish@mindmake.co is the one email a stage form is given for him, as everything in the OS sends and replies from it.
+- Codex starts only through codex_thread (Ruling, Krish, 2026-11-15): a Codex card runs through scripts/codex_thread.mjs (open, send, read), a copy of ai-harness's canonical one, so the thread shows in his Codex Desktop; never the Codex plugin's long-running server, and a failure to start is reported in one line, never worked around by editing MCP or Claude settings.
 - Nothing from outside is named (Ruling, Krish, 2026-11-15): the engine's code, rules and words are its own, and from 15 November no file, comment, test, commit or document names an outside source for them; no wall moves.
 
 ## Current release boundary
