@@ -47,7 +47,7 @@ import { wins as readWins, winsLine } from './stages/wins.mjs';
 import { poolOf, lanesLine, laneHistory, starvedLanes, poolFlat, starvedProposal, sourcingRequests, checkIn, stoppedPlans, STARVED_RUNS, CHECK_IN_DAYS, CHECK_IN_PREFIX, STARVED_PREFIX, CAPPED } from './stages/momentum.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
 import { voiceHolds, voiceHoldLine } from './stages/voice.mjs';
-import { readGate, coldGateFor, gateLine, isColdHold } from './stages/compliance.mjs';
+import { readGate, coldGateFor, gateLine, isColdHold, footerOf } from './stages/compliance.mjs';
 import { readInstruction, takesEngineState, rowGoals, instructionSeen, lastAck, instructionWork, priorities, obsessions, nextSteps, engineState, ENGINE_STATE_VERSION, ENGINE_STATE_KEYS } from './stages/instruction.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
@@ -996,9 +996,11 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const launchDate = activatedOn && /^\d{4}-\d{2}-\d{2}$/.test(activatedOn) && activatedOn <= today ? activatedOn : undefined;
     let batch = null, work = null;
     // The cold compliance gate (GET-GOING 1.2), read back from its own files once a run, before any cold note: the snapshot
-    // route's cold mode and the named_cold motion both pass it. A gate that cannot be read holds every cold note.
+    // route's cold mode and the named_cold motion both pass it. A gate that cannot be read holds every cold note. Control
+    // Center's footer is read back from its capabilities this run: only exactly the approved footer, with the one-click
+    // link and the STOP reply, lets a cold note through (Ruling, Krish, 2026-11-15).
     let gate = null;
-    try { gate = await complianceReader({ at }); } catch { gate = null; }
+    try { gate = await complianceReader({ at, footer: footerOf(capabilities) }); } catch { gate = null; }
     const coldGate = coldGateOf(gate);
     if (snapshot) {
       try {

@@ -279,3 +279,13 @@ In his words (15 November, choosing how the morning drafts' check starts): "Hold
 - An email for his own box with a name, number or quotation on neither the person's nor the company's record is held from the start (`morning_claim_untraced`), because it goes out in his name.
 - An email over 80 words is counted in one activity line and still proposed (`MORNING_LENGTH_HOLDS` false). It holds only once he has read a week of counts and says so.
 - No wall moves.
+
+## Cold email: one click or STOP deletes the address (Rulings, Krish, 2026-11-15)
+
+In his words (15 November): "cold email is fine, it just needs a one click opt out/STOP which purges the email address from my database permanently". Asked for the old Instantly and Apollo opt-out exports, in his words: "nobody in those lists had opted out".
+
+- Cold email needs no outside reviewer: his waiver is recorded in config/compliance.json (`reviewer: { waived_on: "2026-11-15", by: "krish" }`), and only his own waiver closes it (src/stages/compliance.mjs `reviewerOf`).
+- Every cold email carries a one-click opt-out and a STOP reply, either of which purges the address from his database permanently, keeping only a one-way fingerprint so it is never added again. Control Center adds the footer, holds the link and does the purge; this engine proposes a cold email only where Control Center serves exactly the footer he approved, by digest, with both (`footerHold`).
+- He approved, as written, the footer words, the privacy page section for mindmake.co and the legitimate-interests assessment, each recorded by digest; the texts stay private.
+- Nobody in the old Instantly and Apollo lists had opted out, so there is nothing to import: `old_opt_outs: { none_on: "2026-11-15", by: "krish" }` closes `opt_outs_not_imported` (`noOldOptOutsOf`).
+- No wall moves: a cold email is still drafted into his own box for his send.

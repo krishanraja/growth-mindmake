@@ -1,10 +1,11 @@
 {
   "version": 1,
-  "note": "The cold compliance gate's record of Krish's four approvals (docs/GET-GOING.md 1.2; src/stages/compliance.mjs). Each stays null until he approves it; then it is { \"approved_on\": \"YYYY-MM-DD\", \"sha256\": \"<64 hex>\" }, the day of his yes and the SHA-256 of exactly what he approved, recorded in the change that carries his ruling line. The words, the assessment and the reviewer's name stay private; this public file holds digests only. Nothing cold is drafted while any is null.",
+  "note": "The cold compliance gate's record of Krish's word (docs/GET-GOING.md 1.2; src/stages/compliance.mjs). footer_words, privacy_section and legitimate_interests are { \"approved_on\": \"YYYY-MM-DD\", \"sha256\": \"<64 hex>\" }: the day of his yes and the SHA-256 of exactly what he approved (npm run compliance -- digest), recorded in the change that carries his ruling line. reviewer is a named reviewer's review the same way, or his waiver { \"waived_on\", \"by\": \"krish\" } (Ruling, Krish, 2026-11-15: cold email needs no outside reviewer). old_opt_outs is his word { \"none_on\", \"by\": \"krish\" } that nobody in the old Instantly and Apollo lists had opted out (Ruling, Krish, 2026-11-15), or null until he imports them. The words, the assessment and the lists stay private; this public file holds digests and dates only. Nothing cold is drafted while any is open, nor until Control Center serves exactly the approved footer.",
   "krish": {
-    "footer_words": null,
-    "privacy_section": null,
-    "legitimate_interests": null,
-    "reviewer": null
+    "footer_words": { "approved_on": "2026-11-15", "sha256": "23f01b403a3e48db9b3436dfbd7b77a972ce3d4df8ad9ed9ad7f39e5bacf4033" },
+    "privacy_section": { "approved_on": "2026-11-15", "sha256": "2ddfa3ad06f0ea2d3117f87ed3f27d4ed2f8f4eb3caf4fc18bc7380f60999c16" },
+    "legitimate_interests": { "approved_on": "2026-11-15", "sha256": "adf046cc3dea4f1a11d47041859e0c58c8e523cd862b95a7e238563d4186851c" },
+    "reviewer": { "waived_on": "2026-11-15", "by": "krish" },
+    "old_opt_outs": { "none_on": "2026-11-15", "by": "krish" }
   }
 }

@@ -10,7 +10,8 @@ import { createHash } from 'node:crypto';
 import {
   plainAddress, domainOf, companyHost, sharedMailbox, countryOf, subscriberOf, coldVerdict, gateState, readGate, approvalOf,
   parseOptOuts, addOptOuts, parseOptOutRecord, coldGateFor, closedGate, CLOSED, gateLine, briefTakers, KRISH_ITEMS,
-  GATE_HOLDS, CANDIDATE_HOLDS, COUNTRIES, CONFIG_PATH, OPT_OUTS_PATH,
+  GATE_HOLDS, CANDIDATE_HOLDS, COUNTRIES, CONFIG_PATH, OPT_OUTS_PATH, KRISH_KEYS, FOOTER_HOLDS,
+  reviewerOf, noOldOptOutsOf, footerOf, footerHold, whoseHolds, coldActionHold, approvedText, approvedDigest,
 } from '../src/stages/compliance.mjs';
 import { analyse, scoreProspect, SCORERS, SCORE_FLOOR, POINTS } from '../src/stages/qualify.mjs';
 import { plan } from '../src/orchestrator.mjs';
@@ -30,7 +31,10 @@ const approved = (n = 1) => ({ approved_on: DAY, sha256: sha(`synthetic approval
 const allApproved = () => ({ version: 1, krish: { footer_words: approved(1), privacy_section: approved(2), legitimate_interests: approved(3), reviewer: approved(4) } });
 const NOW = '2026-11-15T12:00:00Z';
 const optOuts = (text = 'email\nleft@harborline.test\n') => addOptOuts(null, { text, at: NOW }).record;
-const openGate = (text) => gateState({ config: allApproved(), optOuts: optOuts(text), at: NOW });
+/** Control Center's capabilities serving cold email with a footer of this digest (protocol 1.39.0). */
+const served = (sha256 = approved(1).sha256, over = {}) => ({ features: { cold_email: true }, cold_email: { footer_sha256: sha256, one_click: true, stop_reply: true, ...over } });
+const FOOTER = footerOf(served());
+const openGate = (text) => gateState({ config: allApproved(), optOuts: optOuts(text), at: NOW, footer: FOOTER });
 const usBuyer = (x = {}) => ({ subject_ref: 'contact:11111111-1111-4111-8111-111111111111', source: 'https://northwind.test/team', country: 'US', email: 'dana@northwind.test', company_domain: 'northwind.test', status: null, opted_out: false, brief_taker: false, ...x });
 
 // ── One address, read strictly ───────────────────────────────────────────────
@@ -79,6 +83,7 @@ test('a country is read only from a code or its own name; a city or a region is 
   assert.equal(subscriberOf('Limited company'), 'corporate');
   assert.equal(subscriberOf('sole trader'), 'individual');
   assert.equal(subscriberOf('partnership'), 'individual');
+  for (const v of ['Sole proprietor', 'sole-proprietorship', 'self employed', 'Freelancer', 'General partnership', 'unincorporated']) assert.equal(subscriberOf(v), 'individual', v);
   assert.equal(subscriberOf('unsure'), null);
 });
 
@@ -90,7 +95,10 @@ test('an open gate allows a US business address and UK corporate subscribers on 
   assert.deepEqual(coldVerdict(usBuyer({ country: 'GB', subscriber: 'corporate' }), gate).holds, []);
   const held = (x, code) => { const v = coldVerdict(usBuyer(x), gate); assert.equal(v.allowed, false); assert.ok(v.holds.includes(code), `${code}: ${v.holds}`); };
   held({ country: 'GB' }, 'subscriber_unknown');
+  held({ country: 'GB', subscriber: 'not on record' }, 'subscriber_unknown');
   held({ country: 'GB', subscriber: 'sole_trader' }, 'individual_subscriber');
+  held({ country: 'GB', subscriber: 'partnership' }, 'individual_subscriber');
+  held({ country: 'GB', subscriber: 'Sole proprietor' }, 'individual_subscriber');
   held({ country: 'CA' }, 'country_not_allowed');
   held({ country: 'France' }, 'country_unknown');
   held({ country: undefined }, 'country_unknown');
@@ -144,9 +152,9 @@ test('the eligibility record carries what playbook 09 asks for and never an addr
 test("Krish's four are holds by name until each is recorded with a real day and a digest; a future day or a bad digest is no approval", () => {
   const none = gateState({ config: { version: 1, krish: { footer_words: null, privacy_section: null, legitimate_interests: null, reviewer: null } }, optOuts: null, at: NOW });
   assert.equal(none.open, false);
-  assert.deepEqual(none.holds, ['footer_words_unapproved', 'privacy_section_unapproved', 'legitimate_interests_unassessed', 'reviewer_unnamed', 'opt_outs_not_imported']);
+  assert.deepEqual(none.holds, ['footer_words_unapproved', 'privacy_section_unapproved', 'legitimate_interests_unassessed', 'reviewer_unnamed', 'opt_outs_not_imported', 'cold_footer_unread']);
   const partial = allApproved(); partial.krish.reviewer = null;
-  assert.deepEqual(gateState({ config: partial, optOuts: optOuts(), at: NOW }).holds, ['reviewer_unnamed']);
+  assert.deepEqual(gateState({ config: partial, optOuts: optOuts(), at: NOW, footer: FOOTER }).holds, ['reviewer_unnamed']);
   assert.equal(approvalOf({ approved_on: '2026-12-01', sha256: sha('x') }, NOW), null, 'not yet');
   assert.equal(approvalOf({ approved_on: '2026-02-30', sha256: sha('x') }, NOW), null, 'no such day');
   assert.equal(approvalOf({ approved_on: DAY, sha256: 'not-a-digest' }, NOW), null);
@@ -154,35 +162,123 @@ test("Krish's four are holds by name until each is recorded with a real day and 
   assert.equal(approvalOf(approved(), 'not a time'), null, 'no clock, no approval');
   assert.deepEqual(gateState({ config: null, optOuts: null, at: NOW }).holds.slice(0, 1), ['compliance_config_unreadable']);
   assert.ok(gateState({ config: { unreadable: true }, optOuts: optOuts(), at: NOW }).holds.includes('compliance_config_unreadable'));
-  assert.deepEqual(gateState({ config: allApproved(), optOuts: { unreadable: true }, at: NOW }).holds, ['opt_outs_unreadable']);
-  assert.deepEqual(gateState({ config: allApproved(), optOuts: { version: 1, imported_at: NOW, files: [], emails: [], domains: [] }, at: NOW }).holds, ['opt_outs_unreadable'], 'an import of no file is no import');
-  assert.deepEqual(gateState({ config: allApproved(), optOuts: optOuts(), at: NOW }).holds, []);
+  assert.deepEqual(gateState({ config: allApproved(), optOuts: { unreadable: true }, at: NOW, footer: FOOTER }).holds, ['opt_outs_unreadable']);
+  assert.deepEqual(gateState({ config: allApproved(), optOuts: { version: 1, imported_at: NOW, files: [], emails: [], domains: [] }, at: NOW, footer: FOOTER }).holds, ['opt_outs_unreadable'], 'an import of no file is no import');
+  assert.deepEqual(gateState({ config: allApproved(), optOuts: optOuts(), at: NOW, footer: FOOTER }).holds, []);
   // With the gate closed, every recipient is held by everything still open, the gate's own holds first.
-  assert.deepEqual(coldVerdict(usBuyer(), none).holds.slice(0, 5), none.holds);
+  assert.deepEqual(coldVerdict(usBuyer(), none).holds.slice(0, none.holds.length), none.holds);
   assert.deepEqual(coldVerdict(usBuyer(), null).holds.slice(0, 1), ['compliance_config_unreadable'], 'no gate read is a closed gate');
 });
 
-test("the repository's own record parses, names Krish's four and nothing else, and holds digests only", async () => {
+test("the repository's own record parses, names Krish's four and his word on the old lists and nothing else, and holds digests and dates only", async () => {
   const cfg = JSON.parse(await readFile(new URL(`../${CONFIG_PATH}`, import.meta.url), 'utf8'));
   assert.equal(cfg.version, 1);
-  assert.deepEqual(Object.keys(cfg.krish), KRISH_ITEMS.map(i => i.key));
-  for (const [k, v] of Object.entries(cfg.krish)) assert.ok(v === null || (approvalOf(v, NOW) && Object.keys(v).length === 2), `${k} is null or { approved_on, sha256 }`);
+  assert.deepEqual(Object.keys(cfg.krish), KRISH_KEYS);
+  for (const [k, v] of Object.entries(cfg.krish)) {
+    const ok = v === null || (k === 'reviewer' ? reviewerOf(v, NOW) : k === 'old_opt_outs' ? noOldOptOutsOf(v, NOW) : approvalOf(v, NOW)) && Object.keys(v).length === 2;
+    assert.ok(ok, `${k} is null or as recorded`);
+  }
+  // Recorded 15 November 2026 (Rulings, Krish, 2026-11-15): the three texts by digest, his waiver of a reviewer, and his
+  // word that nobody in the old lists had opted out. Nothing else of them is in this public file.
+  assert.deepEqual(Object.values(cfg.krish).filter(v => v?.approved_on).map(v => v.approved_on), ['2026-11-15', '2026-11-15', '2026-11-15']);
+  assert.deepEqual(cfg.krish.reviewer, { waived_on: '2026-11-15', by: 'krish' });
+  assert.deepEqual(cfg.krish.old_opt_outs, { none_on: '2026-11-15', by: 'krish' });
+  assert.ok(!JSON.stringify(cfg).includes('@'), 'no address');
+});
+
+test("a reviewer closes only by a recorded review or Krish's own waiver; anyone else's waiver, or an unrecorded one, stays open", () => {
+  const waived = { waived_on: '2026-11-15', by: 'krish' };
+  assert.deepEqual(reviewerOf(waived, NOW), waived);
+  assert.deepEqual(reviewerOf(approved(4), NOW), approved(4), 'a named reviewer\'s review by digest still counts');
+  for (const v of [
+    { waived_on: '2026-11-15', by: 'jonny' }, { waived_on: '2026-11-15', by: 'Krish ' }, { waived_on: '2026-11-15' }, { by: 'krish' },
+    { waived_on: '2026-12-01', by: 'krish' }, { waived_on: 'today', by: 'krish' }, { waived_on: '2026-11-15', by: 'krish', note: 'extra' }, null, true, 'krish',
+  ]) assert.equal(reviewerOf(v, NOW), null, JSON.stringify(v));
+  const cfg = allApproved();
+  cfg.krish.reviewer = waived;
+  assert.deepEqual(gateState({ config: cfg, optOuts: optOuts(), at: NOW, footer: FOOTER }).holds, [], 'his waiver closes the reviewer');
+  cfg.krish.reviewer = { waived_on: '2026-11-15', by: 'someone_else' };
+  assert.deepEqual(gateState({ config: cfg, optOuts: optOuts(), at: NOW, footer: FOOTER }).holds, ['reviewer_unnamed'], "another person's waiver stays open");
+});
+
+test("the old opt-outs close on Krish's recorded word that there are none, or an import; without either they stay open", () => {
+  const word = { none_on: '2026-11-15', by: 'krish' };
+  const cfg = allApproved();
+  assert.deepEqual(gateState({ config: cfg, optOuts: null, at: NOW, footer: FOOTER }).holds, ['opt_outs_not_imported'], 'no word and no import: open');
+  cfg.krish.old_opt_outs = word;
+  const closed = gateState({ config: cfg, optOuts: null, at: NOW, footer: FOOTER });
+  assert.deepEqual(closed.holds, [], 'his word closes it');
+  assert.equal(closed.opt_outs.emails.size + closed.opt_outs.domains.size, 0);
+  assert.deepEqual(coldVerdict(usBuyer(), closed).holds, [], 'an empty list suppresses nobody');
+  for (const v of [{ none_on: '2026-11-15', by: 'jonny' }, { none_on: '2026-11-16', by: 'krish' }, { none_on: '2026-11-15' }, { none_on: '2026-11-15', by: 'krish', count: 0 }, true]) {
+    cfg.krish.old_opt_outs = v;
+    assert.deepEqual(gateState({ config: cfg, optOuts: null, at: NOW, footer: FOOTER }).holds, ['opt_outs_not_imported'], JSON.stringify(v));
+  }
+  // An import, when there is one, is read whatever his word says, and a broken one is never done.
+  cfg.krish.old_opt_outs = word;
+  assert.ok(coldVerdict(usBuyer({ email: 'left@harborline.test', company_domain: 'harborline.test', source: 'https://harborline.test/team' }), gateState({ config: cfg, optOuts: optOuts(), at: NOW, footer: FOOTER })).holds.includes('opted_out_before'));
+  assert.deepEqual(gateState({ config: cfg, optOuts: { unreadable: true }, at: NOW, footer: FOOTER }).holds, ['opt_outs_unreadable']);
+});
+
+test("Control Center's footer is read back each run: only exactly the approved footer, with the one-click link and the STOP reply, lets a cold note through", () => {
+  const cfg = allApproved();
+  const holdsWith = footer => gateState({ config: cfg, optOuts: optOuts(), at: NOW, footer }).holds;
+  assert.deepEqual(holdsWith(FOOTER), []);
+  assert.deepEqual(holdsWith(null), ['cold_footer_unread'], 'no capabilities read: closed');
+  assert.deepEqual(holdsWith(undefined), ['cold_footer_unread']);
+  assert.deepEqual(holdsWith(footerOf({ features: { context: true } })), ['cold_footer_not_served'], 'Control Center does not serve cold email');
+  assert.deepEqual(holdsWith(footerOf({ features: { cold_email: true } })), ['cold_footer_not_served'], 'the flag without the footer block is no footer');
+  assert.deepEqual(holdsWith(footerOf({ features: { cold_email: false }, cold_email: served().cold_email })), ['cold_footer_not_served']);
+  assert.deepEqual(holdsWith(footerOf(served(approved(1).sha256, { one_click: false }))), ['cold_opt_out_missing'], 'no one-click link');
+  assert.deepEqual(holdsWith(footerOf(served(approved(1).sha256, { stop_reply: undefined }))), ['cold_opt_out_missing'], 'no STOP reply');
+  assert.deepEqual(holdsWith(footerOf(served(sha('other words')))), ['cold_footer_not_approved'], 'words he did not approve');
+  assert.deepEqual(holdsWith(footerOf(served('not-a-digest'))), ['cold_footer_not_approved']);
+  const noYes = allApproved(); noYes.krish.footer_words = null;
+  assert.deepEqual(gateState({ config: noYes, optOuts: optOuts(), at: NOW, footer: FOOTER }).holds, ['footer_words_unapproved', 'cold_footer_not_approved'], 'with no approved footer, no footer matches');
+  assert.equal(footerHold(FOOTER, approved(1)), null);
+  assert.deepEqual(whoseHolds(['reviewer_unnamed', 'opt_outs_not_imported', 'cold_footer_not_served', 'compliance_config_unreadable']), { krish: ['reviewer_unnamed', 'opt_outs_not_imported'], control_center: ['cold_footer_not_served'] });
+  for (const h of FOOTER_HOLDS) assert.ok(GATE_HOLDS.includes(h), h);
+});
+
+test('a cold action carries the source line its footer needs, in his own box, or it is refused', () => {
+  const action = (x = {}) => ({ version: 2, channel: 'email', mailbox: null, subject: 'A thought', body: 'Hi', cold: { source_line: 'I read about your work on your company\'s website' }, ...x });
+  assert.equal(coldActionHold(action()), null);
+  assert.equal(coldActionHold(action({ mailbox: 'krish' })), null);
+  assert.equal(coldActionHold(action({ mailbox: 'jonny' })), 'cold_not_his_box');
+  assert.equal(coldActionHold(action({ channel: 'x_message' })), 'cold_not_email');
+  for (const cold of [undefined, null, {}, { source_line: '' }, { source_line: '   ' }, { source_line: 'two\nlines' }, { source_line: 'x'.repeat(201) }, { source_line: 'see https://northwind.test' }, { source_line: 'you wrote to me at dana@northwind.test' }]) {
+    assert.equal(coldActionHold(action({ cold })), 'cold_source_line_missing', JSON.stringify(cold));
+  }
+});
+
+test("Krish's approved texts are read for their digest exactly: the lines between the rules without the blank ends, or the whole file", () => {
+  const text = '# A heading\n\nA note.\n\n---\n\nLine one.\nLine two.\n\n---\n\nWhy each line is there.\n';
+  assert.equal(approvedText(text, 'between_rules'), 'Line one.\nLine two.');
+  assert.equal(approvedDigest(text, 'between_rules'), sha('Line one.\nLine two.'));
+  assert.equal(approvedText(text.replace(/\n/g, '\r\n'), 'between_rules'), 'Line one.\nLine two.', 'the same words with Windows line ends');
+  assert.equal(approvedText(text, 'whole'), text);
+  assert.equal(approvedDigest(text, 'whole'), sha(text));
+  assert.equal(approvedText('no rules here', 'between_rules'), null);
+  assert.equal(approvedText('---\n\n---\n', 'between_rules'), null, 'nothing between the rules is nothing approved');
+  assert.equal(approvedText(text, 'some_part'), null);
 });
 
 test('the gate is read back from its files every time it is asked, and an absent or broken file is never taken as done', async () => {
   const files = { [CONFIG_PATH]: JSON.stringify(allApproved()) };
   const read = async p => { if (!(p in files)) { const e = new Error('absent'); e.code = 'ENOENT'; throw e; } return files[p]; };
-  assert.deepEqual((await readGate({ at: NOW, read })).holds, ['opt_outs_not_imported']);
+  assert.deepEqual((await readGate({ at: NOW, read, footer: FOOTER })).holds, ['opt_outs_not_imported']);
+  assert.deepEqual((await readGate({ at: NOW, read })).holds, ['opt_outs_not_imported', 'cold_footer_unread'], 'with no footer read back, closed');
   files[OPT_OUTS_PATH] = JSON.stringify(optOuts());
-  assert.equal((await readGate({ at: NOW, read })).open, true, 'the same reader, a later read, sees the import');
+  assert.equal((await readGate({ at: NOW, read, footer: FOOTER })).open, true, 'the same reader, a later read, sees the import');
   files[OPT_OUTS_PATH] = '{ not json';
-  assert.deepEqual((await readGate({ at: NOW, read })).holds, ['opt_outs_unreadable']);
+  assert.deepEqual((await readGate({ at: NOW, read, footer: FOOTER })).holds, ['opt_outs_unreadable']);
   const failing = async () => { const e = new Error('denied'); e.code = 'EACCES'; throw e; };
   assert.ok((await readGate({ at: NOW, read: failing })).holds.includes('compliance_config_unreadable'));
-  // The repository as it is: closed, by name.
+  // The repository as it is: Krish's part recorded, and closed until a live run reads Control Center's footer back.
   const real = await readGate({ at: NOW });
   assert.equal(real.open, false);
-  for (const { hold } of KRISH_ITEMS) assert.ok(real.holds.includes(hold), hold);
+  assert.deepEqual(real.holds, ['cold_footer_unread']);
+  assert.deepEqual((await readGate({ at: NOW, footer: footerOf({ features: { cold_email: true }, cold_email: { footer_sha256: '23f01b403a3e48db9b3436dfbd7b77a972ce3d4df8ad9ed9ad7f39e5bacf4033', one_click: true, stop_reply: true } }) })).holds, [], 'with the approved footer served, the repository\'s gate is open');
 });
 
 // ── The importer ─────────────────────────────────────────────────────────────
@@ -236,7 +332,8 @@ test('the import command holds with no export, refuses one inside the repository
     const status = JSON.parse(run(['status']).stdout);
     assert.equal(status.gate, 'closed');
     assert.ok(!status.holds.includes('opt_outs_not_imported'));
-    assert.deepEqual(status.holds, ['footer_words_unapproved', 'privacy_section_unapproved', 'legitimate_interests_unassessed', 'reviewer_unnamed']);
+    assert.deepEqual(status.holds, ['cold_footer_unread'], 'Krish\'s part is recorded; the footer is read back only in a live run');
+    assert.deepEqual(status.waits_on, { krish: [], control_center: ['cold_footer_unread'] });
   } finally { await rm(work, { recursive: true, force: true }); await rm(exportsDir, { recursive: true, force: true }); }
 });
 
@@ -276,8 +373,20 @@ test('the dispatch reads the gate back each run, holds the named cold job and sa
   assert.ok(real.report.holds.some(h => h.reason === 'work_cold_compliance_closed'), 'the named cold job is held by the gate');
   const line = real.report.activity.map(a => a.line).find(l => l.startsWith('Cold compliance gate: '));
   assert.ok(line, 'one line says so');
+  // On this run's day (25 October) none of Krish's word was recorded yet, so each part is open by name and his; and this
+  // run's capabilities serve no cold email, which is Control Center's.
   for (const { hold } of KRISH_ITEMS) assert.ok(line.includes(hold), hold);
   assert.ok(line.includes('opt_outs_not_imported'));
+  assert.match(line, /waiting on Krish: footer_words_unapproved, privacy_section_unapproved, legitimate_interests_unassessed, reviewer_unnamed, opt_outs_not_imported/);
+  assert.match(line, /waiting on Control Center's footer: cold_footer_not_served/);
+  // Read on 15 November, after his word, with the approved footer served: the gate is open, and the named cold job
+  // meets the recipient checks instead.
+  const approvedFooter = footerOf({ features: { cold_email: true }, cold_email: { footer_sha256: '23f01b403a3e48db9b3436dfbd7b77a972ce3d4df8ad9ed9ad7f39e5bacf4033', one_click: true, stop_reply: true } });
+  const servedRun = await go(() => ({ complianceReader: async () => readGate({ at: NOW, footer: approvedFooter }) }));
+  const servedLine = servedRun.report.activity.map(a => a.line).find(l => l.startsWith('Cold compliance gate: '));
+  assert.match(servedLine, /^Cold compliance gate: open, and \d+ cold drafts? held by the recipient checks/);
+  const unserved = await go(() => ({ complianceReader: async ({ footer }) => readGate({ at: NOW, footer }) }));
+  assert.match(unserved.report.activity.map(a => a.line).find(l => l.startsWith('Cold compliance gate: ')), /Still open: cold_footer_not_served \(waiting on Control Center's footer: cold_footer_not_served\)/, 'the dispatch passes what its capabilities say of the footer');
   // The reader is asked once a run, and a reader that fails holds every cold note.
   const counted = await go(tick => ({ complianceReader: async () => { tick(); return gateState({ config: null, optOuts: null, at: NOW_RUN }); } }));
   assert.ok(counted.report.holds.some(h => h.reason === 'work_cold_compliance_closed'));

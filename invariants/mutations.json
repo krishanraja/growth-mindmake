@@ -765,8 +765,8 @@
       "id": "cold-gate-krish-items-ignored",
       "what": "the gate opens without Krish's footer words, privacy section, assessment and reviewer",
       "file": "src/stages/compliance.mjs",
-      "find": "  for (const { key, hold } of KRISH_ITEMS) { krish[key] = cfgOk ? approvalOf(config.krish[key], at) : null; if (!krish[key]) holds.push(hold); }",
-      "replace": "  for (const { key, hold } of KRISH_ITEMS) { krish[key] = cfgOk ? approvalOf(config.krish[key], at) : null; }",
+      "find": "    if (!krish[key]) holds.push(hold);",
+      "replace": "    if (!krish[key]) {}",
       "tests": [
         "tests/compliance.test.mjs"
       ]
@@ -795,8 +795,28 @@
       "id": "cold-gate-opt-outs-unread",
       "what": "the gate opens with the old opt-outs never imported",
       "file": "src/stages/compliance.mjs",
-      "find": "  if (optOuts === null || optOuts === undefined) holds.push('opt_outs_not_imported');",
-      "replace": "  if (optOuts === null || optOuts === undefined) {}",
+      "find": "    else holds.push('opt_outs_not_imported');",
+      "replace": "    else {}",
+      "tests": [
+        "tests/compliance.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-gate-anyone-waives",
+      "what": "someone other than Krish waives the reviewer, or the old opt-out lists are declared empty by someone other than him",
+      "file": "src/stages/compliance.mjs",
+      "find": "if (exactly(v, ['waived_on', 'by']) && v.by === 'krish' && dayBy(v.waived_on, at))",
+      "replace": "if (exactly(v, ['waived_on', 'by']) && dayBy(v.waived_on, at))",
+      "tests": [
+        "tests/compliance.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-gate-footer-unchecked",
+      "what": "a cold note goes through without Control Center serving exactly the approved footer with its one-click link and STOP reply",
+      "file": "src/stages/compliance.mjs",
+      "find": "  if (fh) holds.push(fh);",
+      "replace": "  if (fh) {}",
       "tests": [
         "tests/compliance.test.mjs"
       ]

@@ -17,5 +17,5 @@ From 08-operator-runbook.md, Stop at the real boundary:
 
 ## Sources
 
-- docs/playbooks/09-privacy-and-suppression.md, "Eligibility gate before an action": sha256 c010051a9b12dfa9
+- docs/playbooks/09-privacy-and-suppression.md, "Eligibility gate before an action": sha256 a6e41bcacfd0dd09
 - docs/playbooks/08-operator-runbook.md, "Stop at the real boundary": sha256 bbe59b6e0de19fd0
