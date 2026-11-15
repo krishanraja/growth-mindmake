@@ -6,6 +6,14 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-15, to keep the session pack under 36 KB; newest first.
 
+- Morning drafts are live: ten in his Gmail at 05:00 New York on 14 November (GET-GOING 0.2 ticked). Warm buyers are read whole, but the desk's sentence failed the fixed rules on all three, so the ask now says the source's "I" and "we" are the source's, never Krish's, and to open on what he saw, read or noticed. (2026-11-14)
+- Each held meeting's own tie (network_tier, known_since; Control Center's features.meeting_ties, protocol 1.33.0, in draft there) is read tolerantly and traces a tie he had before as an existing relationship; absent or null stays unknown. (2026-11-14)
+- An approved note to one person with no deal (contact_notes, Control Center #825) reaches prepare-action only where features.contact_notes is served, and its exact action is filed as go_live only when it is that person's with no asset. The engine proposes no such plan itself yet. (2026-11-14)
+
+## 2026-11-15: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-15, to keep the session pack under 36 KB; newest first.
+
 - Held meetings get an origin where the engine can trace one: long-standing ties served outside the ranked hundred count as existing relationships, a path Control Center does not serve is never sent, and a full-funnel path raises the report to 1.24.0. Executor sends count as his own notes in wins. isSpeakerForm and its patterns are exported for Control Center's form capture. GET-GOING 3.1 now starts from krish-clone's free local evaluation. (2026-11-14)
 - Each run reads his Pipeline deals in detail where Control Center serves features.deals_detail (protocol 1.30.0, integration I-05): open deals and deals gone quiet (Parked, or Closed Lost for Timing or Went quiet), counted in one shadow line; null is said as not read, never none. No catch-up is proposed from them yet, and the morning lane still skips only open deals. (2026-11-14)
 
