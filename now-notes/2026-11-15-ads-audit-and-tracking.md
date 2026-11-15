@@ -1,0 +1,3 @@
+Status: Krish asked for advertising audit capabilities and chose, when asked, a tracking check on mindmake.co plus a dormant paid accounts audit. Each run now reports one tracking line (src/stages/tracking.mjs: Control Center's site health, flags, freshness, days read, key events, untraced visits and placements, each fail, watch, unknown or pass with its fix), and `npm run ads-audit` audits an exported account read only (src/ads/). Paid media stays excluded (playbook 10). Built and tested on a local branch; not pushed, merged or live.
+Next: Krish reviews the branch and says whether to push it; then mark brief_submit as a key event in Google Analytics, which the tracking line will show as passing once key events arrive.
+North Star check (2026-11-15): holds.

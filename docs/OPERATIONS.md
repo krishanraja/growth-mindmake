@@ -143,6 +143,23 @@ Weekly review also reads channel attribution, overdue promises, awaiting proposa
 
 Feedback and weekly reviews must persist with stable source references and independent readback. A repeated run must preserve the prior human decision. Do not reset an existing deal, overwrite a human draft or mark a skipped item as completed to make a new artifact appear.
 
+## Paid accounts audit (read only)
+
+`npm run ads-audit -- --export <file>` audits an ad account from an export file Krish chooses, on his own machine. It contacts no ad platform, changes nothing and spends nothing, and neither the dispatch nor CI runs it. Paid media stays excluded for Mindmake (playbook 10) until he rules otherwise: this reads an account, it never proposes starting one.
+
+Setup: none beyond this repository's Node. It has no dependency, no key, no connector and no network call, so it costs nothing to run. A live account would need an export: from the platform's own reports, or later from a read-only connector he approves.
+
+The file is one of two forms, refused whole when anything in it is wrong, so there is never a partial audit:
+
+- **JSON**, `{"format": "ads-export/1", "accounts": [...]}`. Each account gives `platform`, `account_ref`, `currency` (three letters), `window` (`start`, `end`), `campaigns[]` (`id`, `name`, `status`, `spend`, `impressions`, `clicks`, `conversions`, `conversion_value`, `final_urls`) and, where it has them, `attribution` (`click_days`, `view_days`), `auto_tagging`, `search_terms[]` (`campaign_id`, `term`, `spend`, `clicks`, `conversions`) and `conversion_actions[]` (`name`, `primary`, `enabled`, `counting` one or every, `source` website, lead_form, import, call, app or other, `has_value`). fixtures/ads/export.synthetic.json is a complete example.
+- **CSV**, one row per campaign over one window, with the columns `platform, account_ref, currency, window_start, window_end, campaign_id, spend` required and `campaign_name, status, impressions, clicks, conversions, conversion_value, click_days, view_days, auto_tagging, final_url` optional. Any other column is refused, so a misspelt header never reads as a missing figure. fixtures/ads/campaigns.synthetic.csv is an example.
+
+A figure the file leaves out is unknown, never zero, and every check that needs it says `unknown` with what would settle it. Bounds: 5 MB, 20 accounts, 2,000 campaigns and 20,000 search terms.
+
+What it reports, per account: campaigns that spent at least the account's own cost per conversion with none, search terms likewise, spend on impressions nobody clicked, campaigns costing more than twice the account's own average, zero conversions, primary conversion actions (none, duplicated, counting every lead), no imported outcome (a good meeting never reaches the platform), no conversion value, landing addresses off mindmake.co or untraceable, and more conversions than clicks. Across accounts it adds conversions only when every window and attribution match, and never adds spend across currencies. Waste at stake counts each flagged campaign once. There is no health score.
+
+Output: `runtime/ads/audit-<time>.json` and `.md` (git ignores runtime/; `--out` must stay inside it). The terminal shows counts and the two paths only, never a figure or a campaign name. Every recommendation is a draft: nothing changes until Krish says yes and makes the change himself in the platform. `--at <ISO time>` fixes the report's time, so the same file gives the same report byte for byte.
+
 ## Refresh commercial truth
 
 Read current mindmake North Star, canon and proof permissions. Compare the source revisions with APPROVED_CANON in contracts/growth.ts. Resolve changed offers, links and restrictions before changing copy. Update reviewed content, source references and review timestamp together only after the review; then rerun contract parity and behavioural checks. The producer holds after 30 days without that review.

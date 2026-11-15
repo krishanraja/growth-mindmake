@@ -44,7 +44,7 @@ test('a fixture that binds every cap gives the report it gave before the week sp
 
 test('every dispatch test file that posts reports has its recorded digests', async () => {
   const files = (await readdir(new URL('tests/golden/', root))).sort();
-  assert.deepEqual(files, ['dispatch.json', 'forms.json', 'golden.json', 'meetings.json', 'pitches.json', 'rows.json', 'strategy.json', 'traffic.json', 'voice.json']);
+  assert.deepEqual(files, ['dispatch.json', 'forms.json', 'golden.json', 'meetings.json', 'pitches.json', 'rows.json', 'strategy.json', 'tracking.json', 'traffic.json', 'voice.json']);
   for (const f of files) {
     const g = JSON.parse(await readFile(new URL(`tests/golden/${f}`, root), 'utf8'));
     assert.ok(g.reports.length > 0 && g.reports.every(d => /^[0-9a-f]{64}$/.test(d)), `${f}: digests only`);

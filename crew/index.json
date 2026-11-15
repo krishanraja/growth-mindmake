@@ -98,8 +98,8 @@
     {
       "slug": "measurement-specialist",
       "name": "Measurement Specialist",
-      "lanes": ["the number", "mindmake.co traffic"],
-      "reviews": "src/stages/scorecard.mjs, src/stages/meetings.mjs, src/strategy.mjs outcomeScorecard, src/weekly-review.mjs attribution and src/stages/traffic.mjs",
+      "lanes": ["the number", "mindmake.co traffic and its tracking"],
+      "reviews": "src/stages/scorecard.mjs, src/stages/meetings.mjs, src/strategy.mjs outcomeScorecard, src/weekly-review.mjs attribution, src/stages/traffic.mjs and src/stages/tracking.mjs",
       "lint": "src/crew/lints/measurement.mjs",
       "check": "src/crew/checks/measurement.mjs",
       "lints": ["measurement.link_canon", "measurement.tag_placement", "measurement.tag_keys", "measurement.meeting_path", "measurement.null_not_zero", "measurement.traffic_consent"],

@@ -93,6 +93,10 @@ test('a shadow that throws says so in one line and never fails the run', async (
 
 const CC_FIELDS = ['verdict', 'guest_verdict', 'guest_reason', 'reject_reason', 'room_score', 'standing_score', 'only_him_score', 'visibility_score', 'draw_score', 'demand_score', 'guest_score', 'senior_score', 'seen_score', 'spark_score'];
 const READERS = new Set(['src/stages/visibility.mjs', 'src/stages/guests.mjs', 'src/stages/rooms.mjs']);
+// The site's tag check (web_analytics.health, protocol 1.13.0) also has a field named verdict: a measurement reading of the
+// Analytics property, never a judgment of a stage, guest or room. Only src/stages/tracking.mjs reads it, and only as h.verdict;
+// any other read on the list there still fails.
+const SITE_HEALTH = { file: 'src/stages/tracking.mjs', read: /\bh\.verdict\b/g };
 const names = CC_FIELDS.join('|');
 const READS = [
   new RegExp(`(?:\\?\\.|\\.)\\s*(?:${names})\\b`),
@@ -112,7 +116,7 @@ test('no stage reads Control Center\'s verdicts or scores: only the three files 
   for (const f of files) {
     if (READERS.has(f)) continue;
     const lines = code(await readFile(new URL(`../${f}`, import.meta.url), 'utf8')).split('\n');
-    lines.forEach((l, i) => { if (READS.some(re => re.test(l))) found.push(`${f}:${i + 1}`); });
+    lines.forEach((l, i) => { const line = f === SITE_HEALTH.file ? l.replace(SITE_HEALTH.read, 'h.site_check') : l; if (READS.some(re => re.test(line))) found.push(`${f}:${i + 1}`); });
   }
   assert.deepEqual(found, [], 'a stage reads a verdict or a score Control Center stores');
   // The scan is proved able to find a read before its silence is trusted.
