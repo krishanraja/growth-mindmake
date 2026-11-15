@@ -207,7 +207,7 @@ export function qualifyShadow({ context, canon = null, at }) {
 // sectors), so this file holds no title or keyword list of its own.
 //
 // SCORERS is the ordered list of scorers, each `{ name, score(prospect, ctx) }`
-// returning `{ points: [[n, why]], rule_out: [why] }`. The SDR score GET-GOING
+// returning `{ points: [[n, why]], rule_out: [why] }`. The lead score GET-GOING
 // 1.3 names joins as one more entry, after the cold compliance gate, with its
 // points weighed against these in that change and SCORE_VERSION raised. Until
 // then nothing but its tests calls this score, and it holds nothing.
