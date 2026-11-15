@@ -264,3 +264,18 @@ In his words (15 November, approving ai-harness docs/proposals/2026-11-15-visibl
 - scripts/dispatch-card.mjs prints `open` and `read` lines for the card, in place of the plugin's background task; the allowance guard, his yes on the card's digest and verification outside the sandbox (scripts/verify-card.mjs) are unchanged.
 - A session he must see or share starts from his computer; a cloud container never produces a thread he sees. A failure to start Codex is reported in one line and the dispatch stops; no session edits MCP or Claude settings to work around it.
 - No wall moves: the thread runs workspace-write in the card's worktree only, and every send, post, spend or permission change keeps its own approval.
+
+## Call prep reaches him on the meeting in Pipeline (Ruling, Krish, 2026-11-15)
+
+In his words (15 November, choosing where the day-before call prep reaches him): "On the meeting in Pipeline (Recommended)".
+
+- The engine writes call prep the day before each booked meeting (src/stages/callprep.mjs) and Control Center shows it on that meeting's card in Pipeline, once it serves `features.call_prep`. Until then it is made and counted in shadow, and none reaches him.
+- No wall moves: call prep is read by him and sends nothing.
+
+## The morning drafts' check: untraced claims hold, length only counts (Ruling, Krish, 2026-11-15)
+
+In his words (15 November, choosing how the morning drafts' check starts): "Hold untraced claims, warn on length (Recommended)".
+
+- An email for his own box with a name, number or quotation on neither the person's nor the company's record is held from the start (`morning_claim_untraced`), because it goes out in his name.
+- An email over 80 words is counted in one activity line and still proposed (`MORNING_LENGTH_HOLDS` false). It holds only once he has read a week of counts and says so.
+- No wall moves.

@@ -53,6 +53,8 @@ Each is in docs/RULINGS.md word for word, with his quotes; a line here says what
 - The full-funnel engine (Rulings, Krish, 2026-11-13): cold outbound within the law, Maven lessons every two weeks, morning drafts in his Gmail, and his personal LinkedIn.
 - One address (Ruling, Krish, 2026-11-14): krish@mindmake.co is the one email a stage form is given for him, as everything in the OS sends and replies from it.
 - Codex starts only through codex_thread (Ruling, Krish, 2026-11-15): a Codex card runs through scripts/codex_thread.mjs (open, send, read), a copy of ai-harness's canonical one, so the thread shows in his Codex Desktop; never the Codex plugin's long-running server, and a failure to start is reported in one line, never worked around by editing MCP or Claude settings.
+- Call prep reaches him on the meeting in Pipeline (Ruling, Krish, 2026-11-15): the engine writes it the day before each booked meeting, and it stays in shadow until Control Center serves `features.call_prep`.
+- The morning drafts' check: untraced claims hold, length only counts (Ruling, Krish, 2026-11-15): an untraced name, number or quotation holds an email for his box from the start; over 80 words is only counted until he has read a week of counts.
 - Nothing from outside is named (Ruling, Krish, 2026-11-15): the engine's code, rules and words are its own, and from 15 November no file, comment, test, commit or document names an outside source for them; no wall moves.
 
 ## Current release boundary
