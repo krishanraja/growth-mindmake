@@ -477,6 +477,7 @@
         "src/stages/voice.mjs",
         "src/stages/rows.mjs",
         "src/stages/openings.mjs",
+        "src/stages/company.mjs",
         "src/stages/cited.mjs",
         "src/stages/signals.mjs",
         "src/stages/pitches.mjs",
