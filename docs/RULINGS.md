@@ -255,3 +255,12 @@ In his words (15 November): "from this point forward, there is zero mention of a
 - The engine's code, rules, lists, tests and words are written in this repository's own words and style, and no file, comment, test, commit or document added from 15 November names an outside source for any of them.
 - What the engine does stays: the cold compliance gate (src/stages/compliance.mjs) and the prospect score (src/stages/qualify.mjs) stand on the full-funnel rulings of 13 November and on playbook 09.
 - No wall moves.
+
+## Codex starts only through codex_thread (Ruling, Krish, 2026-11-15)
+
+In his words (15 November, approving ai-harness docs/proposals/2026-11-15-visible-codex-sessions.md): "yes to the codex proposal". The request behind it, in his words: "I want Claude to spin up codex sessions I can actually see"; "The Claude session that spawned it needs to be able to continually write to it and read from it, but I also need to be able to do the same inside the Codex desktop app."
+
+- Claude starts Codex only through scripts/codex_thread.mjs, a byte-for-byte copy of ai-harness's canonical one: `open` starts a permanent thread in his Codex Desktop recents and runs the card, `send` adds a turn, `read` prints every turn, his included. Each command releases the thread, so he can watch it and type in it. The Codex plugin's long-running server is never used.
+- scripts/dispatch-card.mjs prints `open` and `read` lines for the card, in place of the plugin's background task; the allowance guard, his yes on the card's digest and verification outside the sandbox (scripts/verify-card.mjs) are unchanged.
+- A session he must see or share starts from his computer; a cloud container never produces a thread he sees. A failure to start Codex is reported in one line and the dispatch stops; no session edits MCP or Claude settings to work around it.
+- No wall moves: the thread runs workspace-write in the card's worktree only, and every send, post, spend or permission change keeps its own approval.

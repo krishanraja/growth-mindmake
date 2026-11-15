@@ -35,14 +35,15 @@ test('the guard passes a valid card with a fresh reading at or under 80% and his
   assert.equal(r.ok, true, r.detail);
   assert.equal(r.digest, DIGEST);
   assert.deepEqual(r.entry, { card_id: CARD.id, card_sha256: DIGEST, decision_id: YES.decision_id, usage: USAGE, dispatched_at: '2026-11-16T10:00:00.000Z' });
-  const task = r.lines.find(l => l.includes(' task '));
-  assert.equal(task, `node <plugin>/scripts/codex-companion.mjs task --background --fresh --write --model ${CARD.model.name} --effort ${CARD.model.effort} --cwd ../growth-mindmake-codex-${CARD.id} --prompt-file ${CARD_FILE}`);
+  const open = r.lines.find(l => l.includes('codex_thread.mjs open '));
+  assert.equal(open, `node scripts/codex_thread.mjs open --cwd ../growth-mindmake-codex-${CARD.id} --sandbox workspace-write --model ${CARD.model.name} --effort ${CARD.model.effort} "Codex card ${CARD.id}: do exactly what the task card at ${CARD_FILE} says, in this worktree only, then reply with the JSON its returns block describes."`);
   assert.equal(r.lines[0], `git worktree add -b codex/${CARD.id} ../growth-mindmake-codex-${CARD.id} main`);
-  assert.ok(r.lines.some(l => /codex-companion\.mjs status --wait$/.test(l)) && r.lines.some(l => /codex-companion\.mjs result$/.test(l)));
+  assert.ok(r.lines.some(l => /^node scripts\/codex_thread\.mjs read /.test(l)));
   assert.ok(r.lines.at(-1).startsWith('node scripts/verify-card.mjs --card '));
   assert.ok(!r.lines.join('\n').includes('rescue'));
+  assert.ok(!/codex-companion|app-server-broker|--background/.test(r.lines.join('\n')), 'never the plugin server');
   assert.equal(ok({ usage: { ...USAGE, used_percent: USAGE_MAX } }).ok, true, 'exactly 80% passes');
-  assert.match(commandLines(CARD, { cardPath: 'c.json', plugin: '/x' })[1], /^node \/x\/scripts\/codex-companion\.mjs task /);
+  assert.match(commandLines(CARD, { cardPath: 'c.json', cardFile: '/abs/c.json' })[1], /task card at \/abs\/c\.json says/);
 });
 
 test('the guard refuses an unknown reading, with its name', () => {
@@ -117,10 +118,11 @@ test('the command line refuses, then passes and records the dispatch in its ledg
   const noYes = run('--usage', usageFile);
   assert.equal(noYes.status, 1);
   assert.match(noYes.stderr, /REFUSED \(no_approval\)/);
-  const pass = run('--usage', usageFile, '--approval', `${YES.decision_id}:${DIGEST}`, '--plugin', '/synthetic/codex');
+  const pass = run('--usage', usageFile, '--approval', `${YES.decision_id}:${DIGEST}`);
   assert.equal(pass.status, 0, pass.stderr);
   assert.match(pass.stdout, new RegExp(`--model ${CARD.model.name} --effort ${CARD.model.effort} `));
   assert.match(pass.stdout, /git worktree add -b codex\/example-week-label /);
+  assert.ok(pass.stdout.includes(`task card at ${join(root, CARD_FILE)} says`), 'the card is named by its absolute path, so Codex finds it from the worktree');
   const recorded = JSON.parse(await readFile(ledger, 'utf8'));
   assert.equal(recorded.length, 1);
   assert.equal(recorded[0].card_sha256, DIGEST);
