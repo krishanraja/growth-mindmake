@@ -1,7 +1,7 @@
 ---
 repo: krishanraja/growth-mindmake
 product: Mindmake growth engine
-as_of: 2026-11-14
+as_of: 2026-11-15
 head: 5d3d7ff
 lifecycle: building
 production_url: none
@@ -22,12 +22,13 @@ Mindmake's growth engine: relationships, introductions, researched named outreac
 
 The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish's calendar with the right conversations.
 
-## Where it is right now (as of 2026-11-14)
+## Where it is right now (as of 2026-11-15)
 
 <!-- north-star-state {"week_of":"2026-11-02","week_target":5,"current":0,"current_as_of":"2026-11-08","current_source":"growth-mindmake's latest live report to Control Center (objective good_meetings: meetings Krish marked good, each traced to its path, in the week it counts), read by Control Center","urgency":5,"urgency_reason":"under 40% of the week's target two weeks running (0% now)"} --> **North Star number: U5, stalled.** Good meetings a week, each marked good by Krish after it and traced to where it came from: 0, against 5 in the week of 2 November 2026, on the way to 20 by 30 November 2026. Everything else pauses unless it moves the number.
 
 Lifecycle: building. The detail is in `README.md`.
 
+- the code half of the cold compliance gate (GET-GOING 1.2, not ticked) is built: src/stages/compliance.mjs, the guard cold_compliance, read back from config/compliance.json and the ignored opt-out record before any cold note on every route, so every cold note is held as cold_compliance_closed until Krish's four (footer words, privacy section, legitimate-interests assessment, named reviewer) are recorded by digest and the old Instantly and Apollo opt-outs are imported (npm run compliance -- import, digests only); anyone who took the free brief is in no lane once Control Center serves records.brief_takers. The prospect score (GET-GOING 1.3, prepared) gives a reason beside every point, keeps rule-outs apart and reads the buyer from the canon alone, with a seam for the SDR score. (2026-11-15)
 - a stage's form is given krish@mindmake.co as his email (FORM_EMAIL in src/stages/pitches.mjs, playbook 11), recorded in docs/RULINGS.md with its pointer in AGENTS.md (Ruling, Krish, 2026-11-14). The forms and golden report digests were re-recorded after a run with the old constant proved every other report byte for byte unchanged. (2026-11-14)
 - closeout notes now fold into NOW.md after every merge: auto-merge.yml starts ci.yml on main by workflow_dispatch, and its fold job runs on that start, because the merge's own push, made with the Actions token, starts no workflow (docs/RELEASE.md, 14 November). (2026-11-14)
 - docs/DRIVE.md declares 03_Growth by path in drive-map/1 (library/taxonomy.json regenerated); the dispatch reads the directive's library (protocol 1.35.0) and the Librarian's check measures it, with the index, Canva and repository-copy counts left unknown because only titles are served. Served once Control Center's DRIVE_LIBRARY_PART flag is on. (2026-11-14)
@@ -39,8 +40,6 @@ Lifecycle: building. The detail is in `README.md`.
 - Morning drafts are live: ten in his Gmail at 05:00 New York on 14 November (GET-GOING 0.2 ticked). Warm buyers are read whole, but the desk's sentence failed the fixed rules on all three, so the ask now says the source's "I" and "we" are the source's, never Krish's, and to open on what he saw, read or noticed. (2026-11-14)
 - Each held meeting's own tie (network_tier, known_since; Control Center's features.meeting_ties, protocol 1.33.0, in draft there) is read tolerantly and traces a tie he had before as an existing relationship; absent or null stays unknown. (2026-11-14)
 - An approved note to one person with no deal (contact_notes, Control Center #825) reaches prepare-action only where features.contact_notes is served, and its exact action is filed as go_live only when it is that person's with no asset. The engine proposes no such plan itself yet. (2026-11-14)
-- Held meetings get an origin where the engine can trace one: long-standing ties served outside the ranked hundred count as existing relationships, a path Control Center does not serve is never sent, and a full-funnel path raises the report to 1.24.0. Executor sends count as his own notes in wins. isSpeakerForm and its patterns are exported for Control Center's form capture. GET-GOING 3.1 now starts from krish-clone's free local evaluation. (2026-11-14)
-- Each run reads his Pipeline deals in detail where Control Center serves features.deals_detail (protocol 1.30.0, integration I-05): open deals and deals gone quiet (Parked, or Closed Lost for Timing or Went quiet), counted in one shadow line; null is said as not read, never none. No catch-up is proposed from them yet, and the morning lane still skips only open deals. (2026-11-14)
 - The daily dispatch runs live: Control Center wakes it at about 05:10 UTC, again the same day when a row of his widget runs low, and a merge to main that changes `src/` runs it at once. Each run reads Krish's instruction first (protocol 1.20.0), builds the five rows, Jonny's pitches and invites and the stage forms from Control Center's context, asks the research desk for lookups and openings, passes every action with words in Krish's name through Control Center's voice check, and reports the number, the bookings and the engine's state (README.md, "The daily Control Center dispatch").
 - Nothing here sends, posts or spends. Control Center drafts Jonny's pitches into Jonny's Gmail each day for Jonny to send; every other action waits on Krish's own press, and an approved exact email runs only through Control Center's shared executor.
 - The number is read from his one tap after each meeting (protocol 1.10.0). On the 12 November run good meetings, podcasts booked and stages confirmed all read as measured; the count itself is the state line above, which Control Center writes.
@@ -56,9 +55,9 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-14): on the next dispatch run, confirm a form proposal's Email answer reads krish@mindmake.co on his widget.
+- Next (2026-11-15): Krish gives his four (the footer words, the privacy section, the legitimate-interests assessment and the reviewer he names) and runs the opt-out import on the old exports from outside this repository, then npm run compliance -- status reads the gate back open.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
-- North Star check (2026-11-14): holds.
+- North Star check (2026-11-15): holds.
 
 ### Existing integration gates to retain
 

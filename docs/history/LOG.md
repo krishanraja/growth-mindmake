@@ -2,6 +2,13 @@
 
 The dated records of this engine's sessions, newest first. NOW.md names this file as its history log; scripts/check-drift.mjs fails when it is missing. The completion record stays docs/RELEASE.md.
 
+## 2026-11-15: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-15, to keep the session pack under 36 KB; newest first.
+
+- Held meetings get an origin where the engine can trace one: long-standing ties served outside the ranked hundred count as existing relationships, a path Control Center does not serve is never sent, and a full-funnel path raises the report to 1.24.0. Executor sends count as his own notes in wins. isSpeakerForm and its patterns are exported for Control Center's form capture. GET-GOING 3.1 now starts from krish-clone's free local evaluation. (2026-11-14)
+- Each run reads his Pipeline deals in detail where Control Center serves features.deals_detail (protocol 1.30.0, integration I-05): open deals and deals gone quiet (Parked, or Closed Lost for Timing or Went quiet), counted in one shadow line; null is said as not read, never none. No catch-up is proposed from them yet, and the morning lane still skips only open deals. (2026-11-14)
+
 ## 2026-11-14: older NOW.md lines
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-14, to keep the session pack under 36 KB; newest first.
