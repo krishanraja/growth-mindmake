@@ -116,8 +116,46 @@ export function reachOf(c, research) {
  * its lessons and the suppression list sent to Control Center (Rulings, Krish,
  * 2026-11-13: suppressed from every lane while their brief record exists).
  */
+// ── Redrafting what still waits unsent in Jonny's Gmail (Krish, 2026-11-16) ──
+// Krish approved redrafting the pitches and invites already sitting unsent in
+// Jonny's Gmail in the new words. Control Center replaces a draft in place
+// when the same proposal id comes back with new words (a new payload digest;
+// protocol: "A changed payload keeps the id and changes payload_sha256"). So a
+// pitch or invite whose draft is still unsent, unanswered and unbinned, made
+// in the last REISSUE_DAYS, is proposed again under its own id, inside the
+// run's caps: never a new id, never another recipient.
+
+/** The proposal a feedback row answers: its `proposal_id`, else its own `id` (protocol 1.25.0: a draft's proposal_id names it). Pure. */
+export const feedbackId = f => (typeof f?.proposal_id === 'string' ? f.proposal_id : typeof f?.id === 'string' ? f.id : null);
+/** How old an unsent Jonny draft may be and still be redrafted. */
+export const REISSUE_DAYS = 30;
+/** Any of these on a draft means it has moved on, and it is never redrafted. */
+const MOVED_ON = ['sent_at', 'replied_at', 'booked_at', 'recorded_at', 'published_at', 'bounced_at', 'opted_out_at', 'binned_at'];
+/**
+ * The proposal ids of Jonny's pitches and invites still waiting unsent in his
+ * Gmail (`drafts` rows with `mailbox: jonny`, job `booked` or `guests`, and a
+ * proposal id of this engine's), each mapped to its draft. One he declined
+ * is left out. `at` bounds the age; with no time readable the draft is left
+ * out. Pure.
+ */
+export function unsentJonny(drafts, feedback = [], at = null) {
+  const declined = new Set((Array.isArray(feedback) ? feedback : []).filter(f => f?.state === 'declined').map(feedbackId).filter(Boolean));
+  const now = Date.parse(at ?? '');
+  const out = new Map();
+  for (const d of Array.isArray(drafts) ? drafts : []) {
+    if (d?.mailbox !== 'jonny' || !['booked', 'guests'].includes(d.job) || typeof d.proposal_id !== 'string' || !/^gmp-[0-9a-f]{32}$/.test(d.proposal_id)) continue;
+    if (MOVED_ON.some(k => d[k] != null) || declined.has(d.proposal_id)) continue;
+    const made = Date.parse(d.created_at ?? '');
+    if (Number.isFinite(now) && (!Number.isFinite(made) || now - made > REISSUE_DAYS * DAY)) continue;
+    out.set(d.proposal_id, d);
+  }
+  return out;
+}
+
 export function lessons(feedback, at, drafts = [], takers = null) {
   const now = Date.parse(at);
+  // A Jonny draft still unsent in his Gmail is redrafted under its own id, so its carried-out draft does not snooze its subject.
+  const redraft = unsentJonny(drafts, feedback, at);
   const L = { never: new Set(), notOnRow: new Set(), until: new Map(), floor: new Map(), audiences: new Set(), topics: new Set(), pitchOff: new Map() };
   // Anyone who asked not to be written to again is never proposed again, in any lane (ENGINE-PROTOCOL.md, the morning lane: "the suppression is yours as well").
   for (const s of mailOutcomes(drafts).optedOut) L.never.add(s);
@@ -125,7 +163,7 @@ export function lessons(feedback, at, drafts = [], takers = null) {
   const snooze = (s, days, from) => { const t = Date.parse(from ?? at) + days * DAY; if (t > now && t > (L.until.get(s) ?? 0)) L.until.set(s, t); };
   for (const f of Array.isArray(feedback) ? feedback : []) {
     const s = typeof f?.subject_ref === 'string' ? f.subject_ref : null;
-    if (f?.carried_out && s) snooze(s, 30, f.decided_at);
+    if (f?.carried_out && s && !(f.carried_out === 'draft' && redraft.has(feedbackId(f)))) snooze(s, 30, f.decided_at);
     if (f?.state !== 'declined') continue;
     if (s && f.row) L.notOnRow.add(`${f.row}|${s}`);
     const kind = f.amplifier_kind ?? null, sector = f.features?.sector ?? null, topic = f.features?.topic ?? null;
@@ -1303,50 +1341,50 @@ export const WORDS = {
     (p, canon) => {
       if (p.kind === 'ai_trainer') return { subject: p.company ? `What ${possessive(p.company)} learners do after the course` : 'What your learners do after the course', lines: [
         `${p.company ? `At ${p.company} you train people to use AI, and the part` : 'The part of AI training'} that stalls is what happens once the course ends, when nobody decides ${p.decision}.`,
-        `Mindmake builds what comes after, one leader at a time (${lower1(canon.brain).replace(/[.!?]+$/, '')}); worth a short call to see if the two fit?`,
+        `Mindmake builds what comes after, one leader at a time (${lower1(canon.brain).replace(/[.!?]+$/, '')}); no rush at all, but would a short call to see if the two fit be useful?`,
       ] };
       // Their portfolio by its own names where the record gives them, and one decision no other partner in the run gets.
       // Someone who backs no founders (an operator, a chief executive) is offered the session for their own leaders.
       if (p.backer === false) return { subject: p.company ? `One decision for ${possessive(p.company)} leaders` : 'One decision for your leadership team', lines: [
         `For ${p.company ? `the leaders at ${p.company}` : 'your leadership team'}, I'd run a working session on one decision: ${p.decision}.`,
-        `Mindmake builds an AI that knows the leader using it (${lower1(canon.brain).replace(/[.!?]+$/, '')}), and that is the call it helps them make; worth a short call?`,
+        `Mindmake builds an AI that knows the leader using it (${lower1(canon.brain).replace(/[.!?]+$/, '')}), and that is the call it helps them make; if it's useful, would a short call whenever suits you be worth it?`,
       ] };
       const whose = p.portfolio?.length ? `founders like ${joinAnd(p.portfolio)}` : p.span ? `a portfolio spanning ${p.span}` : p.fund ? `the founders across ${possessive(p.fund)} portfolio` : 'the founders you back';
       return { subject: p.fund ? `One decision for the founders ${p.fund} backs` : 'One decision for the founders you back', lines: [
         `For ${whose}, I'd run a working session on one decision: ${p.decision}.`,
-        `Mindmake builds an AI that knows the leader using it (${lower1(canon.brain).replace(/[.!?]+$/, '')}), and that is the call it helps them make; worth a short call?`,
+        `Mindmake builds an AI that knows the leader using it (${lower1(canon.brain).replace(/[.!?]+$/, '')}), and that is the call it helps them make; happy to talk it through, so would a short call whenever suits you be worth it?`,
       ] };
     },
     (p, canon) => ({ subject: p.backer === false ? `For ${p.company ? `${possessive(p.company)} leaders` : 'your leaders'}: ${p.decision.split(',')[0]}` : p.fund ? `For ${possessive(p.fund)} portfolio: ${p.decision.split(',')[0]}` : 'One decision for your portfolio', lines: [
       `The call I'd help ${p.backer === false ? (p.company ? `the leaders at ${p.company}` : 'your leaders') : p.portfolio?.length ? `founders like ${joinAnd(p.portfolio)}` : p.fund ? `${possessive(p.fund)} founders` : 'your founders'} make: ${p.decision}.`,
-      `Mindmake builds an AI that knows the leader using it (${lower1(canon.brain).replace(/[.!?]+$/, '')}); worth a short call on whether a session would help them?`,
+      `Mindmake builds an AI that knows the leader using it (${lower1(canon.brain).replace(/[.!?]+$/, '')}); no pressure, but would a short call on whether a session would help them be worth it?`,
     ] }),
   ],
   introduce: [
     p => ({ subject: `One introduction: ${articleFor(LEADER_IN[p.topic] ?? 'leader')}`, lines: [
       `Do you know one ${LEADER_IN[p.topic] ?? 'leader'} who's working out ${p.decision}?`,
-      "An introduction would mean a lot, and I'll take it from there.",
+      "No pressure at all, but an introduction would mean a lot, and I'll take good care of it from there.",
     ] }),
     (p, canon) => ({ subject: 'A small ask', lines: [
       `Know one ${LEADER_IN[p.topic] ?? 'leader'} working out ${p.decision}, who'd want an AI that knows them (${lower1(canon.brain).replace(/[.!?]+$/, '')})?`,
-      "A short introduction is all I'd ask, and I'll take it from there.",
+      "A short introduction is all I'd ask, only if it feels right, and I'll take good care of it from there.",
     ] }),
   ],
   // To a host: one episode for the show's audience, and the ask with who he is, in the title Krish ruled.
   appear: [
     (p, canon) => ({ subject: `An episode for ${p.show || 'your show'}: ${p.episode.split(':')[0]}`, lines: [
       `One episode I'd bring to ${p.show || 'your show'}${p.audience ? ` for ${p.audience}` : ''}: "${p.episode}".`,
-      `I'm ${KRISH_TITLE} and write ${canon.publication.name} (${canon.publication.url}), so it would be practical, with one real decision worked through; would you have me on?`,
+      `I'm ${KRISH_TITLE} and write ${canon.publication.name} (${canon.publication.url}), so it would be practical, with one real decision worked through for your listeners; if it suits, would you be open to having me on?`,
     ] }),
     (p, canon) => ({ subject: `A conversation for ${p.show || 'your audience'}: ${p.episode.split(':')[0]}`, lines: [
       `For ${p.show || 'your show'}${p.audience ? `, and ${p.audience}` : ''}, I'd talk about "${p.episode}".`,
-      `I'm ${KRISH_TITLE}, write ${canon.publication.name}, and at Mindmake build AI that knows the leader using it; would that work for an episode?`,
+      `I'm ${KRISH_TITLE}, write ${canon.publication.name}, and at Mindmake build AI that knows the leader using it; no rush, but would that work for an episode sometime?`,
     ] }),
   ],
   teach: [
     p => { const who = p.kind === 'student_educator' ? 'students' : 'leaders'; return { subject: `A session for ${p.company ? possessive(p.company) : 'your'} ${who}: ${p.decision.split(',')[0]}`, lines: [
       `Would a session for ${p.company ? possessive(p.company) : 'your'} ${who} on one decision they face, ${p.decision}, be useful?`,
-      "I'd work it through live with them, on their own examples.",
+      "I'd work it through live with them, on their own examples, and shape it around what they're facing.",
     ] }; },
     (p, canon) => ({ subject: `An idea for ${p.company ? possessive(p.company) : 'your'} ${p.kind === 'student_educator' ? 'students' : 'leaders'}`, lines: [
       `Would a short session on ${p.decision} work for ${p.company ? possessive(p.company) : 'your'} ${p.kind === 'student_educator' ? 'students' : 'leaders'}?`,
@@ -1465,11 +1503,15 @@ export function cardClash(card, company = '') {
   return null;
 }
 
+/** How Krish signs an email in his own box (Ruling, Krish, 2026-11-16: warm, never stiff). */
+export const KRISH_SIGN_OFF = 'Cheers,\nKrish';
+
 /** The exact version 2 action for one person: Control Center fills the address from its own records when he presses. */
 export function actionFor(channel, contactId, name, words) {
-  const greeting = `Hi ${first(name)},`;
-  // Signed plainly. A Gmail draft made through the API carries no automatic signature.
-  if (channel === 'email') return { version: 2, channel, recipient_contact_id: contactId, subject: plainWords(clean(words.subject)).slice(0, 200), body: [greeting, ...words.lines.map(l => plainWords(clean(l))), 'Krish'].join('\n\n') };
+  // Their first name, never "Hi there" (Ruling, Krish, 2026-11-16): with no name on record, a plain hello.
+  const greeting = givenParts(name).length ? `Hi ${first(name)},` : 'Hello,';
+  // Signed warmly. A Gmail draft made through the API carries no automatic signature.
+  if (channel === 'email') return { version: 2, channel, recipient_contact_id: contactId, subject: plainWords(clean(words.subject)).slice(0, 200), body: [greeting, ...words.lines.map(l => plainWords(clean(l))), KRISH_SIGN_OFF].join('\n\n') };
   // A message has no subject and no signature.
   return { version: 2, channel, recipient_contact_id: contactId, body: [greeting, ...words.lines.map(l => plainWords(clean(l)))].join('\n\n').slice(0, 1000) };
 }

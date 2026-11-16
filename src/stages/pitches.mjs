@@ -1,6 +1,6 @@
 import { opening } from './openings.mjs';
 import { seal, clean, DAY } from '../guards.mjs';
-import { lessons, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, actionFor, rowProposal, score, channelOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX, OBJECTIVE, TOPIC_PITCH, EPISODE, EPISODES, AUDIENCE_OF, titleNaming, youFact, yourWork, pickUnused, plainWords } from './rows.mjs';
+import { lessons, unsentJonny, feedbackId, refusedBy, firstName, givenParts, cleanName, monthYear, servesOf, leadFacts, fitTitleWithin, cutClean, knownWords, bandOf, actionFor, rowProposal, score, channelOf, KRISH_TITLE, OWN_SHOW, TOPICS, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, CARD_LINES, CARD_ANGLE_TITLE_MAX, CARD_SOURCES, BECAUSE_MAX, BRIEF_LINE_MAX, TITLE_MAX, OBJECTIVE, TOPIC_PITCH, EPISODE, EPISODES, AUDIENCE_OF, titleNaming, youFact, yourWork, pickUnused, plainWords } from './rows.mjs';
 import { showNoteRows } from './shownotes.mjs';
 import { shadowLine, stageVerdict, stageStrength, ccStageVerdict, isDeadDate } from './visibility.mjs';
 import { guestVerdictOf, guestStrength, isCircleGuest, WARM_TIERS } from './guests.mjs';
@@ -186,6 +186,66 @@ export function roomOf(t) {
 /** Nova's angle for a stage or a show, as one whole sentence, or ''. Pure. */
 export const angleOf = t => (typeof t?.angle === 'string' && t.angle.trim() ? leadFacts(t.angle, 200) : '');
 
+// ── How Jonny's pitches sound (Rulings, Krish, 2026-11-16) ─────────────────
+// "Sincere and genuinely helpful, laid-back and confident, personable, with a
+// real desire to connect", and Jonny pitches what Krish loves talking about
+// with real conviction: we are on the cusp of AI extracting our human IP (our
+// knowledge, judgement and know-how), and we must be able to use AI rather
+// than be used by it. Each pitch tells that message for its own room, shows
+// the conviction through one specific line of thinking, never a superlative,
+// and asks once, easily.
+
+/** His speaking profile, named once in every speaking pitch (Ruling, Krish, 2026-11-16). */
+export const SPEAKER_PROFILE = 'https://www.krishraja.com';
+/** His media channel, named once in every speaking and podcast pitch (Ruling, Krish, 2026-11-16). mindmake.co, the one Mindmake link (FORM_SITE). */
+export const MEDIA_CHANNEL = 'https://mindmake.co';
+/** How Jonny signs off: thanks either way, then his name. */
+export const JONNY_SIGN_OFF = 'Thanks either way,\nJonny';
+
+/** The message Krish cares about most, told for each room: AI taking in what people know, and people using it rather than being used by it. Lower case, read after "because". */
+export const HUMAN_IP = {
+  leadership: "AI is starting to soak up what leaders know, and he wants them using it rather than being used by it",
+  marketing: "AI is quietly learning what marketing teams know, and he wants marketers using it rather than being used by it",
+  advertising: "AI can now copy an agency's know-how, and he wants its people using AI rather than being used by it",
+  talent: "AI can now learn the know-how people spent careers building, and he wants them using it rather than being used by it",
+  venture: "AI can absorb the knowledge that makes a company worth backing, and he wants founders using it rather than giving it away",
+  finance: "the money going into AI is really buying a business's judgement, and he wants finance teams to keep it their own",
+  retail: "AI is starting to absorb what retailers know about their customers, and he wants them using it rather than being used by it",
+  media: "AI is learning everything a media business knows, and he wants the people who make the work to stay in charge of it",
+  education: "AI can soak up the know-how people come to learn, and he wants them taught to use it rather than be used by it",
+  health: "AI is starting to take in clinical judgement, and he cares a lot about which parts of it stay with people",
+  technology: "once AI holds a company's know-how the org chart changes, and he wants leaders using it rather than being used by it",
+  sales: "AI is learning what great sellers know, and he wants sellers using it rather than being replaced by it",
+};
+/** How Jonny says he cares, one way a pitch: chosen by its episode or talk, so no two pitches on one topic in a run say it the same way. */
+const CONVICTION = [
+  why => `it's what he lights up about, because ${why}`,
+  why => `he thinks it's the conversation everyone should be having right now, since ${why}`,
+  why => `ask him about it and you'll hear why it matters so much to him: ${why}`,
+  why => `he talks about it with real energy, because ${why}`,
+];
+/** The conviction line for one pitch, after its episode or talk: the message for its room, said the way that episode or talk picks. Pure. */
+export function conviction(topic, x) {
+  const why = HUMAN_IP[topic] ?? HUMAN_IP.leadership;
+  const at = (EPISODES[topic] ?? []).indexOf(x);
+  const i = at >= 0 ? at : [...String(x)].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 7);
+  return CONVICTION[i % CONVICTION.length](why);
+}
+/** His record from krishraja.com in its two parts: what he did (at Nine) and where he has spoken, each a clause or ''. Pure. */
+export function recordParts(record) {
+  const rec = record ? clean(record).replace(/[.!?]+$/, '') : '';
+  const m = /^(.*?),? and (he has spoken at .+)$/.exec(rec);
+  if (m) return { did: m[1], spoke: m[2].replace(/^he /, '') };
+  if (/^he has spoken at /i.test(rec)) return { did: '', spoke: rec.replace(/^he /i, '') };
+  return { did: rec, spoke: '' };
+}
+/** The greeting: their first name when the record has one, else the show's or event's team, never "Hi there". Pure. */
+export function greetingFor(host, name) {
+  if (host) return `Hi ${firstName(host)},`;
+  const team = cleanName(name ?? '').replace(/^the\s+/i, '');
+  return team ? `Hi ${team} team,` : 'Hello,';
+}
+
 /**
  * Who Krish is, in one sentence, from what the run reads: his ruled title, his
  * publication, what he does at Mindmake and his record. It is the one sentence
@@ -198,25 +258,28 @@ export function bioLine(canon, record, person = 'third') {
 }
 
 /**
- * The speaking pitch in Jonny's words, from the stage's own facts: the talk,
- * who is in its room and why the talk is built for them, Nova's angle where it
- * has one, and the ask with when its call closes, then who Krish is. Krish in
- * the third person, signed Jonny. Pure.
+ * The speaking pitch in Jonny's words (Rulings, Krish, 2026-11-16): sincere,
+ * laid-back and respectful of the organiser's time. It leads with why Krish is
+ * good for this room and the message he cares about most, told for this room
+ * (humanIp), then who he is in one sentence with his speaking profile and his
+ * media channel once each, then one easy ask with the talk. Krish in the third
+ * person, signed Jonny. Pure.
  */
 export function speakWords({ t = {}, event, host, ask, talk, topic = null, canon, record }) {
   const room = roomOf(t);
-  const [about] = TOPIC_PITCH[topic] ?? TOPIC_PITCH.leadership;
   const angle = angleOf(t);
   const closes = dayMonth(t.deadline_at);
   const when = monthYear(t.event_start_at);
+  const { spoke } = recordParts(record);
   const lines = [
-    `I work with Krish Raja: would you consider him for ${ask} at ${event}${when ? ` in ${when}` : ''}${closes ? `, before your call closes on ${closes}` : ''}, with "${talk}", built for ${room ? `the room it gathers, ${room}` : 'the leaders it gathers'} (${about})?`,
+    `I work with Krish Raja, and I think he'd be a good speaker for ${event}${when ? ` in ${when}` : ''}${room ? `, in front of ${room}` : ''}, on "${talk}": ${conviction(topic, talk)}.`,
     ...(angle ? [angle] : []),
-    bioLine(canon, record),
+    `He's ${KRISH_TITLE}${spoke ? ` and ${spoke}` : ''}; his speaking profile is at ${SPEAKER_PROFILE} and his media channel is ${MEDIA_CHANNEL}.`,
+    `If it fits the programme, would you consider him for ${ask}${closes ? ` before your call closes on ${closes}` : ''}, or would a quick chat first be easier?`,
   ];
   return {
     subject: clean(`A speaker for ${event}: ${talk}`).slice(0, 200),
-    body: [`Hi ${host ? firstName(host) : 'there'},`, ...lines.map(l => plainWords(clean(l))), 'Jonny'].join('\n\n'),
+    body: [greetingFor(host, event), ...lines.map(l => plainWords(clean(l))), JONNY_SIGN_OFF].join('\n\n'),
   };
 }
 
@@ -287,36 +350,52 @@ export function uniqueStages(list) {
   return { kept: rows.filter(t => kept.has(t.id)), dupes };
 }
 
-/** The stages already pitched: a draft made for one, or any answer on a pitch to it. */
+/** The id this engine gives a stage's pitch or speaking pitch. Pure. */
+export const stageProposalId = (targetId, ask) => `gmp-${seal({ subject: `target:${targetId}`, ask }).slice(0, 32)}`;
+/** The id this engine gives a guest's invite. Pure. */
+export const inviteProposalId = contactId => `gmp-${seal({ subject: `contact:${contactId}`, ask: 'invite' }).slice(0, 32)}`;
+
+/**
+ * The stages already pitched: a draft made for one, or any answer on a pitch
+ * to it. A pitch still waiting unsent in Jonny's Gmail under this engine's
+ * own id for that stage is not counted, so it is redrafted in the new words
+ * under the same id (unsentJonny, Krish 2026-11-16).
+ */
 export function pitchedStages(context) {
   const out = new Set();
-  for (const d of Array.isArray(context?.records?.drafts) ? context.records.drafts : []) if (typeof d?.visibility_target_id === 'string') out.add(d.visibility_target_id);
+  const redraft = unsentJonny(context?.records?.drafts, context?.feedback, context?.observed_at ?? null);
+  const ours = d => typeof d?.visibility_target_id === 'string' && redraft.has(d.proposal_id) && [stageProposalId(d.visibility_target_id, 'pitch'), stageProposalId(d.visibility_target_id, 'speak')].includes(d.proposal_id);
+  for (const d of Array.isArray(context?.records?.drafts) ? context.records.drafts : []) if (typeof d?.visibility_target_id === 'string' && !ours(d)) out.add(d.visibility_target_id);
   for (const f of Array.isArray(context?.feedback) ? context.feedback : []) {
     const m = /^target:([0-9a-f-]{36})$/i.exec(f?.subject_ref ?? '');
+    if (f?.carried_out === 'draft' && f.state === 'done' && m && redraft.has(feedbackId(f)) && [stageProposalId(m[1], 'pitch'), stageProposalId(m[1], 'speak')].includes(feedbackId(f))) continue;
     if (m && (f.row === 'visibility' || f.row === 'events') && ['approved', 'done', 'declined'].includes(f.state)) out.add(m[1].toLowerCase());
   }
   return out;
 }
 
 /**
- * The podcast pitch in Jonny's words, from the show's own facts: who listens,
- * one episode it could run with him (no other show in the run is offered it)
- * and the ask, Nova's angle where it has one, then who Krish is. Krish in the
- * third person, signed Jonny. Pure.
+ * The podcast pitch in Jonny's words (Rulings, Krish, 2026-11-16): why Krish is
+ * good for this show's listeners and the message he cares about most, told for
+ * them (humanIp), Nova's angle where it has one, who he is in one sentence with
+ * his media channel (the one link), then one easy ask with the episode no other
+ * show in the run is offered. Krish in the third person, signed Jonny. Pure.
  */
 export function pitchWords({ t = {}, show, host, topic, canon, record, episode = null }) {
   const [, short] = TOPIC_PITCH[topic] ?? TOPIC_PITCH.leadership;
   const room = roomOf(t) || AUDIENCE_OF[topic] || '';
   const ep = episode ?? EPISODE[topic] ?? EPISODE.leadership;
   const angle = angleOf(t);
+  const { did } = recordParts(record);
   const lines = [
-    `I work with Krish Raja, and I think he'd make a strong episode for ${show}${room ? `'s listeners, ${room}` : ''}, "${ep}"; would you have him on?`,
+    `I work with Krish Raja, and I think he'd make a good hour for ${show}${room ? `'s listeners, ${room},` : ''} on "${ep}": ${conviction(topic, ep)}.`,
     ...(angle ? [angle] : []),
-    bioLine(canon, record),
+    `He's ${KRISH_TITLE}${did ? `, and ${did.charAt(0).toLowerCase()}${did.slice(1)}` : ''}; he shares what he's seeing on his media channel, ${MEDIA_CHANNEL}.`,
+    `If it sounds right, would you be open to having him on, or to a quick chat first?`,
   ];
   return {
     subject: clean(`A guest for ${show}: ${short}`).slice(0, 200),
-    body: [`Hi ${host ? firstName(host) : 'there'},`, ...lines.map(l => plainWords(clean(l))), 'Jonny'].join('\n\n'),
+    body: [greetingFor(host, show), ...lines.map(l => plainWords(clean(l))), JONNY_SIGN_OFF].join('\n\n'),
   };
 }
 
@@ -386,24 +465,43 @@ export function londonWeekStart(at) {
 /** A guest's full name without a title, or null. */
 export const guestName = g => { const n = givenParts(g?.name ?? ''); return n.length >= 2 ? n.join(' ') : null; };
 
-/** The guests already invited: an answer on an invite to them. Their own row says drafted or booked too. */
+/**
+ * The guests already invited: an answer on an invite to them. Their own row
+ * says drafted or booked too. An invite still waiting unsent in Jonny's Gmail
+ * under this engine's own id is not counted, and the set carries those
+ * guests as `reissue`, so it is redrafted in the new words (Krish, 2026-11-16).
+ */
 export function invitedGuests(context) {
   const out = new Set();
+  const redraft = reissuedInvites(context);
   for (const f of Array.isArray(context?.feedback) ? context.feedback : []) {
     const m = /^contact:([0-9a-f-]{36})$/i.exec(f?.subject_ref ?? '');
+    if (m && f.carried_out === 'draft' && f.state === 'done' && redraft.has(m[1].toLowerCase()) && feedbackId(f) === inviteProposalId(m[1])) continue;
     if (m && f.row === 'visibility' && ['approved', 'done', 'declined'].includes(f.state)) out.add(m[1].toLowerCase());
+  }
+  out.reissue = redraft;
+  return out;
+}
+
+/** The guests whose invite waits unsent in Jonny's Gmail under this engine's own id for them, by lower-cased contact id. Pure. */
+export function reissuedInvites(context) {
+  const out = new Set();
+  for (const [id, d] of unsentJonny(context?.records?.drafts, context?.feedback, context?.observed_at ?? null)) {
+    if (d.job === 'guests' && typeof d.contact_id === 'string' && inviteProposalId(d.contact_id) === id) out.add(d.contact_id.toLowerCase());
   }
   return out;
 }
 
-/** How many invites to each show were carried out this week. */
+/** How many invites to each show were carried out this week; an invite being redrafted is not counted twice. */
 export function invitesThisWeek(context, guests, at) {
   const since = londonWeekStart(at);
+  const redraft = reissuedInvites(context);
   const showOf = new Map(guests.map(g => [String(g.contact_id).toLowerCase(), g.invite_show]));
   const out = { makeyourmindup: 0, signal_noise: 0 };
   for (const f of Array.isArray(context?.feedback) ? context.feedback : []) {
     const m = /^contact:([0-9a-f-]{36})$/i.exec(f?.subject_ref ?? '');
     if (!m || f.row !== 'visibility' || f.reference !== 'visibility:invite' || !f.carried_out || !(Date.parse(f.decided_at ?? '') >= since)) continue;
+    if (f.carried_out === 'draft' && redraft.has(m[1].toLowerCase())) continue;
     const show = showOf.get(m[1].toLowerCase());
     if (show in out) out[show] += 1;
   }
@@ -420,7 +518,9 @@ export function inviteHold(g, { L, invited, routes, at }) {
   if ((g.recorded_at || g.published_at) && (!g.podcast_target || g.podcast_target === g.invite_show)) return 'recorded';
   const pastOther = ['recorded', 'published'].includes(String(g.status)) && g.podcast_target && g.podcast_target !== g.invite_show;
   if (!OPEN_GUEST.has(g.status) && !pastOther) return 'not_open';
-  if (g.invite_state && g.invite_state !== 'proposed') return 'already_invited';
+  // An invite still unsent in Jonny's Gmail is redrafted under its own id (invitedGuests' reissue, Krish 2026-11-16).
+  const redraft = g.invite_state === 'drafted' && invited?.reissue?.has(g.contact_id.toLowerCase());
+  if (g.invite_state && g.invite_state !== 'proposed' && !redraft) return 'already_invited';
   const verdict = guestVerdictOf(g);
   if (verdict === 'rejected') return 'guest_rejected';
   if (!(verdict in GUEST_VERDICT)) return 'guest_not_judged';
@@ -489,18 +589,18 @@ export function roleTopic(g) {
   return /\b(?:CRO|chief revenue|sales|revenue)\b/i.test(r) ? 'sales' : /\b(?:CMO|marketing|brand)\b/i.test(r) ? 'marketing' : /\b(?:CFO|finance)\b/i.test(r) ? 'finance' : /\b(?:CTO|engineering|product)\b/i.test(r) ? 'technology' : /\b(?:CHRO|people|talent)\b/i.test(r) ? 'talent' : 'leadership';
 }
 
-/** The invite in Jonny's words: the show, why this guest, one episode idea and the ask. Krish in the third person, signed Jonny. Pure. */
+/** The invite in Jonny's words (Rulings, Krish, 2026-11-16): why this guest, the show, one episode idea and an easy ask, warm and unhurried. Krish in the third person, signed Jonny. Pure. */
 export function inviteWords({ name, show, page, g = null, idea = null, opening: open = null }) {
   const label = quotable(page);
   const why = g ? guestWhy(g, name) : '';
   const lines = [
-    `I work with Krish Raja, ${show.who}, and we'd love to have you ${show.ask}.`,
+    `I work with Krish Raja, ${show.who}, and he'd love to have you ${show.ask}.`,
     ...(open ? [open] : why ? [`He'd like to talk with you because ${why}${label ? `, and he read "${label}"` : ''}.`] : label ? [`He read "${label}", and that is the conversation he wants to have.`] : []),
-    `One episode idea: "${idea ?? EPISODE.leadership}"; would you be up for it in the coming weeks?`,
+    `One episode idea: "${idea ?? EPISODE.leadership}"; would you be up for it sometime in the coming weeks, whenever suits you?`,
   ];
   return {
     subject: clean(`A conversation for ${show.name}`).slice(0, 200),
-    body: [`Hi ${firstName(name)},`, ...lines.map(l => plainWords(clean(l))), 'Jonny'].join('\n\n'),
+    body: [`Hi ${firstName(name)},`, ...lines.map(l => plainWords(clean(l))), JONNY_SIGN_OFF].join('\n\n'),
   };
 }
 
@@ -560,7 +660,7 @@ export function krishInviteWords({ show, page, g = null, name = '', idea = null,
       `${show.self}, and I'd love to have you ${show.ask}.`,
       // The desk's sentence from one fact on their record, read by fixed rules (src/stages/openings.mjs), where it wrote one.
       ...(open ? [open] : why ? [`I'd like to talk with you because ${why}${label ? `, and I read "${label}"` : ''}.`] : label ? [`I read "${label}", and that is the conversation I want to have.`] : []),
-      `One episode idea: "${idea ?? EPISODE.leadership}"; would you be up for it in the coming weeks?`,
+      `One episode idea: "${idea ?? EPISODE.leadership}"; would you be up for it sometime in the coming weeks, whenever suits you?`,
     ],
   };
 }
@@ -575,7 +675,7 @@ export function krishPitchWords({ t = {}, show, topic, canon, episode = null }) 
   const angle = angleOf(t);
   return {
     subject: clean(`A guest for ${show}: ${short}`).slice(0, 200),
-    lines: [`One episode I'd bring to ${show}${room ? ` for ${room}` : ''}: "${episode ?? EPISODE[topic] ?? EPISODE.leadership}"; would you have me on?`, ...(angle ? [angle] : []), bioLine(canon, null, 'first')],
+    lines: [`One episode I'd love to bring to ${show}${room ? ` for ${room}` : ''}: "${episode ?? EPISODE[topic] ?? EPISODE.leadership}"; if it suits your listeners, would you be open to having me on?`, ...(angle ? [angle] : []), bioLine(canon, null, 'first')],
   };
 }
 
@@ -585,7 +685,7 @@ export function krishSpeakWords({ t = {}, event, ask, talk, topic = null, canon 
   const [about] = TOPIC_PITCH[topic] ?? TOPIC_PITCH.leadership;
   return {
     subject: clean(`A speaker for ${event}: ${talk}`).slice(0, 200),
-    lines: [`Would you consider me for ${ask} at ${event}${closes ? `, before the call closes on ${closes}` : ''}, with "${talk}", built for ${room ? `the room it gathers, ${room}` : 'the leaders it gathers'} (${about})?`, bioLine(canon, null, 'first')],
+    lines: [`If it fits the programme, would you consider me for ${ask} at ${event}${closes ? `, before the call closes on ${closes}` : ''}, with "${talk}", built for ${room ? `the room it gathers, ${room}` : 'the leaders it gathers'} (${about})?`, bioLine(canon, null, 'first')],
   };
 }
 
@@ -1423,7 +1523,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     const because = `A ${standard === 'take' ? 'strong ' : ''}guest for ${show.name}. Jonny invites them.`;
     const action = { version: 2, channel: 'email', recipient_contact_id: g.contact_id, subject: words.subject, body: words.body, form: null, mailbox: 'jonny' };
     return {
-      proposal_id: `gmp-${seal({ subject: `contact:${g.contact_id}`, ask: 'invite' }).slice(0, 32)}`,
+      proposal_id: inviteProposalId(g.contact_id),
       title: fitTitleWithin(titleMax, `Jonny invites ${name} onto ${show.name}`, `Jonny invites ${firstName(name)} onto ${show.name}`, `Jonny invites ${name}`, `Invite ${firstName(name)}`),
       why: clean(`${name} is a guest the guest standard judged ${standard === 'take' ? 'worth having' : 'a stretch'} for ${show.name}, with an address on record. One ask: a conversation on the show.`).slice(0, 1000),
       kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: OBJECTIVE,
@@ -1449,7 +1549,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     const because = [`A podcast${eps ? ` with ${eps} episodes` : ''}${latest ? `, latest ${latest}` : ''}.`, 'Jonny pitches you.'].join(' ');
     const action = { version: 2, channel: 'email', recipient_contact_id: t.booking_contact_id, subject: words.subject, body: words.body, form: null, mailbox: 'jonny' };
     return {
-      proposal_id: `gmp-${seal({ subject: `target:${t.id}`, ask: 'pitch' }).slice(0, 32)}`,
+      proposal_id: stageProposalId(t.id, 'pitch'),
       title: titleNaming(titleMax, n => `Jonny pitches you to ${n}`, show),
       why: clean(`${show} is a podcast${eps ? ` with ${eps} episodes` : ''} taking guests, with an address of its own. ${standardSays(t, at)} One ask: have Krish on.`).slice(0, 1000),
       kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: OBJECTIVE,
@@ -1478,7 +1578,7 @@ export function pitchRows({ context, weekGoals, canon, record = null, files, at,
     const because = [`${ask === 'a panel seat' ? 'A panel' : 'A stage'}${when ? ` in ${when}` : ''}${closes ? `, call closes ${closes}` : ''}.`, 'Jonny pitches you.'].join(' ');
     const action = { version: 2, channel: 'email', recipient_contact_id: t.booking_contact_id, subject: words.subject, body: words.body, form: null, mailbox: 'jonny' };
     return {
-      proposal_id: `gmp-${seal({ subject: `target:${t.id}`, ask: 'speak' }).slice(0, 32)}`,
+      proposal_id: stageProposalId(t.id, 'speak'),
       title: titleNaming(titleMax, n => `Jonny pitches you to speak at ${n}`, event),
       why: clean(`${event} is open for speakers, and its own page gives an address for them. ${standardSays(t, at)} One ask: ${ask} for Krish.`).slice(0, 1000),
       kind: 'prepared', wall: 'send', channel: 'email', amount_usd: 0, objective_key: OBJECTIVE,

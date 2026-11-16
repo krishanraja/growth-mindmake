@@ -89,7 +89,7 @@ test('where the desk is open, a catch-up opens on its sentence, and one not writ
   ];
   const r = amplifierRows({ context, weekGoals: [], canon, files: FILES, at: NOW, openingsRequired: true, research });
   assert.equal(r.rows.length, 1);
-  assert.match(body(r.rows[0].proposal), /^Hi Robin,\n\nIt's been a while since we last spoke\. I'm reaching out because .+ I thought of you because .+ Would you be open to a quick chat\?\n\nKrish$/s);
+  assert.match(body(r.rows[0].proposal), /^Hi Robin,\n\nIt's been a while since we last spoke\. I'm reaching out because .+ I thought of you because .+ Would you be open to a quick chat\?\n\nCheers,\nKrish$/s);
   // A note that fails the rules is asked once more, naming the rule it broke (audit gm-3); a desk failure is asked again under the day.
   assert.deepEqual(r.held.filter(h => h.startsWith('opening_')).sort(), ['opening_waiting', 'opening_waiting'], 'a sentence that fails gets one retry; a desk failure is asked again');
   const again = r.research.filter(x => x.request_id.startsWith('open:'));

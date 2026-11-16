@@ -98,8 +98,8 @@ test('a guest invite: unknown and not served are held, outside his network is Jo
     'Hi Avery,',
     "I write Make Your Mind Up (https://publication.example), and I'd love to have you for one of its weekly conversations.",
     'I\'d like to talk with you because you run a marketing team that changed how it works with AI, and I read "How marketing teams change with AI".',
-    'One episode idea: "What a CMO should hand to AI this quarter, and what stays human"; would you be up for it in the coming weeks?',
-    'Krish',
+    'One episode idea: "What a CMO should hand to AI this quarter, and what stays human"; would you be up for it sometime in the coming weeks, whenever suits you?',
+    'Cheers,\nKrish',
   ].join('\n\n'));
   assert.doesNotMatch(a.body, /Jonny|\bhe\b|\bhim\b|Krish Raja|\bwe\b/i, 'his own first person, never Jonny\'s third');
   assert.equal(parseActionV2(p.exact_payload).ok, true, 'Control Center reads it');
@@ -133,12 +133,12 @@ test('a podcast or stage booker in his network gets his own row; an unknown book
   for (const p of rows) {
     const a = action(p);
     assert.equal('mailbox' in a, false);
-    assert.ok(a.body.endsWith('\n\nKrish') && !/Jonny|\bhe\b|\bhim\b/i.test(a.body));
+    assert.ok(a.body.endsWith('\n\nCheers,\nKrish') && !/Jonny|\bhe\b|\bhim\b/i.test(a.body));
     assert.equal(parseActionV2(p.exact_payload).ok, true);
     assert.ok(p.proposal_id.startsWith('gmw-'));
   }
-  assert.match(action(rows[0]).body.split('\n\n')[1], /^One episode I'd bring to The Example Show 1 for marketing leaders at mid-size companies: "[^"]+"; would you have me on\?$/, 'the show\'s audience, one episode no other pitch in the run is offered, and the ask');
-  assert.match(action(rows[1]).body, /Would you consider me for a talk at The Example Summit 4, before the call closes on \d+ [A-Z][a-z]{2}, with "/);
+  assert.match(action(rows[0]).body.split('\n\n')[1], /^One episode I'd love to bring to The Example Show 1 for marketing leaders at mid-size companies: "[^"]+"; if it suits your listeners, would you be open to having me on\?$/, 'the show\'s audience, one episode no other pitch in the run is offered, and the ask');
+  assert.match(action(rows[1]).body, /If it fits the programme, would you consider me for a talk at The Example Summit 4, before the call closes on \d+ [A-Z][a-z]{2}, with "/);
   // With the flag served and false, every booker is Jonny's as today.
   const served = run({ records: { visibility, drafts: [] }, network, routes: Object.fromEntries([1, 2, 3, 4].map(n => [id(100 + n), { in_network: false }])) }, true);
   assert.deepEqual(jonnyTo(served).sort(), [id(101), id(102), id(103), id(104)]);
@@ -187,7 +187,7 @@ test('the Krish words are his first person, from the same facts as Jonny\'s', ()
   assert.equal(words.subject, 'A guest for The Example Show: an AI that knows the leader');
   assert.ok(words.lines[1].startsWith(`I'm ${KRISH_TITLE}, write Make Your Mind Up (https://publication.example) and help leaders build their AI brain at Mindmake`));
   const speak = krishSpeakWords({ event: 'The Example Summit', ask: 'a panel seat', talk: 'The org chart after AI', canon });
-  assert.equal(speak.lines[0], 'Would you consider me for a panel seat at The Example Summit, with "The org chart after AI", built for the leaders it gathers (what an AI that knows a leader should actually do)?');
+  assert.equal(speak.lines[0], 'If it fits the programme, would you consider me for a panel seat at The Example Summit, with "The org chart after AI", built for the leaders it gathers (what an AI that knows a leader should actually do)?');
   assert.equal(krishInviteWords({ show: inviteShow('makeyourmindup', canon), page: { label: 'x', url: 'https://talks.example/1' } }).lines.length, 2, 'a one-word page title is never quoted');
   for (const w of [words, speak]) assert.equal(JSON.stringify(w).includes(EM), false);
 });

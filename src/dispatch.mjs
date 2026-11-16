@@ -790,7 +790,9 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const citedNow = citedLine(cited, citedServed);
   if (citedNow) activity.push(citedNow);
   counts.cited = cited ? cited.counts.proposed : null;
-  const { kept, dropped, off } = rankRows([...amplifiers.rows, ...signals.rows, ...krishRows, ...pilots.rows, ...(cited?.rows ?? [])], caps.rows, shown);
+  // A note of his still unsent in his Gmail is redrafted in the new words under its own id (Krish, 2026-11-16), so it is not rotated behind the unseen.
+  const unsentMorning = new Set((Array.isArray(ctx?.records?.drafts) ? ctx.records.drafts : []).filter(d => d?.job === 'morning' && typeof d.proposal_id === 'string' && !['sent_at', 'replied_at', 'booked_at', 'bounced_at', 'opted_out_at', 'binned_at'].some(k => d[k] != null)).map(d => d.proposal_id));
+  const { kept, dropped, off } = rankRows([...amplifiers.rows, ...signals.rows, ...krishRows, ...pilots.rows, ...(cited?.rows ?? [])], caps.rows, typeof shown === 'function' ? id => (unsentMorning.has(id) ? 0 : shown(id)) : shown);
   // A stage that asked leads its row, one tap from done: the people ranked on that row come after its forms (at most two a row).
   const lead = {};
   for (const p of pitched.proposals.filter(isForm)) lead[p.row] = (lead[p.row] ?? 0) + 1;
