@@ -299,3 +299,18 @@ In his words, as relayed by the session that took them on 16 November: Jonny's s
 - Every pitch leads with why he is good for that room and the message told for it (`HUMAN_IP`, `conviction`), never a superlative, then who he is in one sentence, then one easy ask; nobody is greeted "Hi there" (their first name, else the show's or event's team, else "Hello"), and Jonny signs "Thanks either way". His own emails sign "Cheers".
 - A Jonny pitch or invite still unsent, unanswered and unbinned in Jonny's Gmail, made in the last 30 days, is proposed again under its own proposal id to the same recipient (`unsentJonny`), inside the run's caps; an unsent morning draft of his own is not rotated behind the unseen. Control Center replaces each draft in place.
 - No wall moves: nothing here sends.
+
+## The lead generation plan of 16 November (Rulings, Krish, 2026-11-16)
+
+Krish set the plan in docs/STRATEGY.md in one session. His answers, as he gave them:
+
+- His daily send time: "20 min a day". Volume across his own box is sized to one fixed daily block in which he sends what is prepared and taps his meetings.
+- Hosted rooms: "Keep guest seats only". No hosted event this year; the engine targets other people's rooms and stages.
+- What comes first: "focus on meetings", then a resource page on mindmake.co selling kits senior executives can pay $59 for, one-off, each solving one specific problem, one-click to install, relying on no infrastructure of his, and "not just nice prompts or claude skills"; and he wants to "send volumes of outreach, and then if people show interest then the system auto prepares a tailored proposal for them", one that "should feel like it knows THEM and their business", and "if the system cannot reliably identify their linkedin profile etc, then stop to ask me". The proposal is a PDF, and the reply that carries it, with his Calendly link, waits for his review.
+- Jonny: "not yet, he starts today".
+- Public price: the kits show $59 publicly as a carve-out; the paid proof's price stays private.
+- Calendly: his Calendly link goes only in a one-to-one reply to someone who showed interest, never on the site and never in a first note.
+- The proposal PDF reaches people as a tracked per-person link, keeping the ruling that an asset is a link in the words, never an attachment.
+- Kits carry a 14-day full refund; no countdown and no scarcity.
+
+What this repository does with them: each run reports what became of the drafts in both boxes (src/stages/sends.mjs). The tailored proposal, the identity check and the PDF are built in Control Center, which is private, because each carries a named person; this public repository only counts. The kits and their page are built in the mindmake repository. No wall moves: every send, the kit shortlist, the page, live prices and the proposal pipeline going live each wait for his yes.

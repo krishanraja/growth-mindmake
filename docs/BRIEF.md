@@ -12,7 +12,7 @@ and exact external actions retain their action-time gates. The original
 
 ## Outcome
 
-Complete this repository's growth producer, operating playbooks, reporting contracts and synthetic end-to-end verification. Then deliver one concrete implementation handoff for Control Center. The commercial target is **five qualified conversations per London week and at least one paid proof in the first 30 days after actual activation**. These targets describe business outcomes, not what a successful test run proves.
+Complete this repository's growth producer, operating playbooks, reporting contracts and synthetic end-to-end verification. Then deliver one concrete implementation handoff for Control Center. The commercial target is **five qualified conversations per London week and at least one paid proof in the first 30 days after actual activation**. These targets describe business outcomes, not what a successful test run proves. Since 18 October the headline number is the North Star's, good meetings a week each traced to its path (docs/NORTH_STAR.md); qualified conversations are reported as a subset beside it.
 
 ## Accepted product decisions
 
