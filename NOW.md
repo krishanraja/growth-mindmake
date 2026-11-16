@@ -28,11 +28,11 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 Lifecycle: building. The detail is in `README.md`.
 
+- the cold lane now reads who may be written to cold from Control Center's records.eligibility (protocol 1.42.0) by contact id: country, United Kingdom subscriber type, the address's domain, whether the address was worked out, and the company's domain. Until Control Center serves it, every candidate still holds as cold_country_unknown. (2026-11-16)
 - Lead generation strategy set on one page (docs/STRATEGY.md) with Krish's rulings of 16 November; each run now reports what became of the drafts in his box and Jonny's (src/stages/sends.mjs), counts only. (2026-11-16)
 - Krish asked for advertising audit capabilities and chose, when asked, a tracking check on mindmake.co plus a dormant paid accounts audit. Each run now reports one tracking line (src/stages/tracking.mjs: Control Center's site health, flags, freshness, days read, key events, untraced visits and placements, each fail, watch, unknown or pass with its fix), and `npm run ads-audit` audits an exported account read only (src/ads/). Paid media stays excluded (playbook 10). Built and tested on a local branch; not pushed, merged or live. (2026-11-15)
 - Krish's idea to turn the engine's own checks into giveaway and low-priced tools with a landing page is in the plan as GET-GOING item 1.10 (free tool first, a paid pack, then Mindmake; his yes on the first tool, page and price before anything is public). (2026-11-15)
 - Krish's second LinkedIn example is in the plan as GET-GOING item 1.4c, the named system post: one premium diagram of a working system, the system itself free on a mindmake.co page, no comment-to-unlock. His words ("a bit clickbaity and not as premium as I would like to aim for but it's a good idea nonetheless") are on his taste ledger. (2026-11-15)
-- Krish asked for a LinkedIn post format with a visual people stop for, lead magnets and immediate value; it is in the plan as GET-GOING item 1.4b (a news-hook post with his take, three or four mindmake.co resources and one strong visual), built after 1.4's first format. (2026-11-15)
 - The daily dispatch runs live: Control Center wakes it at about 05:10 UTC, again the same day when a row of his widget runs low, and a merge to main that changes `src/` runs it at once. Each run reads Krish's instruction first (protocol 1.20.0), builds the five rows, Jonny's pitches and invites and the stage forms from Control Center's context, asks the research desk for lookups and openings, passes every action with words in Krish's name through Control Center's voice check, and reports the number, the bookings and the engine's state (README.md, "The daily Control Center dispatch").
 - Nothing here sends, posts or spends. Control Center drafts Jonny's pitches into Jonny's Gmail each day for Jonny to send; every other action waits on Krish's own press, and an approved exact email runs only through Control Center's shared executor.
 - The number is read from his one tap after each meeting (protocol 1.10.0). On the 12 November run good meetings, podcasts booked and stages confirmed all read as measured; the count itself is the state line above, which Control Center writes.
@@ -49,7 +49,7 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-16): Krish spends today's 20 minutes sending the drafts in his Gmail and signing the week spec; the tailored proposal pipeline and the kits are built in Control Center and the mindmake repo.
+- Next (2026-11-16): Control Center serves records.eligibility (protocol 1.42.0); then copy its bundle into docs/control-center/ and read the next live report's cold lane line.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 - North Star check (2026-11-16): holds.
 
