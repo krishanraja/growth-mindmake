@@ -27,9 +27,10 @@ import { payloadDigest } from '../../src/guards.mjs';
 import { CREW_LINE } from '../../src/crew/shadow.mjs';
 import { SWITCH_LINE } from '../../src/crew/switch.mjs';
 import { TRACKING_LINE } from '../../src/stages/tracking.mjs';
+import { SENDS_LINE } from '../../src/stages/sends.mjs';
 // The protocol copy's line (I-11) depends on the bundle's bytes, not on the fixture, so it is left out too.
 const PROTOCOL_LINE = /^Protocol copy: /;
-// The tracking check's line (src/stages/tracking.mjs) is a supporting reading added on top of the report: counted, holding nothing, tested in tests/tracking.test.mjs.
+// The tracking check's line (src/stages/tracking.mjs) and the sends line (src/stages/sends.mjs, 16 November 2026) are supporting readings added on top of the report: counted, holding nothing, tested in tests/tracking.test.mjs.
 const STANDARD_LINE = /^(?:Guest standard|Visibility standard|Room scoring|Pilot machine|Outreach briefs|Ingest gate|Focus playbooks|Suppression|Places and questions), in shadow: |^(?:guestsShadow|visibilityShadow|roomsShadow|pilotsShadow|briefsShadow|qualifyShadow|playsShadow|suppressionShadow|placesShadow): /;
 
 const dir = new URL('../golden/', import.meta.url);
@@ -51,7 +52,7 @@ export function withoutCrew(report) {
   if (!report || typeof report !== 'object' || !Array.isArray(report.activity)) return report?.payload_sha256 ?? null;
   const { payload_sha256, ...body } = report;
   // The shadow lines of plan Phase 3 and 5 and section 12 (M3 to M7, M9, M10, M12 and M13) are left out: each is counted, holds nothing, and is tested in its own file.
-  const activity = body.activity.filter(a => !CREW_LINE.test(a?.line ?? '') && !SWITCH_LINE.test(a?.line ?? '') && !STANDARD_LINE.test(a?.line ?? '') && !PROTOCOL_LINE.test(a?.line ?? '') && !TRACKING_LINE.test(a?.line ?? ''));
+  const activity = body.activity.filter(a => !CREW_LINE.test(a?.line ?? '') && !SWITCH_LINE.test(a?.line ?? '') && !STANDARD_LINE.test(a?.line ?? '') && !PROTOCOL_LINE.test(a?.line ?? '') && !TRACKING_LINE.test(a?.line ?? '') && !SENDS_LINE.test(a?.line ?? ''));
   return activity.length === body.activity.length ? payload_sha256 : payloadDigest({ ...body, activity });
 }
 

@@ -12,5 +12,6 @@ Use these with the working pipeline and the existing specialist agents. Their ou
 8. [Operator runbook](08-operator-runbook.md)
 9. [Privacy and suppression](09-privacy-and-suppression.md)
 10. [Copy and offer doctrine](10-copy-and-offer-doctrine.md): how every draft chooses its lead, promise, proof and ask
+11. [Trusted distribution](11-trusted-distribution.md): multipliers, the five rows, Jonny's pitches, forms, guests, lookups and signals
 
 The runtime prepares and hands off contact drafts and decision aids. Research, speaking, publishing and closing procedures route work to their existing owners; optional prompt contracts do not pretend to be autonomous integrations. A data-enrichment refresh does not select a person for contact. The separately invoked growth plan needs current public buying-moment evidence and the live buyer definition before it proposes an action.

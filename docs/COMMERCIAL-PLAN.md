@@ -1,6 +1,6 @@
 # Mindmake growth plan
 
-Build a repeatable route to five qualified conversations each week and at least one paid proof in the first 30 days after activation. These are Krish's outcome targets, not a forecast or a promise to clients. Activation is the operator's recorded start, after access, source freshness and approval handling work. A repository creation date does not start the clock.
+Build a repeatable route to five qualified conversations each week and at least one paid proof in the first 30 days after activation. These are Krish's outcome targets, not a forecast or a promise to clients. Since 18 October the headline number is the North Star's, good meetings a week each traced to its path (docs/NORTH_STAR.md); qualified conversations are reported as a subset beside it. Activation is the operator's recorded start, after access, source freshness and approval handling work. A repository creation date does not start the clock.
 
 ## What this engine owns
 

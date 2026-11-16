@@ -476,6 +476,7 @@
         "src/stages/receipts.mjs",
         "src/stages/callprep.mjs",
         "src/stages/morning.mjs",
+        "src/stages/sends.mjs",
         "src/protocol-bundle.mjs",
         "src/stages/instruction.mjs",
         "src/stages/shownotes.mjs",

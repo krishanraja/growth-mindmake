@@ -1240,6 +1240,36 @@
       "tests": [
         "tests/ads.test.mjs"
       ]
+    },
+    {
+      "id": "sends-unserved-zero",
+      "what": "an unserved drafts record reads as zero",
+      "file": "src/stages/sends.mjs",
+      "find": "  if (!Array.isArray(drafts)) return null;",
+      "replace": "  if (!Array.isArray(drafts)) drafts = [];",
+      "tests": [
+        "tests/sends.test.mjs"
+      ]
+    },
+    {
+      "id": "sends-week-ignored",
+      "what": "a send outside the week is counted",
+      "file": "src/stages/sends.mjs",
+      "find": "      if (real(v) && Date.parse(v) >= from && Date.parse(v) < to) box[s] += 1;",
+      "replace": "      if (real(v)) box[s] += 1;",
+      "tests": [
+        "tests/sends.test.mjs"
+      ]
+    },
+    {
+      "id": "sends-binned-waiting",
+      "what": "a binned draft counts as waiting",
+      "file": "src/stages/sends.mjs",
+      "find": "const CLOSED = ['sent_at', 'replied_at', 'booked_at', 'bounced_at', 'opted_out_at', 'binned_at'];",
+      "replace": "const CLOSED = ['sent_at', 'replied_at', 'booked_at', 'bounced_at', 'opted_out_at'];",
+      "tests": [
+        "tests/sends.test.mjs"
+      ]
     }
   ]
 }

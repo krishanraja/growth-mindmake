@@ -32,6 +32,7 @@ import { citedRows, citedLine } from './stages/cited.mjs';
 import { pilotsShadow, pilotRows, pilotHolds, pilotLine, isWarmProposal, othersThisRun, readDeals, dealsLine } from './stages/pilots.mjs';
 import { warmFrame } from './stages/openings.mjs';
 import { morningQa, morningHolds, morningLengthLine, engineVocabulary } from './stages/morning.mjs';
+import { sendCounts, sendsLine } from './stages/sends.mjs';
 import { callPreps, callPrepLine, takesCallPrep, callPrepField, callPrepAnswer, CALL_PREP_VERSION, CALL_PREP_MAX } from './stages/callprep.mjs';
 import { takesCompanyRead, companyReadRequests, companyReadLine } from './stages/company.mjs';
 import { briefsShadow } from './stages/pitches.mjs';
@@ -816,6 +817,11 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   holds.push(...morningHolds(morning));
   const morningLength = morningLengthLine(morning);
   if (morningLength) activity.push(morningLength);
+  // What became of the drafts this London week, by box (session of 16 November 2026): counts only, never a name or a word.
+  const sendAt = at ?? ctx?.observed_at ?? null;
+  const sendWeek = typeof sendAt === 'string' && Number.isFinite(Date.parse(sendAt)) ? londonWeek(sendAt) : null;
+  counts.sends = sendWeek ? sendCounts(ctx?.records?.drafts, { start: londonMidnight(sendWeek.start), end: londonMidnight(sendWeek.end) }) : null;
+  activity.push(sendsLine(counts.sends));
   if (voice.held.size) holds.push(voiceHoldLine(voice.held));
   if (voice.unread) holds.push({ reason: 'voice_check_unread', detail: `${voice.unread} email${voice.unread === 1 ? '' : 's'} went unchecked here; Control Center checks again before anything lands.` });
   if (same.size) holds.push({ reason: 'row_same_words', detail: `${same.size} proposal${same.size === 1 ? '' : 's'} held: ${same.size === 1 ? 'its' : 'their'} words matched another email in this run once the names were taken out.` });
