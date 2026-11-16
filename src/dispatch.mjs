@@ -50,6 +50,7 @@ import { poolOf, lanesLine, laneHistory, starvedLanes, poolFlat, starvedProposal
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
 import { voiceHolds, voiceHoldLine } from './stages/voice.mjs';
 import { readGate, coldGateFor, gateLine, isColdHold, footerOf } from './stages/compliance.mjs';
+import { coldRows, coldLine, coldHolds, takesCold, isColdProposal, COLD_VERSION } from './stages/cold.mjs';
 import { readInstruction, takesEngineState, rowGoals, instructionSeen, lastAck, instructionWork, priorities, obsessions, nextSteps, engineState, ENGINE_STATE_VERSION, ENGINE_STATE_KEYS } from './stages/instruction.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
@@ -151,6 +152,9 @@ export async function engineFiles() {
 /** Every file an email's fixed words come from: the row word files and the warm, cited and opening notes. Its string literals are the morning QA's own words (src/stages/morning.mjs). */
 export const MORNING_WORD_FILES = [...WORD_FILES, 'src/stages/pilots.mjs', 'src/stages/cited.mjs', 'src/stages/openings.mjs'];
 const MORNING_WORD_TEXT = await Promise.all(MORNING_WORD_FILES.map(path => readFile(new URL(path, repoRoot), 'utf8')));
+/** The cold lane's words (GET-GOING 1.3): its fixed lines are its own vocabulary in the morning QA, and the file is named in each cold note's source_revision. */
+export const COLD_WORD_FILE = 'src/stages/cold.mjs';
+const COLD_WORD_TEXT = await readFile(new URL(COLD_WORD_FILE, repoRoot), 'utf8');
 /** Control Center only ever adds within 1.x, so any 1.x directive is read (ENGINE-PROTOCOL.md, "Versions"). Requiring 1.0.0 exactly stopped every run from 2026-10-19 on directive_invalid. */
 const SERVED = /^1\.\d+\.\d+$/;
 
@@ -491,7 +495,7 @@ export function assetsHold(a, { allowed = false } = {}) {
 export const ACTIVITY_MAX = 40, HOLDS_MAX = 40;
 // The lines a full report must still carry: the gap line, the AI answers and kits, the switch's lines and the crew's
 // (later runs count proof runs from the crew's lines). Audit gm-2, 14 November 2026: the cap had cut the AI-answer lines.
-export const KEPT_LINE = /^(?:Gap: |AI answers|AI-answer kits|Switch (?:readiness|route): |Crew (?:lints|checks), )/;
+export const KEPT_LINE = /^(?:Gap: |AI answers|AI-answer kits|Switch (?:readiness|route): |Crew (?:lints|checks), |Cold lane: )/;
 // The ported standards' one line each, in shadow beside Control Center's own verdicts (plan section 12).
 export const STANDARD_LINE = /^(?:Guest standard|Visibility standard|Room scoring|Pilot machine|Outreach briefs|Ingest gate|Focus playbooks|Suppression|Places and questions), in shadow: |^(?:guestsShadow|visibilityShadow|roomsShadow|pilotsShadow|briefsShadow|qualifyShadow|playsShadow|suppressionShadow|placesShadow): /;
 
@@ -545,6 +549,8 @@ export function buildReport({ run_id, mode, observed_at, source, status, objecti
   // 1.40.0: call prep goes out only when there is one (callPrepField sends one only where takesCallPrep allows it), and raises the report to the version that carries it.
   const preps = Array.isArray(call_prep) && call_prep.length ? call_prep.slice(0, CALL_PREP_MAX) : null;
   if (preps) version = laterVersion(version, CALL_PREP_VERSION);
+  // 1.39.0: a cold email action (its `cold.source_line`) is refused in an older report, so one raises the report to it (GET-GOING 1.3).
+  if (Array.isArray(proposals) && proposals.some(isColdProposal)) version = laterVersion(version, COLD_VERSION);
   const body = {
     schema_version: version, engine_id: ENGINE_ID, product_slug: PRODUCT_SLUG, run_id, mode, observed_at, source, status,
     objectives, activity: fitActivity(activity).map(line => ({ line: cut(line, 500), evidence_url: null })),
@@ -643,7 +649,7 @@ const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.s
  * desk's daily cap by searchesLeft and withinSearches); a synthetic run
  * asks for nothing. Counts only leave this function for the printed outcome.
  */
-export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS, wins = null, sourcing = [], shown = null, morningCheck = morningQa }) {
+export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS, wins = null, sourcing = [], shown = null, morningCheck = morningQa, gate = null, history = null, coldEligibility = undefined }) {
   // 1.7.0: the title shares the card with the line under it, so it is shorter.
   const titleMax = briefs ? TITLE_MAX_BRIEF : TITLE_MAX;
   const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0, lookups_asked: 0, sourcing_asked: 0 };
@@ -668,6 +674,12 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // for someone about to be written to whose opening has nothing of their own to cite (src/stages/company.mjs).
   const companyReads = openingsRequired && takesCompanyRead(capabilities);
   const amplifiersFirst = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins, openingsRequired, personRoutes, openingKind, dealCatchups, companyReads });
+  // GET-GOING 1.3: the cold lane, only where Control Center serves cold email at 1.39.0 and the full card (src/stages/cold.mjs).
+  // Its notes are REACH OUT rows in his own box, at most three a New York day, under the week spec's REACH OUT cap when tighter.
+  const coldOn = takesCold(capabilities) && pitches;
+  const coldFiles = [...files, { repo: ENGINE_REPO, path: COLD_WORD_FILE, sha: blobSha(COLD_WORD_TEXT) }, { repo: ENGINE_REPO, path: 'src/stages/openings.mjs', sha: blobSha(MORNING_WORD_TEXT[MORNING_WORD_FILES.indexOf('src/stages/openings.mjs')]) }].slice(0, 8);
+  const coldCap = caps.rows.reach_out?.on === false ? 0 : caps.rows.reach_out?.max;
+  const coldArgs = (r, taken) => ({ context: ctx, research: r, gate, canon, at, taken, history, capabilities, files: coldFiles, titleMax, weekGoals: directive.week_goals, cap: coldCap, ...(coldEligibility ? { eligibility: coldEligibility } : {}) });
   // Ruling (Krish, 2026-10-28): who is in his network is Control Center's routes[id].in_network, read only where it says it serves it.
   const networkRoutes = capabilities?.features?.network_routes === true;
   const record = pitches ? await recordReader() : null;
@@ -681,11 +693,13 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // skipped before anything is spent on them (othersThisRun). Their trigger questions and notes join the round.
   const isOpening = r => typeof r?.request_id === 'string' && r.request_id.startsWith('open:');
   const othersFirst = othersThisRun({
-    rows: [...amplifiersFirst.rows, ...signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax }).rows, ...(pitchedFirst?.krishRows ?? [])],
+    rows: [...amplifiersFirst.rows, ...signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax, coldLane: coldOn }).rows, ...(pitchedFirst?.krishRows ?? [])],
     openings: [...amplifiersFirst.research, ...(pitchedFirst?.openings ?? [])].filter(isOpening), proposals: pitchedFirst?.proposals ?? [],
   });
   const pilotArgs = (r, taken) => ({ context: ctx, canon, research: r, at, files, titleMax, lane: caps.rows.reach_out, taken, required: openingsRequired, kind: openingKind, weekGoals: directive.week_goals, fitFloor: caps.fit_floor, companyReads });
   const pilotsFirst = pilotRows(pilotArgs(research, othersFirst));
+  // The cold lane's first pass: what it would ask the desk for, so its research joins this run's bounded round.
+  const coldFirst = coldOn ? coldRows(coldArgs(research, new Set([...othersFirst, ...othersThisRun({ rows: pilotsFirst.rows })]))) : null;
   // The trigger questions the desk took this run: the row's own pass reads them back as asked, so they are counted here.
   let pilotAsked = 0;
   let pitchOpenings = [];
@@ -712,7 +726,9 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
     if (personRoutes) counts.person_lookups_asked = 0;
     // The company reads come after the warm buyers' trigger questions and before the openings, at most five a run inside the desk's day:
     // the warm buyers' first, then the close ties'. A site read in the first round lets its opening be asked in the second.
-    const reads = companyReads ? companyReadRequests({ wants: [...(pilotsFirst.company_reads ?? []), ...(amplifiersFirst.company_reads ?? [])], research, at, capabilities }) : [];
+    const reads = companyReads ? companyReadRequests({ wants: [...(pilotsFirst.company_reads ?? []), ...(amplifiersFirst.company_reads ?? []), ...(coldFirst?.company_reads ?? [])], research, at, capabilities }) : [];
+    // A qualified cold prospect with nothing specific on file asks once, after the row people's lookups (GET-GOING 1.3).
+    const coldAsks = coldFirst?.research ?? [];
     if (reads.length) { counts.company_reads_asked = 0; counts.company_reads_answered = 0; }
     // Control Center refuses a whole call for one bad request (an id twice, 400; an id asked before in other words, 409),
     // so a request is sent once in a round, by its id and by its words about one person (the warm buyers' and the amplifier
@@ -732,7 +748,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
     };
     // A trigger question counts as asked this run only when the desk ran it now: a replay of a stored answer is not a new question.
     const ranNow = r => r.status !== 'over_cap' && Date.parse(r.requested_at ?? '') >= Date.parse(at) - 15 * 60000;
-    let pending = fit(once([...lookups.requests, ...pilotAsks, ...reads, ...openings, ...personLookups, ...sourcing, ...circleAsks, ...amplifiersFirst.research.filter(r => !isOpening(r)), ...signalRequests({ voices: ctx.voices, research, at })]).slice(0, RESEARCH_ROUND));
+    let pending = fit(once([...lookups.requests, ...pilotAsks, ...reads, ...openings, ...personLookups, ...coldAsks, ...sourcing, ...circleAsks, ...amplifiersFirst.research.filter(r => !isOpening(r)), ...signalRequests({ voices: ctx.voices, research, at })]).slice(0, RESEARCH_ROUND));
     let down = false;
     for (let round = 0; round < 2 && pending.length && !down; round++) {
       for (let i = 0; i < pending.length; i += RESEARCH_BATCH) {
@@ -744,6 +760,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
           counts.research_answered += got.filter(r => r.status === 'answered').length;
           pilotAsked += got.filter(r => pilotAsks.some(q => q.request_id === r.request_id) && ranNow(r)).length;
           if (reads.length) { counts.company_reads_asked += sent.filter(r => reads.includes(r)).length; counts.company_reads_answered += got.filter(r => r.status === 'answered' && reads.some(q => q.request_id === r.request_id)).length; }
+          if (coldAsks.length) counts.cold_asked = (counts.cold_asked ?? 0) + sent.filter(r => coldAsks.includes(r)).length;
           if (round === 0) { if (personRoutes) counts.person_lookups_asked += sent.filter(r => personLookups.includes(r)).length; counts.lookups_asked += sent.filter(r => lookups.requests.includes(r)).length; counts.sourcing_asked += sent.filter(r => sourcing.includes(r)).length; counts.circle_asked = (counts.circle_asked ?? 0) + sent.filter(r => circleAsks.includes(r)).length; }
           research = mergeResearch(got, research);
         } catch {
@@ -759,7 +776,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
       // A close tie whose opening had nothing to cite in the first round, and whose company's site was read there, gets its opening asked now.
       const siteNotes = reads.length ? amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins, research: mergeResearch(research, ctx.research ?? []), openingsRequired, personRoutes, openingKind, dealCatchups })
         .research.filter(r => isOpening(r) && !openings.some(o => o.subject_ref === r.subject_ref)) : [];
-      pending = fit(once([...[...openings, ...pilotNotes, ...siteNotes, ...pilotAsks, ...reads].filter(r => !askedIds.has(r.request_id)), ...signalRequests({ voices: ctx.voices, research, at })]).slice(0, RESEARCH_ROUND));
+      pending = fit(once([...[...openings, ...pilotNotes, ...siteNotes, ...pilotAsks, ...reads, ...coldAsks].filter(r => !askedIds.has(r.request_id)), ...signalRequests({ voices: ctx.voices, research, at })]).slice(0, RESEARCH_ROUND));
     }
     if (refused.length) holds.push({ reason: 'research_refused', detail: `${refused.length} research request${refused.length === 1 ? '' : 's'} Control Center refused ${refused.length === 1 ? 'was' : 'were'} left out, each holding only its own row; the rest of the round ran.` });
     // Someone filed this run has no routes in the context read before it: read it again once.
@@ -770,7 +787,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   }
   // Read again with this run's research, so an opening the desk wrote in this run is used in this run.
   const amplifiers = amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins, research: mergeResearch(research, ctx.research ?? []), openingsRequired, personRoutes, openingKind, dealCatchups });
-  const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax });
+  const signals = signalRows({ context: ctx, research, weekGoals: directive.week_goals, canon, files, at, titleMax, coldLane: coldOn });
   // 1.9.0: pitches for Jonny's box, after the rows he presses himself: guests
   // invited onto his own shows and podcasts on visibility, stages to speak on
   // on events. With them, the forms of stages that asked, for his Submit. An
@@ -789,6 +806,8 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const cited = citedServed ? citedRows({ standing: directive.ai_answers, context: ctx, canon, files, at, weekGoals: directive.week_goals, titleMax, fitFloor: caps.fit_floor,
     taken: new Set([...amplifiers.rows, ...signals.rows, ...krishRows, ...pilots.rows].map(e => e.proposal.target)) }) : null;
   const citedNow = citedLine(cited, citedServed);
+  // GET-GOING 1.3: the cold lane, last, with this run's research: never anyone another lane writes to this run.
+  const cold = coldOn ? coldRows(coldArgs(mergeResearch(research, ctx.research ?? []), new Set([...others, ...othersThisRun({ rows: [...pilots.rows, ...(cited?.rows ?? [])] })]))) : null;
   if (citedNow) activity.push(citedNow);
   counts.cited = cited ? cited.counts.proposed : null;
   // A note of his still unsent in his Gmail is redrafted in the new words under its own id (Krish, 2026-11-16), so it is not rotated behind the unseen.
@@ -798,6 +817,10 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const lead = {};
   for (const p of pitched.proposals.filter(isForm)) lead[p.row] = (lead[p.row] ?? 0) + 1;
   const drafted = kept.map(p => finishProposal({ ...p, rank: p.rank + (lead[p.row] ?? 0) }));
+  // Cold notes rank after REACH OUT's own rows and pass every check below, the morning QA and the voice check included.
+  const reachRanks = drafted.filter(p => p.row === 'reach_out').map(p => p.rank);
+  const coldFrom = Math.max(lead.reach_out ?? 0, ...reachRanks);
+  drafted.push(...(cold?.rows ?? []).map(({ proposal: { name, ...p } }, i) => finishProposal({ ...p, rank: coldFrom + i + 1 })));
   drafted.push(...pitched.proposals.map(finishProposal));
   // No two emails in one run are the same words with a name swapped (Krish, 2026-11-06): the lower-ranked one is held.
   // A warm buyer's note is fixed text around the desk's one sentence: its fixed sentences are frame for those notes only, never for any other email.
@@ -808,7 +831,14 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // The morning drafts' QA (15 November 2026): an email for his own box is held when a claim in it is on neither the person's nor the
   // company's record; a message over 80 words is only counted until MORNING_LENGTH_HOLDS turns on (Ruling, Krish, 2026-11-15)
   // (src/stages/morning.mjs). The research answered this run is part of the record.
-  const morning = morningCheck(drafted.filter(p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id)), { context: { ...ctx, research: mergeResearch(research, ctx.research ?? []) }, vocabulary: engineVocabulary(MORNING_WORD_TEXT, canon) });
+  const qaContext = { ...ctx, research: mergeResearch(research, ctx.research ?? []) };
+  const toCheck = drafted.filter(p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id));
+  // A cold note is read by the same QA, with the cold lane's own fixed words beside the rest (GET-GOING 1.3).
+  const coldChecked = toCheck.filter(isColdProposal);
+  const morning = [
+    ...morningCheck(toCheck.filter(p => !isColdProposal(p)), { context: qaContext, vocabulary: engineVocabulary(MORNING_WORD_TEXT, canon) }),
+    ...(coldChecked.length ? morningCheck(coldChecked, { context: qaContext, vocabulary: engineVocabulary([...MORNING_WORD_TEXT, COLD_WORD_TEXT], canon) }) : []),
+  ];
   const morningIds = new Set(morning.filter(m => m.held !== false).map(m => m.proposal_id));
   const passed = p => !same.has(p.proposal_id) && !brokenIds.has(p.proposal_id) && !morningIds.has(p.proposal_id);
   // Every email in his name, or in Jonny's box in his style, passes Control Center's voice check first (Ruling, Krish, 2026-11-07).
@@ -844,6 +874,8 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   for (const [reason, count] of tally(pitched.formHeld ?? [])) holds.push({ reason: holdCode('form', reason), detail: `${count} stage form${count === 1 ? '' : 's'} not filled today: ${reason.replace(/_/g, ' ')}.` });
   const held = [...amplifiers.held, ...signals.held];
   counts.held = held.length;
+  // The cold lane's holds by code, with counts: never a name or an address.
+  if (cold) { holds.push(...coldHolds(cold.held)); counts.cold = { ...cold.counts, research_asked: counts.cold_asked ?? 0 }; }
   for (const [reason, count] of tally(held)) holds.push({ reason: holdCode('row', reason), detail: `${count} possible row action${count === 1 ? '' : 's'} held: ${reason.replace(/_/g, ' ')}.` });
   holds.push(...pilotHolds(pilots.held));
   counts.pilots = { ...pilots.counts, asked: pilotAsked };
@@ -883,7 +915,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   // The strangers first, then up to ten from his own network by contact id (Krish, 2026-11-05).
   const circle = mode === 'live' && takesCircle(capabilities, REPORT_SCHEMA) ? [...circlePeople(research, { at }), ...circleFromNetwork(ctx)] : [];
   if (counts.circle_asked || circle.length) activity.push(`Circle lane: ${counts.circle_asked ?? 0} questions asked this run; ${circle.length} people sent for Control Center to match to his network or file with no address (strangers by their pages, his own network by contact). Someone he knows goes on his own row; only a stranger is ever Jonny's.`);
-  return { proposals, holds, activity, counts, canonFiles: canon.files, canon, research, found_routes: takesRoutes ? foundRoutesField([...(pitched.found ?? []), ...(personRoutes ? amplifiers.found ?? [] : [])]) : null, circle: circle.length ? circle : null, mirror: takesMirror(capabilities, REPORT_SCHEMA) ? mirrorPlan() : null };
+  return { proposals, holds, activity, counts, canonFiles: canon.files, canon, research, cold: cold ? { counts: counts.cold, before: cold.before } : null, found_routes: takesRoutes ? foundRoutesField([...(pitched.found ?? []), ...(personRoutes ? amplifiers.found ?? [] : [])]) : null, circle: circle.length ? circle : null, mirror: takesMirror(capabilities, REPORT_SCHEMA) ? mirrorPlan() : null };
 }
 
 /**
@@ -930,7 +962,7 @@ export async function readSpecFile(week) {
   catch (e) { if (e?.code === 'ENOENT') return null; throw e; }
 }
 
-export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA, proofReader = readProofRuns, historyReader = readHistory, northStarText = NORTH_STAR_TEXT, stateReader = readStateFiles, complianceReader = readGate, coldGateOf = coldGateFor, morningCheck = morningQa }) {
+export async function runDispatch({ cc, source, context = null, policy, registry, mode = 'live', kind = 'dispatch', attemptId, revision = 'unrecorded', wakeDirectiveId = null, clock = () => new Date().toISOString(), canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, ladder = LADDER, specReader = readSpecFile, northStarSha = NORTH_STAR_SHA, proofReader = readProofRuns, historyReader = readHistory, northStarText = NORTH_STAR_TEXT, stateReader = readStateFiles, complianceReader = readGate, coldGateOf = coldGateFor, morningCheck = morningQa, coldEligibility = undefined }) {
   if (!['live','synthetic'].includes(mode) || !/^[a-z][a-z0-9-]{0,40}$/.test(kind) || !/^gma-[A-Za-z0-9-]{8,80}$/.test(attemptId)) throw new Error('Invalid dispatch options');
   const started_at = clock();
   const run_id = `${SLUG}:${londonDate(started_at)}:${kind}`;
@@ -1200,7 +1232,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       const cards = briefs && capabilities.schema_versions.includes(CARD_VERSION);
       const pitches = cards && capabilities.schema_versions.includes(PITCH_VERSION);
       schema_version = pitches ? PITCH_VERSION : cards ? CARD_VERSION : briefs ? BRIEF_VERSION : ROWS_VERSION;
-      const rows = await fiveRows({ cc, context: suppliedContext, directive: { ...directive, week_goals: goalsForRows }, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps, wins: won, sourcing, shown: seenBefore, morningCheck });
+      const rows = await fiveRows({ cc, context: suppliedContext, directive: { ...directive, week_goals: goalsForRows }, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps, wins: won, sourcing, shown: seenBefore, morningCheck, gate, history: recent, coldEligibility });
       if (week.spec) activity.push(...compiledDrift(week.spec, { canon: rows.canonFiles }));
       if (!pitches) holds.push({ reason: 'pitch_needs_1_9_0', detail: "Control Center does not yet take pitches for Jonny's Gmail (protocol 1.9.0), so none were written." });
       const shown = cards ? rows.proposals : briefs ? rows.proposals.map(({ card, ...p }) => p) : rows.proposals.map(({ because, brief, card, ...p }) => p);
@@ -1340,6 +1372,8 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       });
     }
     if (told) outcome.instruction = told.outcome;
+    // GET-GOING 1.3: the cold lane's line, from what this report carries after every cut, so a later run the same New York day counts its slots.
+    if (rowsRun?.cold) activity.push(coldLine({ counts: rowsRun.cold.counts, before: rowsRun.cold.before, posted: mapped.proposals.filter(isColdProposal) }));
     activity.push('Preparation used the existing daily dispatch. External actions require exact approval, a supported connector and independently verified receipts. Native drafts and human edits remain with their owners.');
     const report = buildReport({
       run_id, mode, observed_at, status: !snapshot && !strategic ? 'degraded' : holds.some(h => !STANDING_HOLDS.has(h.reason)) ? 'held' : 'ready',

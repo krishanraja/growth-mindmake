@@ -175,7 +175,12 @@ export function signalCase({ name, headline, author, quote, published, serves, k
   };
 }
 
-export function signalRows({ context, research, weekGoals, canon, files, at, titleMax = TITLE_MAX }) {
+/**
+ * `coldLane` (GET-GOING 1.3): where Control Center serves cold email, a commenter it places outside his network
+ * (routes[id].in_network false) is the cold lane's (src/stages/cold.mjs), with its compliance gate, its footer and its
+ * daily slots, and is held here as `signal_cold_lane`; with it off, as before.
+ */
+export function signalRows({ context, research, weekGoals, canon, files, at, titleMax = TITLE_MAX, coldLane = false }) {
   const L = lessons(context.feedback, at, context.records?.drafts, briefTakers(context));
   const routes = context.routes ?? {};
   const authorOf = new Map(research.filter(r => r.kind === 'posts').flatMap(r => r.evidence ?? []).map(e => [e.url, clean(String(e.title ?? '').split(':')[0])]));
@@ -191,6 +196,7 @@ export function signalRows({ context, research, weekGoals, canon, files, at, tit
       if (seen.has(id)) continue;
       seen.add(id);
       const subject = `contact:${id}`;
+      if (coldLane && routes[id]?.in_network === false) { held.push('signal_cold_lane'); continue; }
       const features = { sector: icp.sector, topic: 'ai_and_their_job', seniority: icp.seniority };
       const refused = refusedBy(L, { subject, row: 'reach_out', kind: null, sector: icp.sector, topic: features.topic, band: 'unknown' }, at);
       const ch = channelOf(routes[id], 'reach_out');

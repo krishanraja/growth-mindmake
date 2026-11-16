@@ -208,14 +208,20 @@ export function qualifyShadow({ context, canon = null, at }) {
 //
 // SCORERS is the ordered list of scorers, each `{ name, score(prospect, ctx) }`
 // returning `{ points: [[n, why]], rule_out: [why] }`. The lead score GET-GOING
-// 1.3 names joins as one more entry, after the cold compliance gate, with its
-// points weighed against these in that change and SCORE_VERSION raised. Until
-// then nothing but its tests calls this score, and it holds nothing.
+// 1.3 names joined as its last entry (`lead`), and the cold lane
+// (src/stages/cold.mjs) calls this score after the cold compliance gate. The
+// lead scorer reads only what its prospect carries (a public signal, Control
+// Center's Mindmake fit, where Control Center places them), so a prospect that
+// carries none of it scores as before. SCORE_VERSION stays 1 in this change:
+// tests/compliance.test.mjs pins it and lies outside the cold lane's card, so
+// raising it waits on a change that may touch that test.
 
 export const SCORE_VERSION = 1;
 /** The total a prospect with no rule-out needs to qualify: a buyer who can move the decision and can be reached clears it; a title alone does not. */
 export const SCORE_FLOOR = 60;
-export const POINTS = Object.freeze({ buyer_group: 30, moves_decision: 20, buying_moment: 20, sector: 10, evidence: 10, route: 15, route_verified: 10, no_route: -20 });
+export const POINTS = Object.freeze({ buyer_group: 30, moves_decision: 20, buying_moment: 20, sector: 10, evidence: 10, route: 15, route_verified: 10, no_route: -20, signal: 20, fit_high: 15, fit_some: 5, fit_low: -15 });
+/** Control Center's Mindmake fit, 0 to 100: at or above the first a strong fit, at or above the second some fit, under it a poor one. */
+export const FIT_BANDS = Object.freeze({ high: 70, some: 40 });
 
 const lower = v => (typeof v === 'string' && v.trim() ? v.trim().toLowerCase() : null);
 const daysOld = (iso, at) => Math.max(0, Math.floor((Date.parse(at) - Date.parse(iso)) / DAY));
@@ -226,7 +232,10 @@ const daysOld = (iso, at) => Math.max(0, Math.floor((Date.parse(at) - Date.parse
  * 'none'), `moment` ({ stance, url, posted } or null), `evidence` ({ person,
  * company } booleans for current sourced evidence), `email_route` (Control
  * Center's route state: verified, unchecked or none), `suppressed`,
- * `sells_competing_services` and `status`.
+ * `sells_competing_services` and `status`; and, for the lead scorer, `signal`
+ * (true when they said in public, in a comment the desk read, that AI is a
+ * live question for them), `mindmake_fit` (Control Center's 0 to 100, or
+ * null) and `in_network` (routes[id].in_network, when the prospect carries it).
  */
 export const SCORERS = Object.freeze([
   Object.freeze({
@@ -264,6 +273,22 @@ export const SCORERS = Object.freeze([
       if (['do_not_contact', 'closed'].includes(p.status)) rule_out.push('marked do not contact or closed');
       if (p.sells_competing_services === true) rule_out.push('sells what Mindmake sells');
       return { points: [], rule_out };
+    },
+  }),
+  // The lead score (GET-GOING 1.3): what says this cold prospect is worth one of the day's three notes, each point
+  // with its reason. Authority is never read from a title, and a field the prospect does not carry adds nothing.
+  Object.freeze({
+    name: 'lead',
+    score(p) {
+      const points = [], rule_out = [];
+      if (p.signal === true) points.push([POINTS.signal, 'said in public that AI is a live question for them (their own comment, cited)']);
+      const fit = typeof p.mindmake_fit === 'number' && Number.isFinite(p.mindmake_fit) ? Math.round(p.mindmake_fit) : null;
+      if (fit !== null && fit >= FIT_BANDS.high) points.push([POINTS.fit_high, `Control Center scores their Mindmake fit ${fit} of 100`]);
+      else if (fit !== null && fit >= FIT_BANDS.some) points.push([POINTS.fit_some, `Control Center scores their Mindmake fit ${fit} of 100`]);
+      else if (fit !== null) points.push([POINTS.fit_low, `Control Center scores their Mindmake fit ${fit} of 100, a poor fit`]);
+      // Only someone Control Center places outside his network is a cold prospect; inside it, or unplaced, only Krish writes.
+      if ('in_network' in p && p.in_network !== false) rule_out.push('inside his network or not placed by Control Center: only Krish writes to them, in his own words');
+      return { points, rule_out };
     },
   }),
 ]);

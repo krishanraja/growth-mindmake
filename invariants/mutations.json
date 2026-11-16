@@ -1270,6 +1270,76 @@
       "tests": [
         "tests/sends.test.mjs"
       ]
+    },
+    {
+      "id": "cold-compliance-removed",
+      "what": "the cold lane no longer holds a person the cold compliance gate holds",
+      "file": "src/stages/cold.mjs",
+      "find": "  }, gate); };",
+      "replace": "  }, gate) && { allowed: true, holds: [] }; };",
+      "tests": [
+        "tests/cold-lane.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-specific-fact-removed",
+      "what": "a cold note goes out with nothing specific and cited about the person",
+      "file": "src/stages/cold.mjs",
+      "find": "    const fact = facts[0];",
+      "replace": "    const fact = facts[0] ?? { kind: 'research', text: 'Nothing specific is known about them yet.', url: null, at: null, label: 'Nothing specific' };",
+      "tests": [
+        "tests/cold-lane.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-daily-cap-raised",
+      "what": "the cold lane takes thirty slots a day instead of three",
+      "file": "src/stages/cold.mjs",
+      "find": "export const COLD_SLOTS_PER_DAY = 3;",
+      "replace": "export const COLD_SLOTS_PER_DAY = 30;",
+      "tests": [
+        "tests/cold-lane.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-pause-disabled",
+      "what": "the cold lane runs on through bounces over 3% or three opt-outs in a week",
+      "file": "src/stages/cold.mjs",
+      "find": "pause.paused ? 'cold_paused' : null;",
+      "replace": "null;",
+      "tests": [
+        "tests/cold-lane.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-network-exclusion-removed",
+      "what": "someone Control Center places inside his network, or cannot place, gets a cold note",
+      "file": "src/stages/cold.mjs",
+      "find": "  if (!route || route.in_network !== false) return 'in_network_or_unplaced';",
+      "replace": "  if (!route) return 'in_network_or_unplaced';",
+      "tests": [
+        "tests/cold-lane.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-follow-up-open-unproven",
+      "what": "a follow-up goes out with no open Control Center proved",
+      "file": "src/stages/cold.mjs",
+      "find": "      if (!opened) continue;",
+      "replace": "",
+      "tests": [
+        "tests/cold-lane.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-source-line-unchecked",
+      "what": "a cold note goes out without the footer's source line, or to a box not his",
+      "file": "src/stages/cold.mjs",
+      "find": "  if (a.version !== 2 || coldActionHold(a)) return 'cold_note_invalid';",
+      "replace": "  if (a.version !== 2) return 'cold_note_invalid';",
+      "tests": [
+        "tests/cold-lane.test.mjs"
+      ]
     }
   ]
 }
