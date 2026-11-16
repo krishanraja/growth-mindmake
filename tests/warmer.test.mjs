@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { pitchWords, speakWords, inviteWords, inviteShow, pitchRows, pitchedStages, invitedGuests, inviteHold, invitesThisWeek, stageProposalId, inviteProposalId,
-  conviction, recordParts, greetingFor, HUMAN_IP, SPEAKER_PROFILE, MEDIA_CHANNEL, JONNY_SIGN_OFF } from '../src/stages/pitches.mjs';
+  conviction, recordParts, greetingFor, HUMAN_IP, SPEAKER_PROFILE, MEDIA_CHANNEL, PODCAST_LINK, JONNY_SIGN_OFF } from '../src/stages/pitches.mjs';
 import { lessons, unsentJonny, sharedBodies, actionFor, KRISH_SIGN_OFF, EPISODES, KRISH_TITLE, REISSUE_DAYS } from '../src/stages/rows.mjs';
 import { STAGE, GUEST } from './support/standard.mjs';
 
@@ -32,10 +32,12 @@ test('a speaking pitch names his speaking profile and his media channel once eac
   clean(w.body);
 });
 
-test('a podcast pitch names his media channel once and no other link, and every greeting without a name is the team, never "there"', () => {
+test('a podcast pitch names Make Your Mind Up once and no other link, and every greeting without a name is the team, never "there"', () => {
   const w = pitchWords({ t: { audience: 'Founders and investors' }, show: 'The Example Show', host: null, topic: 'venture', canon, record: RECORD, episode: EPISODES.venture[0] });
   assert.ok(w.body.startsWith('Hi Example Show team,\n\n'));
-  assert.equal(w.body.split(MEDIA_CHANNEL).length - 1, 1);
+  assert.equal(PODCAST_LINK, 'https://makeyourmindup.ai');
+  assert.equal(w.body.split(PODCAST_LINK).length - 1, 1);
+  assert.ok(!w.body.includes(MEDIA_CHANNEL), 'mindmake.co is for speaking pitches');
   assert.equal((w.body.match(/https:\/\//g) ?? []).length, 1, 'one link');
   assert.equal(w.body.includes('Example Concert Hall'), false, 'one line of record, not a wall of proof');
   clean(w.body);
@@ -87,7 +89,7 @@ test('a pitch still unsent in Jonny\'s Gmail is proposed again under its own id,
   assert.ok(again, 'proposed again');
   assert.equal(again.proposal_id, draft(1).proposal_id, 'the same id, so Control Center replaces the draft in place');
   assert.equal(JSON.parse(again.exact_payload).recipient_contact_id, id(101), 'the same recipient');
-  assert.ok(JSON.parse(again.exact_payload).body.includes(MEDIA_CHANNEL), 'the new words');
+  assert.ok(JSON.parse(again.exact_payload).body.includes(PODCAST_LINK), 'the new words');
   assert.ok(run.proposals.length <= 10, 'inside the run\'s ten');
 });
 

@@ -197,8 +197,10 @@ export const angleOf = t => (typeof t?.angle === 'string' && t.angle.trim() ? le
 
 /** His speaking profile, named once in every speaking pitch (Ruling, Krish, 2026-11-16). */
 export const SPEAKER_PROFILE = 'https://www.krishraja.com';
-/** His media channel, named once in every speaking and podcast pitch (Ruling, Krish, 2026-11-16). mindmake.co, the one Mindmake link (FORM_SITE). */
+/** His media channel, named once in every speaking pitch (Ruling, Krish, 2026-11-16). mindmake.co, the one Mindmake link (FORM_SITE). */
 export const MEDIA_CHANNEL = 'https://mindmake.co';
+/** The one link in every podcast pitch: his show, Make Your Mind Up (Ruling, Krish, 2026-11-16: "podcast pitches should link makeyourmindup.ai"). */
+export const PODCAST_LINK = 'https://makeyourmindup.ai';
 /** How Jonny signs off: thanks either way, then his name. */
 export const JONNY_SIGN_OFF = 'Thanks either way,\nJonny';
 
@@ -390,7 +392,7 @@ export function pitchWords({ t = {}, show, host, topic, canon, record, episode =
   const lines = [
     `I work with Krish Raja, and I think he'd make a good hour for ${show}${room ? `'s listeners, ${room},` : ''} on "${ep}": ${conviction(topic, ep)}.`,
     ...(angle ? [angle] : []),
-    `He's ${KRISH_TITLE}${did ? `, and ${did.charAt(0).toLowerCase()}${did.slice(1)}` : ''}; he shares what he's seeing on his media channel, ${MEDIA_CHANNEL}.`,
+    `He's ${KRISH_TITLE}${did ? `, and ${did.charAt(0).toLowerCase()}${did.slice(1)}` : ''}; he shares what he's seeing in Make Your Mind Up, ${PODCAST_LINK}.`,
     `If it sounds right, would you be open to having him on, or to a quick chat first?`,
   ];
   return {

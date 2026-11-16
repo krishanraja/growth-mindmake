@@ -123,8 +123,8 @@ test('a pitch is a 1.9.0 visibility row for Jonny\'s box, in Jonny\'s words, abo
   assert.match(body, /rather than|keep that judgement|stay in charge|stay with people/, 'the message he cares about most: use AI rather than be used by it (Ruling, Krish, 2026-11-16)');
   assert.ok(body.includes(`He's ${KRISH_TITLE}, and at `), 'his title as he ruled, and one line of his record, in one sentence');
   assert.ok(body.toLowerCase().includes(recordParts(RECORD.line).did.toLowerCase()), 'his record as his site publishes it');
-  assert.equal(body.split('https://mindmake.co').length - 1, 1, 'his media channel once');
-  assert.equal(/makeyourmindup|krishraja\.com/.test(body), false, 'one link in a podcast pitch');
+  assert.equal(body.split('https://makeyourmindup.ai').length - 1, 1, 'Make Your Mind Up once (Ruling, Krish, 2026-11-16)');
+  assert.equal(/mindmake\.co|krishraja\.com/.test(body), false, 'one link in a podcast pitch');
   assert.equal(/\bHi there\b/.test(body), false);
   assert.ok(body.endsWith('\n\nThanks either way,\nJonny'), 'signed Jonny, warmly');
   assert.equal((body.match(/\?/g) ?? []).length, 1, 'one ask');
