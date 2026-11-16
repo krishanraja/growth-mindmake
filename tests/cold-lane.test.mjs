@@ -78,6 +78,7 @@ test("with no gate read, a footer that is not the approved one or not served, or
 
 test('what the context serves today says nothing of country or address domain, so every cold note holds until it does', () => {
   assert.deepEqual(servedEligibility(), {});
+  assert.deepEqual(servedEligibility({ id: 'x' }, {}), {});
   assert.deepEqual(run(ctx(), { eligibility: servedEligibility }).held, ['cold_country_unknown']);
   assert.deepEqual(run(ctx(), { eligibility: c => ({ country: 'FR', email_domain: c.domain }) }).held, ['cold_country_not_allowed']);
   assert.deepEqual(run(ctx(), { eligibility: c => ({ country: 'GB', email_domain: c.domain }) }).held, ['cold_subscriber_unknown']);
@@ -467,4 +468,16 @@ test('in the daily dispatch, a cold note goes through the morning QA and the voi
 test('a report with no cold note stays at its own version', () => {
   const base = { run_id: 'mindmake:2026-11-16:dispatch', mode: 'live', observed_at: NOW, source: { revision: 'r', captured_at: NOW }, status: 'ready', objectives: [], activity: [], holds: [] };
   assert.equal(buildReport({ ...base, proposals: [] }).schema_version, '1.2.0');
+});
+
+test('the served eligibility row is read by contact id, fields only, and a worked-out address is guessed', () => {
+  const id = '00000000-0000-4000-8000-000000000101';
+  const context = { records: { eligibility: [
+    { contact_id: id, country: 'GB', subscriber: 'corporate', email_domain: 'example.test', email_guessed: false, company_domain: 'example.test', country_basis: 'location' },
+    { contact_id: '00000000-0000-4000-8000-000000000102', country: 'US', email_domain: 'other.test' },
+  ] } };
+  assert.deepEqual(servedEligibility({ id }, context), { country: 'GB', subscriber: 'corporate', email_domain: 'example.test', company_domain: 'example.test', email_guessed: false });
+  assert.deepEqual(servedEligibility({ id: '00000000-0000-4000-8000-000000000102' }, context), { country: 'US', email_domain: 'other.test', email_guessed: true });
+  assert.deepEqual(servedEligibility({ id: '00000000-0000-4000-8000-000000000199' }, context), {});
+  assert.deepEqual(servedEligibility({ id }, { records: {} }), {});
 });

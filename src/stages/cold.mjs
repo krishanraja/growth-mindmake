@@ -293,12 +293,30 @@ export function provenanceOf(c) {
 }
 
 /**
- * What the context serves of who may be written to cold: nothing yet for the
- * country, the United Kingdom subscriber type, the address's domain or whether
- * it was worked out, so each stays unread and the gate holds. A caller with a
- * served record passes its own reader. Pure.
+ * What the context serves of who may be written to cold (protocol 1.42.0,
+ * features.eligibility): the row in `records.eligibility` for this person, by
+ * contact id, read into the fields coldVerdict reads. Only the country, the
+ * United Kingdom subscriber type, the address's domain, whether the address
+ * was worked out, and the company's domain; never an address or a name. With
+ * no record served, or no row for the person, it is empty and the gate holds
+ * every field it lacks. Pure.
  */
-export const servedEligibility = () => ({});
+export function servedEligibility(c, context) {
+  const rows = context?.records?.eligibility;
+  if (!Array.isArray(rows) || !c || typeof c.id !== 'string') return {};
+  const id = toKey(c.id);
+  const row = rows.find(r => r && typeof r === 'object' && toKey(r.contact_id) === id);
+  if (!row) return {};
+  const text = v => (typeof v === 'string' && v.trim() ? v.trim() : null);
+  const out = {};
+  if (text(row.country)) out.country = text(row.country);
+  if (text(row.subscriber)) out.subscriber = text(row.subscriber);
+  if (text(row.email_domain)) out.email_domain = text(row.email_domain);
+  if (text(row.company_domain)) out.company_domain = text(row.company_domain);
+  // Only an address the record says was not worked out counts as given; anything else is guessed.
+  out.email_guessed = row.email_guessed !== false;
+  return out;
+}
 
 // ── Something specific: a cited fact ────────────────────────────────────────
 
