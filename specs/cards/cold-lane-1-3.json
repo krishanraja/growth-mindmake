@@ -1,0 +1,109 @@
+{
+  "card": "codex-task/1",
+  "id": "cold-lane-1-3",
+  "title": "Implement the daily cold email lane",
+  "model": {
+    "name": "gpt-6.1-terra",
+    "effort": "high",
+    "why": "Available in the local Codex model list. High effort for compliance, replay and cross-stage wiring. No measured comparison found here; confirm the reference choice and recheck availability at dispatch."
+  },
+  "limits": {
+    "max_minutes": 120,
+    "max_calls": 300
+  },
+  "worktree": {
+    "from": "main",
+    "branch": "codex/cold-lane-1-3",
+    "dir": "../growth-mindmake-codex-cold-lane-1-3"
+  },
+  "write_allow": [
+    "src/stages/cold.mjs",
+    "src/dispatch.mjs",
+    "src/stages/qualify.mjs",
+    "src/stages/motions.mjs",
+    "src/stages/signals.mjs",
+    "tests/cold-lane.test.mjs",
+    "tests/dispatch.test.mjs",
+    "invariants/mutations.json",
+    "docs/OWNERS.md",
+    "pipeline/stage-conveyor.json",
+    "docs/RELEASE.md",
+    "now-notes/*-cold-lane-1-3.md"
+  ],
+  "read": [
+    "src/stages/compliance.mjs",
+    "docs/control-center/ENGINE-PROTOCOL.md",
+    "docs/GET-GOING.md",
+    "docs/playbooks/03-named-prospect-outreach.md",
+    "docs/playbooks/09-privacy-and-suppression.md"
+  ],
+  "never": [
+    "git",
+    "network",
+    "mcp",
+    "publishing",
+    "new_dependencies",
+    "edits_outside_write_allow",
+    "secrets",
+    "people"
+  ],
+  "interface": "Implement GET-GOING 1.3 via coldRows({context,research,gate,canon,at,taken,history,capabilities}) -> {rows,research,held,counts}; extend named_cold and daily dispatch, no parallel sender/store. Export coldRows from src/stages/cold.mjs.\nCandidates: context's cold pools, signals and answered lookups only; dedupe; never a circle person, anyone with an open Jonny pitch, a brief taker, opt-out, bounce or anyone in his network; require routes[id].in_network===false. Missing eligibility holds.\nOrder: coldVerdict first, then scoreProspect joined to SCORERS (reasoned lead scorer, bump SCORE_VERSION), then researched until something specific is known: a cited fact on the person's or company's own record or the research desk's answer, else cold_nothing_specific. Reuse bounded research rounds; never invent facts or infer authority from title.\nRequire fresh readGate/approved footer and records.brief_takers; preserve all compliance holds. Emit v2 email actions, mailbox:krish, cold:{source_line}, report >=1.39.0; coldActionHold must pass. source_line names where we found them, <=200 characters, plain, no address/link. Body: one ask, at most one link, under 90 words; no footer. Use existing morning QA and voice check path, including after rewrites. Control Center adds footer and checks whole note; Krish sends.\nOne follow-up only, only with a new fact, only after an open: protocol follow_up/follows, features.follow_up, same recipient, sent >=3 days ago, recipient-class open after send, no reply/bounce/opt-out/open deal or prior follow-up; never mention the open. No follow-up chains.\nAt most 3 cold lane slots a day including follow-ups and repeat dispatches; honor tighter caps. Pause lane for 7 days when bounces exceed 3% of last 7 days' cold sends, or 3 opt-outs or negative replies arrive in a week, from context drafts: bounced_at, opted_out_at, replied_at with reply class if served. Unknown is not zero.\nCounts only in activity lines and holds, never a name or address. New holds: cold_nothing_specific, cold_excluded, cold_score_low, cold_history_unread, cold_daily_cap, cold_paused, cold_note_invalid.\nTests on synthetic fixtures only; declare at least 4 mutations in invariants/mutations.json. Update docs/OWNERS.md and pipeline/stage-conveyor.json; GET-GOING 1.3 stays unticked for a human after a live run.",
+  "acceptance": [
+    "npm test",
+    "npm run contracts",
+    "npm run check",
+    "npm run conveyor",
+    "node --test tests/cold-lane.test.mjs",
+    "npm run mutate"
+  ],
+  "returns": {
+    "type": "object",
+    "required": [
+      "status",
+      "files_changed",
+      "acceptance",
+      "proof",
+      "notes"
+    ],
+    "properties": {
+      "status": {
+        "enum": [
+          "done",
+          "blocked"
+        ]
+      },
+      "files_changed": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "acceptance": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "command": {
+              "type": "string"
+            },
+            "exit": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "proof": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Synthetic test names and killed mutation ids, counts and codes only. Cover: brief takers absent, footer mismatch, each exclusion, no cited fact, score rule-outs, 89/90 words, links and asks, source_line, follow-up rules, duplicate runs. Mutations remove compliance, the specific-fact rule, raise the cap, disable the pause: all killed."
+      },
+      "notes": {
+        "type": "string",
+        "maxLength": 1600,
+        "description": "Context field mapping and gaps; never invent wire fields. Fail closed when eligibility or cold history is unread (cold_history_unread). Rolling 7-day cohort for bounces; unclassified replies are unknown, not negative. New York day boundaries; stable proposal ids; pending proposals use slots. Record built versus consumer-pending in RELEASE and a closeout note."
+      }
+    }
+  }
+}
