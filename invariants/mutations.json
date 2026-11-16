@@ -1340,6 +1340,26 @@
       "tests": [
         "tests/cold-lane.test.mjs"
       ]
+    },
+    {
+      "id": "cold-eligibility-guessed-trusted",
+      "what": "an address the record does not mark as not worked out is trusted as given",
+      "file": "src/stages/cold.mjs",
+      "find": "  out.email_guessed = row.email_guessed !== false;",
+      "replace": "  out.email_guessed = row.email_guessed === true;",
+      "tests": [
+        "tests/cold-lane.test.mjs"
+      ]
+    },
+    {
+      "id": "cold-eligibility-wrong-person",
+      "what": "another person's eligibility row is read",
+      "file": "src/stages/cold.mjs",
+      "find": "  const row = rows.find(r => r && typeof r === 'object' && toKey(r.contact_id) === id);",
+      "replace": "  const row = rows.find(r => r && typeof r === 'object');",
+      "tests": [
+        "tests/cold-lane.test.mjs"
+      ]
     }
   ]
 }
