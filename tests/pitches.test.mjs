@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseCanon, blobSha, parseRecord, readRecord, RECORD_REPO, RECORD_PATH } from '../src/stages/canon.mjs';
 import { pitchRows, pitchHold, pitchedStages, pitchScore, pitchWords, hostOf, showTopic, stageKind, speakingAsk, speakHold, speakScore, speakWords, talkTitle, shares, PITCHES_PER_RUN, STAGE_SHARE, QUIET_AFTER_DAYS,
-  inviteHold, invitedGuests, invitesThisWeek, weeklyInvites, londonWeekStart, pickInvites, inviteWords, inviteShow, guestIdea, inviteCard, guestTopic, guestName, reachOf, INVITES_PER_RUN, INVITES_A_WEEK } from '../src/stages/pitches.mjs';
+  inviteHold, invitedGuests, recordParts, invitesThisWeek, weeklyInvites, londonWeekStart, pickInvites, inviteWords, inviteShow, guestIdea, inviteCard, guestTopic, guestName, reachOf, INVITES_PER_RUN, INVITES_A_WEEK } from '../src/stages/pitches.mjs';
 import { lessons, titleFor, OWN_SHOW, WORDS, KRISH_TITLE, NOT_A_SOURCE, CARD_WHO_MAX, CARD_LINE_MAX, BECAUSE_MAX, TITLE_MAX_BRIEF } from '../src/stages/rows.mjs';
 import { runDispatch } from '../src/dispatch.mjs';
 import { directiveFixture, violations } from './support/engine-protocol-service.mjs';
@@ -44,7 +44,7 @@ test('a host is addressed by first name only when the stage names one person', (
   assert.equal(hostOf({ organizer: 'Dr. Avery Example' }), 'Avery Example', 'never a title');
   for (const o of ['Example Media', 'Avery Example & Sam Sample', 'Avery', 'The Example Show', 'Example Studios', 'avery example', 'Avery Example 2', null]) assert.equal(hostOf({ organizer: o }), null, String(o));
   assert.match(pitchWords({ show: 'S', host: 'Avery Example', topic: null, canon, record: null }).body, /^Hi Avery,/);
-  assert.match(pitchWords({ show: 'S', host: null, topic: null, canon, record: null }).body, /^Hi there,/);
+  assert.match(pitchWords({ show: 'The Example Show', host: null, topic: null, canon, record: null }).body, /^Hi Example Show team,/, 'never "Hi there" (Ruling, Krish, 2026-11-16)');
 });
 
 test('a show\'s topic comes from its own title and what is held about it; null when nothing says', () => {
@@ -119,10 +119,14 @@ test('a pitch is a 1.9.0 visibility row for Jonny\'s box, in Jonny\'s words, abo
   assert.equal(a.recipient_contact_id, id(101));
   assert.equal(a.subject, 'A guest for The Example Show 1: AI for marketing leaders');
   const body = a.body;
-  assert.match(body, /^Hi Avery,\n\nI work with Krish Raja, and I think he'd make a strong episode for The Example Show 1(?:'s listeners, [^"]+)?, "What a CMO should hand to AI this quarter, and what stays human"; would you have him on\?/, 'the point and the ask first, in Jonny\'s voice: the show\'s audience and one episode it could run');
-  assert.ok(body.includes(`He's ${KRISH_TITLE}, writes Make Your Mind Up (https://publication.example) and helps leaders build their AI brain at Mindmake`), 'his title as he ruled, his publication as the canon names it, in one sentence');
-  assert.ok(body.toLowerCase().includes(RECORD.line.toLowerCase().replace(/\.$/, '')), 'his record as his site publishes it');
-  assert.ok(body.endsWith('\n\nJonny'), 'signed Jonny');
+  assert.match(body, /^Hi Avery,\n\nI work with Krish Raja, and I think he'd make a good hour for The Example Show 1(?:'s listeners, [^"]+,)? on "What a CMO should hand to AI this quarter, and what stays human": /, 'why it is good for their listeners first, in Jonny\'s voice: the show\'s audience and one episode it could run');
+  assert.match(body, /rather than|keep that judgement|stay in charge|stay with people/, 'the message he cares about most: use AI rather than be used by it (Ruling, Krish, 2026-11-16)');
+  assert.ok(body.includes(`He's ${KRISH_TITLE}, and at `), 'his title as he ruled, and one line of his record, in one sentence');
+  assert.ok(body.toLowerCase().includes(recordParts(RECORD.line).did.toLowerCase()), 'his record as his site publishes it');
+  assert.equal(body.split('https://makeyourmindup.ai').length - 1, 1, 'Make Your Mind Up once (Ruling, Krish, 2026-11-16)');
+  assert.equal(/mindmake\.co|krishraja\.com/.test(body), false, 'one link in a podcast pitch');
+  assert.equal(/\bHi there\b/.test(body), false);
+  assert.ok(body.endsWith('\n\nThanks either way,\nJonny'), 'signed Jonny, warmly');
   assert.equal((body.match(/\?/g) ?? []).length, 1, 'one ask');
   assert.equal(/@|\+\d{6}/.test(body), false, 'never an address or a number');
   assert.equal(body.includes(EM) || a.subject.includes(EM), false, 'no em dash');
@@ -139,7 +143,7 @@ test('a pitch is a 1.9.0 visibility row for Jonny\'s box, in Jonny\'s words, abo
   assert.ok(c.sources.every(s => /^https:\/\/\S+$/.test(s.url) && !NOT_A_SOURCE.test(s.url)));
   assert.equal(/@[a-z]/i.test(JSON.stringify(c)), false);
   const team = JSON.parse(r.proposals.find(x => x.subject_ref === `target:${id(3)}`).exact_payload).body;
-  assert.match(team, /^Hi there,/, 'a publisher is never greeted as a person');
+  assert.match(team, /^Hi Example Show 3 team,/, 'a publisher is never greeted as a person, and never "Hi there"');
   const bare = pitchRows({ context: ctx([stage(1)]), weekGoals: GOALS, canon, record: null, files: FILES, at: NOW }).proposals[0];
   assert.equal(bare.source_revision.length, FILES.length, 'no record read, no record named');
   assert.equal(JSON.parse(bare.exact_payload).body.includes('he has spoken'), false, 'and nothing said from memory');
@@ -283,15 +287,16 @@ test('a speaking pitch is a 1.9.0 events row for Jonny\'s box, in Jonny\'s words
   assert.equal(a.mailbox, 'jonny');
   assert.equal(a.recipient_contact_id, id(201));
   assert.match(a.subject, /^A speaker for The Example Summit 1: /);
-  assert.match(a.body, /^Hi there,\n\nI work with Krish Raja: would you consider him for a talk at The Example Summit 1(?: in [A-Z][a-z]{2} \d{4})?, before your call closes on \d+ [A-Z][a-z]{2}, with "[^"]+", built for /, 'a company is never greeted as a person; the ask, the talk and the close date first');
-  assert.match(a.body, /built for (?:the room it gathers, [^(]+|the leaders it gathers) \(/, 'the room the talk is for');
-  assert.ok(a.body.includes(`He's ${KRISH_TITLE}, writes Make Your Mind Up (https://publication.example)`));
-  assert.ok(a.body.toLowerCase().includes(RECORD.line.toLowerCase().replace(/\.$/, '')));
-  assert.ok(a.body.endsWith('\n\nJonny'));
+  assert.match(a.body, /^Hi Example Summit 1 team,\n\nI work with Krish Raja, and I think he'd be a good speaker for The Example Summit 1(?: in [A-Z][a-z]{2} \d{4})?(?:, in front of [^"]+)?, on "[^"]+": /, 'a company is never greeted as a person, nor as "there"; why he is good for this room and the talk first');
+  assert.match(a.body, /would you consider him for a talk before your call closes on \d+ [A-Z][a-z]{2}, or would a quick chat first be easier\?/, 'one easy ask, with the close date');
+  assert.ok(a.body.includes(`He's ${KRISH_TITLE} and ${recordParts(RECORD.line).spoke}; his speaking profile is at https://www.krishraja.com and his media channel is https://mindmake.co.`), 'his speaking profile and his media channel, once each (Ruling, Krish, 2026-11-16)');
+  for (const link of ['https://www.krishraja.com', 'https://mindmake.co']) assert.equal(a.body.split(link).length - 1, 1, `${link} once`);
+  assert.equal(/\bHi there\b/.test(a.body), false);
+  assert.ok(a.body.endsWith('\n\nThanks either way,\nJonny'));
   assert.equal((a.body.match(/\?/g) ?? []).length, 1, 'one ask');
   assert.equal(/@|\+\d{6}/.test(a.body), false, 'never an address or a number');
   assert.equal(a.body.includes(EM) || a.subject.includes(EM), false, 'no em dash');
-  assert.match(JSON.parse(q.exact_payload).body, /for a panel seat at The CMO Panel Example/);
+  assert.match(JSON.parse(q.exact_payload).body, /speaker for The CMO Panel Example[\s\S]*consider him for a panel seat/);
   assert.ok(p.title.length <= TITLE_MAX_BRIEF);
   assert.equal(p.because, 'A stage in Mar 2027, call closes 20 Nov. Jonny pitches you.');
   assert.ok(p.because.length <= BECAUSE_MAX);
@@ -456,17 +461,17 @@ test('an invite is one ask in Jonny\'s words, to the show it was judged for, sig
   assert.equal(mymu.subject, 'A conversation for Make Your Mind Up');
   assert.equal(mymu.body, [
     'Hi Avery,',
-    "I work with Krish Raja, who writes Make Your Mind Up (https://publication.example), and we'd love to have you for one of its weekly conversations.",
+    "I work with Krish Raja, who writes Make Your Mind Up (https://publication.example), and he'd love to have you for one of its weekly conversations.",
     'He\'d like to talk with you because you run retail media for Example Exchange, and he read "How marketing teams change with AI".',
-    'One episode idea: "Why tools want to be your fulcrum"; would you be up for it in the coming weeks?',
-    'Jonny',
+    'One episode idea: "Why tools want to be your fulcrum"; would you be up for it sometime in the coming weeks, whenever suits you?',
+    'Thanks either way,\nJonny',
   ].join('\n\n'), 'why this guest, and an episode idea from their own claim');
   const sn = inviteWords({ name: 'Sam Sample', show: inviteShow('signal_noise', canon), page: null, g: { one_liner: 'CRO at Example AI' }, idea: guestIdea({ one_liner: 'CRO at Example AI' }, null, new Set()) });
   assert.equal(sn.subject, 'A conversation for Signal & Noise');
-  assert.ok(sn.body.startsWith(`Hi Sam,\n\nI work with Krish Raja, ${KRISH_TITLE}, and we'd love to have you on the show for a conversation.\n\nHe'd like to talk with you because you're CRO at Example AI.\n\nOne episode idea: "`), sn.body);
+  assert.ok(sn.body.startsWith(`Hi Sam,\n\nI work with Krish Raja, ${KRISH_TITLE}, and he'd love to have you on the show for a conversation.\n\nHe'd like to talk with you because you're CRO at Example AI.\n\nOne episode idea: "`), sn.body);
   for (const w of [mymu, sn]) {
     assert.equal((w.body.match(/\?/g) ?? []).length, 1, 'one ask');
-    assert.ok(w.body.endsWith('\n\nJonny'));
+    assert.ok(w.body.endsWith('\n\nThanks either way,\nJonny'));
     assert.equal(w.body.includes(EM) || w.subject.includes(EM), false, 'no em dash');
     assert.equal(/@|\+\d{6}/.test(w.body), false, 'never an address or a number');
   }

@@ -135,12 +135,12 @@ test('a speaking pitch says the room, the talk and when the call closes; a podca
   const out = pitchRows({ context: { records: { visibility: [t(1), t(2), p(11), p(12)], drafts: [] }, routes: Object.fromEntries([701, 702, 811, 812].map(n => [id(n), { in_network: false }])), feedback: [], research: [] }, weekGoals: [], canon, files: FILES, at: NOW, networkRoutes: true });
   const speak = out.proposals.filter(x => x.row === 'events').map(body);
   assert.equal(speak.length, 2);
-  assert.match(speak[0], /built for the room it gathers, (?:chief marketing officers|finance leaders in insurance)/);
+  assert.match(speak[0], /in front of (?:chief marketing officers|finance leaders in insurance), on "/);
   assert.match(speak[0], /before your call closes on 20 Nov/);
   assert.notEqual(/"([^"]+)"/.exec(speak[0])[1], /"([^"]+)"/.exec(speak[1])[1], 'no two stages are offered the same talk');
   const pods = out.proposals.filter(x => x.row === 'visibility').map(body);
   assert.equal(pods.length, 2);
-  assert.match(pods.join('\n'), /The Example Show 11's listeners, media executives, "What a media business sells once AI can make the content"; would you have him on\?/);
+  assert.match(pods.join('\n'), /The Example Show 11's listeners, media executives, on "What a media business sells once AI can make the content": /);
   assert.match(pods.join('\n'), /Its last episode asked who owns AI in a newsroom\./, 'the angle Nova read for this show');
   assert.deepEqual(sharedBodies(out.proposals), []);
   for (const x of [...speak, ...pods]) assert.equal(x.includes(EM), false);

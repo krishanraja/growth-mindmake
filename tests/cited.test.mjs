@@ -28,7 +28,7 @@ test('a page cited first, at a company whose person Control Center serves with a
   assert.equal(a.channel, 'email');
   assert.equal(a.mailbox ?? null, null, 'his own box: the morning lane drafts it for his send');
   assert.match(a.body, /^Hi Robin,\n\nWhen someone asks an AI assistant "How should a media company get its leaders ready for AI\?", the first source it cites is your page at https:\/\/www\.media-one\.example\/ai-readiness\./);
-  assert.match(a.body, /would a short call to compare notes be useful\?\n\nKrish$/);
+  assert.match(a.body, /would a short call to compare notes be useful\?\n\nCheers,\nKrish$/);
   assert.equal(a.body.includes(String.fromCharCode(8212)), false, 'no em dash');
   assert.match(citedLine(r, true), /^Cited pages: 1 read; 1 written as REACH OUT notes for his own box\.$/);
 });

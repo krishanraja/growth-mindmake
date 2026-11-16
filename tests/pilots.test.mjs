@@ -373,7 +373,7 @@ test('a valid note becomes a REACH OUT email in his own box: the note, then the 
   assert.deepEqual(Object.keys(a).sort(), ['body', 'channel', 'recipient_contact_id', 'subject', 'version'], 'no mailbox: his own box, as every row he presses himself');
   assert.deepEqual([a.version, a.channel, a.recipient_contact_id, a.subject], [2, 'email', id(101), 'A thought for Example Works 1']);
   // Every word but the desk's one sentence is fixed: the greeting, the building line, the canon's ask, its link alone on a line, his name.
-  assert.equal(a.body, `Hi Avery,\n\n${good(1)} ${BUILD} ${ASK}\n\n${canon.ask.url}\n\nKrish`);
+  assert.equal(a.body, `Hi Avery,\n\n${good(1)} ${BUILD} ${ASK}\n\n${canon.ask.url}\n\nCheers,\nKrish`);
   assert.doesNotMatch(a.body, /utm_/, 'his one-to-one notes are never tagged (Rulings, Krish, 2026-10-27)');
   assert.equal(p.card.why[0], `Why now: ${TRIGGER}`);
   assert.equal(p.card.why[1], 'Runs a media data business that sells to publishers.', 'why this person, in the stored judgment\'s words');
