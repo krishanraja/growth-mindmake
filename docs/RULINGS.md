@@ -326,3 +326,11 @@ He then chose, from the mission brief of 17 November 2026 (Drive, Growth strateg
 - His founding story is told publicly under his full name. This settles founder visibility for that story; every other use stays open.
 - docs/NORTH_STAR.md carries a "Why this matters" line above the number. The number itself is unchanged.
 - No wall moves: the story, the audit page and every send still wait for his yes on the exact words.
+
+## Parts of your AI brain (Ruling, Krish, 2026-11-17)
+
+In another session Krish said of the kit videos: "I am not keen at all on things like ad spend waste finder, where did sales come from, etc. Those are standalone software products... This is an AI brain product that magnifies the brain power of a human leader." Asked whether to reframe the $59 kits as parts of his AI brain or pause them, he chose: "Reframe as brain parts".
+
+- The twelve kits are parts of a leader's AI brain, each named for the judgement it strengthens and grouped under judgement, standards, reading the numbers and directing attention. Nothing a buyer sees presents a part as a standalone tool named after its task.
+- The software and its checks do not change; names, framing, routes (mindmake.co/parts) and copy do.
+- No wall moves: the parts page, live prices and every send still wait for his yes.

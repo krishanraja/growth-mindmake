@@ -25,7 +25,7 @@ Each lane is sized to Krish's one fixed daily block of 20 minutes, measured to t
 | Warm | Morning drafts to his network, quiet ties, stale deals, the selling partner | Krish, in Gmail | 01, 10, 11 |
 | Visibility | Jonny's podcast and stage pitches, guest invites for his shows | Jonny | 05, 11 |
 | Cold, named and researched | A leader with a buying moment, United States or a United Kingdom company domain, only once Control Center serves the approved footer | Krish | 02, 03, 09 |
-| Inbound | The free brief, kit buyers, posts that link to the kits | Krish reviews what is prepared | 04, 06 |
+| Inbound | The free brief, the judgement audit, buyers of brain parts, posts that link to them | Krish reviews what is prepared | 04, 06 |
 
 Hosted rooms stay guest seats only this year. Paid media stays out (playbook 10).
 
@@ -41,9 +41,9 @@ Interest is a reply, a free brief, or a kit bought by a senior buyer (that last 
 
 This runs in Control Center, which is private, because every step carries a named person. This public repository only counts.
 
-## Kits
+## Parts of your AI brain
 
-Twenty to thirty kits, $59 each, one-off, for senior executives. Each solves one named problem, installs in one click, runs with no Mindmake infrastructure, and shows a real result in five minutes. A kit is working software, never a prompt. They earn money now, and they put a working Mindmake system in an executive's hands, which is the cheapest proof of the AI brain. They sell on a page at mindmake.co with a 14-day refund and no scarcity. Built in the mindmake repository.
+Twelve parts, $59 each, one-off, for senior executives (Ruling, Krish, 2026-11-17: "Reframe as brain parts"). Each part strengthens one kind of judgement, grouped under the four things a leader keeps: judgement, standards, reading the numbers and directing attention. A part is working software that plugs into Claude in one click, runs on the leader's own files with no Mindmake infrastructure, shows a result in five minutes and ends by naming what only the leader can judge. It is never presented as a standalone tool named after its task. Parts earn money now and are the smallest proof of the AI brain; the whole brain is the thirty-day proof. They sell at mindmake.co/parts with a 14-day refund and no scarcity. The software is in krishanraja/mindmake-kits; the page is in the mindmake repository.
 
 ## The arithmetic
 
@@ -57,4 +57,4 @@ To reach the ladder (docs/NORTH_STAR.md) the lanes need roughly 25 sends a day b
 
 ## Walls
 
-Nothing here moves a wall. Every send is his press or Jonny's. The kit shortlist, the kits page, live prices, the proposal pipeline going live, the kit-buyer trigger and any raise of the cold cap each wait for his yes.
+Nothing here moves a wall. Every send is his press or Jonny's. The parts page, live prices, the proposal pipeline going live, the part-buyer trigger and any raise of the cold cap each wait for his yes.
