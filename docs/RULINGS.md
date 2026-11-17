@@ -314,3 +314,15 @@ Krish set the plan in docs/STRATEGY.md in one session. His answers, as he gave t
 - Kits carry a 14-day full refund; no countdown and no scarcity.
 
 What this repository does with them: each run reports what became of the drafts in both boxes (src/stages/sends.mjs). The tailored proposal, the identity check and the PDF are built in Control Center, which is private, because each carries a named person; this public repository only counts. The kits and their page are built in the mindmake repository. No wall moves: every send, the kit shortlist, the page, live prices and the proposal pipeline going live each wait for his yes.
+
+## Who decides: the mission thesis (Rulings, Krish, 2026-11-17)
+
+Krish shared an employability corpus of 17 November 2026 and wrote: "Here is living evidence that my entire business exists to solve. This should feel it has a mission and urgency behind it, but a truly incredibly unique approach to data literacy + standards, judgement, decision making, and augmenting yourself in a specific area, whilst using AI to bring together complex streams of information for your clarity and speed of thought. The lead magnet exercise and everything you do should anchor around this with substantial proof in the critical need for it at the leadership level." He asked that it "become somewhat the north star", and added: "If you don't master AI, it will master you if you don't have human agency and accountability, you will cede your decision-making to AI. You will not notice when it's pulling the wool over your eyes, and it will learn your thinking patterns. Companies will build institutional brains that simply replace you."
+
+He then chose, from the mission brief of 17 November 2026 (Drive, Growth strategy, Plans and briefs), "D, yes to all four", and added: "my name is critical publicly in this founder story".
+
+- The thesis is line D: "AI makes strong judgement stronger and weak judgement weaker. Mindmake builds the strong kind." Every lead, opening, pitch and proposal argues it, with its evidence cited from docs/EVIDENCE.md. "Institutional brains replace leaders" is said only as the direction of travel, never as fact, because no study shows it for leaders yet.
+- The first lead magnet is the judgement audit, "Who decided?": one real recent decision, six questions, a private read at four evidence levels, never a score, one ask.
+- His founding story is told publicly under his full name. This settles founder visibility for that story; every other use stays open.
+- docs/NORTH_STAR.md carries a "Why this matters" line above the number. The number itself is unchanged.
+- No wall moves: the story, the audit page and every send still wait for his yes on the exact words.
