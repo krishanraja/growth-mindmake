@@ -6,6 +6,12 @@ Set: 16 November 2026 (docs/RULINGS.md, "The lead generation plan of 16 November
 
 This page is the strategy on one page. It links the playbooks instead of repeating them. The number it serves is in docs/NORTH_STAR.md: good meetings a week, each marked good by Krish and traced to its path.
 
+## The thesis
+
+**AI makes strong judgement stronger and weak judgement weaker. Mindmake builds the strong kind** (Ruling, Krish, 2026-11-17). Every lane argues it. A leader who hands their judgement to AI may not notice: professionals follow AI even when it is wrong, and people who trust it more think less critically. A leader who keeps it gets faster and better. What a leader must keep: judgement, standards, reading the numbers, and directing AI to bring complex information together for clarity and speed of thought. The proof, with dates and limits, is in docs/EVIDENCE.md; nothing is quoted without its source.
+
+The first lead magnet is **"Who decided?"**, a free 20-minute audit of one real recent decision made with AI's help. The second is Krish's own founding story, told under his name. Both carry one ask.
+
 ## What is wrong today
 
 The strategy was never the gap. Eleven playbooks and GET-GOING exist. Since 26 October nothing the engine prepared reached a person: the morning drafts, the partner proposal and the week spec waited on a press, and the work went into more machinery. So the first rule of this strategy is that **a draft only counts once it is sent**, and every run now says how many were (src/stages/sends.mjs).

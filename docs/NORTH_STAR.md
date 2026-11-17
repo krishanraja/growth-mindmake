@@ -12,6 +12,10 @@ Set by Krish on 18 October 2026. It is not reached yet. It is what every session
 
 This repository serves [Mindmake's North Star](https://github.com/krishanraja/mindmake/blob/main/project-documentation/00_NORTH_STAR.md). The lines above are this repository's part of it.
 
+## Why this matters
+
+AI makes strong judgement stronger and weak judgement weaker. Mindmake builds the strong kind: a brain that runs on the leader's own judgement and standards, that they own, so they stay the one deciding. Every meeting this engine fills is a leader who could keep their judgement or hand it over (Ruling, Krish, 2026-11-17; evidence in docs/EVIDENCE.md).
+
 ## The number
 
 **Good meetings a week, each marked good by Krish after it and traced to where it came from**: 20 by 30 November 2026, on a front-loaded weekly ladder. Checkpoints: 16 Nov 2026: 11; 30 Nov 2026: 20.

@@ -60,6 +60,8 @@ The two capabilities and their reviewed descriptions are fixed by the canon pinn
 - **Build your AI brain:** "Your taste, standards and judgement, running as a system you own."
 - **Build your AI revenue engine:** "Your pricing, positioning and team rebuilt for AI, then tested with real buyers."
 
+The big idea, chosen by Krish on 17 November 2026: **"AI makes strong judgement stronger and weak judgement weaker. Mindmake builds the strong kind."** Its reasons to believe are the evidence IDs in docs/EVIDENCE.md; "institutional brains replace leaders" is never written as fact.
+
 Select the capability from the decision in front of the person. The "reason to believe" must be an evidence ID or cleared proof card, or the sentence goes. Never write a new offer fact, outcome, timeframe, guarantee or price. A sharper USP or big idea is a strategy proposal for Krish with its rationale, never a draft change.
 
 ## Feature, benefit, proof
