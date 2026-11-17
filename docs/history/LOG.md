@@ -6,6 +6,14 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-17, to keep the session pack under 36 KB; newest first.
 
+- the engine's thesis is set (Rulings, Krish, 2026-11-17): "AI makes strong judgement stronger and weak judgement weaker. Mindmake builds the strong kind." It is in the North Star's "Why this matters" line, the strategy, the copy doctrine's big idea, and a dated evidence register (docs/EVIDENCE.md). The first lead magnet is the judgement audit "Who decided?"; Krish's founding story is told publicly under his name. (2026-11-17)
+- 2026-11-17 Krish found the first names ambiguous and the housekeeping parts off-mission; one explanation line now says what a part is.
+- 2026-11-17 Krish said the named kits read as standalone software when Mindmake is an AI brain product that magnifies a leader's judgement.
+
+## 2026-11-17: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-17, to keep the session pack under 36 KB; newest first.
+
 - 2026-11-17 Krish asked that the corpus of 17 November and his reason for starting Mindmake become the engine's north star; the evidence supports the sharper line D over fear, and "institutional brains replace leaders" stays a direction of travel, never a fact.
 - the cold lane now reads who may be written to cold from Control Center's records.eligibility (protocol 1.42.0) by contact id: country, United Kingdom subscriber type, the address's domain, whether the address was worked out, and the company's domain. Until Control Center serves it, every candidate still holds as cold_country_unknown. (2026-11-16)
 
