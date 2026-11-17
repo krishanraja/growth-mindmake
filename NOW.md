@@ -28,8 +28,8 @@ The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish'
 
 Lifecycle: building. The detail is in `README.md`.
 
+- the $59 kits are reframed as parts of a leader's AI brain (Ruling, Krish, 2026-11-17), named for the judgement each strengthens and sold at mindmake.co/parts; the strategy and rulings say so. (2026-11-17)
 - the engine's thesis is set (Rulings, Krish, 2026-11-17): "AI makes strong judgement stronger and weak judgement weaker. Mindmake builds the strong kind." It is in the North Star's "Why this matters" line, the strategy, the copy doctrine's big idea, and a dated evidence register (docs/EVIDENCE.md). The first lead magnet is the judgement audit "Who decided?"; Krish's founding story is told publicly under his name. (2026-11-17)
-- the cold lane now reads who may be written to cold from Control Center's records.eligibility (protocol 1.42.0) by contact id: country, United Kingdom subscriber type, the address's domain, whether the address was worked out, and the company's domain. Until Control Center serves it, every candidate still holds as cold_country_unknown. (2026-11-16)
 - The daily dispatch runs live: Control Center wakes it at about 05:10 UTC, again the same day when a row of his widget runs low, and a merge to main that changes `src/` runs it at once. Each run reads Krish's instruction first (protocol 1.20.0), builds the five rows, Jonny's pitches and invites and the stage forms from Control Center's context, asks the research desk for lookups and openings, passes every action with words in Krish's name through Control Center's voice check, and reports the number, the bookings and the engine's state (README.md, "The daily Control Center dispatch").
 - Nothing here sends, posts or spends. Control Center drafts Jonny's pitches into Jonny's Gmail each day for Jonny to send; every other action waits on Krish's own press, and an approved exact email runs only through Control Center's shared executor.
 - The number is read from his one tap after each meeting (protocol 1.10.0). On the 12 November run good meetings, podcasts booked and stages confirmed all read as measured; the count itself is the state line above, which Control Center writes.
@@ -41,12 +41,12 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What changed recently
 
-- 2026-11-17 Krish asked that the corpus of 17 November and his reason for starting Mindmake become the engine's north star; the evidence supports the sharper line D over fear, and "institutional brains replace leaders" stays a direction of travel, never a fact.
+- 2026-11-17 Krish said the named kits read as standalone software when Mindmake is an AI brain product that magnifies a leader's judgement.
 - Older changes are in [docs/history/LOG.md](docs/history/LOG.md), moved there word for word to keep this file short.
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-17): the engine's words, the tailored proposals and the kits carry the thesis with cited evidence; the judgement audit is built on mindmake.co; Krish approves the founding story's exact words.
+- Next (2026-11-17): Krish reviews the rendered parts page; the inbound lane counts part buyers once the page is live.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 - North Star check (2026-11-17): holds.
 

@@ -6,6 +6,13 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-17, to keep the session pack under 36 KB; newest first.
 
+- 2026-11-17 Krish asked that the corpus of 17 November and his reason for starting Mindmake become the engine's north star; the evidence supports the sharper line D over fear, and "institutional brains replace leaders" stays a direction of travel, never a fact.
+- the cold lane now reads who may be written to cold from Control Center's records.eligibility (protocol 1.42.0) by contact id: country, United Kingdom subscriber type, the address's domain, whether the address was worked out, and the company's domain. Until Control Center serves it, every candidate still holds as cold_country_unknown. (2026-11-16)
+
+## 2026-11-17: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-17, to keep the session pack under 36 KB; newest first.
+
 - Lead generation strategy set on one page (docs/STRATEGY.md) with Krish's rulings of 16 November; each run now reports what became of the drafts in his box and Jonny's (src/stages/sends.mjs), counts only. (2026-11-16)
 - 2026-11-16 the number read 0 because nothing prepared was being sent, and no run showed it; the sends line makes that visible every morning.
 - Krish asked for advertising audit capabilities and chose, when asked, a tracking check on mindmake.co plus a dormant paid accounts audit. Each run now reports one tracking line (src/stages/tracking.mjs: Control Center's site health, flags, freshness, days read, key events, untraced visits and placements, each fail, watch, unknown or pass with its fix), and `npm run ads-audit` audits an exported account read only (src/ads/). Paid media stays excluded (playbook 10). Built and tested on a local branch; not pushed, merged or live. (2026-11-15)
