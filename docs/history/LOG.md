@@ -2,6 +2,16 @@
 
 The dated records of this engine's sessions, newest first. NOW.md names this file as its history log; scripts/check-drift.mjs fails when it is missing. The completion record stays docs/RELEASE.md.
 
+## 2026-11-17: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-17, to keep the session pack under 36 KB; newest first.
+
+- Lead generation strategy set on one page (docs/STRATEGY.md) with Krish's rulings of 16 November; each run now reports what became of the drafts in his box and Jonny's (src/stages/sends.mjs), counts only. (2026-11-16)
+- 2026-11-16 the number read 0 because nothing prepared was being sent, and no run showed it; the sends line makes that visible every morning.
+- Krish asked for advertising audit capabilities and chose, when asked, a tracking check on mindmake.co plus a dormant paid accounts audit. Each run now reports one tracking line (src/stages/tracking.mjs: Control Center's site health, flags, freshness, days read, key events, untraced visits and placements, each fail, watch, unknown or pass with its fix), and `npm run ads-audit` audits an exported account read only (src/ads/). Paid media stays excluded (playbook 10). Built and tested on a local branch; not pushed, merged or live. (2026-11-15)
+- Krish's idea to turn the engine's own checks into giveaway and low-priced tools with a landing page is in the plan as GET-GOING item 1.10 (free tool first, a paid pack, then Mindmake; his yes on the first tool, page and price before anything is public). (2026-11-15)
+- Krish's second LinkedIn example is in the plan as GET-GOING item 1.4c, the named system post: one premium diagram of a working system, the system itself free on a mindmake.co page, no comment-to-unlock. His words ("a bit clickbaity and not as premium as I would like to aim for but it's a good idea nonetheless") are on his taste ledger. (2026-11-15)
+
 ## 2026-11-16: older NOW.md lines
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-16, to keep the session pack under 36 KB; newest first.

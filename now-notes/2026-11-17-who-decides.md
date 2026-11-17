@@ -1,4 +1,0 @@
-Status: the engine's thesis is set (Rulings, Krish, 2026-11-17): "AI makes strong judgement stronger and weak judgement weaker. Mindmake builds the strong kind." It is in the North Star's "Why this matters" line, the strategy, the copy doctrine's big idea, and a dated evidence register (docs/EVIDENCE.md). The first lead magnet is the judgement audit "Who decided?"; Krish's founding story is told publicly under his name.
-Next: the engine's words, the tailored proposals and the kits carry the thesis with cited evidence; the judgement audit is built on mindmake.co; Krish approves the founding story's exact words.
-Changed: Krish asked that the corpus of 17 November and his reason for starting Mindmake become the engine's north star; the evidence supports the sharper line D over fear, and "institutional brains replace leaders" stays a direction of travel, never a fact.
-North Star check (2026-11-17): holds.

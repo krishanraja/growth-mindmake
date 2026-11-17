@@ -1,7 +1,7 @@
 ---
 repo: krishanraja/growth-mindmake
 product: Mindmake growth engine
-as_of: 2026-11-16
+as_of: 2026-11-17
 head: 5d3d7ff
 lifecycle: building
 production_url: none
@@ -22,17 +22,14 @@ Mindmake's growth engine: relationships, introductions, researched named outreac
 
 The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish's calendar with the right conversations.
 
-## Where it is right now (as of 2026-11-16)
+## Where it is right now (as of 2026-11-17)
 
 <!-- north-star-state {"week_of":"2026-11-02","week_target":5,"current":0,"current_as_of":"2026-11-08","current_source":"growth-mindmake's latest live report to Control Center (objective good_meetings: meetings Krish marked good, each traced to its path, in the week it counts), read by Control Center","urgency":5,"urgency_reason":"under 40% of the week's target two weeks running (0% now)"} --> **North Star number: U5, stalled.** Good meetings a week, each marked good by Krish after it and traced to where it came from: 0, against 5 in the week of 2 November 2026, on the way to 20 by 30 November 2026. Everything else pauses unless it moves the number.
 
 Lifecycle: building. The detail is in `README.md`.
 
+- the engine's thesis is set (Rulings, Krish, 2026-11-17): "AI makes strong judgement stronger and weak judgement weaker. Mindmake builds the strong kind." It is in the North Star's "Why this matters" line, the strategy, the copy doctrine's big idea, and a dated evidence register (docs/EVIDENCE.md). The first lead magnet is the judgement audit "Who decided?"; Krish's founding story is told publicly under his name. (2026-11-17)
 - the cold lane now reads who may be written to cold from Control Center's records.eligibility (protocol 1.42.0) by contact id: country, United Kingdom subscriber type, the address's domain, whether the address was worked out, and the company's domain. Until Control Center serves it, every candidate still holds as cold_country_unknown. (2026-11-16)
-- Lead generation strategy set on one page (docs/STRATEGY.md) with Krish's rulings of 16 November; each run now reports what became of the drafts in his box and Jonny's (src/stages/sends.mjs), counts only. (2026-11-16)
-- Krish asked for advertising audit capabilities and chose, when asked, a tracking check on mindmake.co plus a dormant paid accounts audit. Each run now reports one tracking line (src/stages/tracking.mjs: Control Center's site health, flags, freshness, days read, key events, untraced visits and placements, each fail, watch, unknown or pass with its fix), and `npm run ads-audit` audits an exported account read only (src/ads/). Paid media stays excluded (playbook 10). Built and tested on a local branch; not pushed, merged or live. (2026-11-15)
-- Krish's idea to turn the engine's own checks into giveaway and low-priced tools with a landing page is in the plan as GET-GOING item 1.10 (free tool first, a paid pack, then Mindmake; his yes on the first tool, page and price before anything is public). (2026-11-15)
-- Krish's second LinkedIn example is in the plan as GET-GOING item 1.4c, the named system post: one premium diagram of a working system, the system itself free on a mindmake.co page, no comment-to-unlock. His words ("a bit clickbaity and not as premium as I would like to aim for but it's a good idea nonetheless") are on his taste ledger. (2026-11-15)
 - The daily dispatch runs live: Control Center wakes it at about 05:10 UTC, again the same day when a row of his widget runs low, and a merge to main that changes `src/` runs it at once. Each run reads Krish's instruction first (protocol 1.20.0), builds the five rows, Jonny's pitches and invites and the stage forms from Control Center's context, asks the research desk for lookups and openings, passes every action with words in Krish's name through Control Center's voice check, and reports the number, the bookings and the engine's state (README.md, "The daily Control Center dispatch").
 - Nothing here sends, posts or spends. Control Center drafts Jonny's pitches into Jonny's Gmail each day for Jonny to send; every other action waits on Krish's own press, and an approved exact email runs only through Control Center's shared executor.
 - The number is read from his one tap after each meeting (protocol 1.10.0). On the 12 November run good meetings, podcasts booked and stages confirmed all read as measured; the count itself is the state line above, which Control Center writes.
@@ -44,14 +41,14 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What changed recently
 
-- 2026-11-16 the number read 0 because nothing prepared was being sent, and no run showed it; the sends line makes that visible every morning.
+- 2026-11-17 Krish asked that the corpus of 17 November and his reason for starting Mindmake become the engine's north star; the evidence supports the sharper line D over fear, and "institutional brains replace leaders" stays a direction of travel, never a fact.
 - Older changes are in [docs/history/LOG.md](docs/history/LOG.md), moved there word for word to keep this file short.
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-16): Control Center serves records.eligibility (protocol 1.42.0); then copy its bundle into docs/control-center/ and read the next live report's cold lane line.
+- Next (2026-11-17): the engine's words, the tailored proposals and the kits carry the thesis with cited evidence; the judgement audit is built on mindmake.co; Krish approves the founding story's exact words.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
-- North Star check (2026-11-16): holds.
+- North Star check (2026-11-17): holds.
 
 ### Existing integration gates to retain
 
