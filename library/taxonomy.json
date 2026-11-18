@@ -1,7 +1,7 @@
 {
   "version": 1,
   "source": "docs/DRIVE.md",
-  "source_sha256": "8da57e984cbb992906db0276c9888c83098bf71845c04c69c586502c23001514",
+  "source_sha256": "80b95c68b064f9534b8099770f1045d51dfbe466a95ca747bb42abc5452869c4",
   "root": "03_Growth",
   "folders": [
     "03_Growth",
@@ -18,6 +18,9 @@
     "03_Growth/Growth assets/Maven lesson covers",
     "03_Growth/Growth assets/Maven lesson covers/Current",
     "03_Growth/Growth assets/Maven lesson covers/Drafts",
+    "03_Growth/Growth assets/Lead magnets",
+    "03_Growth/Growth assets/Lead magnets/Current",
+    "03_Growth/Growth assets/Lead magnets/Drafts",
     "03_Growth/Growth measurement",
     "03_Growth/Growth archive"
   ],
@@ -39,9 +42,10 @@
     "Brand kit spec",
     "Brand kit specimen",
     "One-sheet",
-    "Maven lesson cover"
+    "Maven lesson cover",
+    "Lead magnet"
   ],
-  "name_pattern": "^(\\d{4}-\\d{2}-\\d{2}) (Brand kit specimen|Maven lesson cover|Brand kit spec|Weekly review|Cowork prompt|Week spec|One-sheet|Baseline|Readout|Brief|Plan) (.+) v(\\d+)(?: \\(superseded (\\d{4}-\\d{2}-\\d{2})\\))?(\\.[a-z0-9]{1,5})?$",
+  "name_pattern": "^(\\d{4}-\\d{2}-\\d{2}) (Brand kit specimen|Maven lesson cover|Brand kit spec|Weekly review|Cowork prompt|Lead magnet|Week spec|One-sheet|Baseline|Readout|Brief|Plan) (.+) v(\\d+)(?: \\(superseded (\\d{4}-\\d{2}-\\d{2})\\))?(\\.[a-z0-9]{1,5})?$",
   "banned_words": [
     "final",
     "new",
