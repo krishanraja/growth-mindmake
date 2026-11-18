@@ -62,6 +62,10 @@ Each is in docs/RULINGS.md word for word, with his quotes; a line here says what
 - Who decides: the mission thesis (Rulings, Krish, 2026-11-17): the thesis is "AI makes strong judgement stronger and weak judgement weaker. Mindmake builds the strong kind.", argued with evidence from docs/EVIDENCE.md in every lead, opening, pitch and proposal; institutional brains replacing leaders is said only as the direction of travel; the first lead magnet is the judgement audit "Who decided?"; his founding story is told publicly under his full name; the North Star carries a "Why this matters" line and its number is unchanged; no wall moves.
 - Parts of your AI brain (Ruling, Krish, 2026-11-17): the $59 kits are seven parts of a leader's AI brain with plain names that say the job (Fact-check my board update; Fact-check an email before I send it; Check a number before I rely on it; Brief me before a meeting; Work out my lowest price; Test a discount before I agree to it; Audit a decision I made with AI); six operational parts are held back; never presented as standalone tools; sold at mindmake.co/parts; no wall moves.
 
+## Consult divergent-thinker at will
+
+`npm run divergent -- <op> --problem TEXT` (scripts/divergent.mjs, this engine's bearer): `challenge` (3 calls) before a new outreach angle, room message or lead-magnet framing; `map` (1 call) when the experiment or a play feels like the default; `score` (free with `--obvious-file`) when openers or morning drafts read generic; `provoke` ($0.15), `diverge` ($1.30, one a day), `record` (free). U4/U5 already asks weekly. Exit 1 when `score` flags, 2 when unanswered. With no bearer, Krish's sessions use the connector's `divergent_score`, `divergent_record`, `divergent_run`, namespace `growth-mindmake`. Answers are for the session: a spark becomes an ask only through the walls and the proposal path.
+
 ## Current release boundary
 
 Krish authorised implementation across growth-mindmake and Control Center on 22 October 2026. Extend the shared protocol and the existing daily `cc-growth-directive` dispatch. docs/CONTROL-CENTER-BRIEF.md supersedes the historical producer-only handoff.

@@ -8,6 +8,9 @@
  *   npm run reader -- save <proposal_id> < answer.json  file a reader's own reply when it printed instead of writing; refuses a bad one
  *   npm run reader -- tally                             counts and codes for the run, its shadow lint findings, and the ledger entries
  *   npm run reader -- calibrate --context <file> [--at <iso>]   the ledger's predictions against what happened
+ *   npm run reader -- guard --report <file>             the score guard: each email draft's opening against the generic
+ *                                                       openers in config/pitch-openers.json, through Control Center's
+ *                                                       divergent route (no model call), counts only, in shadow
  *
  * For each wave the session sends one sub-agent per brief, in one message,
  * with only: "Read <brief path> and follow it exactly. It is your whole
@@ -22,6 +25,8 @@ import { fileURLToPath } from 'node:url';
 import { resolve, relative } from 'node:path';
 import { selectDrafts, briefFor, briefSha, validAnswer, tally, tallyLine, ledgerEntry, mergeLedger, calibrate, calibrationLine, DEFAULT_PER_RUN } from '../src/crew/reader.mjs';
 import * as readerLint from '../src/crew/lints/reader.mjs';
+import { engineClient } from '../src/control-center.mjs';
+import { divergentServed, draftOpenings, scoreBody, guardCounts, guardLine } from '../src/stages/divergent.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const dir = resolve(root, process.env.READER_DIR ?? 'runtime/reader');
@@ -114,6 +119,28 @@ if (cmd === 'brief') {
   const context = await readJson(resolve(file));
   const ledger = await readJson(LEDGER, []);
   console.log(calibrationLine(calibrate(ledger, context?.context ?? context, flag('--at') ?? new Date().toISOString())));
+} else if (cmd === 'guard') {
+  // Shadow only: it never holds, changes or files a draft, and prints counts, never an opening.
+  const file = flag('--report');
+  if (!file) fail('guard needs --report <file>');
+  const proposals = proposalsOf(await readJson(resolve(file)));
+  if (!proposals) fail('The file holds no proposals: pass a dispatch report.');
+  const openings = draftOpenings(proposals);
+  const save = async value => { await mkdir(dir, { recursive: true }); await writeFile(resolve(dir, 'guard.json'), JSON.stringify(value, null, 2)); };
+  let cc;
+  try { cc = engineClient(process.env.CONTROL_CENTER_URL, process.env.CONTROL_CENTER_ENGINE_TOKEN); }
+  catch { console.log('Score guard: not run, this machine has no Control Center engine credential. Nothing is held by it.'); process.exit(0); }
+  let capabilities = null;
+  try { capabilities = await cc.capabilities(); } catch { capabilities = null; }
+  if (!divergentServed(capabilities)) { await save({ served: false, not_served: 1 }); console.log('Score guard: not served (Control Center does not say features.divergent), so no call was made. Nothing is held by it.'); process.exit(0); }
+  if (!openings.length) { console.log(guardLine({})); process.exit(0); }
+  try {
+    const counts = guardCounts(openings, await cc.divergent(scoreBody(openings)));
+    await save({ served: true, counts });
+    console.log(guardLine(counts));
+  } catch (e) {
+    console.log(`Score guard: not scored this run (${e?.status ?? 'error'}${typeof e?.code === 'string' ? `, ${e.code}` : ''}). Nothing is held by it.`);
+  }
 } else {
-  fail('Usage: npm run reader -- brief --report <file> [--n 10] | check | save <proposal_id> | tally | calibrate --context <file> [--at <iso>]');
+  fail('Usage: npm run reader -- brief --report <file> [--n 10] | check | save <proposal_id> | tally | calibrate --context <file> [--at <iso>] | guard --report <file>');
 }

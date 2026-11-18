@@ -55,6 +55,10 @@ To reach the ladder (docs/NORTH_STAR.md) the lanes need roughly 25 sends a day b
 - **Daily, the engine:** the 05:10 run prepares, holds and counts, and reports sends, replies, bookings and meetings.
 - **Weekly:** the spec on Monday; the review on Friday, filed in Drive under Growth strategy, Weekly reviews.
 
+## When the number stalls: recovery plays
+
+At U4 or U5, the protocol asks each engine for unconventional recovery plays when nothing else is proposed. Where Control Center serves it, this engine asks divergent-thinker, Krish's own fleet repository for divergent thinking, once a London week through Control Center, with the thesis, the number and the gap, the four lanes, the audit and the parts as moves it must not repeat, and the engine's banned words. Every play is read against this page's walls first, and against consent, community rules, hosted rooms, paid media and scarcity: a play that reads well and breaks one never reaches him. The best play that passes is the engine's one strategy ask that week; the others stay in the report's lines. The week's one change is also read against what most teams would do, as a note only. The code is src/stages/divergent.mjs. A session may also ask it at will with `npm run divergent -- <op>` (AGENTS.md, "Consult divergent-thinker at will").
+
 ## Walls
 
 Nothing here moves a wall. Every send is his press or Jonny's. The parts page, live prices, the proposal pipeline going live, the part-buyer trigger and any raise of the cold cap each wait for his yes.

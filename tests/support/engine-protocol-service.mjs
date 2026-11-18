@@ -118,7 +118,7 @@ export function directiveFixture(changes = {}) {
  * requests a call, a request id twice in one call refused whole (400), an id stored before with other words refused
  * whole (409), a stored id replayed as stored, and a new one answered by `research(request, now)` and stored.
  */
-export async function startProtocolService({ token = STAND_IN_TOKEN, directive = directiveFixture(), decisions = [], activatedOn = '2026-10-18', active = true, recorded = true, credits = false, foundRoutes = null, activation = null, engineState = false, research = null, now = '2026-10-27T09:00:00.000Z' } = {}) {
+export async function startProtocolService({ token = STAND_IN_TOKEN, directive = directiveFixture(), decisions = [], activatedOn = '2026-10-18', active = true, recorded = true, credits = false, foundRoutes = null, activation = null, engineState = false, research = null, divergent = null, now = '2026-10-27T09:00:00.000Z' } = {}) {
   const reports = new Map(), attempts = new Map(), requests = [], faults = [], researchStore = new Map();
   const base = '/api/growth/engines/mindmake/';
   const server = createServer(async (req, res) => {
@@ -133,7 +133,7 @@ export async function startProtocolService({ token = STAND_IN_TOKEN, directive =
     const i = faults.findIndex(f => f.method === req.method && f.route === route);
     if (i >= 0) { const [f] = faults.splice(i, 1); if (f.drop) { req.socket.destroy(); return; } reply(f.status, f.body ?? { error: 'synthetic_fault' }); return; }
     if (route === null) { reply(404, { error: 'not_found' }); return; }
-    if (req.method === 'GET' && route === 'capabilities') { reply(200, { schema_version: foundRoutes ? '1.18.0' : credits ? '1.16.0' : '1.2.0', schema_versions: ['1.0.0', '1.1.0', '1.2.0', ...(credits ? ['1.16.0'] : []), ...(foundRoutes ? ['1.18.0'] : []), ...(engineState ? ['1.20.0'] : [])], engine_id: 'growth-mindmake', product_slug: 'mindmake', idempotency: true, activation: { state: activation ?? (active ? 'active' : 'inactive'), activated_on: activatedOn }, features: { ...(credits ? { credits: true } : {}), ...(foundRoutes ? { found_routes: true } : {}) } }); return; }
+    if (req.method === 'GET' && route === 'capabilities') { reply(200, { schema_version: foundRoutes ? '1.18.0' : credits ? '1.16.0' : '1.2.0', schema_versions: ['1.0.0', '1.1.0', '1.2.0', ...(credits ? ['1.16.0'] : []), ...(foundRoutes ? ['1.18.0'] : []), ...(engineState ? ['1.20.0'] : [])], engine_id: 'growth-mindmake', product_slug: 'mindmake', idempotency: true, activation: { state: activation ?? (active ? 'active' : 'inactive'), activated_on: activatedOn }, features: { ...(credits ? { credits: true } : {}), ...(foundRoutes ? { found_routes: true } : {}), ...(divergent ? { divergent: true } : {}) } }); return; }
     if (req.method === 'GET' && route === 'directive') { reply(200, directive); return; }
     if (req.method === 'GET' && route === 'decisions') { reply(200, { ok: true, decisions }); return; }
     if (route === 'attempts' && req.method === 'POST') {
@@ -171,6 +171,8 @@ export async function startProtocolService({ token = STAND_IN_TOKEN, directive =
       const acksAnswer = body.mode === 'live' && body.instruction_acks?.length ? { applied: body.instruction_acks.length, unknown: 0, stale: 0 } : undefined;
       reply(200, { accepted: true, run_id: body.run_id, payload_sha256: body.payload_sha256, replayed: Boolean(prior), ...(routesAnswer !== undefined ? { found_routes: routesAnswer } : {}), ...(acksAnswer ? { instruction_acks: acksAnswer } : {}) }); return;
     }
+    // features.divergent: the fixture answers each consult as { status, value }, as Control Center's divergent route would.
+    if (route === 'divergent' && req.method === 'POST' && divergent) { const { status = 200, value } = divergent(body) ?? {}; reply(status, value ?? { ok: true }); return; }
     if (route === 'research' && req.method === 'POST' && research) {
       const list = body?.requests;
       if (!Array.isArray(list) || list.length < 1 || list.length > 10) { reply(400, { error: 'research takes 1 to 10 requests' }); return; }
