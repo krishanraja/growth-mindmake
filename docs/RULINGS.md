@@ -327,6 +327,15 @@ He then chose, from the mission brief of 17 November 2026 (Drive, Growth strateg
 - docs/NORTH_STAR.md carries a "Why this matters" line above the number. The number itself is unchanged.
 - No wall moves: the story, the audit page and every send still wait for his yes on the exact words.
 
+## "Who decided?" is locked (Rulings, Krish, 2026-11-18)
+
+On the live audit page he wrote: "final page should be a stunningly rendered set of scorecards, benchmarks, and analyses. No scroll, looking like a professional dashboard." and "the entire experience should be no scroll on all devices." Shown the rendered redesign, he said "merge it", then: "when this is complete, file it and lock it as a completed lead magnet for use when we do outbound".
+
+- Every screen fits the viewport on every device. The read is a dashboard: a judgement profile, who decided across the six readings (counts), six scorecards on a four-step meter from Aware to Adapting, the one to strengthen first, and the three sourced facts as a benchmark strip. There is no overall total. Benchmarks are the published studies only: the page collects nothing, so there is no comparison with other leaders.
+- It is complete and locked at https://mindmake.co/who-decided (mindmake d5f89044, pull requests 309 and 313). Its words, questions, levels and layout change only with his yes on the rendered change. Its record is in Drive, Growth assets, Lead magnets, Current.
+- Outbound may link it as the free offer, said plainly as a private 20-minute audit of one decision made with AI's help.
+- No wall moves: every send still waits for his yes on the exact words.
+
 ## Parts of your AI brain (Ruling, Krish, 2026-11-17)
 
 In another session Krish said of the kit videos: "I am not keen at all on things like ad spend waste finder, where did sales come from, etc. Those are standalone software products... This is an AI brain product that magnifies the brain power of a human leader." Asked whether to reframe the $59 kits as parts of his AI brain or pause them, he chose: "Reframe as brain parts".

@@ -10,7 +10,7 @@ This page is the strategy on one page. It links the playbooks instead of repeati
 
 **AI makes strong judgement stronger and weak judgement weaker. Mindmake builds the strong kind** (Ruling, Krish, 2026-11-17). Every lane argues it. A leader who hands their judgement to AI may not notice: professionals follow AI even when it is wrong, and people who trust it more think less critically. A leader who keeps it gets faster and better. What a leader must keep: judgement, standards, reading the numbers, and directing AI to bring complex information together for clarity and speed of thought. The proof, with dates and limits, is in docs/EVIDENCE.md; nothing is quoted without its source.
 
-The first lead magnet is **"Who decided?"**, a free 20-minute audit of one real recent decision made with AI's help. The second is Krish's own founding story, told under his name. Both carry one ask.
+The first lead magnet is **"Who decided?"**, a free 20-minute audit of one real recent decision made with AI's help. It is complete and locked for outbound at https://mindmake.co/who-decided (Ruling, Krish, 2026-11-18): unlisted, every screen fits without scrolling, the read is a dashboard, and nothing typed leaves the browser. Its record is filed in Drive under Growth assets, Lead magnets, Current. Outbound links it as the free offer and never promises a score, a comparison with other leaders or an emailed report, because the page collects nothing. The second is Krish's own founding story, told under his name. Both carry one ask.
 
 ## What is wrong today
 
