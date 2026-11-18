@@ -59,6 +59,12 @@ test("the offer is the canon's: its noun, its one public length and where, a pri
   assert.equal(parseOffer({ northStar: '', canon: CANON }), null);
 });
 
+test("the second door's line is read under its new name, Build your AI business, as under the old (Ruling, Krish, 2026-11-18)", () => {
+  const renamed = NORTH_STAR.replace('**Build your AI revenue engine**', '**Build your AI business**');
+  assert.notEqual(renamed, NORTH_STAR, 'the synthetic North Star carries the old name to rename');
+  assert.equal(parseOffer({ northStar: renamed, canon: CANON }).revenue_line, 'their example pricing and team rebuilt for AI, then tested with real buyers.');
+});
+
 test("Control Center's DOOR and Mindmake angle say what the canon does not; a line in the canon's own terms passes", () => {
   assert.deepEqual(offerFindings(CC_DOOR, canon.offer), ['duration_promise', 'price_terms', 'offer_named_otherwise']);
   assert.deepEqual(offerFindings(CC_MINDMAKE_ANGLE, canon.offer), ['retired_offer', 'duration_promise', 'offer_named_otherwise']);

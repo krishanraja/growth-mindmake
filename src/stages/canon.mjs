@@ -48,7 +48,10 @@ export function parseCanon({ northStar, canon }) {
   // canon's own table. Each is optional; a line the canon no longer carries is
   // simply not offered as an angle, never written from memory.
   const cell = label => { const m = new RegExp(`^\\| ${label} \\| ([^|\\n]{3,200}) \\|\\s*$`, 'm').exec(canon); return m ? flat(m[1]) : null; };
-  const revenueLabel = cell('Revenue engine door'), revenueLine = cell('Revenue engine door explanation');
+  // The second door is "Build your AI business" everywhere (Ruling, Krish,
+  // 2026-11-18); the canon's row may still be keyed by its older placement
+  // name, so either key is read and the label is whatever the canon says.
+  const revenueLabel = cell('(?:Revenue engine|Business) door'), revenueLine = cell('(?:Revenue engine|Business) door explanation');
   const problem = cell('Homepage section 1 \\(the problem\\)'), answer = cell('Homepage section 2 \\(how it works\\)');
   const headline = cell('Homepage headline \\(first, and the h1\\)');
   return {
@@ -161,7 +164,7 @@ export function parseOffer({ northStar = '', canon = '' }) {
   const days = /public shape is (\d{1,3}) days/.exec(flat(northStar))?.[1] ?? /the (\d{1,3})-day shape/.exec(flat(canon))?.[1] ?? null;
   const ladder = bullets(section(canon, 'Do not reintroduce'), 'One list, so it does not have to be repeated:').find(b => /offer ladder/i.test(b)) ?? '';
   const retired = ladder.replace(/[.]$/, '').split(/,\s*(?:or\s+)?|\s+or\s+/).map(x => x.replace(/^(?:the|any other)\s+/i, '').trim()).filter(x => x && !/offer ladder/i.test(x));
-  const revenue = /^- \*\*Build your AI revenue engine\*\* \(`[^`]+`\): ([\s\S]+?\.)\s*$/m.exec(northStar)?.[1];
+  const revenue = /^- \*\*Build your AI (?:business|revenue engine)\*\* \(`[^`]+`\): ([\s\S]+?\.)\s*$/m.exec(northStar)?.[1];
   return {
     noun: flat(noun),
     public_days: days ? Number(days) : null,

@@ -527,6 +527,16 @@ test('what he gets: by the ask, numbers only with their source, ending on the go
   for (const ask of ['introduce', 'relationship', 'appear', 'teach', 'partner', 'signal']) assert.ok(gainLines({ ask, name: 'Avery Example', reach: cited, fit: 60, serves: GOALS[1] }).at(-1).startsWith("It serves this week's goal: "), ask);
 });
 
+test('the second door renamed in the canon, under either row key, is the angle\'s title (Ruling, Krish, 2026-11-18)', () => {
+  const renamed = SITE_CANON.replace('| Revenue engine door | Build your AI revenue engine |', '| Business door | Build your AI business |').replace('| Revenue engine door explanation |', '| Business door explanation |');
+  assert.notEqual(renamed, SITE_CANON, 'the synthetic canon carries the old row to rename');
+  const sameKey = SITE_CANON.replace('| Revenue engine door | Build your AI revenue engine |', '| Revenue engine door | Build your AI business |');
+  for (const c of [renamed, sameKey]) {
+    const read = parseCanon({ northStar: NORTH_STAR, canon: c });
+    assert.deepEqual(read.site.revenue, { label: 'Build your AI business', line: "The pricing, positioning and team you'll need." });
+  }
+});
+
 test('the angles: titled in the canon\'s own words this run, tied to this person, and only what the canon still says', () => {
   const c = { hook: 'His Data Driven newsletter and two board seats, worth asking what patterns he sees.', current_company: 'Example Capital' };
   const partner = angleLines({ ask: 'partner', kind: 'investor', name: 'Avery Example', c, company: 'Example Capital', canon: fullCanon });
