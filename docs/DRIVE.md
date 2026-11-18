@@ -40,6 +40,9 @@ Every folder name starts with "Growth" or sits inside one that does, so a Drive 
     Speaker and guest one-sheet/
       Current/                       exactly one PDF, the version Control Center last approved by its SHA
       Drafts/                        unapproved revisions, the last three at most
+    Maven lesson covers/
+      Current/                       the covers Krish chose, one PNG per lesson in the running series
+      Drafts/                        unapproved revisions, the last three at most
   Growth measurement/                the baseline, weekly North Star, visibility and mindmake.co traffic readouts
   Growth archive/                    superseded versions, never deleted
 ```
@@ -48,7 +51,7 @@ A new asset kind gets its own folder under Growth assets with the same Current a
 
 ## Naming
 
-`YYYY-MM-DD <Kind> <subject> vN`, optionally followed by ` (superseded YYYY-MM-DD)`, then the file extension if it has one. Kinds: Week spec, Weekly review, Plan, Brief, Cowork prompt, Baseline, Readout, Brand kit spec, Brand kit specimen, One-sheet. The date is the day it was made, or the London Monday of its week for a week spec. Examples: `2026-10-27 Plan Bulletproof growth engine v1`, `2026-11-09 Week spec Mindmake growth v1`, `2026-11-06 Readout mindmake.co traffic v1`, `2026-11-03 One-sheet Speaker and guest v2 (superseded 2026-11-10).pdf`. Exceptions keep their own names: the READ ME, the Growth index, and files in a Source files folder, which keep the names they have at their source. Never "final", "new" or "copy of" in a title.
+`YYYY-MM-DD <Kind> <subject> vN`, optionally followed by ` (superseded YYYY-MM-DD)`, then the file extension if it has one. Kinds: Week spec, Weekly review, Plan, Brief, Cowork prompt, Baseline, Readout, Brand kit spec, Brand kit specimen, One-sheet, Maven lesson cover. The date is the day it was made, or the London Monday of its week for a week spec. Examples: `2026-10-27 Plan Bulletproof growth engine v1`, `2026-11-09 Week spec Mindmake growth v1`, `2026-11-06 Readout mindmake.co traffic v1`, `2026-11-03 One-sheet Speaker and guest v2 (superseded 2026-11-10).pdf`. Exceptions keep their own names: the READ ME, the Growth index, and files in a Source files folder, which keep the names they have at their source. Never "final", "new" or "copy of" in a title.
 
 ## Rules
 

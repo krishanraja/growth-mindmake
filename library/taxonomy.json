@@ -1,7 +1,7 @@
 {
   "version": 1,
   "source": "docs/DRIVE.md",
-  "source_sha256": "a2c77ccc5313a1d521e4efa58b339c26288449ae27bf65c989ec3ef75c959351",
+  "source_sha256": "8da57e984cbb992906db0276c9888c83098bf71845c04c69c586502c23001514",
   "root": "03_Growth",
   "folders": [
     "03_Growth",
@@ -15,6 +15,9 @@
     "03_Growth/Growth assets/Speaker and guest one-sheet",
     "03_Growth/Growth assets/Speaker and guest one-sheet/Current",
     "03_Growth/Growth assets/Speaker and guest one-sheet/Drafts",
+    "03_Growth/Growth assets/Maven lesson covers",
+    "03_Growth/Growth assets/Maven lesson covers/Current",
+    "03_Growth/Growth assets/Maven lesson covers/Drafts",
     "03_Growth/Growth measurement",
     "03_Growth/Growth archive"
   ],
@@ -35,9 +38,10 @@
     "Readout",
     "Brand kit spec",
     "Brand kit specimen",
-    "One-sheet"
+    "One-sheet",
+    "Maven lesson cover"
   ],
-  "name_pattern": "^(\\d{4}-\\d{2}-\\d{2}) (Brand kit specimen|Brand kit spec|Weekly review|Cowork prompt|Week spec|One-sheet|Baseline|Readout|Brief|Plan) (.+) v(\\d+)(?: \\(superseded (\\d{4}-\\d{2}-\\d{2})\\))?(\\.[a-z0-9]{1,5})?$",
+  "name_pattern": "^(\\d{4}-\\d{2}-\\d{2}) (Brand kit specimen|Maven lesson cover|Brand kit spec|Weekly review|Cowork prompt|Week spec|One-sheet|Baseline|Readout|Brief|Plan) (.+) v(\\d+)(?: \\(superseded (\\d{4}-\\d{2}-\\d{2})\\))?(\\.[a-z0-9]{1,5})?$",
   "banned_words": [
     "final",
     "new",

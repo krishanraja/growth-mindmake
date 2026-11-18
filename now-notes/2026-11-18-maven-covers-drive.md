@@ -1,0 +1,3 @@
+Status: the Growth library map in docs/DRIVE.md now has Growth assets > Maven lesson covers, with Current for the covers Krish chose (one PNG per lesson in the running series) and Drafts for unapproved revisions, and a new kind, "Maven lesson cover" (`2026-11-18 Maven lesson cover <title> v1.png`). library/taxonomy.json is regenerated from it. The series copy brief is filed in Plans and briefs.
+Next: a Cowork session on Krish's computer adds Growth index rows for the four covers and the series brief; neither Drive connector can edit sheet cells, so they stay owed until then.
+North Star check (2026-11-18): holds. Filing does not move the number; the lessons it serves are the widest door to good meetings this quarter.
