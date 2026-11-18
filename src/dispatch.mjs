@@ -1031,7 +1031,12 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // Why a read failed, printed in the run log as a class and a code location only, so a frozen engine says why
     // where Krish's sessions can see it, not only in the report Control Center keeps.
     const readFailures = [];
-    const failedRead = (read, e) => { const kind = failureClass(e); readFailures.push({ read, class: kind, where: kind === 'the engine could not plan from it' ? failureWhere(e) : null }); return kind; };
+    // An answer over the budget also gives its size, in millions of characters to one place, so its growth shows.
+    const failedRead = (read, e) => {
+      const kind = failureClass(e);
+      readFailures.push({ read, class: kind, where: kind === 'the engine could not plan from it' ? failureWhere(e) : null, ...(e?.code === 'response_over_budget' && Number.isInteger(e.characters) ? { million_characters: Math.round(e.characters / 100_000) / 10 } : {}) });
+      return kind;
+    };
     if (capabilities?.features?.context) {
       try {
         const supplied = validateStrategicRead(await cc.context(), 'context', clock());

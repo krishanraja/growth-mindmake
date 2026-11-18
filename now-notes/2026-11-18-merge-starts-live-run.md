@@ -1,0 +1,3 @@
+Status: a merge made by the auto-merge workflow starts no push workflow, so since auto-merge began an engine change merged on green checks never started the live run its push would have (found when #151 merged on 18 November and no run followed). The auto-merge workflow now starts operate.yml's dry dispatch by hand after merging a pull request that changed anything under src/, as it already starts CI on main for the closeout fold. The dry dispatch never sends and never writes drafts.
+Next: confirm the next engine merge is followed by a `manual-` run of "Run bounded growth producer".
+North Star check (2026-11-18): holds. An engine fix now reaches Krish the same day instead of at the next 05:10 dispatch.

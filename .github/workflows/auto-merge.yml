@@ -17,7 +17,9 @@ name: Auto-merge
 # main. After each merge this workflow starts ci.yml on main by
 # workflow_dispatch (the one start that token may make, as control-center's
 # auto-merge.yml starts its now-cap.yml): its checks run on main and its fold
-# job folds the merged closeout notes into NOW.md.
+# job folds the merged closeout notes into NOW.md. A merge that changed src/ also
+# starts operate.yml's dry dispatch the same way, the live run its push would have
+# started.
 on:
   workflow_run:
     workflows: ["Verify growth engine"]
@@ -65,3 +67,9 @@ jobs:
           echo "Merged #$pr ($SHA) on green checks."
           # The merge's push starts no workflow, so start CI on main by hand, which folds the closeout notes.
           gh workflow run ci.yml -R "$REPO" --ref main || echo "::warning::CI on main, and with it the closeout fold, was not started."
+          # Nor does it start the live run a merge that changes src/ owes (operate.yml's push trigger), so start it by hand:
+          # the dry dispatch, which never sends and never writes drafts (found 18 November 2026, after #151).
+          engine=$(gh pr view "$pr" -R "$REPO" --json files --jq '[.files[].path | select(startswith("src/"))] | length')
+          if [ "${engine:-0}" != "0" ]; then
+            gh workflow run operate.yml -R "$REPO" --ref main -f mode=dispatch -f commit=false || echo "::warning::The live run this engine change owes was not started; the daily dispatch runs it."
+          fi

@@ -48,6 +48,11 @@ test('a live run whose advertised context cannot be read ends failed as context_
   assert.ok(h.reports[0].holds.some(x => x.reason === 'context_read_unavailable'));
   // The printed run log says why, as a class only, so a frozen engine is diagnosable from its own log (17 Nov).
   assert.deepEqual(result.report.read_failures, [{ read: 'context', class: 'the answer was larger than the byte budget', where: null }]);
+  // With the size the client measured, the log says how far over it was, in millions of characters.
+  const again = harness({ capabilities: { activation: { activated_on: '2026-10-18' }, features: { context: true } } });
+  again.cc.context = async () => { throw Object.assign(new Error('too big'), { code: 'response_over_budget', characters: 16_250_001 }); };
+  const sized = await run(again);
+  assert.deepEqual(sized.report.read_failures, [{ read: 'context', class: 'the answer was larger than the byte budget', where: null, million_characters: 16.3 }]);
 });
 
 test('a context read that breaks inside this engine names the code location in the run log, never the message', async () => {
