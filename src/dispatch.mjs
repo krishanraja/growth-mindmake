@@ -940,6 +940,21 @@ export function failureClass(e) {
   return 'the engine could not plan from it';
 }
 
+/**
+ * Where a read failed, for the printed run log: the error's kind and the first frame
+ * in this repository's own code, as `TypeError at src/stages/rows.mjs:1853`. A path
+ * and a line in public code, never a message, a value or a person. Null when the
+ * failure came from outside this repository's code. Pure.
+ */
+export function failureWhere(e) {
+  const kind = typeof e?.name === 'string' && /^[A-Z][A-Za-z]{0,40}$/.test(e.name) ? e.name : 'Error';
+  for (const line of String(e?.stack ?? '').split('\n').slice(1)) {
+    const m = line.match(/\/((?:src|contracts)\/[A-Za-z0-9_\-/]{1,120}\.(?:mjs|ts)):(\d{1,6}):\d{1,6}\)?\s*$/);
+    if (m) return `${kind} at ${m[1]}:${m[2]}`;
+  }
+  return null;
+}
+
 /** Control Center's answer to a report's instruction acks (1.20.0), as counts; null when it gave none. Pure. */
 export function acksAnswer(answer) {
   const whole = v => Number.isInteger(v) && v >= 0 ? v : null;
@@ -1013,6 +1028,10 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // settled on 22 Oct 2026; what holds it now is realism (taste rule s075bbc2d7d), lifted only by his decision on a krish-clone evaluation.
     holds.push({ reason: 'clone_realism_unproven', detail: 'Video notes in his AI clone wait until the clone passes krish-clone\'s realism test: his face and voice clone were cleared for Mindmake outbound on 22 Oct 2026, and taste rule s075bbc2d7d keeps them on backup until they are convincing.' });
     let strategic = null, outcomes = null, strategicSource = null, liveWorkContext = null, suppliedContext = null;
+    // Why a read failed, printed in the run log as a class and a code location only, so a frozen engine says why
+    // where Krish's sessions can see it, not only in the report Control Center keeps.
+    const readFailures = [];
+    const failedRead = (read, e) => { const kind = failureClass(e); readFailures.push({ read, class: kind, where: kind === 'the engine could not plan from it' ? failureWhere(e) : null }); return kind; };
     if (capabilities?.features?.context) {
       try {
         const supplied = validateStrategicRead(await cc.context(), 'context', clock());
@@ -1028,11 +1047,11 @@ export async function runDispatch({ cc, source, context = null, policy, registry
         activity.push(`Weekly strategic review ${strategic.review.id}: ${strategic.review.experiment}`);
         for (const task of strategic.research) activity.push(`Network research ${task.contact_id}: verify a ${task.motion} route. This is research preparation, not outreach authority.`);
         if (!strategic.selected.length) holds.push({ reason: 'complete_campaign_needed', detail: 'No current complete campaign passed the route, proof and preparation gates. Native drafts stay preserved.' });
-      } catch (e) { holds.push({ reason: 'context_read_unavailable', detail: `The advertised cross-channel context could not be validated (${failureClass(e)}).` }); }
+      } catch (e) { holds.push({ reason: 'context_read_unavailable', detail: `The advertised cross-channel context could not be validated (${failedRead('context', e)}).` }); }
     }
     if (capabilities?.features?.outcomes) {
       try { outcomes = validateStrategicRead(await cc.outcomes(), 'outcomes', clock()); }
-      catch (e) { holds.push({ reason: 'outcomes_read_unavailable', detail: `Complete outcome windows could not be validated (${failureClass(e)}); no counts are assumed.` }); }
+      catch (e) { holds.push({ reason: 'outcomes_read_unavailable', detail: `Complete outcome windows could not be validated (${failedRead('outcomes', e)}); no counts are assumed.` }); }
     }
     activity.push(`Read directive ${directive.directive_id}, chosen by ${directive.chosen_by === 'krish' ? 'Krish' : 'rule'}; its next action ${directive.next_proposal_id ? `names proposal ${directive.next_proposal_id}` : 'names no proposal'}.`);
     if (wakeDirectiveId && wakeDirectiveId !== directive.directive_id) activity.push(`The wake-up named directive ${wakeDirectiveId}; the directive read now is ${directive.directive_id}, and the run follows the one it read.`);
@@ -1411,6 +1430,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     // A synthetic run is a harness for one path, so it keeps reporting how the protocol went.
     outcome.held = mode !== 'live' ? null : !snapshot && !strategic ? (capabilities?.features?.context ? 'context_unread' : 'nothing_read') : holds.some(h => h.reason === 'nothing_prepared') ? 'nothing_prepared' : null;
     outcome.report = { status: report.status, payload_sha256: report.payload_sha256, proposals: report.proposals.length, walled: report.proposals.filter(p => p.wall !== 'none').length, holds: report.holds.map(h => h.reason), objectives: report.objectives.map(o => ({ key: o.key, availability: o.availability })), replayed: null };
+    if (readFailures.length) outcome.report.read_failures = readFailures;
     phase = 'report';
     let ack = null;
     try { ack = await cc.postReport(report); }
