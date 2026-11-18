@@ -1,0 +1,3 @@
+Status: the cause of the freeze is found. The first run with the new log line (manual-122, 18 November 14:43 UTC) said `read_failures: context, the answer was larger than the byte budget`: Control Center's context answer had grown past the engine's 4,500,000-character limit, as it grew past 2,000,000 on 27 October. The limit is now 16,000,000, and when an answer passes it the log gives its size in millions of characters, so the growth shows before it freezes the engine again.
+Next: Control Center trims or pages the context so it stops growing toward the new limit; ask it through the protocol owner.
+North Star check (2026-11-18): holds. Rows, pitches, call prep and counts reach Krish again from the next run.

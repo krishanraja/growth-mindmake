@@ -289,11 +289,12 @@ test('a context read that fails says why, by class and never by body', async () 
   assert.equal(failureClass(new TypeError("Cannot read properties of undefined (reading 'secret')")), 'the engine could not plan from it', 'never the message of an unexpected error');
 });
 
-test('the byte budget is Control Center\'s own ceiling: a 2.5 MB context is read, one past the budget is refused', async () => {
+test('the byte budget holds the context Control Center sends: a 5 MB context is read, one past the budget is refused with its size', async () => {
   const { RESPONSE_BUDGET } = await import('../src/control-center.mjs');
   const answer = n => async () => new Response(JSON.stringify({ ok: true, context: { pad: 'x'.repeat(n) } }), { status: 200, headers: { 'content-type': 'application/json' } });
   const token = `gen1_${'a'.repeat(43)}`;
-  const big = await engineClient('https://cc.example', token, { fetcher: answer(2_500_000) }).context();
-  assert.equal(big.context.pad.length, 2_500_000);
-  await assert.rejects(engineClient('https://cc.example', token, { fetcher: answer(RESPONSE_BUDGET) }).context(), e => e.code === 'response_over_budget' && /exceeded the 4500000 budget/.test(e.message));
+  // Every run from 17 November 2026 read no context: the answer had grown past the old 4,500,000.
+  const big = await engineClient('https://cc.example', token, { fetcher: answer(5_000_000) }).context();
+  assert.equal(big.context.pad.length, 5_000_000);
+  await assert.rejects(engineClient('https://cc.example', token, { fetcher: answer(RESPONSE_BUDGET) }).context(), e => e.code === 'response_over_budget' && /exceeded the 16000000 budget/.test(e.message) && e.characters > RESPONSE_BUDGET);
 });

@@ -6,12 +6,15 @@ import { parseEngineContext, parseWorkBatch, semanticWorkBatch } from '../contra
 
 const CODE = /^[a-z][a-z0-9_]{0,63}$/;
 /**
- * The most a Control Center answer may carry: Vercel's own response ceiling,
- * so the engine never refuses what Control Center can send. It was 2,000,000
- * until 2026-10-27, when the context grew past it once Krish's own stages
- * (171 with no product) joined Mindmake's two, and every run read no context.
+ * The most a Control Center answer may carry. It was 2,000,000 until 2026-10-27,
+ * when the context grew past it once Krish's own stages (171 with no product)
+ * joined Mindmake's two, and every run read no context. It was then 4,500,000,
+ * taken as Vercel's response ceiling, until the context grew past that too and
+ * every run from 17 November 2026 read no context: Control Center does send more,
+ * so that ceiling was not its own. 16,000,000 keeps a bound on memory, and the
+ * printed run log says the answer's size when it is passed (read_failures).
  */
-export const RESPONSE_BUDGET = 4_500_000;
+export const RESPONSE_BUDGET = 16_000_000;
 /** One bounded HTTPS transport for every Control Center route: no redirects, 20 s, JSON only, no retries. */
 function httpsOrigin(base) {
   const origin = new URL(base);
@@ -28,7 +31,7 @@ async function transport({ origin, token, fetcher, method, path, body, headers =
   }
   if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('Control Center returned a non-JSON response');
   const text = await response.text();
-  if (text.length > RESPONSE_BUDGET) { const over = new Error(`Control Center response of ${text.length} characters exceeded the ${RESPONSE_BUDGET} budget`); over.code = 'response_over_budget'; throw over; }
+  if (text.length > RESPONSE_BUDGET) { const over = new Error(`Control Center response of ${text.length} characters exceeded the ${RESPONSE_BUDGET} budget`); over.code = 'response_over_budget'; over.characters = text.length; throw over; }
   try { return JSON.parse(text); } catch { throw new Error('Control Center returned invalid JSON'); }
 }
 
