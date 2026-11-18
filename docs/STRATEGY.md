@@ -27,7 +27,7 @@ Each lane is sized to Krish's one fixed daily block of 20 minutes, measured to t
 | Cold, named and researched | A leader with a buying moment, United States or a United Kingdom company domain, only once Control Center serves the approved footer | Krish | 02, 03, 09 |
 | Inbound | The free brief, the judgement audit, buyers of brain parts, posts that link to them | Krish reviews what is prepared | 04, 06 |
 
-Hosted rooms stay guest seats only this year. Paid media stays out (playbook 10).
+Hosted rooms stay guest seats only this year, except the free Maven workshops, which are lead generation only and close on a choice of the media channel or the lead magnet (Ruling, Krish, 2026-11-18). Paid media stays out (playbook 10).
 
 ## From interest to a meeting
 

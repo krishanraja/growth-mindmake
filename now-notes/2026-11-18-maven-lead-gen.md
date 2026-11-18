@@ -1,0 +1,3 @@
+Status: Krish's 18 November ruling is recorded: Maven is free workshops for lead generation only. The paid cohort is unpublished on his yes, every lesson closes on a choice of the media channel or the lead magnet, and lesson links to mindmake.co carry the `growth-webinar` tag the engine now counts. The series (Tuesdays 12pm US Eastern from 1 December) and its Cowork brief are with the growth session and wait on his five yeses.
+Next: once Control Center serves the `webinar` meeting path, read the first lesson's meetings by path.
+North Star check (2026-11-18): holds. Free workshops are the widest door to good meetings this quarter; the number is unchanged.

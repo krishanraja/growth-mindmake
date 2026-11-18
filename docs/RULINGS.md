@@ -345,3 +345,12 @@ In his words (18 November): "don't name Nine anywhere".
 - His card may still say a contact worked there: the card is his, and nothing from it is read as words to them.
 - Left as they are: verbatim quotes of other people and of his own past words kept as evidence, historical logs, release receipts and archives, and the word used as a number.
 - No wall moves.
+
+## Maven is free workshops for lead generation only (Ruling, Krish, 2026-11-18)
+
+In his words (18 November): "we should restart free Maven workshops that will get the most attendees based on where we land here", then, on the paid cohort and the close: "unpublish, maven is free workshops for lead gen only - yes we should give a choice of subscribe to media, or go through the mindmake lead magnet you are in the middle of building".
+
+- What it binds: Maven carries free workshops only, as lead generation for Mindmake. The paid cohort is unpublished (never deleted), on his yes on the screen, and nothing on Maven is sold.
+- Every lesson closes on one choice of two: subscribe to the media channel, or take Mindmake's lead magnet (the free read, then "Who decided?" once it is live). A link from a lesson to mindmake.co carries `utm_source=growth-webinar&utm_medium=referral` (src/stages/traffic.mjs `TAG_PATHS`), and a meeting from a lesson is traced on the `webinar` path.
+- It sharpens the 13 November carve-out (hosted free Maven Lightning Lessons every two weeks); every other hosted room stays ruled out.
+- No wall moves: every listing, publish, unpublish and profile change on Maven still takes his yes on the exact screen.
