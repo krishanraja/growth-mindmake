@@ -108,11 +108,14 @@ export function regexWords(re) {
   const src = re.source.replace(/^\\b/, '').replace(/\\b$/, '');
   return expand(src).map(w => w.replace(/\\w\*/g, '').replace(/\\s\+?/g, ' ').trim()).filter(Boolean);
 }
-/** The engine's banned lists: openings.mjs BANNED and PRAISE, and library/taxonomy.json `banned_words`. */
+/**
+ * Words an idea from divergent-thinker must not contain: openings.mjs PRAISE (puffery a reader distrusts).
+ * Not BANNED, which keeps internal data out of an email opening ("Krish", "research", "record"), and not the
+ * taxonomy's file-name words ("new", "final"): its gate rejects any idea holding a banned word, so those lists
+ * would reject almost every strategy idea. Pure.
+ */
 export function bannedWords() {
-  let taxonomy = [];
-  try { taxonomy = JSON.parse(read('library/taxonomy.json')).banned_words ?? []; } catch { taxonomy = []; }
-  return [...new Set([...regexWords(BANNED), ...regexWords(PRAISE), ...taxonomy.filter(w => typeof w === 'string' && w.trim())])];
+  return [...new Set(regexWords(PRAISE))];
 }
 
 // ── Recovery plays ──

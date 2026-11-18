@@ -33,7 +33,8 @@ test('the banned words are read from the engine own lists, and the diverge ask c
   const body = divergeBody({ gap: 'Gap: x.' });
   assert.equal(body.op, 'diverge'); assert.equal(body.count, 3); assert.equal(body.target, 'strategy'); assert.equal(body.namespace, NAMESPACE);
   assert.deepEqual(body.cliches, [...CLICHES]);
-  for (const w of ['great fit', 'worth hearing', 'congrat', 'copy of', 'Krish']) assert.ok(body.bannedWords.includes(w), w);
+  for (const w of ['great fit', 'worth hearing', 'congrat']) assert.ok(body.bannedWords.includes(w), w);
+  for (const w of ['Krish', 'research', 'new', 'final', 'copy of']) assert.ok(!body.bannedWords.includes(w), `${w} would reject almost every idea at the gate`);
   assert.match(body.problem, /AI makes strong judgement stronger/);
   assert.doesNotMatch(body.problem, /[\u2013\u2014]/);
 });
