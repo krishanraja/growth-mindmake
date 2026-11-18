@@ -36,6 +36,21 @@ test('the company is found by itself, in its group\'s names and as its outlets, 
     'It ran on Channel Nine.',
     'Watch it on 9Now tonight.',
     'Read it at https://www.nine.com.au/story.',
+    // The sweep's bypasses, each held (18 Nov 2026).
+    'He was at nine entertainment for years.',
+    'We met at nine network in May.',
+    "nine's data team built it.",
+    'See linkedin.com/company/nine-entertainment-co for the team.',
+    'His page was nineentertainment.com.au/people.',
+    'Ads ran through nineforbrands.com.au.',
+    'Read https://www.example-mag.com.au/tech-data/nine-head-of-data-and-programmatic-why/ for it.',
+    'Previously: Nine and Captify.',
+    'Roles: Nine in 2016, Captify in 2021.',
+    'Nine and Captify taught me to sell.',
+    'Nine-owned Stan grew fast.',
+    'Nine believes in data.',
+    'Ｎｉｎｅ Entertainment',
+    'Ni\u200bne Entertainment',
   ]) assert.equal(namesUnnamed(text), true, text);
 });
 
@@ -52,6 +67,14 @@ test('the number word is never the company: "Nine of ten" and the number in lowe
     'nine of ten leaders',
     'Shall we meet at nine on Tuesday?',
     'Ninety leaders and Nineteen boards.',
+    'Nine in 10 boards ask this.',
+    'Nine or ten of them said yes.',
+    'Nine out of ten leaders agree.',
+    'Nine years ago I started.',
+    'Nine-year-old tools still run.',
+    'Nine-point plans rarely work.',
+    'We ran nine group sessions.',
+    'Read https://example.com/ninety-ways for more.',
     '',
   ]) assert.equal(namesUnnamed(text), false, text);
   assert.equal(namesUnnamed(null), false);
