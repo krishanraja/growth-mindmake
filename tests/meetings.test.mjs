@@ -257,6 +257,28 @@ test('where an unanswered meeting came from is read from the engine\'s own recor
   assert.equal(originCandidates({ meetings: many, context: { network: many.map(m => ({ contact_id: m.contact_id })) } }).length, ORIGIN_CANDIDATES_MAX);
 });
 
+// Found 18 November 2026: every REACH OUT meeting was traced to multiplier-intro, cold notes, warm buyer notes and signal replies included.
+test('a REACH OUT meeting is traced by the ask its press carried out: an introduction, a signal reply or a cold note, and nothing is guessed for another', async () => {
+  const { rowProposalId } = await import('../src/stages/rows.mjs');
+  const press = (n, id) => ({ proposal_id: id, row: 'reach_out', subject_ref: `contact:${cid(n)}`, state: 'approved', carried_out: 'draft', decided_at: '2026-10-27T09:00:00Z' });
+  const context = { records: {}, network: [], feedback: [
+    press(31, rowProposalId({ row: 'reach_out', ask: 'introduce', contactId: cid(31) })),
+    press(32, rowProposalId({ row: 'reach_out', ask: 'signal', contactId: cid(32) })),
+    press(33, rowProposalId({ row: 'reach_out', ask: 'cold', contactId: cid(33) })),
+    press(34, rowProposalId({ row: 'reach_out', contactId: cid(34), play: 'warm_ask', month: '2026-10' })),
+    press(35, rowProposalId({ row: 'reach_out', ask: 'introduce', contactId: cid(99) }))
+  ] };
+  const meetings = [31, 32, 33, 34, 35].map(n => mtg(n));
+  const now = Object.fromEntries(originCandidates({ meetings, context }).map(x => [x.contact_id, x.path]));
+  assert.equal(now[cid(31)], 'multiplier-intro');
+  assert.equal(now[cid(32)], 'public-signal');
+  assert.equal(now[cid(33)], undefined, 'a cold note is never an introduction, and waits for the cold path to be served');
+  assert.equal(now[cid(34)], undefined, 'a warm buyer note is no introduction; it is traced only by what else is on record');
+  assert.equal(now[cid(35)], undefined, 'an id made for another person traces nothing');
+  const served = Object.fromEntries(originCandidates({ meetings, context, paths: pathsFor({ features: { meeting_paths: true }, schema_versions: [PATHS_VERSION] }) }).map(x => [x.contact_id, x.path]));
+  assert.equal(served[cid(33)], 'cold-outbound', 'where Control Center takes the cold path, a cold note is traced to it');
+});
+
 function tapped({ meetings, coverage = covered(), features = { context: true, meetings: true } }) {
   return harness({
     capabilities: { activation: { activated_on: '2026-10-18' }, schema_versions: SERVED_ALL, features },
