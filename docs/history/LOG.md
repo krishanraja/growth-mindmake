@@ -6,6 +6,12 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-18, to keep the session pack under 36 KB; newest first.
 
+- "Who decided?" is live, redesigned and locked (18 November 2026). Krish approved publishing it, then a no-scroll redesign whose read is a dashboard (mindmake pull requests 309 and 313, merged). Checked on the live site: nothing typed leaves the browser with or without analytics consent, and 74 screens across ten sizes fit without scrolling. Its record and live screenshots are filed in Drive under Growth assets, Lead magnets, Current, and docs/STRATEGY.md, docs/RULINGS.md and AGENTS.md record the lock. The Growth index rows for the new folder are still owed: the connector cannot edit cells. (2026-11-18)
+
+## 2026-11-18: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-18, to keep the session pack under 36 KB; newest first.
+
 - the parts are seven, with plain names that say the job (Fact-check my board update; Fact-check an email before I send it; Check a number before I rely on it; Brief me before a meeting; Work out my lowest price; Test a discount before I agree to it; Audit a decision I made with AI), and six operational parts are held back (Rulings, Krish, 2026-11-17). (2026-11-17)
 - the $59 kits are reframed as parts of a leader's AI brain (Ruling, Krish, 2026-11-17), named for the judgement each strengthens and sold at mindmake.co/parts; the strategy and rulings say so. (2026-11-17)
 
