@@ -43,7 +43,7 @@ The 27 October trusted-distribution closeout is in [the dated handoff](docs/hist
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-18): teach the drafting stages to offer https://mindmake.co/who-decided as the free offer in warm, cold and visibility drafts, behind the voice check and his yes on every send.
+- Next (2026-11-18): Krish's yes to merge mindmake-kits PR 2, upload the 1.1 downloads and merge the matching /parts copy together.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
 - North Star check (2026-11-18): holds.
 

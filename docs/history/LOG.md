@@ -6,6 +6,12 @@ The dated records of this engine's sessions, newest first. NOW.md names this fil
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-18, to keep the session pack under 36 KB; newest first.
 
+- One part of a leader's AI brain is now called a brain module on mindmake.co/parts, in checkout, the receipt and every report (Ruling, Krish, 2026-11-18). The parts gained run memory, two-source checks, plain-language flags and decision grading, and pass 289 tests and 355 simulations; buyers are leads for one personal check-in, never marketing. (2026-11-18)
+
+## 2026-11-18: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-18, to keep the session pack under 36 KB; newest first.
+
 - "Who decided?" is live, redesigned and locked (18 November 2026). Krish approved publishing it, then a no-scroll redesign whose read is a dashboard (mindmake pull requests 309 and 313, merged). Checked on the live site: nothing typed leaves the browser with or without analytics consent, and 74 screens across ten sizes fit without scrolling. Its record and live screenshots are filed in Drive under Growth assets, Lead magnets, Current, and docs/STRATEGY.md, docs/RULINGS.md and AGENTS.md record the lock. The Growth index rows for the new folder are still owed: the connector cannot edit cells. (2026-11-18)
 
 ## 2026-11-18: older NOW.md lines
