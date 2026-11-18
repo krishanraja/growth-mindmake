@@ -131,7 +131,7 @@ channels with mass audiences on growing with AI. In the protocol these are
   - *gain*: what a yes gets him by the ask, a number only with its source,
     ending on the goal it serves word for word;
   - *angles*: one to three, each titled in the canon's own words this run
-    (the brain door, the revenue engine door, the homepage's intern to chief
+    (the brain door, the business door, the homepage's intern to chief
     of staff line, Make Your Mind Up, the main ask) and tied to their record.
     A line the canon no longer carries is not offered;
   - *sources*: the pages the facts came from, at most six; never a profile,

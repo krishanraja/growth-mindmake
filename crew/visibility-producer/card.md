@@ -21,5 +21,5 @@ From 11-trusted-distribution.md, Guests for his own shows (Rulings, Krish, 2026-
 
 ## Sources
 
-- docs/playbooks/11-trusted-distribution.md, "Podcast pitches in Jonny's voice (Rulings, Krish, 2026-10-27)": sha256 08e4cb8f51d8b664
-- docs/playbooks/11-trusted-distribution.md, "Guests for his own shows (Rulings, Krish, 2026-10-27 and 2026-10-20)": sha256 08e4cb8f51d8b664
+- docs/playbooks/11-trusted-distribution.md, "Podcast pitches in Jonny's voice (Rulings, Krish, 2026-10-27)": sha256 a82bc70151cf4fff
+- docs/playbooks/11-trusted-distribution.md, "Guests for his own shows (Rulings, Krish, 2026-10-27 and 2026-10-20)": sha256 a82bc70151cf4fff

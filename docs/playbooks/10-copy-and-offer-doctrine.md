@@ -58,7 +58,7 @@ Use Reeves's form ("The USP test") as a private check, not recipient copy:
 The two capabilities and their reviewed descriptions are fixed by the canon pinned in the frozen growth contract:
 
 - **Build your AI brain:** "Your taste, standards and judgement, running as a system you own."
-- **Build your AI revenue engine:** "Your pricing, positioning and team rebuilt for AI, then tested with real buyers."
+- **Build your AI business:** "Your pricing, positioning and team rebuilt for AI, then tested with real buyers."
 
 The big idea, chosen by Krish on 17 November 2026: **"AI makes strong judgement stronger and weak judgement weaker. Mindmake builds the strong kind."** Its reasons to believe are the evidence IDs in docs/EVIDENCE.md; "institutional brains replace leaders" is never written as fact.
 
