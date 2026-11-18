@@ -489,6 +489,7 @@
         "src/stages/company.mjs",
         "src/stages/cited.mjs",
         "src/stages/signals.mjs",
+        "src/stages/ownposts.mjs",
         "src/stages/pitches.mjs",
         "src/stages/routes.mjs",
         "src/stages/circle.mjs",

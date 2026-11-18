@@ -14,6 +14,7 @@ import { validateStrategicRead, strategicPlan, outcomeScorecard } from './strate
 import { readVoice } from './stages/draft.mjs';
 import { amplifierRows, rankRows, pitchOffReviews, sharedBodies, brokenEmails, shownLine, shownHistory, ROWS, PER_ROW, TITLE_MAX, TITLE_MAX_BRIEF, withoutBounced } from './stages/rows.mjs';
 import { signalRequests, signalRows } from './stages/signals.mjs';
+import { ownPostRequests, ownPostLine, ownPostsProfile } from './stages/ownposts.mjs';
 import { circleRequests, circlePeople, circleFromNetwork, takesCircle, circleAnswer, CIRCLE_VERSION } from './stages/circle.mjs';
 import { mirrorPlan, takesMirror, MIRROR_VERSION } from './stages/mirror.mjs';
 import { readCanon, readRecord, blobSha, CanonError } from './stages/canon.mjs';
@@ -651,7 +652,7 @@ const mergeResearch = (fresh, known) => [...fresh, ...known.filter(r => !fresh.s
  * desk's daily cap by searchesLeft and withinSearches); a synthetic run
  * asks for nothing. Counts only leave this function for the printed outcome.
  */
-export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS, wins = null, sourcing = [], shown = null, morningCheck = morningQa, gate = null, history = null, coldEligibility = undefined }) {
+export async function fiveRows({ cc, context, directive, capabilities, mode, at, clock, canonReader = readCanon, wordFiles = engineFiles, recordReader = readRecord, briefs = false, pitches = false, caps = STAGE_CAPS, wins = null, sourcing = [], shown = null, morningCheck = morningQa, gate = null, history = null, coldEligibility = undefined, ownProfile = null }) {
   // 1.7.0: the title shares the card with the line under it, so it is shorter.
   const titleMax = briefs ? TITLE_MAX_BRIEF : TITLE_MAX;
   const holds = [], activity = [], counts = { prepared: 0, held: 0, research_asked: 0, research_answered: 0, lookups_asked: 0, sourcing_asked: 0 };
@@ -670,6 +671,8 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const openingKind = Array.isArray(capabilities?.research?.kinds) && capabilities.research.kinds.includes('write') ? 'write' : 'question';
   // Row people with no address are looked up where Control Center records a route for any contact (features.person_routes, krishanraja/control-center#656).
   const personRoutes = mode === 'live' && capabilities?.features?.person_routes === true && capabilities?.features?.research === true;
+  // His own posts are read only where the research desk advertises both kinds they need (GET-GOING 1.4, own-post-engagers); held otherwise, consumer-pending.
+  const ownProfileRead = ownPostsProfile({ mode, capabilities, profile: ownProfile });
   // 5.13: deals gone quiet become catch-ups only where Control Center serves them in detail (features.deals_detail, protocol 1.30.0).
   const dealCatchups = capabilities?.features?.deals_detail === true;
   // Plan item A2: a company's own site, read free by the desk once Control Center lists `company_read` among its research kinds,
@@ -750,7 +753,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
     };
     // A trigger question counts as asked this run only when the desk ran it now: a replay of a stored answer is not a new question.
     const ranNow = r => r.status !== 'over_cap' && Date.parse(r.requested_at ?? '') >= Date.parse(at) - 15 * 60000;
-    let pending = fit(once([...lookups.requests, ...pilotAsks, ...reads, ...openings, ...personLookups, ...coldAsks, ...sourcing, ...circleAsks, ...amplifiersFirst.research.filter(r => !isOpening(r)), ...signalRequests({ voices: ctx.voices, research, at })]).slice(0, RESEARCH_ROUND));
+    let pending = fit(once([...lookups.requests, ...pilotAsks, ...reads, ...openings, ...personLookups, ...coldAsks, ...sourcing, ...circleAsks, ...amplifiersFirst.research.filter(r => !isOpening(r)), ...ownPostRequests({ research, at, profile: ownProfileRead }), ...signalRequests({ voices: ctx.voices, research, at })]).slice(0, RESEARCH_ROUND));
     let down = false;
     for (let round = 0; round < 2 && pending.length && !down; round++) {
       for (let i = 0; i < pending.length; i += RESEARCH_BATCH) {
@@ -778,7 +781,7 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
       // A close tie whose opening had nothing to cite in the first round, and whose company's site was read there, gets its opening asked now.
       const siteNotes = reads.length ? amplifierRows({ context: ctx, weekGoals: directive.week_goals, canon, files, at, titleMax, fitFloor: caps.fit_floor, wins, research: mergeResearch(research, ctx.research ?? []), openingsRequired, personRoutes, openingKind, dealCatchups })
         .research.filter(r => isOpening(r) && !openings.some(o => o.subject_ref === r.subject_ref)) : [];
-      pending = fit(once([...[...openings, ...pilotNotes, ...siteNotes, ...pilotAsks, ...reads, ...coldAsks].filter(r => !askedIds.has(r.request_id)), ...signalRequests({ voices: ctx.voices, research, at })]).slice(0, RESEARCH_ROUND));
+      pending = fit(once([...[...openings, ...pilotNotes, ...siteNotes, ...pilotAsks, ...reads, ...coldAsks].filter(r => !askedIds.has(r.request_id)), ...ownPostRequests({ research, at, profile: ownProfileRead }), ...signalRequests({ voices: ctx.voices, research, at })]).slice(0, RESEARCH_ROUND));
     }
     if (refused.length) holds.push({ reason: 'research_refused', detail: `${refused.length} research request${refused.length === 1 ? '' : 's'} Control Center refused ${refused.length === 1 ? 'was' : 'were'} left out, each holding only its own row; the rest of the round ran.` });
     // Someone filed this run has no routes in the context read before it: read it again once.
@@ -854,6 +857,9 @@ export async function fiveRows({ cc, context, directive, capabilities, mode, at,
   const sendWeek = typeof sendAt === 'string' && Number.isFinite(Date.parse(sendAt)) ? londonWeek(sendAt) : null;
   counts.sends = sendWeek ? sendCounts(ctx?.records?.drafts, { start: londonMidnight(sendWeek.start), end: londonMidnight(sendWeek.end) }) : null;
   activity.push(sendsLine(counts.sends));
+  // Who answered his own posts (GET-GOING 1.4, own-post-engagers): counts only, never a name, a handle or a comment.
+  const ownLine = ownPostLine({ research, at: sendAt ?? new Date().toISOString() });
+  if (ownLine) activity.push(ownLine);
   if (voice.held.size) holds.push(voiceHoldLine(voice.held));
   if (voice.unread) holds.push({ reason: 'voice_check_unread', detail: `${voice.unread} email${voice.unread === 1 ? '' : 's'} went unchecked here; Control Center checks again before anything lands.` });
   if (same.size) holds.push({ reason: 'row_same_words', detail: `${same.size} proposal${same.size === 1 ? '' : 's'} held: ${same.size === 1 ? 'its' : 'their'} words matched another email in this run once the names were taken out.` });
@@ -1262,7 +1268,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       const cards = briefs && capabilities.schema_versions.includes(CARD_VERSION);
       const pitches = cards && capabilities.schema_versions.includes(PITCH_VERSION);
       schema_version = pitches ? PITCH_VERSION : cards ? CARD_VERSION : briefs ? BRIEF_VERSION : ROWS_VERSION;
-      const rows = await fiveRows({ cc, context: suppliedContext, directive: { ...directive, week_goals: goalsForRows }, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps, wins: won, sourcing, shown: seenBefore, morningCheck, gate, history: recent, coldEligibility });
+      const rows = await fiveRows({ cc, context: suppliedContext, directive: { ...directive, week_goals: goalsForRows }, capabilities, mode, at, clock, canonReader, wordFiles, recordReader, briefs, pitches, caps, wins: won, sourcing, shown: seenBefore, morningCheck, gate, history: recent, coldEligibility, ownProfile: policy?.linkedin?.own_profile ?? null });
       if (week.spec) activity.push(...compiledDrift(week.spec, { canon: rows.canonFiles }));
       if (!pitches) holds.push({ reason: 'pitch_needs_1_9_0', detail: "Control Center does not yet take pitches for Jonny's Gmail (protocol 1.9.0), so none were written." });
       const shown = cards ? rows.proposals : briefs ? rows.proposals.map(({ card, ...p }) => p) : rows.proposals.map(({ because, brief, card, ...p }) => p);
