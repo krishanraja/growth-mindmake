@@ -335,3 +335,13 @@ In another session Krish said of the kit videos: "I am not keen at all on things
 - The software and its checks do not change; names, framing, routes (mindmake.co/parts) and copy do.
 - No wall moves: the parts page, live prices and every send still wait for his yes.
 - Then on the names (Rulings, Krish, 2026-11-17): "they're a bit ambiguous to me, but maybe thats because I dont know exactly what they mean. I am already struggling to explain this concept to people, so I'd appreciate anything that is incredibly clear." Then "i dont think ad money is the biggest question when it comes to what Mindmake exists for", then "can i back this up is vague too", then "sure" to seven plain names: Fact-check my board update; Fact-check an email before I send it; Check a number before I rely on it; Brief me before a meeting; Work out my lowest price; Test a discount before I agree to it; Audit a decision I made with AI. The six operational parts are held back, and the parts are explained in one line: "Your AI brain is your judgement, written down so AI can use it. Each part does one job you'd do before a decision, using your own files and your own rules, and then hands the decision back to you."
+
+## His former employer is never named (Ruling, Krish, 2026-11-18)
+
+In his words (18 November): "don't name Nine anywhere".
+
+- What it binds: no surface, draft, template, profile or file a drafter reads names the media company he worked at before Mindmake. Where the proof point is worth keeping, the figure stays and the company is written as "a national media group", that exact phrase, so every surface matches. Where the company is only a logo, a list item or an outlet name, it is dropped.
+- In this engine: a clause of his record that names it is dropped before any bio line, pitch or form answer is written (`parseRecord` in src/stages/canon.mjs; `recordWithout` and `recordParts` in src/stages/pitches.mjs). A shared employer that is the company is never a place a catch-up shares (`sharedPlace` in src/stages/rows.mjs), and no fact that names it is a catch-up's subject or the fact the desk writes an opening from. Any proposal whose outbound words still name it, in his name or Jonny's and in any channel, is held as `former_employer_named` before the report, and an approved email that names it is not carried out (src/stages/unnamed.mjs and its calls in src/dispatch.mjs). The word used as a number is not the company and passes.
+- His card may still say a contact worked there: the card is his, and nothing from it is read as words to them.
+- Left as they are: verbatim quotes of other people and of his own past words kept as evidence, historical logs, release receipts and archives, and the word used as a number.
+- No wall moves.

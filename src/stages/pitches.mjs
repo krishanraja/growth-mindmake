@@ -7,6 +7,7 @@ import { guestVerdictOf, guestStrength, isCircleGuest, WARM_TIERS } from './gues
 import { routeFromEvidence, ownSites } from './routes.mjs';
 import { advisoryPerson } from './pilots.mjs';
 import { briefTakers } from './compliance.mjs';
+import { namesUnnamed } from './unnamed.mjs';
 
 /**
  * Podcast pitches, written in Jonny's voice for Krish (protocol 1.9.0, playbook 11).
@@ -233,13 +234,32 @@ export function conviction(topic, x) {
   const i = at >= 0 ? at : [...String(x)].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 7);
   return CONVICTION[i % CONVICTION.length](why);
 }
-/** His record from krishraja.com in its two parts: what he did (at Nine) and where he has spoken, each a clause or ''. Pure. */
-export function recordParts(record) {
+/** A record sentence in its two parts, as written: what he did and where he has spoken, each a clause or ''. Pure. */
+function splitRecord(record) {
   const rec = record ? clean(record).replace(/[.!?]+$/, '') : '';
   const m = /^(.*?),? and (he has spoken at .+)$/.exec(rec);
   if (m) return { did: m[1], spoke: m[2].replace(/^he /, '') };
   if (/^he has spoken at /i.test(rec)) return { did: '', spoke: rec.replace(/^he /i, '') };
   return { did: rec, spoke: '' };
+}
+/**
+ * His record with every clause that names the company he does not name left
+ * out (Ruling, Krish, 2026-11-18; src/stages/unnamed.mjs): the clause that
+ * names it is dropped and the other kept as a whole sentence; '' when none is
+ * left. A record that names nothing comes back as it was read. Pure.
+ */
+export function recordWithout(record) {
+  const rec = record ? clean(record) : '';
+  if (!rec || !namesUnnamed(rec)) return rec;
+  const { did, spoke } = splitRecord(rec);
+  const keepDid = did && !namesUnnamed(did) ? did : '';
+  const keepSpoke = spoke && !namesUnnamed(spoke) ? spoke : '';
+  const out = keepDid && keepSpoke ? `${keepDid}, and he ${keepSpoke}.` : keepDid ? `${keepDid}.` : keepSpoke ? `He ${keepSpoke}.` : '';
+  return namesUnnamed(out) ? '' : out;
+}
+/** His record from krishraja.com in its two parts: what he did and where he has spoken, each a clause or '', never a clause that names the company he does not name. Pure. */
+export function recordParts(record) {
+  return splitRecord(recordWithout(record));
 }
 /** The greeting: their first name when the record has one, else the show's or event's team, never "Hi there". Pure. */
 export function greetingFor(host, name) {
@@ -255,7 +275,7 @@ export function greetingFor(host, name) {
  */
 export function bioLine(canon, record, person = 'third') {
   const head = person === 'third' ? `He's ${KRISH_TITLE}, writes ${canon.publication.name} (${canon.publication.url}) and helps leaders build their AI brain at Mindmake` : `I'm ${KRISH_TITLE}, write ${canon.publication.name} (${canon.publication.url}) and help leaders build their AI brain at Mindmake`;
-  const rec = record ? clean(record).replace(/[.!?]+$/, '') : '';
+  const rec = recordWithout(record).replace(/[.!?]+$/, '');
   return `${head}${rec ? `; ${rec.charAt(0).toLowerCase()}${rec.slice(1)}` : ''}.`;
 }
 
@@ -965,12 +985,12 @@ export function wholeWithin(text, { chars = Infinity, words = Infinity } = {}) {
   return out;
 }
 
-/** Who Krish is, in the third person, from the canon and his own site's record read this run. Pure. */
+/** Who Krish is, in the third person, from the canon and his own site's record read this run, less any clause that names the company he does not name. Pure. */
 export function formBio(canon, record) {
   return [
     `Krish Raja is ${KRISH_TITLE} and writes ${canon.publication.name} (${canon.publication.url}).`,
     `At Mindmake he helps leaders build their AI brain: "${canon.brain}"`,
-    ...(record?.line ? [record.line] : []),
+    ...(recordWithout(record?.line) ? [recordWithout(record?.line)] : []),
   ].map(clean).join(' ');
 }
 
@@ -983,7 +1003,7 @@ export function formAbstract({ row, name, ask, talk, about, canon, record }) {
     lead,
     `He is ${KRISH_TITLE} and writes ${canon.publication.name} (${canon.publication.url}).`,
     `At Mindmake he helps leaders build their AI brain: "${canon.brain}"`,
-    ...(record?.line ? [record.line] : []),
+    ...(recordWithout(record?.line) ? [recordWithout(record?.line)] : []),
   ].map(clean).join(' '), { chars: ABSTRACT_MAX });
 }
 

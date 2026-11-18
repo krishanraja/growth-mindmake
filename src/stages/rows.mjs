@@ -4,6 +4,7 @@ import { opening } from './openings.mjs';
 import { lookupState } from './pitches.mjs';
 import { briefTakers } from './compliance.mjs';
 import { companySites, companyFactsFor } from './company.mjs';
+import { namesUnnamed } from './unnamed.mjs';
 
 /**
  * The five rows on Krish's home screen (protocol 1.6.0, playbook 11).
@@ -1207,13 +1208,14 @@ export function yourWork(text) {
  * for everyone with a different company in it. '' when the card holds none. Pure.
  */
 export function specificOf(c, { why = [] } = {}) {
-  const facts = Array.isArray(c?.facts) ? c.facts : [];
+  // A fact or line that names the company Krish does not name is his to read on the card, never the email's subject (Ruling, Krish, 2026-11-18).
+  const facts = (Array.isArray(c?.facts) ? c.facts : []).filter(f => !namesUnnamed(f?.text));
   const post = facts.map(f => (f?.kind === 'post' ? factText(f) : '')).map(t => /^Posted: "(.+)"$/.exec(t)?.[1]?.replace(/[.!?]+$/, '') ?? '').find(q => q && q.length <= 120 && !/[\u2013\u2014]/.test(q) && q.split(/\s+/).length >= 6 && !/\b(?:suppress|ignore|delete|test)\b[^.]*\bpost\b/i.test(q));
   if (post) return `I read your post, "${post}", and I'd like to hear where your thinking has gone since.`;
   const move = facts.map(f => (f?.kind === 'role_change' ? factText(f) : '')).find(Boolean);
   const now = move ? /\bnow\s+(.+?)$/i.exec(move.replace(/[.!?]+$/, ''))?.[1] : '';
   if (now && now.length <= 80 && endsWhole(now)) return `Congratulations on the move to ${now}; I'd like to hear what you're changing first.`;
-  const lines = [...why, c?.hook, c?.why_them].filter(x => typeof x === 'string');
+  const lines = [...why, c?.hook, c?.why_them].filter(x => typeof x === 'string' && !namesUnnamed(x));
   // A line the card writes as the thing to ask about is the catch-up's subject as it stands.
   const ask = lines.map(l => /^Ask (?:them |him |her )?about (.+?)[.!?]*$/.exec(plain(l))?.[1] ?? '').find(a => a.length >= 12 && a.length <= 140 && endsWhole(a) && !FOR_KRISH.test(a) && !/\b(?:he|she|his|her|him)\b/i.test(a));
   if (ask) return `I'd like to hear about ${plainWords(ask)}.`;
@@ -1221,15 +1223,21 @@ export function specificOf(c, { why = [] } = {}) {
   if (noticed) return `I saw your ${plainWords(noticed)}; I'd like to hear what you're changing first.`;
   const work = lines.map(yourWork).find(Boolean);
   if (work) return `I'd like to hear how ${work} is going.`;
-  const did = youFact([...lines, c?.who].filter(x => typeof x === 'string').join(' '), c?.contacts?.full_name ?? '');
+  const did = youFact([...lines, c?.who].filter(x => typeof x === 'string' && !namesUnnamed(x)).join(' '), c?.contacts?.full_name ?? '');
   if (did) return `I hear ${did}, and I'd like to know how it's going.`;
   return '';
 }
-/** A place you both worked, as the card's why names it: "They have worked at Nine as Group Business Manager, where you also worked." is "Nine". '' when none. Pure. */
+/**
+ * A place you both worked, as the card's why names it: "They have worked at
+ * Example Media as Group Manager, where you also worked." is "Example Media".
+ * '' when none. The company Krish does not name is never a place an email
+ * shares (Ruling, Krish, 2026-11-18; src/stages/unnamed.mjs): the card still
+ * says they worked there, and the catch-up says only the rest of the history. Pure.
+ */
 export function sharedPlace(why = []) {
   for (const l of why.filter(x => typeof x === 'string')) {
     const m = /\bworked at (\p{Lu}[\p{L}\d&'.-]*(?:\s+\p{Lu}[\p{L}\d&'.-]*){0,3}?)(?:\s+as\b[^,]*)?,\s*where (?:you|Krish) also worked\b/u.exec(l);
-    if (m) return m[1];
+    if (m && !namesUnnamed(m[1])) return m[1];
   }
   return '';
 }
