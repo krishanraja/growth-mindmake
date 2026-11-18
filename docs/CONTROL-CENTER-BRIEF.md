@@ -120,6 +120,7 @@ The full spec is `docs/control-center/ENGINE-PROTOCOL.md`, with the report and d
 
 Still owed, as of 14 November 2026:
 
+- A context that stops growing toward the engine's answer limit (asked 18 November 2026). Every live run from 17 November read no context because the answer had passed 4,500,000 characters, as it passed 2,000,000 on 27 October. The engine now reads up to 16,000,000 and prints an answer's size when it passes that, but the context keeps growing with every record. Control Center trims what the engine never reads, or pages the large parts, so one answer stays well under the limit.
 - The refusal flags its judges set but do not store or serve: a stage's `pay_to_play` and `generic_take`, and a guest's wrong-show judgment. The engine now judges stages and guests on their served axes alone (plan section 12, M3 to M5), so a stage or guest refused only on one of these flags is not refused by the engine; none was on record at the 27 October readback, and the shadow lines count such cases as `flag_not_served` and `show_fit_not_served`.
 - The Gmail draft readback close.
 - A read of Krish's open instruction, and its acks, through the connector for the daily credits session (below, "Krish's instruction and the engine's state").

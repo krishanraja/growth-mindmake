@@ -18,6 +18,8 @@ test('a tagged link is the canon URL byte for byte plus exactly the two keys, an
   assert.equal(untagged(t), BRIEF);
   assert.equal(tagged('https://mindmake.co/media/one-sheet.pdf', 'one-sheet'), 'https://mindmake.co/media/one-sheet.pdf?utm_source=growth-one-sheet&utm_medium=referral');
   for (const p of TAG_PATHS) assert.equal(untagged(tagged(BRIEF, p)), BRIEF, p);
+  assert.equal(tagged(BRIEF, 'linkedin'), 'https://mindmake.co/?start=1&utm_source=growth-linkedin&utm_medium=referral', 'a link on one of his LinkedIn posts');
+  assert.equal(tagged(BRIEF, 'webinar'), 'https://mindmake.co/?start=1&utm_source=growth-webinar&utm_medium=referral', 'a link from a free Maven workshop');
   assert.equal(tagged(BRIEF, 'jane-smith'), null, 'no tag names a person, a show or a proposal');
   assert.equal(tagged('https://makeyourmindup.ai/', 'podcast'), null, 'never another domain');
   assert.equal(tagged('http://mindmake.co/?start=1', 'podcast'), null);
@@ -94,4 +96,10 @@ test('the dispatch reports the traffic lines to Control Center, never as an obje
   const printed = JSON.stringify(result);
   assert.equal(printed.includes('4321') || printed.includes('1234') || printed.includes('G-SYNTHETIC0'), false, 'no traffic figure and no measurement id in the printed result');
   assert.equal(readDirective(directiveFixture({ web_analytics })).web.rows.length, 2);
+});
+
+test('visits from his LinkedIn posts and the free Maven workshops count among the placements, by path', () => {
+  const rows = [row(27, 'growth-linkedin / referral', 6), row(26, 'growth-webinar / referral', 3), row(25, 'growth-jane-smith / referral', 5), row(24, 'google / organic', 6)];
+  const [, sent] = trafficLines({ web: readWeb(block(rows)) });
+  assert.match(sent, /^What the engine's placements sent mindmake.co in those 7 days: 9 sessions, 45% of the site's \(6 growth-linkedin, 3 growth-webinar\)/);
 });

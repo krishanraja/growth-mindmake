@@ -15,8 +15,12 @@
 export const CONSENT = 'Counts only visitors who press Allow, so it is a floor and a trend, not a total.';
 /** The one site the engine sends people to (Krish, 2026-10-27: "mindmake.co for all mindmake venture things"). */
 export const SITE = 'mindmake.co';
-/** The fixed list of public placements a link may be tagged for. Never a person, a show or a proposal. */
-export const TAG_PATHS = ['podcast', 'guest-seat', 'one-sheet'];
+/**
+ * The fixed list of public placements a link may be tagged for. Never a person, a show or a proposal.
+ * `linkedin` is a link on one of his own LinkedIn posts, and `webinar` a link from a free Maven
+ * workshop, so the brand's two public channels count in the same placements line (18 November 2026).
+ */
+export const TAG_PATHS = ['podcast', 'guest-seat', 'one-sheet', 'linkedin', 'webinar'];
 const TAG_KEYS = ['utm_source', 'utm_medium'];
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 

@@ -1,0 +1,3 @@
+Status: a mindmake.co link on one of Krish's LinkedIn posts is tagged `utm_source=growth-linkedin&utm_medium=referral`, and one from a free Maven workshop `growth-webinar`; both count in the engine's placements traffic line by path, beside podcasts, guest seats and the one-sheet. Traffic stays a supporting reading, never a meeting or an objective.
+Next: the LinkedIn series' first post (Thu 19 Nov, 12:30 London) carries the tag only if its link goes to a live mindmake.co page.
+North Star check (2026-11-18): holds. It shows which public channel sends people to mindmake.co; meetings are still counted only by path.
