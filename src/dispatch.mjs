@@ -51,6 +51,7 @@ import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/
 import { voiceHolds, voiceHoldLine } from './stages/voice.mjs';
 import { readGate, coldGateFor, gateLine, isColdHold, footerOf } from './stages/compliance.mjs';
 import { coldRows, coldLine, coldHolds, takesCold, isColdProposal, COLD_VERSION } from './stages/cold.mjs';
+import { recoveryStep, consensusStep } from './stages/divergent.mjs';
 import { readInstruction, takesEngineState, rowGoals, instructionSeen, lastAck, instructionWork, priorities, obsessions, nextSteps, engineState, ENGINE_STATE_VERSION, ENGINE_STATE_KEYS } from './stages/instruction.mjs';
 
 export const ENGINE_ID = 'growth-mindmake';
@@ -495,7 +496,7 @@ export function assetsHold(a, { allowed = false } = {}) {
 export const ACTIVITY_MAX = 40, HOLDS_MAX = 40;
 // The lines a full report must still carry: the gap line, the AI answers and kits, the switch's lines and the crew's
 // (later runs count proof runs from the crew's lines). Audit gm-2, 14 November 2026: the cap had cut the AI-answer lines.
-export const KEPT_LINE = /^(?:Gap: |AI answers|AI-answer kits|Switch (?:readiness|route): |Crew (?:lints|checks), |Cold lane: )/;
+export const KEPT_LINE = /^(?:Gap: |AI answers|AI-answer kits|Switch (?:readiness|route): |Crew (?:lints|checks), |Cold lane: |Recovery plays?:? |Consensus map: )/;
 // The ported standards' one line each, in shadow beside Control Center's own verdicts (plan section 12).
 export const STANDARD_LINE = /^(?:Guest standard|Visibility standard|Room scoring|Pilot machine|Outreach briefs|Ingest gate|Focus playbooks|Suppression|Places and questions), in shadow: |^(?:guestsShadow|visibilityShadow|roomsShadow|pilotsShadow|briefsShadow|qualifyShadow|playsShadow|suppressionShadow|placesShadow): /;
 
@@ -1270,6 +1271,16 @@ export async function runDispatch({ cc, source, context = null, policy, registry
     const checked = decisionsRead ? checkIn({ decisions: decisionsRead, weekOf: thisWeek.start, today, expiresAt: londonMidnight(addDays(today, CHECK_IN_DAYS)), gap: gapNow, lanes: rowsRun?.counts.lanes ?? null, starved }) : { proposal: null, holds: [], plan: null };
     holds.push(...checked.holds);
     if (checked.proposal) { mapped.proposals.unshift(finishProposal(checked.proposal)); activity.push(`Check-in on open plan ${checked.plan}: on his list, every ${CHECK_IN_DAYS} days while it is open.`); }
+    // Rule 5 at U4 and U5 (ENGINE-PROTOCOL.md): where Control Center serves divergent-thinker and no other strategy ask is in this
+    // report, one unconventional recovery play a London week, checked against the engine's walls and lint first; the rest in the lines.
+    // The week's one change is read against the mapped consensus once a week, a note only. Unserved: no call, a quiet count.
+    const recovery = await recoveryStep({ cc, capabilities, mode, held, urgency: gap.urgency, proposals: mapped.proposals, decisions: decisionsRead, recent, weekOf: thisWeek.start, gap: gapNow, expiresAt: londonMidnight(thisWeek.end), finish: finishProposal });
+    if (recovery.proposal) mapped.proposals.unshift(recovery.proposal);
+    activity.push(...recovery.lines);
+    const weekChange = mapped.proposals.find(p => p.proposal_id.startsWith('gmi-'))?.title ?? strategic?.review?.experiment ?? null;
+    const consensus = await consensusStep({ cc, capabilities, mode, held, change: weekChange, recent, weekOf: thisWeek.start });
+    activity.push(...consensus.lines);
+    outcome.divergent = { ...recovery.outcome, ...consensus.outcome, ...(recovery.outcome.served === false ? { not_served: 1 } : {}) };
     if (mapped.proposals.length > REPORT_MAX) {
       const fit = cutReport(mapped.proposals, REPORT_MAX);
       holds.push({ reason: 'row_cap', detail: `${fit.dropped} more row actions wait for a later run; a report carries at most ${REPORT_MAX}, and the lowest-ranked row actions wait first.` });

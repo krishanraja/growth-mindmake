@@ -184,6 +184,15 @@ export function engineClient(base, token, { fetcher = fetch, slug = ENGINE_SLUG,
       if (!value || value.ok !== true || typeof value.request_id !== 'string') throw new Error('Control Center did not record the AI-answers request');
       return value;
     },
+    /** features.divergent: one consult of divergent-thinker through Control Center (`score`, `record`, `diverge`, `provoke`,
+     *  `challenge`, `map`). A diverge runs up to four minutes, so it waits five; the model ops wait two. No retry: a lost
+     *  diverge is not sent again in the same run. src/stages/divergent.mjs decides when to ask. */
+    async divergent(body) {
+      const ms = body?.op === 'diverge' ? 300000 : ['provoke', 'challenge', 'map'].includes(body?.op) ? 120000 : timeoutMs;
+      const value = await call('POST', 'divergent', body, undefined, Math.max(timeoutMs, ms));
+      if (!value || value.ok !== true) throw new Error('Control Center did not answer the divergent consult');
+      return value;
+    },
     async decisions(since) {
       const value = await call('GET', `decisions?since=${encodeURIComponent(since)}`);
       if (!value || value.ok !== true || !Array.isArray(value.decisions)) throw new Error('Control Center returned no decisions');
