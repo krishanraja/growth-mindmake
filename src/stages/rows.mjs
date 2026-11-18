@@ -42,13 +42,18 @@ export const ROW_FOR = { partner: 'partners', introduce: 'reach_out', appear: 'v
 // capital vehicle, and nobody is read as rich from a title.
 const KIND_WORDS = [
   ['ai_capital', /\b(family office|private office|sovereign (wealth )?fund|strategic investment office|investment office of)\b/i],
-  ['investor', /\b(venture capital|ventures?\b|vc\b|angel investor|general partner|managing partner|investment partner|limited partner|fund manager|private equity|growth equity|capital partners)\b/i],
-  ['ceo_educator', /\b(executive education|exec ed|vistage|ypo forum|ceo (forum|peer|coach(ing)?|round ?table)|chief executives? (organi[sz]ation|network|club)|institute of directors|board (academy|institute)|leadership (institute|programme|program))\b/i],
+  // Krish's lane "access to many leaders" (his words, 18 November 2026): a PE operating partner and a VC platform
+  // team reach every portfolio leader, so each reads as an investor partner.
+  ['investor', /\b(venture capital|ventures?\b|vc\b|angel investor|general partner|managing partner|investment partner|limited partner|fund manager|private equity|growth equity|capital partners|operating partners?|portfolio (operations|support|services|growth|talent)|value creation|(vc|venture|portfolio|investor) platform|(head of platform|platform (team|lead|director|partner|manager))[^|]*\b(capital|ventures?|equity|vc))\b/i],
+  ['ceo_educator', /\b(executive education|exec ed|vistage|ypo forum|ceo (forum|peer|coach(ing)?|round ?table)|chief executives? (organi[sz]ation|network|club)|institute of directors|board (academy|institute)|leadership (institute|programme|program)|tec chair|the executive connection|peer (group|advisory board) (chair|leader|facilitator)|chief\.com|pavilion (member|chapter|community))\b/i],
   ['student_educator', /\b(professor|lecturer|dean|provost|vice[- ]chancellor|head ?teacher|university|college|business school|school of)\b/i],
   ['ai_trainer', /\b(ai (training|trainer|academy|bootcamp|literacy|upskilling|educator|course)|(learning (and|&) development|l&d|upskilling|corporate training|training) .*\bai\b|\bai\b.*(training|academy|bootcamp|course))/i],
   ['broadcaster', /\b(podcast|host of|presenter|broadcaster|newsletter|editor|journalist|columnist|anchor|youtube|substack|creator)\b/i],
-  ['connector', /\b(ypo|entrepreneurs'? organi[sz]ation|\beo\b chapter|chapter (chair|president)|community (founder|lead|builder)|convener|founder of (the )?[a-z ]*(club|network|forum|community|society|collective|dinner|salon)|networking)\b/i],
+  ['connector', /\b(ypo|entrepreneurs'? organi[sz]ation|\beo\b chapter|chapter (chair|president)|community (founder|lead|builder)|convener|founder of (the )?[a-z ]*(club|network|forum|community|society|collective|dinner|salon)|networking|executive search|headhunter|search (partner|consultant|firm)|board (search|practice)|non-?executive (director )?network|ned (network|community))\b/i],
 ];
+// An executive or leadership coach reaches many leaders, but only one who does not sell AI is a partner (Krish's
+// "executive coaches who don't sell AI", 18 November 2026): one with AI in their words sells what Mindmake sells.
+const COACH = /\b(executive|leadership|ceo|c-suite|founder) coach(es|ing)?\b/i;
 const AI = /\b(ai|artificial intelligence|genai|machine learning)\b/i;
 
 /** Which amplifier kinds a person reads as, from their own words, most specific first. */
@@ -59,6 +64,7 @@ export function kindsOf(c) {
   // but the student educator's.
   const story = [c.hook, c.why_them].filter(x => typeof x === 'string').join(' | ');
   const out = KIND_WORDS.filter(([k, re]) => re.test(text) || (k !== 'student_educator' && story && re.test(story))).map(([k]) => k);
+  if (COACH.test(text) && !AI.test(text) && !out.includes('ceo_educator')) out.push('ceo_educator');
   const plays = Array.isArray(c.plays) ? c.plays : [];
   if ((c.is_creator || c.is_influencer || (Number(c.followers) || 0) >= 50000) && !out.includes('broadcaster')) out.push('broadcaster');
   if ((plays.includes('multiplier') || plays.includes('amplifier')) && !out.length) out.push('connector');

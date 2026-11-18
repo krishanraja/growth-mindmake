@@ -48,6 +48,22 @@ test('who an amplifier is comes from their own words; capital needs a named vehi
   assert.deepEqual(kindsOf(person(9, 'Writer', { followers: 120000 })), ['broadcaster']);
 });
 
+test('the people Krish named as reaching many leaders read as partners: operating partners, platform teams, peer group chairs, coaches who do not sell AI, executive search', () => {
+  assert.deepEqual(kindsOf(person(11, 'Operating Partner, Example Capital')), ['investor']);
+  assert.deepEqual(kindsOf(person(12, 'Head of Platform, Example Ventures')), ['investor']);
+  assert.deepEqual(kindsOf(person(13, 'Portfolio Operations Director, Example Equity')), ['investor']);
+  assert.deepEqual(kindsOf(person(14, 'Vistage Chair')), ['ceo_educator']);
+  assert.deepEqual(kindsOf(person(15, 'TEC Chair, The Executive Connection')), ['ceo_educator']);
+  assert.deepEqual(kindsOf(person(16, 'Executive Coach to founders')), ['ceo_educator']);
+  assert.deepEqual(kindsOf(person(17, 'Executive Coach helping leaders adopt AI')), [], 'a coach who sells AI sells what Mindmake sells');
+  assert.deepEqual(kindsOf(person(18, 'Partner, Executive Search, Example Search')), ['connector']);
+  assert.deepEqual(kindsOf(person(19, 'Professor of Strategy, Example Business School')), ['student_educator']);
+  assert.deepEqual(kindsOf(person(20, 'Chief Executive Officer, Example Media')), [], 'a chief executive is not a peer group');
+  assert.deepEqual(kindsOf(person(21, 'Platform engineer')), [], 'an engineer on a platform is not a platform team');
+  assert.deepEqual(kindsOf(person(22, 'Platform Lead, Example Software')), [], 'a platform lead outside a fund is not a platform team');
+  assert.deepEqual(kindsOf(person(23, 'Head of Platform, Example Capital')), ['investor']);
+});
+
 test('reach is a cited figure, a band from followers, or unknown; a figure without a source is never a number', () => {
   const c = person(1, 'Host', { followers: 42000 });
   assert.deepEqual(reachOf(c, []), { value: null, band: '10k_100k', basis: 'followers on their profile, as Control Center last read it', source_url: null, as_of: null });
