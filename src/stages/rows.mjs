@@ -1547,9 +1547,14 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * shares an id or a close with another row's ask to the same person (an
  * amplifier's connector ask is also `introduce` on REACH OUT).
  */
+/** A row proposal's id: the person, the row and the ask, or the play and its month. Pure; meetings.mjs recomputes it to say which ask a press carried out. */
+export function rowProposalId({ row, ask, contactId, play = null, month = null }) {
+  return `gmw-${seal(play ? { subject: contactId, row, play, month } : { subject: contactId, row, ask }).slice(0, 32)}`;
+}
+
 export function rowProposal({ row, ask, contactId, name, title, why, because, brief, card, action, reach, kind, features, serves, files, evidence, at, play = null, month = null }) {
   return {
-    proposal_id: `gmw-${seal(play ? { subject: contactId, row, play, month } : { subject: contactId, row, ask }).slice(0, 32)}`,
+    proposal_id: rowProposalId({ row, ask, contactId, play, month }),
     title, why: clean(why).slice(0, 1000), kind: 'prepared', wall: 'send', channel: action.channel, amount_usd: 0,
     objective_key: OBJECTIVE, exact_payload: JSON.stringify(action), target: contactId,
     evidence: evidence.slice(0, 12), close_condition: { event: 'outreach_sent', reference: `${row}:${play ?? ask}` },

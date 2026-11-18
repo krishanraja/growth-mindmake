@@ -9,6 +9,7 @@
  * totals. An unanswered or unamended ask is never read as zero.
  */
 import { stageKind } from './pitches.mjs';
+import { rowProposalId } from './rows.mjs';
 
 /** Where a good meeting came from. The engine pre-fills one; Krish confirms it. */
 export const PATHS = ['existing-relationship', 'multiplier-intro', 'partner', 'guest-seat', 'podcast', 'own-show-guest', 'public-signal', 'inbound', 'referral', 'unknown'];
@@ -310,6 +311,19 @@ export function tappedLine({ read, count, lastWeekOf, lastTarget, thisTarget, ta
 /** A tie he had before any meeting: Control Center's tiers 1 to 3. */
 const TIED = /^[123]_/;
 const ROW_PATH = { partners: 'partner', network: 'existing-relationship' };
+/**
+ * Which REACH OUT ask a carried-out press was, from its own id: an introduction through a
+ * connector, a reply to a public signal, or a cold note. The row holds all three and more
+ * (a warm buyer's note, a cited page), so the row alone never says it was an introduction
+ * (found 18 November 2026: every REACH OUT meeting was traced to `multiplier-intro`, cold
+ * notes included). Null for any other ask. Pure.
+ */
+const REACH_OUT_ASKS = [['introduce', 'multiplier-intro'], ['signal', 'public-signal'], ['cold', 'cold-outbound']];
+function reachOutPath(proposalId, contactId) {
+  if (typeof proposalId !== 'string') return null;
+  for (const [ask, path] of REACH_OUT_ASKS) if (rowProposalId({ row: 'reach_out', ask, contactId }) === proposalId) return path;
+  return null;
+}
 
 /**
  * Where an unanswered meeting came from, for each person he met: the
@@ -336,7 +350,9 @@ export function originCandidates({ meetings, context, paths = PATHS }) {
     const done = list(context?.feedback).filter(f => lc(f?.subject_ref) === `contact:${c}` && (f?.carried_out || f?.state === 'done' || f?.state === 'approved'))
       .sort((a, b) => String(b.decided_at ?? '').localeCompare(String(a.decided_at ?? '')))[0];
     if (done) {
-      const path = ROW_PATH[done.row] ?? (done.amplifier_kind === 'signal' ? 'public-signal' : done.row === 'reach_out' ? 'multiplier-intro' : null);
+      // A REACH OUT press names its ask by its id; a cold note counts as cold outbound only where Control Center takes that path.
+      const traced = done.row === 'reach_out' ? reachOutPath(done.proposal_id, c) : null;
+      const path = ROW_PATH[done.row] ?? (done.amplifier_kind === 'signal' ? 'public-signal' : traced && paths.includes(traced) ? traced : null);
       if (path) return { path, origin_ref: ref('proposal', done.proposal_id) };
     }
     const pilot = list(records.advisory).find(p => lc(p?.contact_id) === c);
