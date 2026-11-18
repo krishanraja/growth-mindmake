@@ -482,6 +482,7 @@
         "src/stages/instruction.mjs",
         "src/stages/shownotes.mjs",
         "src/stages/voice.mjs",
+        "src/stages/unnamed.mjs",
         "src/stages/divergent.mjs",
         "src/stages/rows.mjs",
         "src/stages/openings.mjs",

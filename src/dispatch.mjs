@@ -49,6 +49,7 @@ import { wins as readWins, winsLine } from './stages/wins.mjs';
 import { poolOf, lanesLine, laneHistory, starvedLanes, poolFlat, starvedProposal, sourcingRequests, checkIn, stoppedPlans, STARVED_RUNS, CHECK_IN_DAYS, CHECK_IN_PREFIX, STARVED_PREFIX, CAPPED } from './stages/momentum.mjs';
 import { readProofRuns, readiness, readinessLine, route, enforce } from './crew/switch.mjs';
 import { voiceHolds, voiceHoldLine } from './stages/voice.mjs';
+import { unnamedHeld, unnamedHoldLine, decisionNamesUnnamed } from './stages/unnamed.mjs';
 import { readGate, coldGateFor, gateLine, isColdHold, footerOf } from './stages/compliance.mjs';
 import { coldRows, coldLine, coldHolds, takesCold, isColdProposal, COLD_VERSION } from './stages/cold.mjs';
 import { recoveryStep, consensusStep } from './stages/divergent.mjs';
@@ -1108,11 +1109,14 @@ export async function runDispatch({ cc, source, context = null, policy, registry
         } catch { holds.push({ reason: 'approved_plan_preparation_blocked', detail: 'The approved plan changed, its proof or recipient is unavailable, or no supported execution route exists. No action is inferred.' }); }
       }
       phase = 'execute_action';
+      let unsentNamed = 0;
       for (const decision of decisions.filter(d => d.decision === 'approved' && d.stage === 'go_live')) {
         try {
           let receipt;
           try { receipt = await cc.actionReceipt(decision.proposal_id); }
           catch (e) { if (e.status !== 404) throw e; receipt = null; }
+          // Nothing in his name names the company he does not name (Ruling, Krish, 2026-11-18): an approved email that still does is not carried out.
+          if (!receipt && decisionNamesUnnamed(decision)) { unsentNamed++; continue; }
           if (!receipt) receipt = await cc.executeAction(decision.proposal_id);
           else if (receipt.receipt?.state === 'submitted') receipt = await cc.reconcileAction(decision.proposal_id);
           if (decision.amended === true && !amendedDigestOk(decision)) throw new Error('Amended digest does not verify');
@@ -1129,6 +1133,7 @@ export async function runDispatch({ cc, source, context = null, policy, registry
           else holds.push({ reason: 'external_action_unverified', detail: 'The connector is blocked, the exact approval no longer matches, or delivery needs reconciliation. No resend or completion is assumed.' });
         }
       }
+      if (unsentNamed) holds.push(unnamedHoldLine(unsentNamed, { approved: true }));
       mapped.proposals = mapped.proposals.slice(0,10);
     }
     // The number (docs/NORTH_STAR.md): last week's good meetings. From his taps once Control Center
@@ -1286,6 +1291,14 @@ export async function runDispatch({ cc, source, context = null, policy, registry
       holds.push({ reason: 'row_cap', detail: `${fit.dropped} more row actions wait for a later run; a report carries at most ${REPORT_MAX}, and the lowest-ranked row actions wait first.` });
       mapped.proposals = fit.kept;
       if (rowsRun) { const kept = new Set(fit.kept); rowsRun.counts.lanes = postedLanes(rowsRun.counts.lanes, rowsRun.shown.filter(p => kept.has(p))); }
+    }
+    // The last net before the report (Ruling, Krish, 2026-11-18; src/stages/unnamed.mjs): a proposal whose outbound words, in his name or
+    // Jonny's, name the company Krish does not name is held, whichever lane wrote it. His card and the why are never read.
+    const named = unnamedHeld(mapped.proposals);
+    if (named.size) {
+      mapped.proposals = mapped.proposals.filter(p => !named.has(p.proposal_id));
+      holds.push(unnamedHoldLine(named.size));
+      if (rowsRun) { const kept = new Set(mapped.proposals); rowsRun.counts.lanes = postedLanes(rowsRun.counts.lanes, rowsRun.shown.filter(p => kept.has(p))); }
     }
     const lanesNow = rowsRun ? lanesLine(rowsRun.counts.lanes, pool) : null;
     // Plans Control Center can never run, because the Advisory record each rests on is gone, are taken back (1.10.0).

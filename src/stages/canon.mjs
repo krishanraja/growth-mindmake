@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { namesUnnamed } from './unnamed.mjs';
 
 /**
  * Mindmake's canon, read live from its own repository on every run.
@@ -226,7 +227,10 @@ export async function readCanon({ fetcher = fetch, timeoutMs = 15000 } = {}) {
 // in project-documentation/FACTS.md. Only two things are read: the first
 // role's first sentence (where he grew what), and the stage he has spoken on.
 // A file that does not parse leaves the record out of the pitch; it never
-// holds a pitch and nothing is written from an older copy.
+// holds a pitch and nothing is written from an older copy. A clause that
+// names the company he does not name is left out (Ruling, Krish, 2026-11-18;
+// src/stages/unnamed.mjs); the ruling keeps the proof by writing the company
+// as a national media group at its source.
 
 export const RECORD_REPO = 'krishanraja/krish-raja';
 export const RECORD_PATH = 'src/content/receipts.ts';
@@ -241,8 +245,10 @@ export function parseRecord(text) {
   const detail = role ? flat((role[3] ?? role[4] ?? '').replace(/\\(['"])/g, '$1')) : '';
   const grew = /^([a-z][^.]{10,180}?\.)(?=\s|$)/.exec(detail)?.[1] ?? '';
   const venue = /'Public Speaker \(([^)'"]{3,60})\)'/.exec(src)?.[1] ?? '';
-  const did = org && grew ? `At ${org} he ${grew.replace(/\.$/, '')}` : '';
-  const spoke = venue ? `he has spoken at ${/^the\s/i.test(venue) ? venue : `the ${venue}`}` : '';
+  const at = org && grew ? `At ${org} he ${grew.replace(/\.$/, '')}` : '';
+  const said = venue ? `he has spoken at ${/^the\s/i.test(venue) ? venue : `the ${venue}`}` : '';
+  const did = at && !namesUnnamed(at) ? at : '';
+  const spoke = said && !namesUnnamed(said) ? said : '';
   if (did && spoke) return `${did}, and ${spoke}.`;
   if (did) return `${did}.`;
   if (spoke) return `${spoke.charAt(0).toUpperCase()}${spoke.slice(1)}.`;

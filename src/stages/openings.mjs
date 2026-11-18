@@ -8,6 +8,7 @@
 import { seal, clean } from '../guards.mjs';
 import { sentences, quotesClosed, brokenSentence, givenParts, JOINERS } from './rows.mjs';
 import { offerFindings } from './canon.mjs';
+import { namesUnnamed } from './unnamed.mjs';
 
 /** The words a prompt may carry, under the desk's 400 characters. */
 export const QUERY_MAX = 400;
@@ -47,13 +48,14 @@ export function openingFact(c, why = []) {
 export function openingFactWithSource(c, why = [], company = [], fits = () => true) {
   const own = personFact(c, why);
   if (own) return { fact: own, source: null };
-  const usable = (Array.isArray(company) ? company : []).filter(f => typeof f?.text === 'string' && f.text.trim() && typeof f.url === 'string' && !NOT_THEIRS.test(f.text) && !PRAISE.test(f.text));
+  const usable = (Array.isArray(company) ? company : []).filter(f => typeof f?.text === 'string' && f.text.trim() && typeof f.url === 'string' && !NOT_THEIRS.test(f.text) && !PRAISE.test(f.text) && !namesUnnamed(f.text));
   const f = usable.find(x => fits(cut(x.text, 200))) ?? usable[0];
   return f ? { fact: cut(f.text, 200), source: { label: f.label ?? 'Their own site', url: f.url } } : { fact: '', source: null };
 }
 
 function personFact(c, why = []) {
-  const facts = Array.isArray(c?.facts) ? c.facts : [];
+  // The desk writes from one fact, so a fact that names the company Krish does not name is never the one (Ruling, Krish, 2026-11-18).
+  const facts = (Array.isArray(c?.facts) ? c.facts : []).filter(f => !namesUnnamed(f?.text ?? f?.value));
   const post = facts.map(f => (f?.kind === 'post' ? String(f?.text ?? f?.value ?? '') : '')).map(t => /^Posted: "(.+)"$/.exec(t)?.[1] ?? '')
     .map(q => q.replace(/[\p{Extended_Pictographic}\u2100-\u214f\ufe0f\u200d]/gu, '').replace(/\s+/g, ' ').trim())
     .find(q => q && q.split(/\s+/).length >= 8 && !PRAISE.test(q) && !/\b(?:proud|congrat\w*|lineup|thrilled)\b/i.test(q) && !/\b(?:suppress|ignore|delete|test)\b[^.]*\bpost\b/i.test(q));
@@ -62,7 +64,7 @@ function personFact(c, why = []) {
   if (move && !NOT_THEIRS.test(move)) return cut(move, 180);
   const lines = [...why, c?.hook, c?.why_them, c?.who].filter(x => typeof x === 'string' && x.trim());
   for (const l of lines) {
-    if (NOT_THEIRS.test(l) || /^They posted\b/i.test(l)) continue;
+    if (NOT_THEIRS.test(l) || /^They posted\b/i.test(l) || namesUnnamed(l)) continue;
     const t = cut(l, 180);
     if (t.split(/\s+/).length >= 5) return t;
   }
