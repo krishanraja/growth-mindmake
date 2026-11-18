@@ -1,0 +1,3 @@
+Status: Krish handed this engine a LinkedIn series to execute: eight posts on his personal LinkedIn built on content-engine's "Inside my AI-native firm" building video (filed in mind/make > 00_Brand-Assets > 03_Social-and-Ads), queued in Buffer on his yes. The brief, written to stand alone, is docs/briefs/2026-11-18-ai-native-firm-linkedin-series.md, and docs/GET-GOING.md 1.4 points to it as first up.
+Next: Put the eight-post outline to Krish once with a recommendation for meetings, and ask his yes on the logos and the visual identity before drafting.
+North Star check (2026-11-18): holds. The series aims at good meetings through tracked mindmake.co links, never reach.
