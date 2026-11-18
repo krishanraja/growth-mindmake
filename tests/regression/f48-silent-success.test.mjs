@@ -46,6 +46,23 @@ test('a live run whose advertised context cannot be read ends failed as context_
   const result = await run(h);
   assert.equal(result.error_code, 'context_unread');
   assert.ok(h.reports[0].holds.some(x => x.reason === 'context_read_unavailable'));
+  // The printed run log says why, as a class only, so a frozen engine is diagnosable from its own log (17 Nov).
+  assert.deepEqual(result.report.read_failures, [{ read: 'context', class: 'the answer was larger than the byte budget', where: null }]);
+});
+
+test('a context read that breaks inside this engine names the code location in the run log, never the message', async () => {
+  const h = harness({ capabilities: { activation: { activated_on: '2026-10-18' }, features: { context: true } } });
+  h.cc.context = async () => { const e = new TypeError("Cannot read properties of undefined (reading 'Avery Example')"); e.stack = `TypeError: ${e.message}\n    at strategicPlan (file:///runner/work/growth-mindmake/src/strategy.mjs:212:9)\n    at async runDispatch (file:///runner/work/growth-mindmake/src/dispatch.mjs:1030:7)`; throw e; };
+  const result = await run(h);
+  assert.equal(result.error_code, 'context_unread');
+  assert.deepEqual(result.report.read_failures, [{ read: 'context', class: 'the engine could not plan from it', where: 'TypeError at src/strategy.mjs:212' }]);
+  assert.ok(!JSON.stringify(result).includes('Avery'));
+});
+
+test('a run whose reads all succeed prints no read failures', async () => {
+  const h = harness({ capabilities: { activation: { activated_on: '2026-10-18' }, schema_versions: ['1.6.0', '1.7.0', '1.8.0', '1.9.0'], features: { context: true, rows: true } }, context: capsContext() });
+  const result = await run(h);
+  assert.equal(result.report.read_failures, undefined);
 });
 
 test('a live run that reads people to work on and neither prepares nor holds one ends failed as nothing_prepared (F48)', async () => {
