@@ -12,7 +12,7 @@ The `mindmake` repository keeps the website, free AI brief, lead delivery, comme
 
 A founder, principal or commercial leader owns an important decision. A verified change, real relationship or expressed problem makes Mindmake relevant. We help them understand one choice, then offer one appropriate next step. A qualified conversation may lead to one privately scoped paid proof that leaves a working system the leader can keep.
 
-Two public capabilities provide the relevance: **Build your AI brain** and **Build your AI revenue engine**. Select the capability from the decision in front of the person. Preserve the current offer in the source repository. Never introduce an offer ladder, public fee, start date, availability claim or delivery promise.
+Two public capabilities provide the relevance: **Build your AI brain** and **Build your AI business** (the second door's one name since 18 November 2026; "Build your AI revenue engine" and "Build your AI GTM" are retired). Select the capability from the decision in front of the person. Preserve the current offer in the source repository. Never introduce an offer ladder, public fee, start date, availability claim or delivery promise.
 
 The main public action is [Get your free AI brief](https://mindmake.co/?start=1). It means answer a few questions, keep the brief, then a free consultation. For a curious reader without a live problem, the separate route is [Make Your Mind Up](https://makeyourmindup.ai), using its Subscribe free button. Each message carries one ask. CTRL stays a private person-to-person invitation from Krish, with no public invitation, form, link or price.
 
