@@ -191,3 +191,98 @@ test('the dispatch at U5 with the feature served: the unsigned week spec, then i
   const low = await dispatch({ features: { divergent: true }, urgency: 3, divergentImpl: play, decisions: signed });
   assert.equal(low.calls.filter(c => c.op === 'diverge').length, 0, 'below U4 there is no diverge');
 });
+
+// ── The at-will command, scripts/divergent.mjs, on a stub client: no network, invented words only ──
+import { run as consult, parseArgs, listOf, NO_BEARER } from '../scripts/divergent.mjs';
+import { PRAISE } from '../src/stages/openings.mjs';
+
+const BEARER = { CONTROL_CENTER_URL: 'https://cc.invalid', CONTROL_CENTER_ENGINE_TOKEN: 'stub' };
+function stub({ capabilities = { activation: { state: 'active' }, features: { divergent: true } }, answer = { ok: true, results: [] }, fail = null, capsFail = null } = {}) {
+  const calls = { capabilities: 0, divergent: [] };
+  const makeClient = (url, token) => { if (token !== 'stub') throw new Error('no bearer'); return { async capabilities() { calls.capabilities++; if (capsFail) throw capsFail; return capabilities; }, async divergent(body) { calls.divergent.push(body); if (fail) throw fail; return answer; } }; };
+  return { calls, makeClient };
+}
+const FILES = { 'ideas.txt': 'Swap one question with a host\n\nWrite the case the leader forwards\n', 'obvious.json': '["Post more on LinkedIn","Host a webinar"]', 'items.json': '[{"title":"Tried one host swap"}]' };
+const read = async p => { if (!(p in FILES)) { const e = new Error('missing'); e.code = 'ENOENT'; throw e; } return FILES[p]; };
+async function cli(argv, s = stub(), env = BEARER) {
+  let out = '', err = '';
+  const code = await consult(argv, { env, makeClient: s.makeClient, read, out: t => { out += t; }, err: t => { err += t; } });
+  return { code, out, err, calls: s.calls };
+}
+
+test('at will: each op sends its own body, with the namespace or its lane, and PRAISE only as banned words', async () => {
+  const praise = regexWords(PRAISE);
+  let r = await cli(['map', '--problem', 'Get more good meetings', '--context', 'One founder']);
+  assert.equal(r.code, 0); assert.deepEqual(r.calls.divergent[0], { op: 'map', problem: 'Get more good meetings', context: 'One founder', namespace: 'growth-mindmake' });
+  assert.deepEqual(JSON.parse(r.out), { ok: true, results: [] });
+  r = await cli(['provoke', '--problem', 'P', '--cliche', 'Post more', '--cliche', 'Host a webinar', '--count', '4', '--target', 'strategy', '--temperament', 'wild', '--lane', 'rooms']);
+  const p = r.calls.divergent[0];
+  assert.deepEqual({ ...p, bannedWords: undefined }, { op: 'provoke', problem: 'P', count: 4, cliches: ['Post more', 'Host a webinar'], bannedWords: undefined, target: 'strategy', temperament: 'wild', namespace: 'growth-mindmake:rooms' });
+  assert.deepEqual(p.bannedWords, [...new Set(praise)]);
+  for (const w of ['Krish', 'research', 'new', 'final']) assert.ok(!p.bannedWords.includes(w), w);
+  r = await cli(['diverge', '--problem', 'P']);
+  assert.equal(r.calls.divergent[0].op, 'diverge'); assert.equal(r.calls.divergent[0].namespace, 'growth-mindmake');
+  r = await cli(['challenge', '--problem', 'P', '--idea', 'An idea']);
+  assert.deepEqual(r.calls.divergent[0], { op: 'challenge', problem: 'P', idea: 'An idea', namespace: 'growth-mindmake' });
+  r = await cli(['score', '--problem', 'P', '--ideas-file', 'ideas.txt', '--obvious-file', 'obvious.json', '--lane', 'pitches']);
+  const s = r.calls.divergent[0];
+  assert.deepEqual(s.ideas, ['Swap one question with a host', 'Write the case the leader forwards']);
+  assert.deepEqual(s.obvious, ['Post more on LinkedIn', 'Host a webinar']);
+  assert.equal(s.judge, undefined, 'no judge unless asked'); assert.equal(s.namespace, 'growth-mindmake:pitches');
+  r = await cli(['score', '--problem', 'P', '--ideas-file', 'ideas.txt', '--judge']);
+  assert.equal(r.calls.divergent[0].judge, true);
+  r = await cli(['record', '--items-file', 'items.json', '--label', 'week']);
+  assert.deepEqual(r.calls.divergent[0], { op: 'record', items: [{ title: 'Tried one host swap' }], label: 'week', namespace: 'growth-mindmake' });
+  assert.deepEqual(listOf('a\n b \n\n'), ['a', 'b']);
+});
+
+test('at will: score exits 1 when it flags any idea, 0 when all are accepted', async () => {
+  const flagged = await cli(['score', '--problem', 'P', '--ideas-file', 'ideas.txt'], stub({ answer: { ok: true, results: [{ status: 'accepted' }, { status: 'rejected_gravity' }] } }));
+  assert.equal(flagged.code, 1); assert.match(flagged.err, /flagged 1 idea\./);
+  assert.equal(JSON.parse(flagged.out).results.length, 2, 'the answer is still printed');
+  const clean = await cli(['score', '--problem', 'P', '--ideas-file', 'ideas.txt'], stub({ answer: { ok: true, results: [{ status: 'accepted' }] } }));
+  assert.equal(clean.code, 0);
+});
+
+test('at will: no bearer, not served or unreachable exits 2 with no divergent call', async () => {
+  const none = await cli(['map', '--problem', 'P'], stub(), {});
+  assert.equal(none.code, 2); assert.equal(none.err.trim(), NO_BEARER);
+  assert.match(none.err, /divergent_score, divergent_record and divergent_run with namespace growth-mindmake/);
+  assert.equal(none.calls.capabilities, 0); assert.equal(none.calls.divergent.length, 0);
+  const off = await cli(['score', '--problem', 'P', '--ideas-file', 'ideas.txt'], stub({ capabilities: { features: {} } }));
+  assert.equal(off.code, 2); assert.match(off.err, /not served/); assert.equal(off.calls.divergent.length, 0);
+  const down = await cli(['map', '--problem', 'P'], stub({ capsFail: new Error('fetch failed') }));
+  assert.equal(down.code, 2); assert.match(down.err, /could not be reached/); assert.equal(down.calls.divergent.length, 0);
+  assert.doesNotMatch(none.err + off.err + down.err, /stub/, 'the bearer is never printed');
+});
+
+test('at will: held refuses every generating op without a call, and score and record still run', async () => {
+  const held = stub({ capabilities: { activation: { state: 'held' }, features: { divergent: true } } });
+  for (const argv of [['map', '--problem', 'P'], ['provoke', '--problem', 'P'], ['challenge', '--problem', 'P', '--idea', 'I'], ['diverge', '--problem', 'P']]) {
+    const r = await cli(argv, held);
+    assert.equal(r.code, 2, argv[0]); assert.match(r.err, /holds this engine/);
+  }
+  assert.equal(held.calls.divergent.length, 0);
+  assert.equal((await cli(['record', '--items-file', 'items.json'], held)).code, 0);
+  assert.equal((await cli(['score', '--problem', 'P', '--ideas-file', 'ideas.txt'], held)).code, 0);
+});
+
+test('at will: a cap, an uncalibrated embedder, a hold or a refusal exits 2 by its code, once, with no retry', async () => {
+  for (const [status, code, re] of [[429, 'daily_diverge_cap_reached', /daily cap was reached \(daily_diverge_cap_reached\)/], [503, 'embedder_uncalibrated', /not calibrated \(embedder_uncalibrated\)/], [409, 'held', /holds this engine/], [403, 'feature_off', /refused this engine/], [400, 'bad_request', /malformed/]]) {
+    const e = Object.assign(new Error('x'), { status, code });
+    const s = stub({ fail: e });
+    const r = await cli(['diverge', '--problem', 'P'], s);
+    assert.equal(r.code, 2); assert.match(r.err, re); assert.equal(r.out, '');
+    assert.equal(s.calls.divergent.length, 1, 'no retry');
+  }
+});
+
+test('at will: a malformed command exits 2 before any call', async () => {
+  for (const argv of [[], ['guess'], ['map'], ['challenge', '--problem', 'P'], ['score', '--problem', 'P'], ['record'], ['map', '--problem', 'P', '--lane', 'Bad Lane'], ['provoke', '--problem', 'P', '--count', '0'], ['map', '--problem', 'P', '--nope', 'x']]) {
+    const s = stub();
+    const r = await cli(argv, s);
+    assert.equal(r.code, 2, argv.join(' ')); assert.match(r.err, /Usage: npm run divergent/);
+    assert.equal(s.calls.capabilities + s.calls.divergent.length, 0);
+  }
+  assert.throws(() => parseArgs(['map', '--problem']), /needs a value/);
+});

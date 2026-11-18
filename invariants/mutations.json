@@ -1360,6 +1360,26 @@
       "tests": [
         "tests/cold-lane.test.mjs"
       ]
+    },
+    {
+      "id": "divergent-held-generating",
+      "what": "the at-will command asks a model while Control Center holds the engine",
+      "file": "scripts/divergent.mjs",
+      "find": "if (GENERATING.has(op) && ['held', 'paused'].includes(capabilities?.activation?.state))",
+      "replace": "if (false)",
+      "tests": [
+        "tests/divergent.test.mjs"
+      ]
+    },
+    {
+      "id": "divergent-score-flag",
+      "what": "the at-will score stops exiting 1 on a flagged idea",
+      "file": "scripts/divergent.mjs",
+      "find": "if (n) { err(",
+      "replace": "if (false) { err(",
+      "tests": [
+        "tests/divergent.test.mjs"
+      ]
     }
   ]
 }
