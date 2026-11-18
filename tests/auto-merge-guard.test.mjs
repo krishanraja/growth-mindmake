@@ -57,3 +57,14 @@ test('a merge starts CI on main, and its fold job runs on that start', () => {
   assert.match(fold, /\n    if: \(github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'\) && github\.ref == 'refs\/heads\/main'\n/)
   assert.match(fold, /node "\$hook" --fold/)
 })
+
+// Nor did a bot merge start the live run a src/ change owes (operate.yml's push trigger), so #151 merged on 18 November
+// and no run followed. A merge that changed src/ now starts operate.yml's dry dispatch, which never sends.
+test('a merge that changes the engine starts the dry live run, and only then', () => {
+  const wf = readFileSync('.github/workflows/auto-merge.yml', 'utf8')
+  assert.match(wf, /gh pr view "\$pr" -R "\$REPO" --json files --jq '\[\.files\[\]\.path \| select\(startswith\("src\/"\)\)\] \| length'/)
+  assert.match(wf, /if \[ "\$\{engine:-0\}" != "0" \]; then\n\s*gh workflow run operate\.yml -R "\$REPO" --ref main -f mode=dispatch -f commit=false/)
+  const operate = readFileSync('.github/workflows/operate.yml', 'utf8')
+  assert.match(operate, /inputs\.mode == 'dispatch'/)
+  assert.match(operate, /if: \$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.commit \}\}/, 'a write-enabled dispatch is still refused')
+})
