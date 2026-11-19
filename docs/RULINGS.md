@@ -364,3 +364,14 @@ In his words (18 November): "we should restart free Maven workshops that will ge
 - Every lesson closes on one choice of two: subscribe to the media channel, or take Mindmake's lead magnet (the free read, then "Who decided?" once it is live). A link from a lesson to mindmake.co carries `utm_source=growth-webinar&utm_medium=referral` (src/stages/traffic.mjs `TAG_PATHS`), and a meeting from a lesson is traced on the `webinar` path.
 - It sharpens the 13 November carve-out (hosted free Maven Lightning Lessons every two weeks); every other hosted room stays ruled out.
 - No wall moves: every listing, publish, unpublish and profile change on Maven still takes his yes on the exact screen.
+
+## The 2-minute AI upgrade toolkit (Rulings, Krish, 2026-11-19)
+
+In a session on mindmake.co he wrote: "change parts to 'brain modules' in the URL", then "there is too much verbal diahorrea on this Who Decided quiz, it should be completely minimal. Rename Who decided to \"Measure your AI judgement\" everywhere, and then make sure each lead magnet asks the user if they want to do the other one in the pop up modals when they are about to leave. Sames as if the customer is about to leave mindmake.co, they should be offered the brain modules or the Judgement audit. On the judgement audit, The user should have literally nothing to look at other than the question to answer." Then: "OK, just separate blog and make it invisible to humans then - and make the two lead magnets the only two things on the 2-minute toolkit page", and "Change SUBSCRIBE to \"OUR MEDIA CHANNEL\" on mindmake.co".
+
+- The brain modules live at mindmake.co/brain-modules; /parts and /kits redirect there.
+- The judgement audit is "Measure your AI judgement", at mindmake.co/measure-your-ai-judgement; /who-decided redirects there. Each question screen shows only the question and its answers. The 18 November lock on its words, questions, levels and layout still stands, under the new name.
+- Leaving the audit offers the brain modules; leaving the brain modules offers the audit; leaving any other page offers both, once a visit.
+- "Your 2-minute AI upgrade toolkit" (mindmake.co/2-minute-ai-upgrade-toolkit) holds the two lead magnets and nothing else, and takes the blog's place in the menus. The blog keeps its pages for search engines and AI crawlers, with no link from the menus.
+- Every "Subscribe" label on mindmake.co reads "Our media channel".
+- No wall moves: every send, publish and spend still waits for his yes.
