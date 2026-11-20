@@ -383,3 +383,15 @@ When asked to hand heavy work to Codex, Krish said "use Astra 6.2 in codex", and
 - Codex's own model list is the truth, re-read at every dispatch. The OpenAI docs skill lags it and is never the source for what exists.
 - The order is in docs/codex/TASK-CARD.md: by the job, the newest model whose description fits (heavy work `gpt-6.2-astra`, everyday `gpt-6.2-sol`, visual and browser work `gpt-6.1-terra`, easy work `gpt-6-luna`), the highest version within a job, and no hidden, previous-generation or legacy model without a measured reason.
 - A card still pins one model id and effort. No wall moves: a Codex card still runs behind the allowance guard and his yes on its digest, and Codex's report is never proof.
+
+## Brain module checkout, codes and install (Rulings, Krish, 2026-11-20)
+
+Shown his checkout he asked for "the Stripe coupon here to get either one free pack or unlimited free packs", then "Also lets add more payment types like Link, Google pay and more", and "MAKEMYMINDUP and MAKEMYMINDUP-FOREVER (for unlimited). These will be the permanent codes". Of the purchase email he wrote: "looks HORRIBLE and exposes a full supabase URL - and doesn't try to get a user to subscribe free at makeyourmindup.ai if they have not come in from a code ... There is also no immediate sincere confirmation thank you page experience". Of the download: "I also just get a ZIP file ... we should be really clear that this is for Claude users ONLY, right from the start? With a Claude logo on the brain modules page, and a checkbox", then "every part of the experience needs to be 10/10 one click, beautiful, branded ... They should click and then automatically be inside their Claude platform and nothing else really".
+
+- The brain module checkout shows Stripe's promotion code box again (this reverses the 19 November removal). MAKEMYMINDUP is one free module per person, held by email; MAKEMYMINDUP-FOREVER is every module, as often as the member likes. Both are permanent and have no use limit; any other code that takes the whole price fails closed.
+- Checkout offers every payment method the account has on (card, Link, Apple Pay, Google Pay and the rest). A bank payment that settles later is delivered when it settles.
+- Every module page says it is for Claude Desktop only, with the Claude mark, and the buy button asks for a tick that the buyer uses Claude Desktop on a Mac or Windows computer.
+- After paying: a thank-you page that says what happens next, one designed email with one button and no storage address, and a download page that starts the download itself as `mindmake-<module>.mcpb`. Buyers who did not come in by a member code are asked once to subscribe free to makeyourmindup.
+- A page cannot install into Claude Desktop; opening the saved file is the one step left.
+- No wall moves: the Substack welcome-email wording that carries the codes waits for his yes on the exact text.
+
