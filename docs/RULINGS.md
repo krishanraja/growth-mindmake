@@ -375,3 +375,11 @@ In a session on mindmake.co he wrote: "change parts to 'brain modules' in the UR
 - "Your 2-minute AI upgrade toolkit" (mindmake.co/2-minute-ai-upgrade-toolkit) holds the two lead magnets and nothing else, and takes the blog's place in the menus. The blog keeps its pages for search engines and AI crawlers, with no link from the menus.
 - Every "Subscribe" label on mindmake.co reads "Our media channel".
 - No wall moves: every send, publish and spend still waits for his yes.
+
+## Heavy Codex work runs on GPT-6.2 Astra (Ruling, Krish, 2026-11-20)
+
+When asked to hand heavy work to Codex, Krish said "use Astra 6.2 in codex", and when told the installed docs list no 6.2: "you should be able to use 6.2 though" and "change the docs to be able to use this". Codex's own model list carries `gpt-6.2-astra`; the OpenAI docs skill installed beside it still stops at `gpt-6-astra`.
+
+- Heavy Codex work pins `gpt-6.2-astra`. The id is read from Codex's own model list at dispatch, never from the OpenAI docs skill, which lags it.
+- A card pins a model by id and effort as before; this only names the heavy-work choice.
+- No wall moves: a Codex card still runs behind the allowance guard and his yes on its digest, and Codex's report is never proof.

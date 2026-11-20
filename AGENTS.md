@@ -64,6 +64,7 @@ Each is in docs/RULINGS.md word for word, with his quotes; a line here says what
 - The 2-minute AI upgrade toolkit (Rulings, Krish, 2026-11-19): the audit is "Measure your AI judgement", showing only the question; each lead magnet offers the other on the way out and every other page offers both; the toolkit page holds just the two; the brain modules live at /brain-modules; the blog stays for crawlers with no menu link; no wall moves.
 - Parts of your AI brain (Ruling, Krish, 2026-11-17): the $59 kits are seven parts of a leader's AI brain, plainly named (docs/RULINGS.md); six operational parts are held back; never standalone tools; sold at mindmake.co/parts, one alone a brain module; no wall moves.
 - His former employer is never named (Ruling, Krish, 2026-11-18): nothing in his name or Jonny's names it; a kept proof says "a national media group"; a draft naming it holds as `former_employer_named`; no wall moves.
+- Heavy Codex work runs on GPT-6.2 Astra (Ruling, Krish, 2026-11-20): pin `gpt-6.2-astra`, read from Codex's own model list and not from the lagging OpenAI docs skill; no wall moves.
 - Maven is free workshops for lead generation only (Ruling, Krish, 2026-11-18): each lesson closes on the media channel or the lead magnet.
 
 ## Consult divergent-thinker at will

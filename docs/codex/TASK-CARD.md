@@ -15,7 +15,7 @@ One JSON file of 6 KB (6,144 bytes) or less. A real card lives at `specs/cards/<
 | `card` | `codex-task/1` |
 | `id` | Lower case, digits and hyphens. The branch is `codex/<id>`. |
 | `title` | One plain line. |
-| `model` | `name` and `effort`, pinned, never `default`: the reference architecture's measured choice, with `why`. Re-check `name` against Codex's own model list at dispatch. |
+| `model` | `name` and `effort`, pinned, never `default`: the reference architecture's measured choice, with `why`. Re-check `name` against Codex's own model list at dispatch (`~/.codex/models_cache.json`, or `codex debug models`): it is newer than any model page the OpenAI docs skill carries, so a model missing from that skill is not missing from Codex. Heavy work pins `gpt-6.2-astra` (Ruling, Krish, 2026-11-20). |
 | `limits` | `max_minutes` (at most 120) and `max_calls` (at most 400). |
 | `worktree` | `from: main`, `branch: codex/<id>` and `dir: ../growth-mindmake-codex-<id>`: its own worktree from main, never the second checkout. |
 | `write_allow` | Up to 12 globs inside the repository (`**` any depth, `*` one segment). Every changed file must match one. |
