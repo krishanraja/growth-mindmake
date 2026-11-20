@@ -15,7 +15,7 @@ One JSON file of 6 KB (6,144 bytes) or less. A real card lives at `specs/cards/<
 | `card` | `codex-task/1` |
 | `id` | Lower case, digits and hyphens. The branch is `codex/<id>`. |
 | `title` | One plain line. |
-| `model` | `name` and `effort`, pinned, never `default`: the reference architecture's measured choice, with `why`. Re-check `name` against Codex's own model list at dispatch. |
+| `model` | `name` and `effort`, pinned, never `default`: chosen by [Choosing the model](#choosing-the-model), with `why`. |
 | `limits` | `max_minutes` (at most 120) and `max_calls` (at most 400). |
 | `worktree` | `from: main`, `branch: codex/<id>` and `dir: ../growth-mindmake-codex-<id>`: its own worktree from main, never the second checkout. |
 | `write_allow` | Up to 12 globs inside the repository (`**` any depth, `*` one segment). Every changed file must match one. |
@@ -24,6 +24,27 @@ One JSON file of 6 KB (6,144 bytes) or less. A real card lives at `specs/cards/<
 | `interface` | The interface, verbatim: signatures, shapes and the behaviour each must have. |
 | `acceptance` | Up to 8 commands that must exit 0: `npm test`, `npm run <script>`, `node <file>.mjs` or `node --test <file>.mjs`, with plain arguments and no shell characters. |
 | `returns` | The JSON shape Codex returns: `type: object`, `required` and `properties`. What it returns is a note to read, never evidence. |
+
+
+## Choosing the model
+
+Codex's own model list is the truth: `~/.codex/models_cache.json`, or `codex debug models`. It is newer than any model page the OpenAI docs skill carries, so a model missing from that skill is not missing from Codex. Re-read the list at every dispatch, pin the id and effort the card names, and use a newer model the day it is listed (Ruling, Krish, 2026-11-20).
+
+Prefer, in this order:
+
+1. By the job, the newest model whose own description fits it:
+
+| The job | Prefer | Why (from Codex's own list) |
+|---|---|---|
+| Heavy, complex coding or professional work | `gpt-6.2-astra` | Its most capable model. |
+| Everyday coding and quick turns | `gpt-6.2-sol` | The fast, go-to model. |
+| Seeing a page, screenshots, browser legwork | `gpt-6.1-terra` | Excels at visual understanding and computer use. |
+| Easy, cheap tasks | `gpt-6-luna` | Fast and affordable. |
+
+2. Within a job, the highest version listed. When a newer version of a role appears (a 6.3 Astra, a 6.2 Terra), it replaces its row.
+3. Skip models marked hidden (`gpt-reserve`, `codex-auto-review`) and any described as previous generation or legacy, unless the card's `why` gives a measured reason.
+
+Effort is pinned the same way and read from the model's own `supported_reasoning_levels`; a card never uses a level its model does not list.
 
 ## The route
 

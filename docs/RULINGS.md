@@ -375,3 +375,11 @@ In a session on mindmake.co he wrote: "change parts to 'brain modules' in the UR
 - "Your 2-minute AI upgrade toolkit" (mindmake.co/2-minute-ai-upgrade-toolkit) holds the two lead magnets and nothing else, and takes the blog's place in the menus. The blog keeps its pages for search engines and AI crawlers, with no link from the menus.
 - Every "Subscribe" label on mindmake.co reads "Our media channel".
 - No wall moves: every send, publish and spend still waits for his yes.
+
+## Codex uses the newest models, in a stated order (Ruling, Krish, 2026-11-20)
+
+When asked to hand heavy work to Codex, Krish said "use Astra 6.2 in codex", and when told the installed docs list no 6.2: "you should be able to use 6.2 though", then "change the docs to be able to use this" and "update the docs to be able to use all new models and preference them". Codex's own model list carries `gpt-6.2-astra` and the rest of the 6.2 family; the OpenAI docs skill installed beside it still stops at `gpt-6-astra`.
+
+- Codex's own model list is the truth, re-read at every dispatch. The OpenAI docs skill lags it and is never the source for what exists.
+- The order is in docs/codex/TASK-CARD.md: by the job, the newest model whose description fits (heavy work `gpt-6.2-astra`, everyday `gpt-6.2-sol`, visual and browser work `gpt-6.1-terra`, easy work `gpt-6-luna`), the highest version within a job, and no hidden, previous-generation or legacy model without a measured reason.
+- A card still pins one model id and effort. No wall moves: a Codex card still runs behind the allowance guard and his yes on its digest, and Codex's report is never proof.
