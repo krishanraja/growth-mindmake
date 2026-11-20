@@ -395,3 +395,12 @@ Shown his checkout he asked for "the Stripe coupon here to get either one free p
 - A page cannot install into Claude Desktop; opening the saved file is the one step left.
 - No wall moves: the Substack welcome-email wording that carries the codes waits for his yes on the exact text.
 
+## The makeyourmindup codes are for the member's own address (Ruling, Krish, 2026-11-20)
+
+Asked to tighten the codes he said: "Make sure that only the email address of the Substack member is allowed access to that specific code not just everyone and anyone. And make sure the \"make my mind up\" code is a one-time use per email address."
+
+- A free brain module code works only for an address on the loaded makeyourmindup member list: paid or founding members for MAKEMYMINDUP, founding members for MAKEMYMINDUP-FOREVER. Anyone else is told kindly, given no module, and Krish is told.
+- MAKEMYMINDUP is one use per person, held on a normalised address (plus-tags and Gmail dots are the same mailbox).
+- The list comes from Substack's own export and is reloaded to release waiting claims; until the first list is loaded the gate is off.
+- No wall moves: loading a list and every Substack email still wait for his yes.
+
