@@ -2,6 +2,12 @@
 
 The dated records of this engine's sessions, newest first. NOW.md names this file as its history log; scripts/check-drift.mjs fails when it is missing. The completion record stays docs/RELEASE.md.
 
+## 2026-11-23: older NOW.md lines
+
+Moved here word for word from NOW.md on 2026-11-23, to keep the session pack under 36 KB.
+
+The 27 October trusted-distribution closeout is in [the dated handoff](2026-10-27-growth-session-handoff.md). The 22 October producer and Control Center release and its preparation-only canary are historical evidence, not proof of today's outcomes. Of the five 22 October route plans, four were withdrawn on 27 October because their Advisory records are gone, and one is still a real ask on his list. Later AGENTS.md human-action rules and the forms and mailbox gates remain in force.
+
 ## 2026-11-18: older NOW.md lines
 
 Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-18, to keep the session pack under 36 KB; newest first.
