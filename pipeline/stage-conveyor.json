@@ -486,6 +486,7 @@
         "src/stages/divergent.mjs",
         "src/stages/rows.mjs",
         "src/stages/openings.mjs",
+        "src/lib/insight-sheet.mjs",
         "src/stages/company.mjs",
         "src/stages/cited.mjs",
         "src/stages/signals.mjs",

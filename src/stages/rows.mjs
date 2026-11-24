@@ -1578,7 +1578,7 @@ const KIND_NOUN = { investor: 'portfolio', ai_capital: 'investments', connector:
  * and from close ties gone quiet (network). Also the reach questions worth
  * asking: the top few with no cited figure, once a month each.
  */
-export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR, wins = null, research: researchIn = null, openingsRequired = false, personRoutes = false, openingKind = 'question', dealCatchups = false, companyReads = false }) {
+export function amplifierRows({ context, weekGoals, canon, files, at, titleMax = TITLE_MAX, fitFloor = FIT_FLOOR, wins = null, research: researchIn = null, openingsRequired = false, personRoutes = false, openingKind = 'question', dealCatchups = false, companyReads = false, angle = '' }) {
   const L = lessons(context.feedback, at, context.records?.drafts, briefTakers(context));
   // This run's research where the dispatch has it (the openings the desk wrote in this run), else the context's.
   const research = Array.isArray(researchIn) ? researchIn : Array.isArray(context.research) ? context.research : [];
@@ -1752,7 +1752,7 @@ export function amplifierRows({ context, weekGoals, canon, files, at, titleMax =
     // Only where their own facts give none does one thing their company's own website says stand in, with its page on the card.
     const site = sites.get(id.toLowerCase()) ?? null;
     const siteFacts = site ? companyFactsFor({ site, research, at }) : [];
-    const op = opening({ id, name, card: n, why: card.why, research, required: openingsRequired, at, kind: openingKind, last: monthYear(n.email_last) ?? monthYear(n.contacts?.last_touch_at), company: siteFacts });
+    const op = opening({ id, name, card: n, why: card.why, research, required: openingsRequired, at, kind: openingKind, last: monthYear(n.email_last) ?? monthYear(n.contacts?.last_touch_at), company: siteFacts, angle });
     const askScore = fit * (1 + Math.min(2, (Date.parse(at) - last) / (365 * DAY)));
     if (op.request) openingAsks.push({ score: askScore, request: op.request });
     if (op.source) card = cardFor({ ...cardArgs, extraSources: [op.source] }) ?? card;

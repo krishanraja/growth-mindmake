@@ -1,0 +1,146 @@
+{
+  "schema": "insight-sheet/1",
+  "venture": "mindmake",
+  "repo": "krishanraja/growth-mindmake",
+  "harness_skill_sha": "0000000000000000000000000000000000000000",
+  "made_at": "2026-11-24T09:00:00Z",
+  "north_star": {
+    "metric": "Synthetic good meetings a week",
+    "urgency": 5,
+    "current": 0,
+    "as_of": "2026-11-24"
+  },
+  "stall_check": {
+    "diagnosis": "idea",
+    "evidence": "Synthetic fixture: drafts go out and replies say the reason to meet is unclear."
+  },
+  "insights": [
+    {
+      "audience": "senior leaders who use AI for decisions",
+      "wants": "to move faster with it",
+      "but": "they cannot tell when it is leading them wrong",
+      "because": "people follow AI outside its frontier",
+      "source": "docs/EVIDENCE.md E3 (synthetic fixture)",
+      "read_at": "2026-11-24"
+    },
+    {
+      "audience": "boards",
+      "wants": "assurance",
+      "but": "they lack a test",
+      "because": "nobody owns it",
+      "assumption": true
+    }
+  ],
+  "chosen_insight": 0,
+  "discarded_obvious": [
+    "A webinar on AI for leaders",
+    "A free AI readiness checklist",
+    "A post listing AI tools"
+  ],
+  "ideas": [
+    {
+      "id": "who-decided",
+      "claim": "The question a leader should ask of every AI answer is who decided.",
+      "mechanic": "One question the reader can use in their next meeting.",
+      "idea_level": "campaign",
+      "method": "rename-the-problem",
+      "channel_role": "opening line of a catch-up",
+      "conversion_path": {
+        "offer": "the free lead magnet",
+        "link": "tracked mindmake.co link",
+        "why_act": "the question is useful tomorrow"
+      },
+      "kill_condition": "No replies mention the question within two weeks.",
+      "tests": {
+        "specificity": {
+          "result": "pass",
+          "reason": "Synthetic: swapped in a generic AI training firm; the claim about judgement no longer holds."
+        },
+        "share": {
+          "result": "pass",
+          "reason": "Synthetic: a leader forwards it to a peer who leans on AI for board papers."
+        },
+        "analogue": {
+          "result": "pass",
+          "reason": "Synthetic analogue for the fixture.",
+          "url": "https://example.com/analogue",
+          "read_at": "2026-11-24"
+        },
+        "floor": {
+          "result": "pass",
+          "reason": "Synthetic: read the copy doctrine and the evidence rules; no figure is quoted without its source."
+        },
+        "kill_the_favourite": {
+          "result": "pass",
+          "reason": "Synthetic attack: it sounds like fear. Answer: it says the strong get stronger, a promise."
+        }
+      }
+    },
+    {
+      "id": "judgement-gap",
+      "claim": "Measure the gap between your judgement and your AI before it measures you.",
+      "mechanic": "A short self-test.",
+      "idea_level": "measurement",
+      "method": "instrument-first",
+      "channel_role": "link in the note",
+      "conversion_path": {
+        "offer": "the audit",
+        "link": "tracked mindmake.co link",
+        "why_act": "a number about themselves"
+      },
+      "kill_condition": "Fewer starts than the plain link.",
+      "tests": {
+        "specificity": {
+          "result": "pass",
+          "reason": "Synthetic: swapped in a generic AI training firm; the claim about judgement no longer holds."
+        },
+        "share": {
+          "result": "pass",
+          "reason": "Synthetic: a leader forwards it to a peer who leans on AI for board papers."
+        },
+        "analogue": {
+          "result": "pass",
+          "reason": "Synthetic analogue for the fixture.",
+          "url": "https://example.com/analogue",
+          "read_at": "2026-11-24"
+        },
+        "floor": {
+          "result": "pass",
+          "reason": "Synthetic: read the copy doctrine and the evidence rules; no figure is quoted without its source."
+        },
+        "kill_the_favourite": {
+          "result": "pass",
+          "reason": "Synthetic attack: it sounds like fear. Answer: it says the strong get stronger, a promise."
+        }
+      }
+    }
+  ],
+  "consults": [
+    {
+      "engine": "divergent-thinker",
+      "op": "score",
+      "result": "unavailable",
+      "ref": "growth-mindmake:ideas, synthetic: not served"
+    }
+  ],
+  "lead": "who-decided",
+  "blind_passes": [
+    {
+      "reader": "fresh reader one",
+      "order": [
+        "who-decided",
+        "judgement-gap"
+      ],
+      "lead": "who-decided"
+    },
+    {
+      "reader": "fresh reader two",
+      "order": [
+        "judgement-gap",
+        "who-decided"
+      ],
+      "lead": "who-decided"
+    }
+  ],
+  "sheet_sha256": "20454f5216ea38747170b41921b7c7e34d1309b9d9231817a9e74d3748ccfc60"
+}
