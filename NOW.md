@@ -1,7 +1,7 @@
 ---
 repo: krishanraja/growth-mindmake
 product: Mindmake growth engine
-as_of: 2026-11-18
+as_of: 2026-11-24
 head: 5d3d7ff
 lifecycle: building
 production_url: none
@@ -22,7 +22,7 @@ Mindmake's growth engine: relationships, introductions, researched named outreac
 
 The leaders who buy Mindmake's paid proofs. This is the engine that fills Krish's calendar with the right conversations.
 
-## Where it is right now (as of 2026-11-18)
+## Where it is right now (as of 2026-11-24)
 
 <!-- north-star-state {"week_of":"2026-11-02","week_target":5,"current":0,"current_as_of":"2026-11-08","current_source":"growth-mindmake's latest live report to Control Center (objective good_meetings: meetings Krish marked good, each traced to its path, in the week it counts), read by Control Center","urgency":5,"urgency_reason":"under 40% of the week's target two weeks running (0% now)"} --> **North Star number: U5, stalled.** Good meetings a week, each marked good by Krish after it and traced to where it came from: 0, against 5 in the week of 2 November 2026, on the way to 20 by 30 November 2026. Everything else pauses unless it moves the number.
 
@@ -42,9 +42,9 @@ Lifecycle: building. The detail is in `README.md`.
 
 ## What is next and what is waiting on Krish
 
-- Next (2026-11-18): Krish's yes to merge mindmake-kits PR 2, upload the 1.1 downloads and merge the matching /parts copy together.
+- Next (2026-11-24): Krish confirms which Stripe account the brain-module checkout bills through and where a retainer is recorded, so Control Center can serve this engine a counts-only weekly read of each.
 - Waiting on Krish: signing this week's spec on his list (`gms-2026-11-09`) by 15 November, when it expires; the Google Analytics settings (key event `brief_submit`, custom dimensions `brief_route` and `brief_step`).
-- North Star check (2026-11-18): holds.
+- North Star check (2026-11-24): holds.
 
 ### Existing integration gates to retain
 

@@ -2,6 +2,13 @@
 
 The dated records of this engine's sessions, newest first. NOW.md names this file as its history log; scripts/check-drift.mjs fails when it is missing. The completion record stays docs/RELEASE.md.
 
+## 2026-11-24: older NOW.md lines
+
+Moved here word for word from NOW.md by scripts/trim-now.mjs on 2026-11-24, to keep the session pack under 36 KB; newest first.
+
+- The humour guard is wired: `npm run humour` reads pitches, openers and posts through Control Center's humour route on humour-engine's published plain prompt (hash checked), inside the 200-a-day cap, and flags any Mindmake copy that reads as a joke, since humour on Mindmake is Never; it sends nothing and the dispatch does not call it. Divergent-thinker was already wired cheapest first (score free, one map and one diverge a week, no retries), inside Control Center's caps, and is unchanged. Module and retainer sales stay blind: the revenue desk now carries them as two steps, each naming what Krish must connect. (2026-11-24)
+- 2026-11-24 src/lib/humour.mjs, scripts/humour.mjs, references/humour/submit-analysis.schema.json, src/control-center.mjs, config/revenue-desk.json, config/insight-desk.json, docs/OWNERS.md, pipeline/stage-conveyor.json, tests.
+
 ## 2026-11-23: older NOW.md lines
 
 Moved here word for word from NOW.md on 2026-11-23, to keep the session pack under 36 KB.
