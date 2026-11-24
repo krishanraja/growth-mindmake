@@ -101,7 +101,7 @@ export function buildSteps(markdown) {
 }
 
 /** The open build steps a pack names, first first: the step to do is always the first, so the rest are counted, not listed. */
-export const OPEN_LISTED = 8;
+export const OPEN_LISTED = 5;
 /** The open steps as the gate line says them: up to OPEN_LISTED by name, then how many more. Pure. */
 export function openList(open) {
   if (!open.length) return '';
@@ -130,7 +130,7 @@ export async function buildPack({ root, cards = [], report = undefined, specFile
   const parts = [];
   const add = (name, body) => parts.push({ name, text: `${MARK(name)}\n\n${body.trimEnd()}\n\n` });
 
-  const header = `# Session pack\n\nWritten by \`npm run pack\` for ${at} (London ${today}). It holds every mandatory load for a session in ${PACK_MAX} bytes or fewer: ${MANDATORY_PARTS.join(', ')}. Open anything else only when the task needs it: ${REFERENCES.join(', ')}.\n\n`;
+  const header = `# Session pack\n\nWritten by \`npm run pack\` for ${at} (London ${today}): every mandatory load, each part marked below, in ${PACK_MAX} bytes or fewer. Open anything else only when the task needs it: ${REFERENCES.join(', ')}.\n\n`;
   parts.push({ name: 'header', text: header });
   for (const f of ALWAYS) add(f, packed(f, await read(f)));
 

@@ -68,6 +68,7 @@ Each is in docs/RULINGS.md word for word, with his quotes; a line here says what
 - The makeyourmindup codes are for the member's own address (Ruling, Krish, 2026-11-20): a free code works only for an address on the loaded Substack member list, paid or founding for MAKEMYMINDUP and founding for MAKEMYMINDUP-FOREVER, and MAKEMYMINDUP is one use per person; no wall moves.
 - Codex uses the newest models, in a stated order (Ruling, Krish, 2026-11-20): Codex's own model list is the truth and is re-read at every dispatch; heavy work pins `gpt-6.2-astra`, and docs/codex/TASK-CARD.md orders the rest; no wall moves.
 - Maven is free workshops for lead generation only (Ruling, Krish, 2026-11-18): each lesson closes on the media channel or the lead magnet.
+- The insight desk (Rulings, Krish, 2026-11-24): the ai-harness `insight-desk` skill, a thin adapter here; an idea is a plan, never a send; no wall moves.
 
 ## Consult divergent-thinker at will
 

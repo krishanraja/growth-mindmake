@@ -1,6 +1,6 @@
 {
   "schema": "insight-desk-adapter/1",
-  "note": "The thin adapter for the ai-harness insight-desk skill (Ruling, Krish, 2026-11-24). The method is the skill, read live with get_skill; until it is admitted, from a local ai-harness checkout's candidates/insight-desk, else the desk is recorded as unavailable and this engine runs as before. Nothing here posts, sends or spends.",
+  "note": "The thin adapter for the ai-harness insight-desk skill (Ruling, Krish, 2026-11-24). The method is the skill, admitted in ai-harness as skills/insight-desk and read live with get_skill; with no connector, from a local ai-harness checkout's skills/insight-desk, else the desk is recorded as unavailable and this engine runs as before. Nothing here posts, sends or spends.",
   "skill": "insight-desk",
   "venture": "mindmake",
   "repo": "krishanraja/growth-mindmake",

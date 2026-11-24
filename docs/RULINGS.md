@@ -404,3 +404,12 @@ Asked to tighten the codes he said: "Make sure that only the email address of th
 - The list comes from Substack's own export and is reloaded to release waiting claims; until the first list is loaded the gate is off.
 - No wall moves: loading a list and every Substack email still wait for his yes.
 
+## The insight desk (Rulings, Krish, 2026-11-24)
+
+Asked how each growth engine should get a creative director, Krish chose the ai-harness `insight-desk` skill with a thin adapter in each growth engine, all five wired now, and no separate repository until the desk outgrows the skill. Asked whether to admit the skill, and whether to credit an outside source for its method, he wrote: "1. yes. 2. no."
+
+- The method is the ai-harness `insight-desk` skill, read live with Control Center `get_skill`. This engine keeps only its adapter: `config/insight-desk.json` and `src/lib/insight-sheet.mjs`.
+- A sheet holds at most three ideas, never copy, at most one a week, in ignored `runtime/insight/`. The idea Krish approves may become the optional angle for the research desk's openings; without a sheet every ask is as before.
+- Approving an idea approves a plan behind `strategy`, never a send. Every draft keeps its own gate.
+- No outside source is credited for the method, as the 15 November ruling that nothing from outside is named already holds.
+- No wall moves.
