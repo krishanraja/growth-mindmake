@@ -404,7 +404,6 @@ Asked to tighten the codes he said: "Make sure that only the email address of th
 - The list comes from Substack's own export and is reloaded to release waiting claims; until the first list is loaded the gate is off.
 - No wall moves: loading a list and every Substack email still wait for his yes.
 
-
 ## The insight desk (Rulings, Krish, 2026-11-24)
 
 Asked how each growth engine should get a creative director, Krish chose the ai-harness `insight-desk` skill with a thin adapter in each growth engine, all five wired now, and no separate repository until the desk outgrows the skill. Asked whether to admit the skill, and whether to credit an outside source for its method, he wrote: "1. yes. 2. no."
