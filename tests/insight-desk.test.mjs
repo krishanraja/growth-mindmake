@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { sheetSha, validateSheet, thesisEvidenceIds, adapterErrors, angleFromSheet, ANGLE_MAX } from '../src/lib/insight-sheet.mjs';
-import { openingQuery, openingRequest, opening, angleLean, QUERY_MAX } from '../src/stages/openings.mjs';
+import { sheetSha, validateSheet, thesisEvidenceIds, adapterErrors, angleFromSheet, angleWordErrors, ANGLE_MAX } from '../src/lib/insight-sheet.mjs';
+import { openingQuery, openingRequest, opening, angleLean, angleCarried, usableAngle, QUERY_MAX } from '../src/stages/openings.mjs';
 
 // The insight desk adapter (Ruling, Krish, 2026-11-24): the method is the ai-harness
 // skill; this engine keeps a thin adapter, a Node copy of the sheet's fixed rules and
@@ -66,6 +66,48 @@ test('the thesis may be argued only from evidence that may be stated as fact', (
   assert.ok(adapterErrors(funny, adapter, evidence).some(e => /humour/.test(e)));
   const other = copy(); other.consults[0].ref = 'growth-heartside:ideas';
   assert.ok(adapterErrors(other, adapter, evidence).some(e => /namespace/.test(e)));
+  // This engine's own root namespace and its other lanes are its own, never another's.
+  for (const ref of ['growth-mindmake', 'growth-mindmake:openers', 'growth-mindmake:ideas run 1']) {
+    const own = copy(); own.consults[0].ref = ref;
+    assert.ok(!adapterErrors(own, adapter, evidence).some(e => /namespace/.test(e)), ref);
+  }
+  const both = copy(); both.consults[0].ref = 'growth-mindmake:ideas and growth-legibility';
+  assert.ok(adapterErrors(both, adapter, evidence).some(e => /namespace/.test(e)));
+});
+
+test('a spaced hyphen used as a dash keeps words from being an angle', () => {
+  assert.deepEqual(angleWordErrors('Judgement decides the answer'), []);
+  assert.deepEqual(angleWordErrors('Ask who decided, a well-made question'), []);
+  for (const w of ['judgement - not tools', 'judgement -- not tools', '- who decided', 'who decided -', 'who decided \u2013 not tools', 'who decided!', 'see www.example.com'])
+    assert.ok(angleWordErrors(w).length, w);
+  const dashed = copy(); dashed.ideas.find(x => x.id === 'who-decided').claim = 'Ask who decided - not which tool';
+  assert.equal(angleFromSheet(reseal(dashed), { idea: 'who-decided', adapter, evidence }).angle, null);
+});
+
+test('openings screen any angle again and say when it was dropped', () => {
+  const p = { name: 'Sam Example', fact: 'They run planning for a synthetic retailer', purpose: 'invite', show: 'The Synthetic Show' };
+  // An angle that skipped angleFromSheet is screened here: dashes, links, length.
+  for (const bad of ['judgement - not tools', 'see https://example.com', 'Ask who decided!', 'y'.repeat(ANGLE_MAX + 1)]) {
+    assert.equal(usableAngle(bad), '', bad);
+    assert.equal(angleLean(bad), '');
+    assert.equal(openingQuery({ ...p, angle: bad }), openingQuery(p));
+  }
+  // angleFromSheet's own result is taken as it is.
+  const got = angleFromSheet(fixture, { idea: 'who-decided', adapter, evidence });
+  assert.equal(usableAngle(got), got.angle);
+  assert.equal(openingQuery({ ...p, angle: got }), openingQuery({ ...p, angle: got.angle }));
+  // The result says whether the ask carried the angle.
+  assert.equal(angleCarried({ ...p, angle: 'Ask who decided' }), true);
+  assert.equal(angleCarried({ ...p, angle: '' }), false);
+  const roomy = 'Ask who decided and why it matters to the people who will live with the answer every single day';
+  const tight = { ...p, purpose: 'catchup', name: 'Samantha Examplename', last: 'March 2024' };
+  assert.equal(angleCarried({ ...tight, angle: roomy }), false, 'an angle that leaves the fact too little room is dropped');
+  assert.equal(openingQuery({ ...tight, angle: roomy }), openingQuery(tight));
+  const card = { id: 'c1', name: 'Sam Example', role: 'Head of planning', company: 'Synthetic Retail', why: ['They run planning for a synthetic retailer and wrote about forecasting'] };
+  const withAngle = opening({ id: 'c1', name: 'Sam Example', card, why: card.why, research: [], required: true, purpose: 'invite', show: 'The Synthetic Show', angle: 'Ask who decided' });
+  assert.equal(typeof withAngle.angle_carried, 'boolean');
+  const without = opening({ id: 'c1', name: 'Sam Example', card, why: card.why, research: [], required: true, purpose: 'invite', show: 'The Synthetic Show' });
+  assert.ok(!('angle_carried' in without), 'without an angle the result is as before');
 });
 
 test('an angle comes only from the idea Krish approved, by name, on a sheet that holds', () => {

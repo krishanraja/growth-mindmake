@@ -256,7 +256,29 @@ export function adapterErrors(sheet, adapter, evidenceText) {
   const consults = Array.isArray(sheet?.consults) ? sheet.consults : [];
   if (adapter.humour?.allowed !== true && consults.some(c => c?.engine === 'humour-engine')) errors.push('humour: the adapter does not allow the humour engine; Mindmake never assumes humour');
   const ns = adapter.divergent?.namespace;
-  for (const c of consults.filter(c => c?.engine === 'divergent-thinker')) if (ns && typeof c.ref === 'string' && /growth-[a-z]+(?::[a-z-]+)?/.test(c.ref) && !c.ref.includes(ns)) errors.push(`divergent: a consult names another namespace than ${ns}`);
+  // A ref may name this engine's root namespace or any of its own lanes; any other growth-* namespace is another venture's.
+  const root = ns ? String(ns).split(':')[0] : null;
+  const ours = name => name === root || name.startsWith(`${root}:`);
+  for (const c of consults.filter(c => c?.engine === 'divergent-thinker')) {
+    if (!root || typeof c.ref !== 'string') continue;
+    const named = c.ref.match(/growth-[a-z]+(?::[a-z-]+)?/g) ?? [];
+    if (named.some(n => !ours(n))) errors.push(`divergent: a consult names another namespace than ${root}`);
+  }
+  return errors;
+}
+
+/**
+ * What keeps words from being an angle a draft could carry: a link, a dash
+ * (an en or em dash, or a hyphen standing alone between words), an
+ * exclamation mark, or the company Krish does not name (Ruling, Krish,
+ * 2026-11-18). Returns reasons, empty when the words may be carried. Pure.
+ */
+export function angleWordErrors(words) {
+  const w = clean(String(words ?? ''));
+  const errors = [];
+  if (/https?:|www\./i.test(w)) errors.push('its claim carries a link');
+  if (/[\u2013\u2014!]/.test(w) || /(?:^|\s)-+(?:\s|$)/.test(w)) errors.push('its claim carries a dash or an exclamation mark');
+  if (namesUnnamed(w)) errors.push('its claim names the company Krish does not name');
   return errors;
 }
 
@@ -280,10 +302,7 @@ export function angleFromSheet(sheet, { idea = null, adapter = null, evidence = 
   else {
     if (chosen.idea_level === 'measurement') reasons.push(`idea ${idea} is a measurement idea; it is no angle for words`);
     for (const k of TEST_KEYS) if (chosen.tests?.[k]?.result !== 'pass') reasons.push(`idea ${idea}: ${k} did not pass`);
-    const claim = clean(String(chosen.claim ?? ''));
-    if (/https?:|www\./i.test(claim)) reasons.push(`idea ${idea}: its claim carries a link`);
-    if (/[\u2013\u2014!]/.test(claim)) reasons.push(`idea ${idea}: its claim carries a dash or an exclamation mark`);
-    if (namesUnnamed(claim)) reasons.push(`idea ${idea}: its claim names the company Krish does not name`);
+    for (const r of angleWordErrors(chosen.claim)) reasons.push(`idea ${idea}: ${r}`);
   }
   if (reasons.length) return { angle: null, reasons };
   const claim = clean(chosen.claim).replace(/[.\s]+$/, '');

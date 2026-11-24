@@ -9,6 +9,7 @@ import { seal, clean } from '../guards.mjs';
 import { sentences, quotesClosed, brokenSentence, givenParts, JOINERS } from './rows.mjs';
 import { offerFindings } from './canon.mjs';
 import { namesUnnamed } from './unnamed.mjs';
+import { angleWordErrors, ANGLE_MAX } from '../lib/insight-sheet.mjs';
 
 /** The words a prompt may carry, under the desk's 400 characters. */
 export const QUERY_MAX = 400;
@@ -76,7 +77,21 @@ function personFact(c, why = []) {
  * the idea Krish approved (angleFromSheet, src/lib/insight-sheet.mjs). Empty
  * without one, so every ask is byte for byte as before. Pure.
  */
-export const angleLean = angle => (angle ? ` Lean toward this angle, adding no new fact: ${clean(String(angle)).replace(/[.\s]+$/, '')}.` : '');
+export const angleLean = angle => { const a = usableAngle(angle); return a ? ` Lean toward this angle, adding no new fact: ${a}.` : ''; };
+
+/**
+ * The angle as a desk ask may carry it: angleFromSheet's result or its
+ * `angle` string, screened again here by the same word rules and length cap,
+ * so an angle that did not come through angleFromSheet is never carried
+ * unscreened. Anything that fails is no angle (''). Pure.
+ */
+export function usableAngle(angle) {
+  const raw = angle && typeof angle === 'object' ? angle.angle : angle;
+  if (typeof raw !== 'string') return '';
+  const a = clean(raw).replace(/[.\s]+$/, '');
+  if (!a || a.length > ANGLE_MAX || angleWordErrors(a).length) return '';
+  return a;
+}
 
 /**
  * The question the desk answers: one opening sentence from one fact, in plain
@@ -84,8 +99,21 @@ export const angleLean = angle => (angle ? ` Lean toward this angle, adding no n
  * fact too little of the 400 characters, it asks as it would without one. Pure.
  */
 export function openingQuery({ name, fact, purpose = 'catchup', show = '', last = null, note = '', angle = '' }) {
-  if (angle) return askOpening({ name, fact, purpose, show, last, note, lean: angleLean(angle) }) ?? askOpening({ name, fact, purpose, show, last, note });
+  const lean = angleLean(angle);
+  if (lean) return askOpening({ name, fact, purpose, show, last, note, lean }) ?? askOpening({ name, fact, purpose, show, last, note });
   return askOpening({ name, fact, purpose, show, last, note });
+}
+
+/**
+ * Whether the ask for this fact carries the angle: false where there is no
+ * usable angle or where it left the fact too little room and was dropped, so
+ * an opening is never credited to an idea it did not carry. Pure.
+ */
+export function angleCarried({ name, fact, purpose = 'catchup', show = '', last = null, note = '', angle = '' }) {
+  const lean = angleLean(angle);
+  if (!lean) return false;
+  const q = openingQuery({ name, fact, purpose, show, last, note, angle });
+  return !!q && q.includes(lean);
 }
 
 function askOpening({ name, fact, purpose, show, last, note, lean = '' }) {
@@ -300,8 +328,10 @@ export function opening({ id, name, card, why = [], research, required = false, 
   // `angle` is the optional insight desk angle (angleLean); without it every ask is as before.
   const whole = text => { const q = openingQuery({ name, fact: text, purpose, show, last, angle }); return !!q && q.includes(String(text).replace(/[.!?\s]+$/, '')); };
   const { fact, source } = openingFactWithSource(card, why, company, whole);
-  if (!fact) return { request: null, sentence: null, hold: required ? 'opening_no_fact' : null };
-  const from = source ? { source } : {};
+  // With an angle given, the result says whether the ask carried it (angleCarried); without one it is as before.
+  const tag = angle ? { angle_carried: !!fact && angleCarried({ name, fact, purpose, show, last, angle }) } : {};
+  if (!fact) return { request: null, sentence: null, hold: required ? 'opening_no_fact' : null, ...tag };
+  const from = { ...(source ? { source } : {}), ...tag };
   const request = openingRequest({ id, name, fact, purpose, show, research, at, kind, last, angle });
   const validate = text => purpose === 'catchup' ? validCatchUp(text, { name, fact, last: last ?? '' }) : validOpening(text, { name, fact, show });
   const got = deskSentence({ request, research, at, validate, retryQuery: note => openingQuery({ name, fact, purpose, show, last, note, angle }) });
