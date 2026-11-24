@@ -1,0 +1,89 @@
+{
+  "schema": "revenue-desk-adapter/1",
+  "note": "The thin, read-only adapter for the revenue desk (Ruling, Krish, 2026-11-24: build the revenue desk as recommended, Mindmake first). The method lives in ai-harness and the judgement and clock in strategist; this file only says where this engine's money path is counted, which way is better, what each alarm requires and which offer terms bind. It holds no figures and no people. Nothing here sends, posts or spends, and the dispatch does not read it yet.",
+  "desk": "revenue-desk",
+  "venture": "mindmake",
+  "repo": "krishanraja/growth-mindmake",
+  "north_star": { "file": "docs/NORTH_STAR.md", "state_line": "NOW.md" },
+  "blind_rule": "A step whose count is unread, unserved, missing or older than 7 days is blind, recorded with its reason and never as zero. A venture with a blind step never reads on track.",
+  "band_status": "assumption, to calibrate from this engine's own history; binding only after Krish's yes",
+  "money_path": [
+    {
+      "id": "drafts_sent",
+      "step": "Drafts sent from his box and Jonny's",
+      "read": { "file": "src/stages/sends.mjs", "export": "sendCounts", "field": "krish.sent + jonny.sent", "source": "Control Center context records.drafts (protocol 1.9.0 and 1.23.0), passed by src/dispatch.mjs", "unserved": "sendCounts returns null; the step is blind" },
+      "better": "up",
+      "bands": { "warning": null, "breach": null, "calibrate_from": "the Sends line of this engine's recent reports (features.recent_reports), per London week" },
+      "alarm_action": "Propose as a plan behind strategy: send the drafts already waiting in his Gmail before any new lane or angle. Krish sends; the desk never does."
+    },
+    {
+      "id": "replied",
+      "step": "A reply to a sent draft",
+      "read": { "file": "src/stages/sends.mjs", "export": "sendCounts", "field": "krish.replied + jonny.replied", "source": "Control Center context records.drafts, replied_at", "unserved": "sendCounts returns null; the step is blind" },
+      "better": "up",
+      "bands": { "warning": null, "breach": null, "calibrate_from": "replies over sends in this engine's recent reports, sliced by box and by lane before averaging" },
+      "alarm_action": "Slice by box, lane and opening, then propose one 7-day test card on the weakest slice's words, through the copy doctrine and the voice check."
+    },
+    {
+      "id": "booked",
+      "step": "A reply that books a call",
+      "read": { "file": "src/stages/sends.mjs", "export": "sendCounts", "field": "krish.booked + jonny.booked", "source": "Control Center context records.drafts, booked_at", "unserved": "sendCounts returns null; the step is blind" },
+      "better": "up",
+      "bands": { "warning": null, "breach": null, "calibrate_from": "bookings over replies in this engine's recent reports" },
+      "alarm_action": "Propose as a plan: every reply that has not booked gets the one ask and his booking link in his next 20 minutes."
+    },
+    {
+      "id": "good_meeting",
+      "step": "A meeting he held and marked good",
+      "read": { "file": "src/stages/meetings.mjs", "export": "countGood", "field": "total", "source": "Control Center context meetings, read by readMeetings where features.meetings and protocol 1.10.0 are served", "unserved": "readMeetings is not called and taps are incomplete; the step is blind" },
+      "better": "up",
+      "bands": { "warning": null, "breach": null, "calibrate_from": "the good-meetings line of each week against the ladder in docs/NORTH_STAR.md" },
+      "alarm_action": "If meetings were held but not tapped, the fix is his taps, not a new lane. Otherwise hand the stall to the momentum hook below."
+    },
+    {
+      "id": "qualified",
+      "step": "A held conversation Krish confirmed as qualified",
+      "read": { "file": "src/stages/scorecard.mjs", "export": "qualified", "field": "all five confirmations", "confirmations": ["decision_authority", "owned_problem", "active_need", "offer_fit", "next_step_agreed"], "source": "snapshot deals[].qualification, confirmed_by krish after call_taken_at", "unserved": "deals that do not cover the window; the step is blind" },
+      "better": "up",
+      "bands": { "warning": null, "breach": null, "calibrate_from": "scorecard.mjs qualified_conversations per London week" },
+      "alarm_action": "Name which of the five confirmations failed most often on held calls, and propose one change to who is reached, never to the confirmation rule."
+    },
+    {
+      "id": "paid_proof",
+      "step": "A paid proof",
+      "read": { "file": "src/stages/scorecard.mjs", "export": "scorecard", "field": "first_month.paid_proofs", "source": "snapshot deals[].pilot_paid_at, from the recorded activation date", "unserved": "first_month is null until the activation date is recorded; the step is blind" },
+      "better": "up",
+      "bands": { "warning": null, "breach": null, "calibrate_from": "paid proofs per qualified conversation, once any are recorded" },
+      "alarm_action": "With a qualified buyer and no paid proof, propose the paid proof next step for Krish (src/stages/report.mjs paid_proof_next_step). The price stays private."
+    },
+    {
+      "id": "module_or_retainer",
+      "step": "A brain module bought, or a retainer",
+      "read": null,
+      "blind_reason": "Not read by this engine. Module sales are kept by the mindmake repository's checkout and retainers in Control Center's private pipeline; until a read exists here, the step is blind by design.",
+      "better": "up",
+      "bands": { "warning": null, "breach": null, "calibrate_from": "none until a read exists" },
+      "alarm_action": "Restore the reading: ask the owner of the sale record for a counts-only read. Never estimate it."
+    }
+  ],
+  "throughput": {
+    "actual": { "file": "src/stages/sends.mjs", "export": "sendCounts", "field": "sent across both boxes over the London week's days", "waiting_field": "waiting" },
+    "assumed": { "file": "docs/STRATEGY.md", "phrase": "sends a day between his box and Jonny's", "label": "a working assumption, not a forecast" },
+    "first_check": "Before any other constraint, compare drafts actually sent per day with the assumed figure in docs/STRATEGY.md. If drafts sit unsent, the 14-day play is to send the drafts already waiting, proposed as a plan; Krish sends."
+  },
+  "stall_rule": {
+    "hook": { "file": "src/stages/momentum.mjs", "exports": ["starvedLanes", "poolFlat", "STARVED_RUNS"] },
+    "note": "Row stalls extend the momentum module, with thresholds back-tested on this engine's own history; no second stall rule is written here.",
+    "revival": { "file": "src/stages/pilots.mjs", "export": "readDeals", "rule": "Gone-quiet revival only for people who engaged, as catch-ups where features.deals_detail is served, inside the catch-up ruling.", "ruling": "A catch-up is written as a person writes one (Ruling, Krish, 2026-11-06)" }
+  },
+  "offer_terms": [
+    { "id": "codes", "rule": "MAKEMYMINDUP is one free brain module per person and MAKEMYMINDUP-FOREVER is every module; both are permanent, and any other code that takes the whole price fails closed.", "ruling": "Brain module checkout, codes and install (Rulings, Krish, 2026-11-20)" },
+    { "id": "codes_scope", "rule": "A free code works only for an address on the loaded makeyourmindup member list: paid or founding members for MAKEMYMINDUP, founding members for MAKEMYMINDUP-FOREVER; MAKEMYMINDUP is one use per normalised address.", "ruling": "The makeyourmindup codes are for the member's own address (Ruling, Krish, 2026-11-20)" },
+    { "id": "public_price", "rule": "The brain modules show the public price the lead generation ruling names, as a carve-out; no other price is public.", "ruling": "The lead generation plan of 16 November (Rulings, Krish, 2026-11-16)", "ruling_phrase": "the kits show $59 publicly as a carve-out" },
+    { "id": "paid_proof_price", "rule": "The paid proof's price stays private: never in this repository, a log, a report or a public draft.", "ruling": "The lead generation plan of 16 November (Rulings, Krish, 2026-11-16)", "ruling_phrase": "the paid proof's price stays private" },
+    { "id": "parts_not_tools", "rule": "Modules are parts of a leader's AI brain, never standalone tools.", "ruling": "Parts of your AI brain (Ruling, Krish, 2026-11-17)" }
+  ],
+  "sheets": "runtime/revenue/",
+  "approval": "stage plan behind strategy, through the daily dispatch's proposal path; approving a test approves a plan only, and anything it produces keeps its own go_live",
+  "spend_authority": "none"
+}
