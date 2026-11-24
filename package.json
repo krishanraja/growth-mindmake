@@ -35,6 +35,7 @@
     "check:switch": "node scripts/check-switch.mjs",
     "measure-20x": "node scripts/measure-20x.mjs",
     "ads-audit": "node scripts/ads-audit.mjs",
-    "divergent": "node scripts/divergent.mjs"
+    "divergent": "node scripts/divergent.mjs",
+    "humour": "node scripts/humour.mjs"
   }
 }

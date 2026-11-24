@@ -6,7 +6,7 @@
   "repo": "krishanraja/growth-mindmake",
   "north_star": { "file": "docs/NORTH_STAR.md", "state_line": "NOW.md" },
   "taste": { "read": "get_approved_taste", "repo": "krishanraja/growth-mindmake", "venture": "mindmake", "empty_means": "none yet; never invent one" },
-  "humour": { "allowed": false, "source": "get_approved_taste", "rule": "never assumed: only where Krish's approved taste for mindmake allows it does a later change set this true; no humour engine call and no comedy method otherwise" },
+  "humour": { "allowed": false, "source": "get_approved_taste", "rule": "never assumed: only where Krish's approved taste for mindmake allows it does a later change set this true; no humour engine call and no comedy method otherwise", "guard": "outside the desk, npm run humour reads Mindmake copy for a joke, since humour on Mindmake is Never (src/lib/humour.mjs); a guard that flags, never a comedy method or an idea source" },
   "divergent": { "namespace": "growth-mindmake:ideas", "command": "npm run divergent -- score --lane ideas --problem TEXT --ideas-file FILE --obvious-file FILE", "free_ops": ["score", "record"], "paid_ops_inside_caps": ["map", "provoke", "challenge"] },
   "thesis": { "required": true, "evidence": "docs/EVIDENCE.md", "line": "AI makes strong judgement stronger and weak judgement weaker. Mindmake builds the strong kind." },
   "floor": ["docs/playbooks/10-copy-and-offer-doctrine.md", "docs/EVIDENCE.md", "docs/RULINGS.md"],

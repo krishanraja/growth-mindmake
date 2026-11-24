@@ -196,6 +196,13 @@ export function engineClient(base, token, { fetcher = fetch, slug = ENGINE_SLUG,
       if (!value || value.ok !== true) throw new Error('Control Center did not answer the divergent consult');
       return value;
     },
+    /** features.humour (2026-11-17): one humour-engine reading through Control Center's humour route, on a published
+     *  prompt only, capped at 200 a day. A reading only: it approves, holds and sends nothing (src/lib/humour.mjs). */
+    async humour(call_) {
+      const value = await call('POST', 'humour', call_, undefined, Math.max(timeoutMs, 150000));
+      if (!value || value.ok !== true || !value.payload || typeof value.payload !== 'object') throw new Error('Control Center returned no humour reading');
+      return value;
+    },
     async decisions(since) {
       const value = await call('GET', `decisions?since=${encodeURIComponent(since)}`);
       if (!value || value.ok !== true || !Array.isArray(value.decisions)) throw new Error('Control Center returned no decisions');
