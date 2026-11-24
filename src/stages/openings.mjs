@@ -9,6 +9,7 @@ import { seal, clean } from '../guards.mjs';
 import { sentences, quotesClosed, brokenSentence, givenParts, JOINERS } from './rows.mjs';
 import { offerFindings } from './canon.mjs';
 import { namesUnnamed } from './unnamed.mjs';
+import { angleWordErrors, ANGLE_MAX } from '../lib/insight-sheet.mjs';
 
 /** The words a prompt may carry, under the desk's 400 characters. */
 export const QUERY_MAX = 400;
@@ -71,12 +72,55 @@ function personFact(c, why = []) {
   return '';
 }
 
-/** The question the desk answers: one opening sentence from one fact, in plain words. Pure. */
-export function openingQuery({ name, fact, purpose = 'catchup', show = '', last = null, note = '' }) {
+/**
+ * The words that ask the desk to lean on an insight desk angle: the claim of
+ * the idea Krish approved (angleFromSheet, src/lib/insight-sheet.mjs). Empty
+ * without one, so every ask is byte for byte as before. Pure.
+ */
+export const angleLean = angle => { const a = usableAngle(angle); return a ? ` Lean toward this angle, adding no new fact: ${a}.` : ''; };
+
+/**
+ * The angle as a desk ask may carry it: angleFromSheet's result or its
+ * `angle` string, screened again here by the same word rules and length cap,
+ * so an angle that did not come through angleFromSheet is never carried
+ * unscreened. Anything that fails is no angle (''). Pure.
+ */
+export function usableAngle(angle) {
+  const raw = angle && typeof angle === 'object' ? angle.angle : angle;
+  if (typeof raw !== 'string') return '';
+  const a = clean(raw).replace(/[.\s]+$/, '');
+  if (!a || a.length > ANGLE_MAX || angleWordErrors(a).length) return '';
+  return a;
+}
+
+/**
+ * The question the desk answers: one opening sentence from one fact, in plain
+ * words. With an `angle` it asks the desk to lean on it; where that leaves the
+ * fact too little of the 400 characters, it asks as it would without one. Pure.
+ */
+export function openingQuery({ name, fact, purpose = 'catchup', show = '', last = null, note = '', angle = '' }) {
+  const lean = angleLean(angle);
+  if (lean) return askOpening({ name, fact, purpose, show, last, note, lean }) ?? askOpening({ name, fact, purpose, show, last, note });
+  return askOpening({ name, fact, purpose, show, last, note });
+}
+
+/**
+ * Whether the ask for this fact carries the angle: false where there is no
+ * usable angle or where it left the fact too little room and was dropped, so
+ * an opening is never credited to an idea it did not carry. Pure.
+ */
+export function angleCarried({ name, fact, purpose = 'catchup', show = '', last = null, note = '', angle = '' }) {
+  const lean = angleLean(angle);
+  if (!lean) return false;
+  const q = openingQuery({ name, fact, purpose, show, last, note, angle });
+  return !!q && q.includes(lean);
+}
+
+function askOpening({ name, fact, purpose, show, last, note, lean = '' }) {
   const first = givenParts(name)[0] ?? 'them';
-  if (purpose === 'catchup') return catchUpQuery({ first, fact, last, note });
+  if (purpose === 'catchup') return catchUpQuery({ first, fact, last, note, lean });
   const what = purpose === 'invite' ? `why ${first} would make a good conversation for ${show || 'the show'}` : `the opening line of a catch-up email to ${first}`;
-  const frame = f => `Write one sentence for ${what}, from only this fact: ${f}. Say to them, as "you", one thing they did or said. Plain words, under 25 words, no dashes, praise, question, sources or new names. Reply with the sentence only.${note}`;
+  const frame = f => `Write one sentence for ${what}, from only this fact: ${f}. Say to them, as "you", one thing they did or said. Plain words, under 25 words, no dashes, praise, question, sources or new names.${lean} Reply with the sentence only.${note}`;
   // The fact is cut at a word to what the desk's 400 characters leave it.
   const room = QUERY_MAX - frame('').length;
   const q = room >= 40 ? frame(cut(String(fact ?? '').replace(/[.!?\s]+$/, ''), room)) : '';
@@ -92,8 +136,8 @@ export const BUILDING_LINE = "I'm building Mindmake, AI that works the way a lea
  * I thought of you. Would you be open to a quick chat?'"): the whole note in
  * that order, from one fact, never their career told back to them. Pure.
  */
-export function catchUpQuery({ first, fact, last = null, note = '' }) {
-  const frame = f => `Catch-up email from Krish to ${first}${last ? `, last in touch ${last}` : ''}. Four short sentences: it's been a while. I'm reaching out because ${BUILDING_LINE.replace(/\.$/, '')}, and want views from people I rate. Why I thought of you, in my words, from only this: ${f}. Would you be open to a quick chat? Warm, plain${note ? '.' : ', no quotes, no career recap.'}${note}`;
+export function catchUpQuery({ first, fact, last = null, note = '', lean = '' }) {
+  const frame = f => `Catch-up email from Krish to ${first}${last ? `, last in touch ${last}` : ''}. Four short sentences: it's been a while. I'm reaching out because ${BUILDING_LINE.replace(/\.$/, '')}, and want views from people I rate. Why I thought of you, in my words, from only this: ${f}.${lean} Would you be open to a quick chat? Warm, plain${note ? '.' : ', no quotes, no career recap.'}${note}`;
   const room = QUERY_MAX - frame('').length;
   const q = room >= 40 ? frame(cut(String(fact ?? '').replace(/[.!?\s]+$/, ''), room)) : '';
   return q && q.length <= QUERY_MAX ? q : null;
@@ -146,9 +190,9 @@ const londonDay = at => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Lon
  * answered nothing and charged nothing), the same words are asked again under
  * the London day, at most once a day. Pure.
  */
-export function openingRequest({ id, name, fact, purpose = 'catchup', show = '', research = [], at = null, kind = 'question', last = null, query: given = null }) {
+export function openingRequest({ id, name, fact, purpose = 'catchup', show = '', research = [], at = null, kind = 'question', last = null, query: given = null, angle = '' }) {
   // A warm buyer's note (purpose buyer or intro) brings its own words (buyerQuery); every other purpose is built here.
-  const query = given ?? openingQuery({ name, fact, purpose, show, last });
+  const query = given ?? openingQuery({ name, fact, purpose, show, last, angle });
   if (!query) return null;
   // A write is keyed apart from a question with the same words: the desk refuses one id asked two ways.
   const base = `open:${id}:${seal(kind === 'write' ? { query, kind } : { query }).slice(0, 12)}`;
@@ -278,16 +322,19 @@ export function validOpening(text, { name = '', fact = '', show = '' } = {}) {
  * in, or one that fails the rules, holds the email. Elsewhere (a dry run, a
  * test, a desk that is closed) the caller's own sentence stands. Pure.
  */
-export function opening({ id, name, card, why = [], research, required = false, purpose = 'catchup', show = '', at = null, kind = 'question', last = null, company = [] }) {
+export function opening({ id, name, card, why = [], research, required = false, purpose = 'catchup', show = '', at = null, kind = 'question', last = null, company = [], angle = '' }) {
   // A fact their company's own website says comes only where the person's own give none (`company`, src/stages/company.mjs).
   // A company fact is taken whole where one fits the desk's 400 characters, as a person's is cut to fit.
-  const whole = text => { const q = openingQuery({ name, fact: text, purpose, show, last }); return !!q && q.includes(String(text).replace(/[.!?\s]+$/, '')); };
+  // `angle` is the optional insight desk angle (angleLean); without it every ask is as before.
+  const whole = text => { const q = openingQuery({ name, fact: text, purpose, show, last, angle }); return !!q && q.includes(String(text).replace(/[.!?\s]+$/, '')); };
   const { fact, source } = openingFactWithSource(card, why, company, whole);
-  if (!fact) return { request: null, sentence: null, hold: required ? 'opening_no_fact' : null };
-  const from = source ? { source } : {};
-  const request = openingRequest({ id, name, fact, purpose, show, research, at, kind, last });
+  // With an angle given, the result says whether the ask carried it (angleCarried); without one it is as before.
+  const tag = angle ? { angle_carried: !!fact && angleCarried({ name, fact, purpose, show, last, angle }) } : {};
+  if (!fact) return { request: null, sentence: null, hold: required ? 'opening_no_fact' : null, ...tag };
+  const from = { ...(source ? { source } : {}), ...tag };
+  const request = openingRequest({ id, name, fact, purpose, show, research, at, kind, last, angle });
   const validate = text => purpose === 'catchup' ? validCatchUp(text, { name, fact, last: last ?? '' }) : validOpening(text, { name, fact, show });
-  const got = deskSentence({ request, research, at, validate, retryQuery: note => openingQuery({ name, fact, purpose, show, last, note }) });
+  const got = deskSentence({ request, research, at, validate, retryQuery: note => openingQuery({ name, fact, purpose, show, last, note, angle }) });
   if (got.state === 'ok') return { request: null, sentence: got.sentence, hold: null, ...from };
   if (got.state === 'waiting') return { request: required ? got.request : null, sentence: null, hold: required ? 'opening_waiting' : null, ...(got.retry ? { reason: got.retry } : {}), ...from };
   return { request: null, sentence: null, hold: required ? 'opening_failed' : null, reason: got.reason, ...from };

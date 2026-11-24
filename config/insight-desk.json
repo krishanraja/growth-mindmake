@@ -1,0 +1,18 @@
+{
+  "schema": "insight-desk-adapter/1",
+  "note": "The thin adapter for the ai-harness insight-desk skill (Ruling, Krish, 2026-11-24). The method is the skill, read live with get_skill; until it is admitted, from a local ai-harness checkout's candidates/insight-desk, else the desk is recorded as unavailable and this engine runs as before. Nothing here posts, sends or spends.",
+  "skill": "insight-desk",
+  "venture": "mindmake",
+  "repo": "krishanraja/growth-mindmake",
+  "north_star": { "file": "docs/NORTH_STAR.md", "state_line": "NOW.md" },
+  "taste": { "read": "get_approved_taste", "repo": "krishanraja/growth-mindmake", "venture": "mindmake", "empty_means": "none yet; never invent one" },
+  "humour": { "allowed": false, "source": "get_approved_taste", "rule": "never assumed: only where Krish's approved taste for mindmake allows it does a later change set this true; no humour engine call and no comedy method otherwise" },
+  "divergent": { "namespace": "growth-mindmake:ideas", "command": "npm run divergent -- score --lane ideas --problem TEXT --ideas-file FILE --obvious-file FILE", "free_ops": ["score", "record"], "paid_ops_inside_caps": ["map", "provoke", "challenge"] },
+  "thesis": { "required": true, "evidence": "docs/EVIDENCE.md", "line": "AI makes strong judgement stronger and weak judgement weaker. Mindmake builds the strong kind." },
+  "floor": ["docs/playbooks/10-copy-and-offer-doctrine.md", "docs/EVIDENCE.md", "docs/RULINGS.md"],
+  "blind_reader": "npm run reader",
+  "sheets": "runtime/insight/",
+  "approval": "stage plan behind strategy, through the daily dispatch's proposal path; approving an idea approves a plan only",
+  "hand_off": "the approved idea's claim, as the optional angle for src/stages/openings.mjs (angleFromSheet in src/lib/insight-sheet.mjs); every draft keeps its own gate",
+  "cadence": "at most one sheet a week"
+}
