@@ -1,0 +1,389 @@
+{
+ "$defs": {
+  "CandidateAttempt": {
+   "additionalProperties": false,
+   "properties": {
+    "evidence": {
+     "items": {
+      "$ref": "#/$defs/QuoteRef"
+     },
+     "title": "Evidence",
+     "type": "array"
+    },
+    "limitations": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Limitations",
+     "type": "array"
+    },
+    "status": {
+     "enum": [
+      "reported",
+      "supported_inference",
+      "not_established"
+     ],
+     "title": "Status",
+     "type": "string"
+    }
+   },
+   "required": [
+    "status"
+   ],
+   "title": "CandidateAttempt",
+   "type": "object"
+  },
+  "CandidateIntent": {
+   "additionalProperties": false,
+   "properties": {
+    "basis": {
+     "enum": [
+      "direct_declaration",
+      "second_hand_report",
+      "inference"
+     ],
+     "title": "Basis",
+     "type": "string"
+    },
+    "statement": {
+     "title": "Statement",
+     "type": "string"
+    },
+    "whose_intent": {
+     "title": "Whose Intent",
+     "type": "string"
+    }
+   },
+   "required": [
+    "whose_intent",
+    "basis",
+    "statement"
+   ],
+   "title": "CandidateIntent",
+   "type": "object"
+  },
+  "CandidateInterpretation": {
+   "additionalProperties": false,
+   "properties": {
+    "alternatives": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Alternatives",
+     "type": "array"
+    },
+    "connecting_logic": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Connecting Logic"
+    },
+    "context_claims": {
+     "items": {
+      "$ref": "#/$defs/ContextClaim"
+     },
+     "title": "Context Claims",
+     "type": "array"
+    },
+    "counterevidence": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Counterevidence",
+     "type": "array"
+    },
+    "evidence": {
+     "items": {
+      "$ref": "#/$defs/QuoteRef"
+     },
+     "title": "Evidence",
+     "type": "array"
+    },
+    "expectations": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Expectations",
+     "type": "array"
+    },
+    "id": {
+     "title": "Id",
+     "type": "string"
+    },
+    "is_main": {
+     "default": false,
+     "title": "Is Main",
+     "type": "boolean"
+    },
+    "labels_by_axis": {
+     "additionalProperties": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
+     },
+     "title": "Labels By Axis",
+     "type": "object"
+    },
+    "literal_reading": {
+     "title": "Literal Reading",
+     "type": "string"
+    },
+    "model_score": {
+     "anyOf": [
+      {
+       "maximum": 1,
+       "minimum": 0,
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Model Score"
+    },
+    "reported_intent": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/CandidateIntent"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null
+    },
+    "structure_kind": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Structure Kind"
+    },
+    "supported_reading": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Supported Reading"
+    },
+    "target": {
+     "$ref": "#/$defs/CandidateTarget"
+    },
+    "triggers": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Triggers",
+     "type": "array"
+    }
+   },
+   "required": [
+    "id",
+    "literal_reading"
+   ],
+   "title": "CandidateInterpretation",
+   "type": "object"
+  },
+  "CandidateTarget": {
+   "additionalProperties": false,
+   "properties": {
+    "perspective": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Perspective"
+    },
+    "subject": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Subject"
+    },
+    "target": {
+     "default": "unknown",
+     "enum": [
+      "self",
+      "other_person",
+      "behaviour",
+      "situation",
+      "institution",
+      "convention",
+      "fictional_person",
+      "none",
+      "unknown"
+     ],
+     "title": "Target",
+     "type": "string"
+    }
+   },
+   "title": "CandidateTarget",
+   "type": "object"
+  },
+  "ContextClaim": {
+   "additionalProperties": false,
+   "properties": {
+    "claim": {
+     "title": "Claim",
+     "type": "string"
+    },
+    "required": {
+     "default": false,
+     "title": "Required",
+     "type": "boolean"
+    },
+    "source_kind": {
+     "enum": [
+      "linguistic",
+      "topical",
+      "cultural",
+      "interpersonal",
+      "earlier_turn",
+      "visual",
+      "acoustic",
+      "provided_fact"
+     ],
+     "title": "Source Kind",
+     "type": "string"
+    },
+    "source_ref": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Source Ref"
+    }
+   },
+   "required": [
+    "claim",
+    "source_kind"
+   ],
+   "title": "ContextClaim",
+   "type": "object"
+  },
+  "QuoteRef": {
+   "additionalProperties": false,
+   "properties": {
+    "occurrence": {
+     "anyOf": [
+      {
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Occurrence"
+    },
+    "quote": {
+     "minLength": 1,
+     "title": "Quote",
+     "type": "string"
+    },
+    "segment_id": {
+     "title": "Segment Id",
+     "type": "string"
+    },
+    "start": {
+     "anyOf": [
+      {
+       "minimum": 0,
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Start"
+    }
+   },
+   "required": [
+    "segment_id",
+    "quote"
+   ],
+   "title": "QuoteRef",
+   "type": "object"
+  }
+ },
+ "additionalProperties": false,
+ "properties": {
+  "comic_reading": {
+   "enum": [
+    "supported",
+    "not_supported",
+    "ambiguous",
+    "insufficient_context"
+   ],
+   "title": "Comic Reading",
+   "type": "string"
+  },
+  "humour_attempt": {
+   "$ref": "#/$defs/CandidateAttempt"
+  },
+  "interpretations": {
+   "items": {
+    "$ref": "#/$defs/CandidateInterpretation"
+   },
+   "maxItems": 6,
+   "title": "Interpretations",
+   "type": "array"
+  },
+  "limitations": {
+   "items": {
+    "type": "string"
+   },
+   "title": "Limitations",
+   "type": "array"
+  },
+  "missing_context": {
+   "items": {
+    "type": "string"
+   },
+   "title": "Missing Context",
+   "type": "array"
+  }
+ },
+ "required": [
+  "comic_reading",
+  "humour_attempt"
+ ],
+ "title": "Candidate",
+ "type": "object"
+}

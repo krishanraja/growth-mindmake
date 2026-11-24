@@ -31,11 +31,11 @@ test('the adapter parses, names this engine and holds no authority', () => {
 
 test('the money path runs from drafts sent to a module or retainer, and every read it names exists', async () => {
   const ids = adapter.money_path.map(s => s.id);
-  assert.deepEqual(ids, ['drafts_sent', 'replied', 'booked', 'good_meeting', 'qualified', 'paid_proof', 'module_or_retainer']);
+  assert.deepEqual(ids, ['drafts_sent', 'replied', 'booked', 'good_meeting', 'qualified', 'paid_proof', 'module_sale', 'retainer']);
   for (const s of adapter.money_path) {
     assert.ok(['up', 'down'].includes(s.better), `${s.id} has a better direction`);
     assert.ok(typeof s.alarm_action === 'string' && s.alarm_action.length > 0, `${s.id} has one required action`);
-    if (s.read === null) { assert.match(s.blind_reason ?? '', /blind/, `${s.id} says why it is blind`); continue; }
+    if (s.read === null) { assert.match(s.blind_reason ?? '', /blind/i, `${s.id} says why it is blind`); assert.match(s.connect ?? '', /^Krish: /, `${s.id} says what Krish must connect`); continue; }
     await assertExport(s.read.file, s.read.export);
     assert.ok(s.read.unserved, `${s.id} says what an unserved read means`);
   }

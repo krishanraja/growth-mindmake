@@ -57,13 +57,24 @@
       "alarm_action": "With a qualified buyer and no paid proof, propose the paid proof next step for Krish (src/stages/report.mjs paid_proof_next_step). The price stays private."
     },
     {
-      "id": "module_or_retainer",
-      "step": "A brain module bought, or a retainer",
+      "id": "module_sale",
+      "step": "A brain module bought",
       "read": null,
-      "blind_reason": "Not read by this engine. Module sales are kept by the mindmake repository's checkout and retainers in Control Center's private pipeline; until a read exists here, the step is blind by design.",
+      "blind_reason": "Blind: no count of module sales reaches this engine. Control Center pulls the Stripe accounts into its revenue tables but serves no module count in this engine's context; Control Center reads and reports, so the count is Control Center's to serve, never estimated here.",
+      "connect": "Krish: confirm the brain-module checkout on mindmake.co bills through one of the Stripe accounts Control Center syncs, then have Control Center serve this engine a read-only weekly count of brain-module checkouts paid (free-code redemptions counted apart, no names, no amounts) in its context under its own feature flag. This engine then reads it as counts only; money stays the word private.",
       "better": "up",
       "bands": { "warning": null, "breach": null, "calibrate_from": "none until a read exists" },
-      "alarm_action": "Restore the reading: ask the owner of the sale record for a counts-only read. Never estimate it."
+      "alarm_action": "Restore the reading: ask Control Center, the owner of the sale record, for a counts-only read. Never estimate it."
+    },
+    {
+      "id": "retainer",
+      "step": "A retainer agreed",
+      "read": null,
+      "blind_reason": "Blind: Control Center serves this engine its open Pipeline deals and the parked or lost ones (records.deals, records.stale_deals), never a won deal or a retainer, so no retainer can be counted here.",
+      "connect": "Krish: say where a retainer is recorded (a won Pipeline deal, or a recurring Stripe subscription), then have Control Center serve this engine a read-only weekly count of retainers agreed from that record (no names, no amounts). Until then the step stays blind.",
+      "better": "up",
+      "bands": { "warning": null, "breach": null, "calibrate_from": "none until a read exists" },
+      "alarm_action": "Restore the reading: ask Control Center for a counts-only read of retainers agreed. Never estimate it."
     }
   ],
   "throughput": {
